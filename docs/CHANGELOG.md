@@ -2,6 +2,38 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.0.0] — 2026-09-03 · Fase 2: Convertidor SIAGRI + textos del shell
+### Textos y nombres (solo presentación)
+- Encabezado superior → "Departamento de Negocios de Caña" (identifica el área responsable).
+- Texto corporativo (eyebrow) → "Compañía Azucarera del Sur, S.A." (se quitó el prefijo "CASUR").
+- Título principal del home → "Negocios de Caña CASUR".
+- EM-CT: tooltip "Edgardo Madrigal · Carlos Tijerino · Desarrollo" (sin cambios visuales).
+- Nombres de módulos (isotipos sin cambios): Producción→"Maestro de Suertes";
+  "TCH y Visitas"→"Estimador TCH"; "Riego Ejecutado"→"Riegos Ejecutados";
+  "Seguimiento de Insumos"→"Insumos Entregados Productores"; "Inventario"→"Inventario Pansaco";
+  "Seguimiento de Labores"→"Seguimiento de Labores · Prefacturas" (regla Nómina/Prefactura intacta).
+- Manifest/PWA sin cambios: sigue instalándose como "Negocios de Caña". Repositorio sin renombrar.
+
+### Fase 2 — Convertidor SIAGRI (integración real)
+- Integrada la versión **1.1.0** de `Convertidor_Cronologico_Oficial` en `master/convertidor/`
+  (copia; el repositorio fuente no se tocó).
+- Se **neutralizó** su registro de Service Worker (`js/app.js`) y su `<link rel="manifest">`;
+  se eliminaron de la copia `service-worker.js` y `manifest.json`. Un solo SW raíz, una sola PWA.
+- Se ejecuta en su propio **iframe** (patrón de aislamiento). Acceso: Home → Centro Maestro →
+  contraseña `15102171011` → Administrador SIAGRI. No aparece como tarjeta del home.
+- Conservado: carga Excel SIAGRI, procesamiento local, validaciones, comparación/conciliación,
+  generación Excel, hojas **REPORTE** y **Productores**, reglas de edad/renovación, `Hac-Sue`,
+  Tipo de Riego, registros inactivos, auditoría, exportaciones, sin backend, librerías.
+- Almacenamiento `casur-master-validations-v1` **sin renombrar** (persistencia verificada).
+- **Regla Sucuya (Cod. 16)**: intacta. Prueba de regresión explícita en
+  `docs/regression/` → resultado **Cod 16 = 0** en el Excel exportado.
+
+### Verificado (Fase 2)
+- Textos/nombres nuevos en home; Convertidor real cargado en iframe; Sucuya código 16 = 0;
+  export con REPORTE + Productores; persistencia tras reabrir; offline del Convertidor;
+  **un solo Service Worker** (raíz); **una sola PWA** (0 manifest en el iframe);
+  responsive móvil/PC; consola limpia (shell + iframe). Sin regresiones.
+
 ## [1.0.0] — 2026-09-03 · Fase 1.2: Identidad visual definitiva
 ### Cambiado (solo visual, sin tocar funcionalidad)
 - **Nombre visible** de la app → "Negocios de Caña" (header, masthead, `<title>`).

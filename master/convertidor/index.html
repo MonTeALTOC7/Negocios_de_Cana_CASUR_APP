@@ -1,51 +1,230 @@
-<!DOCTYPE html>
-<html lang="es-NI">
+<!doctype html>
+<html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Administrador SIAGRI · Negocios de Caña CASUR</title>
-<style>
-  :root { color-scheme: dark; }
-  * { box-sizing: border-box; }
-  html,body { margin:0; height:100%; }
-  body {
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    color:#EAF2E4; display:grid; place-items:center; padding:24px;
-    background:
-      radial-gradient(120% 60% at 50% -10%, #12365F 0%, transparent 60%),
-      linear-gradient(180deg, #0A1E38 0%, #081A33 100%);
-  }
-  .box { max-width: 460px; text-align:center; }
-  .tile {
-    width:76px; height:76px; margin:0 auto 18px; border-radius:20px;
-    display:grid; place-items:center;
-    background: radial-gradient(120% 120% at 30% 20%, #6FD8C466, transparent 70%), #0E2A4A;
-    border:1px solid #6FD8C466; box-shadow:0 10px 24px rgba(0,0,0,.4);
-    color:#6FD8C4;
-  }
-  .tile svg { width:38px; height:38px; }
-  h1 { font-size:1.5rem; letter-spacing:-.02em; margin:0 0 6px; }
-  p.sub { color:#B7C6D6; margin:0 0 18px; }
-  .badge {
-    display:inline-block; padding:7px 14px; border-radius:999px;
-    background:#0F2A4C; border:1px solid rgba(155,190,225,.18);
-    color:#9FE06B; font-size:.85rem; font-weight:600;
-  }
-  .note { margin-top:22px; color:#7C90A6; font-size:.82rem; line-height:1.5; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#126b38">
+  <meta name="description" content="Valida SIAGRI, analiza cambios y genera el Cronológico Maestro CASUR con criterio agronómico, localmente.">
+  <meta property="og:title" content="Administrador del Cronológico Maestro CASUR">
+  <meta property="og:description" content="Validación agronómica, comparativo entre versiones y drill-down de alertas, con procesamiento local.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="./assets/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Administrador del Cronológico Maestro CASUR">
+  <meta name="twitter:description" content="Validación agronómica, comparativo entre versiones y drill-down de alertas, con procesamiento local.">
+  <meta name="twitter:image" content="./assets/og.png">
+  <title>Administrador del Cronológico Maestro CASUR</title>
+  <!-- [INTEGRACIÓN App Maestra] Manifest propio DESACTIVADO: la única PWA
+       instalable es "Negocios de Caña" (manifest raíz). No ofrecer una
+       segunda instalación desde el módulo integrado. -->
+  <!-- <link rel="manifest" href="./manifest.json"> -->
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./css/styles.css">
 </head>
 <body>
-  <div class="box">
-    <div class="tile">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-           stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-    </div>
-    <h1>Administrador SIAGRI</h1>
-    <p class="sub">Convertidor Cronológico Maestro</p>
-    <span class="badge">Integración prevista · Fase 2</span>
-    <p class="note">Módulo cargado correctamente dentro del contenedor aislado de la App Maestra.
-    En esta fase se muestra un marcador de posición; la aplicación real se integrará
-    conservando su comportamiento y sus datos existentes.</p>
+  <noscript>Esta aplicación necesita JavaScript para procesar los archivos Excel localmente.</noscript>
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">☰</button>
+      <a class="brand" href="#inicio" data-page-link="inicio" aria-label="Ir al inicio">
+        <span class="brand-mark"><img src="./assets/logo-casur.png" alt="CASUR"></span>
+        <span><strong>Cronológico Maestro</strong><small>Administrador CASUR</small></span>
+      </a>
+      <div class="privacy-pill"><i></i><span>Procesamiento local</span></div>
+      <button class="install-button" id="installButton" hidden>Instalar PWA</button>
+    </header>
+
+    <aside class="side-nav" id="sideNav" aria-label="Navegación principal">
+      <p class="nav-caption">Centro de control</p>
+      <button class="nav-item active" data-page="inicio"><span>⌂</span><b>Inicio</b></button>
+      <button class="nav-item" data-page="importar"><span>⇧</span><b>Importar</b></button>
+      <button class="nav-item" data-page="auditoria"><span>◎</span><b>Auditoría</b><em id="navAlertBadge">0</em></button>
+      <button class="nav-item" data-page="comparativo"><span>⇄</span><b>Comparativo</b></button>
+      <button class="nav-item" data-page="validacion"><span>✓</span><b>Validación</b></button>
+      <button class="nav-item" data-page="maestro"><span>▦</span><b>Vista Maestro</b></button>
+      <button class="nav-item" data-page="exportar"><span>⇩</span><b>Exportar</b></button>
+      <button class="nav-item" data-page="info"><span>i</span><b>Información</b></button>
+      <div class="nav-card">
+        <span class="nav-orb ct-mini">CT</span>
+        <strong>Criterio técnico</strong>
+        <small>Validación agronómica y trazabilidad local.</small>
+      </div>
+    </aside>
+
+    <main class="content" id="mainContent">
+      <section class="page active" id="page-inicio" data-page-section="inicio">
+        <div class="hero">
+          <div class="hero-copy">
+            <span class="eyebrow">AGRONOMÍA DE CAÑA · CONTROL CASUR</span>
+            <h1>Administrador del Cronológico Maestro CASUR</h1>
+            <p>SIAGRI + Estimado de Producción → Maestro validado</p>
+            <div class="hero-actions">
+              <button class="primary-button" data-page-jump="importar">Importar archivos <span>→</span></button>
+              <span class="hero-note">Excel y JSON · sin backend</span>
+            </div>
+          </div>
+          <div class="hero-orbit ct-identity" aria-label="Identidad CT, Carlos Tijerino"><span>CT</span><b>CAÑA · DATOS</b><i></i><i></i><i></i></div>
+        </div>
+
+        <div class="section-heading compact"><div><span>RESUMEN EJECUTIVO</span><h2>Estado del maestro</h2></div><p id="homeStatus">Carga el SIAGRI para iniciar.</p></div>
+        <div class="kpi-grid" id="homeKpis"></div>
+
+        <div class="analysis-grid">
+          <article class="surface zone-analysis-card">
+            <div class="card-heading"><div><span>BALANCE TERRITORIAL</span><h3>Área y condición por zona</h3></div><span class="status-chip neutral">Clic para detalle</span></div>
+            <div id="zoneAnalysis" class="zone-analysis"><p class="empty-copy">Carga el SIAGRI para conciliar el área por zona.</p></div>
+          </article>
+          <article class="surface agronomy-card">
+            <div class="card-heading"><div><span>LECTURA AGRONÓMICA</span><h3>Focos que requieren criterio técnico</h3></div><span class="status-chip warning" id="agronomyBadge">0 suertes</span></div>
+            <div id="agronomyChecks" class="agronomy-checks"></div>
+          </article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="surface process-card">
+            <div class="card-heading"><div><span>FLUJO CONTROLADO</span><h3>De SIAGRI a una fuente confiable</h3></div><span class="status-chip neutral">Local</span></div>
+            <div class="process-flow">
+              <div><b>01</b><span>SIAGRI</span><small>Obligatorio</small></div><i>›</i>
+              <div><b>02</b><span>Validación</span><small>Reglas CASUR</small></div><i>›</i>
+              <div><b>03</b><span>Maestro</span><small>Normalizado</small></div><i>›</i>
+              <div><b>04</b><span>Salidas</span><small>Excel + JSON</small></div>
+            </div>
+          </article>
+          <article class="surface readiness-card">
+            <div class="card-heading"><div><span>PREPARACIÓN</span><h3>Listo para exportar</h3></div><span class="readiness-ring" id="readinessRing">0%</span></div>
+            <ul id="readinessList">
+              <li><i></i>SIAGRI pendiente</li>
+              <li><i></i>Validaciones pendientes</li>
+              <li><i></i>Maestro no generado</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="page" id="page-importar" data-page-section="importar">
+        <div class="page-title"><div><span>ENTRADA DE DATOS</span><h1>Importar y detectar</h1><p>Selecciona los archivos; nada sale del navegador.</p></div><span class="privacy-shield">◆ Privacidad local</span></div>
+        <div class="import-grid three">
+          <article class="upload-card required" data-drop-zone="siagri">
+            <div class="upload-top"><span class="upload-icon">S</span><span class="required-badge">OBLIGATORIO</span></div>
+            <h2>Cronológico SIAGRI</h2><p>Base oficial de suertes para todo CASUR.</p>
+            <input type="file" id="siagriInput" accept=".xlsx,.xls" hidden>
+            <button class="upload-button" data-file-trigger="siagriInput">Seleccionar Excel</button>
+            <small>o arrastra el archivo aquí</small>
+            <div class="file-result" id="siagriResult"><span>Sin archivo</span></div>
+          </article>
+          <article class="upload-card optional" data-drop-zone="estimate">
+            <div class="upload-top"><span class="upload-icon">E</span><span class="optional-badge">OPCIONAL</span></div>
+            <h2>Estimado producción Z26/27</h2><p>Enriquece TCH y toneladas donde exista cobertura.</p>
+            <input type="file" id="estimateInput" accept=".xlsx,.xls" hidden>
+            <button class="upload-button secondary" data-file-trigger="estimateInput">Seleccionar Excel</button>
+            <small>puedes generar el maestro sin este archivo</small>
+            <div class="file-result" id="estimateResult"><span>Sin archivo opcional</span></div>
+          </article>
+          <article class="upload-card previous" data-drop-zone="previous">
+            <div class="upload-top"><span class="upload-icon">⇄</span><span class="optional-badge">COMPARATIVO</span></div>
+            <h2>Cronológico anterior</h2><p>Base previa para detectar altas, retiros y cambios por suerte.</p>
+            <input type="file" id="previousInput" accept=".xlsx,.xls" hidden>
+            <button class="upload-button tertiary" data-file-trigger="previousInput">Seleccionar anterior</button>
+            <small>opcional; no modifica el maestro actual</small>
+            <div class="file-result" id="previousResult"><span>Sin base anterior</span></div>
+          </article>
+        </div>
+        <div class="surface detection-panel" id="detectionPanel" hidden>
+          <div class="card-heading"><div><span>DETECCIÓN INTELIGENTE</span><h3>Compatibilidad por hoja</h3></div><span class="status-chip success">Encabezados analizados</span></div>
+          <div class="detection-columns">
+            <div><label for="siagriSheetSelect">Hoja SIAGRI</label><select id="siagriSheetSelect"></select><div id="siagriCompatibility" class="compatibility-list"></div></div>
+            <div><label for="estimateSheetSelect">Hoja estimado</label><select id="estimateSheetSelect"></select><div id="estimateCompatibility" class="compatibility-list"></div></div>
+            <div><label for="previousSheetSelect">Hoja cronológico anterior</label><select id="previousSheetSelect"></select><div id="previousCompatibility" class="compatibility-list"></div></div>
+          </div>
+          <div class="detected-meta" id="detectedMeta"></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-auditoria" data-page-section="auditoria">
+        <div class="page-title"><div><span>CONTROL DE CALIDAD</span><h1>Auditoría del maestro</h1><p>Conteos, exclusiones y alertas trazables.</p></div><span class="status-chip neutral" id="auditCoverage">Sin estimado</span></div>
+        <p class="interaction-hint">Estas son <strong>tarjetas KPI</strong>. Selecciona cualquiera para abrir su detalle o drill-down.</p>
+        <div class="audit-kpis" id="auditKpis"></div>
+        <div class="dashboard-grid audit-bottom">
+          <article class="surface reconciliation-card"><div class="card-heading"><div><span>CONCILIACIÓN</span><h3>Registros SIAGRI</h3></div></div><div class="reconciliation" id="reconciliation"></div></article>
+          <article class="surface"><div class="card-heading"><div><span>REGLAS CRÍTICAS</span><h3>Semáforo de exportación</h3></div></div><div class="critical-list" id="criticalList"></div></article>
+        </div>
+      </section>
+
+      <section class="page" id="page-validacion" data-page-section="validacion">
+        <div class="page-title"><div><span>DECISIÓN OPERATIVA</span><h1>Validación de suertes</h1><p>Revisa detecciones; ninguna suerte dudosa se elimina automáticamente.</p></div><button class="ghost-button" id="clearFiltersButton">Limpiar filtros</button></div>
+        <div class="toolbar">
+          <label class="search-box">⌕<input id="validationSearch" type="search" placeholder="Hac-Sue, hacienda o suerte"></label>
+          <select id="validationStatusFilter"><option value="">Todos los estados</option></select>
+          <select id="validationZoneFilter"><option value="">Todas las zonas</option></select>
+          <span class="toolbar-count" id="validationCount">0 registros</span>
+        </div>
+        <div class="surface table-surface"><div class="table-scroll"><table><thead><tr><th>Hac-Sue</th><th>Hacienda</th><th>Suerte</th><th>Zona</th><th>Destino</th><th>Área SIAGRI</th><th>Área estimado</th><th>TCH</th><th>Estado detectado</th><th>Estado validado</th><th>Observación</th></tr></thead><tbody id="validationBody"></tbody></table></div></div>
+      </section>
+
+      <section class="page" id="page-comparativo" data-page-section="comparativo">
+        <div class="page-title"><div><span>CONTROL DE CAMBIOS</span><h1>Cronológico anterior vs. actual</h1><p>Detecta altas, retiros y modificaciones relevantes por Hac-Sue.</p></div><span class="status-chip neutral" id="comparisonStatus">Sin base anterior</span></div>
+        <div class="surface comparison-empty" id="comparisonEmpty">
+          <span class="compare-orb">⇄</span><div><h2>Carga el cronológico anterior</h2><p>La comparación es solo de consulta: no altera la base actual ni las validaciones manuales.</p></div><button class="primary-button" data-page-jump="importar">Ir a Importar →</button>
+        </div>
+        <div id="comparisonContent" hidden>
+          <div class="kpi-grid comparison-kpis" id="comparisonKpis"></div>
+          <div class="surface field-change-panel"><div class="card-heading"><div><span>CAMBIOS POR VARIABLE</span><h3>Qué se movió entre versiones</h3></div><span class="status-chip neutral">Impacto agronómico</span></div><div id="fieldChangeBars" class="field-change-bars"></div></div>
+          <div class="toolbar comparison-toolbar">
+            <label class="search-box wide">⌕<input id="comparisonSearch" type="search" placeholder="Buscar Hac-Sue, hacienda o cambio"></label>
+            <select id="comparisonTypeFilter"><option value="">Todos los cambios</option><option>Nueva</option><option>Retirada</option><option>Modificada</option></select>
+            <select id="comparisonSeverityFilter"><option value="">Toda prioridad</option><option>Alta</option><option>Media</option><option>Baja</option></select>
+            <span class="toolbar-count" id="comparisonCount">0 cambios</span>
+          </div>
+          <div class="surface table-surface"><div class="table-scroll"><table><thead><tr><th>Hac-Sue</th><th>Hacienda</th><th>Zona</th><th>Tipo</th><th>Prioridad</th><th>Variables que cambiaron</th><th>Detalle</th></tr></thead><tbody id="comparisonBody"></tbody></table></div></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-maestro" data-page-section="maestro">
+        <div class="page-title"><div><span>FUENTE NORMALIZADA</span><h1>Vista Maestro</h1><p>F. Ult. Cte precede a F. Siembra y los identificadores permanecen como texto.</p></div><span class="status-chip success" id="masterRowsBadge">0 filas</span></div>
+        <div class="toolbar"><label class="search-box wide">⌕<input id="masterSearch" type="search" placeholder="Buscar en Hac-Sue, hacienda, zona o estado"></label><select id="masterZoneFilter"><option value="">Todo CASUR</option></select><span class="toolbar-count" id="masterCount">0 registros</span></div>
+        <div class="surface table-surface"><div class="table-scroll"><table class="master-table"><thead id="masterHead"></thead><tbody id="masterBody"></tbody></table></div><div class="pagination"><button id="prevPage">← Anterior</button><span id="pageIndicator">Página 1</span><button id="nextPage">Siguiente →</button></div></div>
+      </section>
+
+      <section class="page" id="page-exportar" data-page-section="exportar">
+        <div class="page-title"><div><span>SALIDAS MAESTRAS</span><h1>Exportar</h1><p>Excel para uso humano y JSON para aplicaciones internas.</p></div><span class="status-chip" id="exportStatus">Pendiente</span></div>
+        <div class="export-grid">
+          <article class="export-card excel"><span class="export-icon">X</span><div><span>ENTREGABLE PRINCIPAL</span><h2>Excel Maestro</h2><p>REPORTE + Productores, filtros, encabezado congelado, fechas reales e identificadores de texto.</p><ul><li>Edad dinámica con HOY()</li><li>Regla especial de renovación</li><li>Auditoría visible por estado</li></ul></div><button id="exportExcelButton" disabled>Generar Excel <b>↓</b></button></article>
+          <article class="export-card json"><span class="export-icon">{ }</span><div><span>DERIVADO TÉCNICO</span><h2>JSON Maestro</h2><p>Metadatos, cobertura, validación y todos los registros normalizados.</p><ul><li>schemaVersion 1.0</li><li>Trazabilidad de fuentes</li><li>Estados operativos</li></ul></div><button id="exportJsonButton" disabled>Generar JSON <b>↓</b></button></article>
+        </div>
+        <div class="surface export-check"><div><span class="check-orb" id="exportCheckOrb">!</span><div><strong id="exportCheckTitle">Carga el SIAGRI</strong><p id="exportCheckText">Las salidas se habilitarán cuando pasen las validaciones críticas.</p></div></div></div>
+      </section>
+
+      <section class="page" id="page-info" data-page-section="info">
+        <div class="page-title"><div><span>CONFIGURACIÓN E INFORMACIÓN</span><h1>Reglas del maestro</h1><p>Versión local, PWA y trazabilidad de criterios.</p></div><span class="status-chip neutral">v1.1.0</span></div>
+        <div class="info-grid">
+          <article class="surface rule-card"><span>16</span><div><h3>Sucuya siempre excluida</h3><p>Cod. Hacienda 16 no puede llegar al resultado final.</p></div></article>
+          <article class="surface rule-card"><span>R</span><div><h3>Renovación sin siembra</h3><p>No usa F. Ult. Cte; queda pendiente y sin edad.</p></div></article>
+          <article class="surface rule-card"><span>S</span><div><h3>Semilla</h3><p>No requiere TCH, toneladas ni promedio de molienda.</p></div></article>
+          <article class="surface rule-card"><span>⤫</span><div><h3>Baja 99347A</h3><p>Se conserva para auditoría y queda inactiva operativamente.</p></div></article>
+          <article class="surface rule-card"><span>CT</span><div><h3>Lectura agronómica</h3><p>Señala edad alta, cepas ≥5 cortes, caída de TCH, riego sin descripción y diferencias de área.</p></div></article>
+        </div>
+        <div class="dashboard-grid info-bottom">
+          <article class="surface"><div class="card-heading"><div><span>PRUEBAS INTERNAS</span><h3>Motor de reglas</h3></div><button class="ghost-button" id="runTestsButton">Ejecutar</button></div><div id="testResults" class="test-results"><p>Aún no se han ejecutado las pruebas.</p></div></article>
+          <article class="surface"><div class="card-heading"><div><span>PRIVACIDAD</span><h3>Arquitectura local</h3></div></div><ul class="privacy-list"><li>No usa backend ni Supabase.</li><li>No envía los archivos a servidores.</li><li>Las decisiones manuales se guardan en este navegador.</li><li>Puede instalarse y abrirse sin internet.</li></ul></article>
+        </div>
+      </section>
+    </main>
   </div>
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+  <div class="modal-backdrop" id="drillModal" hidden>
+    <section class="drill-modal" role="dialog" aria-modal="true" aria-labelledby="drillTitle">
+      <button class="modal-close" id="drillClose" aria-label="Cerrar detalle">×</button>
+      <div class="drill-hero"><span class="drill-icon" id="drillIcon">CT</span><div><small id="drillEyebrow">DETALLE</small><h2 id="drillTitle">Detalle del indicador</h2><p id="drillSummary"></p></div></div>
+      <div class="drill-body" id="drillBody"></div>
+    </section>
+  </div>
+  <div class="loading-overlay" id="loadingOverlay" hidden><div><span></span><strong id="loadingText">Procesando Excel…</strong><small>Los datos permanecen en este dispositivo.</small></div></div>
+
+  <script src="./js/vendor/xlsx.full.min.js"></script>
+  <script src="./js/vendor/exceljs.min.js"></script>
+  <script src="./js/config.js"></script>
+  <script src="./js/data-engine.js"></script>
+  <script src="./js/app.js"></script>
 </body>
 </html>

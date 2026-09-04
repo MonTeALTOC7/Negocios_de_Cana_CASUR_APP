@@ -74,8 +74,8 @@ function viewHome() {
         <span class="emct" title="Edgardo Madrigal · Carlos Tijerino · Desarrollo">
           <span class="emct__dot"></span>EM-CT</span>
       </div>
-      <p class="masthead__eyebrow">CASUR · Compañía Azucarera del Sur, S.A.</p>
-      <h1 class="masthead__title">Negocios de Caña</h1>
+      <p class="masthead__eyebrow">Compañía Azucarera del Sur, S.A.</p>
+      <h1 class="masthead__title">Negocios de Caña CASUR</h1>
       <p class="masthead__desc">Todos los sistemas de campo en una sola app. Elige un módulo para comenzar.</p>
     </header>
     <div class="modules" id="mods"></div>

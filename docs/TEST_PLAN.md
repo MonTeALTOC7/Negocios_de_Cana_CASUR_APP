@@ -43,3 +43,19 @@ cd Negocios_de_Cana_CASUR
 python3 -m http.server 8080
 # abrir http://localhost:8080/
 ```
+
+## Fase 2 — Convertidor SIAGRI (estado: verificado)
+Flujo: Home → Centro Maestro → contraseña `15102171011` → Administrador SIAGRI.
+- [x] Home muestra textos/nombres nuevos
+- [x] Centro Maestro pide y acepta contraseña
+- [x] Administrador SIAGRI carga el **Convertidor real** (`#siagriInput` presente en iframe)
+- [x] Cargar `docs/regression/siagri_fixture.xlsx` y procesar
+- [x] **Sucuya código 16 = 0** (excluidos=2; "Sucuya = 0 en resultado" ✓; Cod=16 en export=0)
+- [x] Generar/descargar Excel; hojas **REPORTE** (5) y **Productores** (2)
+- [x] Reglas de edad/renovación (fórmula Edad por fila) y `Hac-Sue`, Tipo de Riego presentes
+- [x] Cerrar, volver a Centro Maestro, reabrir → **persistencia** `casur-master-validations-v1`
+- [x] **Offline** del Convertidor tras cachear recursos
+- [x] Consola limpia (shell + iframe)
+- [x] **Un solo Service Worker** (raíz) · **una sola PWA** (0 manifest en iframe)
+- [x] Responsive móvil y PC
+Prueba de regresión permanente: `docs/regression/SUCUYA_REGRESION.md`.

@@ -18,13 +18,13 @@ medida en que cada módulo lo soporte.
 
 | Módulo | Descripción | Estado |
 |---|---|---|
-| Producción | Cronológico e Histórico de suertes (VF54.6) | Placeholder → Fase 4 |
-| TCH y Visitas | Biometría, visitas y fotografías (v2.7.2) | Placeholder → Fase 3 |
-| Riego Ejecutado | Seguimiento de riegos por productor (v6, Supabase) | Placeholder → Fase 6 |
-| Seguimiento de Insumos | Insumos, productores y madurante (v2) | Placeholder → Fase 5 |
-| Inventario | Kardex, entradas y salidas · Pansaco (v1.4.0, Supabase) | Placeholder → Fase 7 |
-| Seguimiento de Labores | Manuales y mecanizadas (operativo, público) | Placeholder → Fase 8 |
-| Administrador SIAGRI | Convertidor Cronológico Maestro (en Centro Maestro) | Placeholder → Fase 2 |
+| Maestro de Suertes | Cronológico e Histórico de suertes CASUR (VF54.6) | Placeholder → Fase 4 |
+| Estimador TCH | Estimación TCH, biometría, visitas y fotografías (v2.7.2) | Placeholder → Fase 3 |
+| Riegos Ejecutados | Seguimiento de riegos por productor (v6, Supabase) | Placeholder → Fase 6 |
+| Insumos Entregados Productores | Fertilizantes, herbicidas e insumos entregados (v2) | Placeholder → Fase 5 |
+| Inventario Pansaco | Kardex, entradas y salidas · Pansaco (v1.4.0, Supabase) | Placeholder → Fase 7 |
+| Seguimiento de Labores · Prefacturas | Labores manuales y mecanizadas (operativo, público) | Placeholder → Fase 8 |
+| Administrador SIAGRI | Convertidor Cronológico Maestro (en Centro Maestro) | **Integrado v1.1.0 (Fase 2)** |
 | Conciliación de Cobros | Área privada (datos económicos) | Placeholder → Fase 8 |
 
 Detalle en `docs/MODULES.md`.

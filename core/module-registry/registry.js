@@ -27,38 +27,38 @@ import * as store from '../storage/storage.js';
    a placeholders; al integrar cada módulo real (Fases 2–8) se
    reemplaza el contenido de esa carpeta, no esta tabla. */
 const BASE_MODULES = [
-  { moduleId: 'produccion', name: 'Producción', desc: 'Cronológico e Histórico de suertes',
+  { moduleId: 'produccion', name: 'Maestro de Suertes', desc: 'Cronológico e Histórico de suertes CASUR',
     version: 'VF54.6', route: 'modules/produccion/index.html', icon: 'produccion',
     accent: 'var(--accent-produccion)', enabled: true, visible: true, order: 1,
     requiresOnline: false, usesSupabase: false,
     storageNamespaces: ['cache:casur-suertes-vf54-*'], privacy: 'public' },
 
-  { moduleId: 'tch', name: 'TCH y Visitas', desc: 'Biometría, visitas y fotografías',
+  { moduleId: 'tch', name: 'Estimador TCH', desc: 'Estimación TCH, biometría, visitas y fotografías',
     version: '2.7.2', route: 'modules/tch/index.html', icon: 'tch',
     accent: 'var(--accent-tch)', enabled: true, visible: true, order: 2,
     requiresOnline: false, usesSupabase: false,
     storageNamespaces: ['idb:casur-estimador-tch'], privacy: 'public' },
 
-  { moduleId: 'riego', name: 'Riego Ejecutado', desc: 'Seguimiento de riegos por productor',
+  { moduleId: 'riego', name: 'Riegos Ejecutados', desc: 'Seguimiento de riegos por productor',
     version: 'v6', route: 'modules/riego/index.html', icon: 'riego',
     accent: 'var(--accent-riego)', enabled: true, visible: true, order: 3,
     requiresOnline: true, usesSupabase: true,
     storageNamespaces: ['supabase:fbatjsbdybliradxjhdm'], privacy: 'public' },
 
-  { moduleId: 'insumos', name: 'Seguimiento de Insumos', desc: 'Insumos, productores y madurante',
+  { moduleId: 'insumos', name: 'Insumos Entregados Productores', desc: 'Fertilizantes, herbicidas e insumos entregados',
     version: 'v2', route: 'modules/insumos/index.html', icon: 'insumos',
     accent: 'var(--accent-insumos)', enabled: true, visible: true, order: 4,
     requiresOnline: false, usesSupabase: false,
     storageNamespaces: ['idb:insumos_casur_db'], privacy: 'public' },
 
-  { moduleId: 'inventario', name: 'Inventario', desc: 'Kardex, entradas y salidas · Pansaco',
+  { moduleId: 'inventario', name: 'Inventario Pansaco', desc: 'Kardex, entradas y salidas · Pansaco',
     version: '1.4.0', route: 'modules/inventario/index.html', icon: 'inventario',
     accent: 'var(--accent-inventario)', enabled: true, visible: true, order: 5,
     requiresOnline: true, usesSupabase: true,
     storageNamespaces: ['idb:pansaco-inventory-outbox', 'supabase:fbatjsbdybliradxjhdm'],
     privacy: 'public' },
 
-  { moduleId: 'labores', name: 'Seguimiento de Labores', desc: 'Manuales y mecanizadas (operativo)',
+  { moduleId: 'labores', name: 'Seguimiento de Labores · Prefacturas', desc: 'Seguimiento operativo de labores manuales y mecanizadas',
     version: '0.7.x', route: 'modules/labores/index.html', icon: 'labores',
     accent: 'var(--accent-labores)', enabled: true, visible: true, order: 6,
     requiresOnline: false, usesSupabase: false,

@@ -19,6 +19,20 @@ const app = $('#app');
 const viewEl = $('#view');
 const navEl = $('#nav');
 
+/* Mini-logos (isotipos) por módulo para las tarjetas del home.
+   Familia gráfica coherente del ecosistema "Negocios de Caña".
+   Los 5 primeros son SVG propios; Inventario reutiliza el emblema
+   oficial de Pansaco reenmarcado a la familia. */
+const MODULE_LOGOS = {
+  produccion: 'shared/assets/logos/produccion.svg',
+  tch:        'shared/assets/logos/tch.svg',
+  riego:      'shared/assets/logos/riego.svg',
+  insumos:    'shared/assets/logos/insumos.svg',
+  inventario: 'shared/assets/logos/inventario.png',
+  labores:    'shared/assets/logos/labores.svg',
+};
+function logoFor(id) { return MODULE_LOGOS[id] || 'shared/assets/icons/emblem-192.png'; }
+
 /* ---------------- Header ---------------- */
 function renderHeader() {
   $('#appVersion').textContent = 'v' + APP_VERSION;
@@ -57,11 +71,11 @@ function viewHome() {
       <div class="masthead__brandrow">
         <img class="masthead__logo" src="shared/assets/brand/casur-logo.png"
              alt="CASUR · Compañía Azucarera del Sur, S.A." width="220" height="84">
-        <span class="emct" title="Estado Mayor · Central Tezoatega">
+        <span class="emct" title="Edgardo Madrigal · Carlos Tijerino · Desarrollo">
           <span class="emct__dot"></span>EM-CT</span>
       </div>
       <p class="masthead__eyebrow">CASUR · Compañía Azucarera del Sur, S.A.</p>
-      <h1 class="masthead__title">Negocios de Caña CASUR</h1>
+      <h1 class="masthead__title">Negocios de Caña</h1>
       <p class="masthead__desc">Todos los sistemas de campo en una sola app. Elige un módulo para comenzar.</p>
     </header>
     <div class="modules" id="mods"></div>
@@ -79,7 +93,7 @@ function viewHome() {
       chip = `<span class="chip is-local"><span class="chip__dot"></span>Local · offline</span>`;
     }
     const card = el(`<button class="mod-card" type="button" style="--accent:${m.accent}">
-        <span class="mod-card__tile">${icon(m.icon)}</span>
+        <span class="mod-card__tile"><img class="mod-card__logo" src="${logoFor(m.moduleId)}" alt="" loading="lazy" width="60" height="60"></span>
         <span class="mod-card__body">
           <span class="mod-card__name">${m.name}</span>
           <span class="mod-card__meta">

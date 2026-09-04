@@ -1,0 +1,26 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="TCH y Visitas">
+  <defs>
+    <linearGradient id="pT" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17B79C"/><stop offset="1" stop-color="#0A6E5E"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#pT)"/>
+  <path d="M2 30A16 16 0 0 1 18 2h28A16 16 0 0 0 2 30Z" fill="#fff" opacity=".08"/>
+  <rect x="2.6" y="2.6" width="58.8" height="58.8" rx="15.4" fill="none" stroke="#fff" stroke-opacity=".18"/>
+  <!-- cuerpo de cámara / visor técnico -->
+  <rect x="12" y="20" width="34" height="24" rx="5" fill="#083B36" stroke="#EAFBEF" stroke-width="2.4"/>
+  <rect x="18" y="16" width="10" height="6" rx="2" fill="#EAFBEF"/>
+  <!-- lente con hoja de caña dentro (evaluación de caña) -->
+  <circle cx="29" cy="32" r="8.5" fill="#0b524a" stroke="#EAFBEF" stroke-width="2.2"/>
+  <path d="M29 38c-3.4 0-5-2.4-5-5.2 0-2.8 5-6.8 5-6.8s5 4 5 6.8c0 2.8-1.6 5.2-5 5.2Z" fill="#8CC63F"/>
+  <path d="M29 26.5V37" stroke="#0b524a" stroke-width="1.3"/>
+  <!-- regla de medición / aforo -->
+  <g stroke="#F2C94C" stroke-width="2" stroke-linecap="round">
+    <line x1="14" y1="50" x2="50" y2="50"/>
+    <line x1="18" y1="50" x2="18" y2="46"/><line x1="26" y1="50" x2="26" y2="47"/>
+    <line x1="34" y1="50" x2="34" y2="46"/><line x1="42" y1="50" x2="42" y2="47"/>
+  </g>
+  <!-- indicador de pesaje/dato -->
+  <circle cx="47" cy="22" r="5.5" fill="#F2C94C"/>
+  <path d="M47 19.4v3.1l1.8 1.1" stroke="#0A6E5E" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+</svg>

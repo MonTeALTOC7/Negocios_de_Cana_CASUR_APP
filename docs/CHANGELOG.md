@@ -2,6 +2,28 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.0.0] — 2026-09-03 · Fase 1.2: Identidad visual definitiva
+### Cambiado (solo visual, sin tocar funcionalidad)
+- **Nombre visible** de la app → "Negocios de Caña" (header, masthead, `<title>`).
+- **Instalación PWA** como "Negocios de Caña" (`name` y `short_name` del manifest).
+- **EM-CT**: significado oficial *Edgardo Madrigal – Carlos Tijerino*; tooltip
+  "Edgardo Madrigal · Carlos Tijerino · Desarrollo"; visualmente sigue mostrando "EM-CT".
+- **Isotipos/mini-logos por módulo** (familia gráfica del ecosistema, no pictogramas lineales):
+  - Producción: caña + barras + curva de rendimiento (analítica).
+  - TCH y Visitas: cámara/lente con hoja de caña + regla de aforo + indicador de dato.
+  - Riego Ejecutado: gota con brote de caña + surcos de riego.
+  - Seguimiento de Insumos: bidón agrícola + hoja + gota + sello de trazabilidad.
+  - Inventario: emblema oficial de **Pansaco** reenmarcado a la familia (identidad conservada).
+  - Seguimiento de Labores: tractor + trabajador + caña/surcos (mecanizado + manual).
+- Tarjetas del home muestran los mini-logos a sangre; resto del dashboard sin cambios.
+### Recursos gráficos creados
+- `shared/assets/logos/{produccion,tch,riego,insumos,labores}.svg` (fuente) + `*-512.png`.
+- `shared/assets/logos/inventario.png` (Pansaco reenmarcado) + `inventario-512.png`.
+### Verificado
+- Nombre visible e instalación "Negocios de Caña"; tooltip EM-CT correcto; 6 mini-logos
+  cargan (naturalWidth>0); responsive móvil/PC; consola limpia; **Service Worker sin cambios**;
+  sin regresiones en iframe, Centro Maestro (contraseña) ni navegación.
+
 ## [1.0.0] — 2026-09-03 · Fase 1.1: Branding CASUR y acceso
 ### Añadido / cambiado
 - **Icono oficial de la app**: se adopta el logo oficial "CASUR · Negocios de Caña"

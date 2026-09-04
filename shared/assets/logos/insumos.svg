@@ -1,0 +1,22 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Seguimiento de Insumos">
+  <defs>
+    <linearGradient id="pI" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#A8CB3A"/><stop offset="1" stop-color="#4E9E2E"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#pI)"/>
+  <path d="M2 30A16 16 0 0 1 18 2h28A16 16 0 0 0 2 30Z" fill="#fff" opacity=".08"/>
+  <rect x="2.6" y="2.6" width="58.8" height="58.8" rx="15.4" fill="none" stroke="#fff" stroke-opacity=".18"/>
+  <!-- bidón/envase agrícola -->
+  <path d="M30 22 h10 a4 4 0 0 1 4 4 v20 a4 4 0 0 1 -4 4 H30 a4 4 0 0 1 -4 -4 V26 a4 4 0 0 1 4 -4Z" fill="#EAFBEF"/>
+  <path d="M33 22v-3h4v3" fill="none" stroke="#EAFBEF" stroke-width="3" stroke-linecap="round"/>
+  <rect x="30" y="30" width="10" height="8" rx="1.5" fill="#4E9E2E"/>
+  <!-- gota de producto -->
+  <path d="M35 41s3 3 3 5a3 3 0 0 1-6 0c0-2 3-5 3-5Z" fill="#1BA6E6"/>
+  <!-- hoja de caña -->
+  <path d="M20 46c-1-7 2-13 8-16-1 7-3 12-8 16Z" fill="#2C8E1E"/>
+  <path d="M20 46c-4-2-6-6-6-11 4 2 6 6 6 11Z" fill="#8CC63F"/>
+  <!-- sello de trazabilidad/control -->
+  <circle cx="46" cy="20" r="7" fill="#F2C94C"/>
+  <path d="M43 20l2.2 2.2L49 18" fill="none" stroke="#4E9E2E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

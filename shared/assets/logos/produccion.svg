@@ -1,0 +1,26 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Producción">
+  <defs>
+    <linearGradient id="pP" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#33B84E"/><stop offset="1" stop-color="#0C7422"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#pP)"/>
+  <path d="M2 30A16 16 0 0 1 18 2h28A16 16 0 0 0 2 30Z" fill="#fff" opacity=".08"/>
+  <rect x="2.6" y="2.6" width="58.8" height="58.8" rx="15.4" fill="none" stroke="#fff" stroke-opacity=".18"/>
+  <!-- caña (tallo segmentado) a la izquierda -->
+  <path d="M15 50 C 16 40 18 32 21 22" fill="none" stroke="#BFE9A0" stroke-width="3.4" stroke-linecap="round"/>
+  <g stroke="#0C7422" stroke-width="2" opacity=".5" stroke-linecap="round">
+    <line x1="16" y1="44" x2="20" y2="45"/><line x1="17.5" y1="36" x2="21.5" y2="37"/><line x1="19" y1="28" x2="23" y2="29"/>
+  </g>
+  <path d="M21 22c-1-4-4-6-8-6 1 4 4 6 8 6Z" fill="#8CC63F"/>
+  <path d="M21 22c3-3 4-6 3-10-3 3-4 6-3 10Z" fill="#BFE9A0"/>
+  <!-- barras de producción -->
+  <g fill="#EAFBEF">
+    <rect x="27" y="40" width="6.5" height="12" rx="1.6"/>
+    <rect x="37" y="33" width="6.5" height="19" rx="1.6"/>
+    <rect x="47" y="26" width="6.5" height="26" rx="1.6"/>
+  </g>
+  <!-- curva de rendimiento + flecha -->
+  <path d="M27 38 L37 31 L50 21" fill="none" stroke="#F2C94C" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M44.5 20.5 L51 20 L50.5 26.5" fill="none" stroke="#F2C94C" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

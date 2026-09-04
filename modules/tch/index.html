@@ -1,51 +1,48 @@
-<!DOCTYPE html>
-<html lang="es-NI">
+<!doctype html>
+<html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>TCH y Visitas · Negocios de Caña CASUR</title>
-<style>
-  :root { color-scheme: dark; }
-  * { box-sizing: border-box; }
-  html,body { margin:0; height:100%; }
-  body {
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    color:#EAF2E4; display:grid; place-items:center; padding:24px;
-    background:
-      radial-gradient(120% 60% at 50% -10%, #12365F 0%, transparent 60%),
-      linear-gradient(180deg, #0A1E38 0%, #081A33 100%);
-  }
-  .box { max-width: 460px; text-align:center; }
-  .tile {
-    width:76px; height:76px; margin:0 auto 18px; border-radius:20px;
-    display:grid; place-items:center;
-    background: radial-gradient(120% 120% at 30% 20%, #2FB39A66, transparent 70%), #0E2A4A;
-    border:1px solid #2FB39A66; box-shadow:0 10px 24px rgba(0,0,0,.4);
-    color:#2FB39A;
-  }
-  .tile svg { width:38px; height:38px; }
-  h1 { font-size:1.5rem; letter-spacing:-.02em; margin:0 0 6px; }
-  p.sub { color:#B7C6D6; margin:0 0 18px; }
-  .badge {
-    display:inline-block; padding:7px 14px; border-radius:999px;
-    background:#0F2A4C; border:1px solid rgba(155,190,225,.18);
-    color:#9FE06B; font-size:.85rem; font-weight:600;
-  }
-  .note { margin-top:22px; color:#7C90A6; font-size:.82rem; line-height:1.5; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#075e2d">
+  <meta name="description" content="Biometría TCH, visitas de campo con evidencia fotográfica y Maestro General CASUR">
+  <title>Estimador TCH CASUR</title>
+  <!-- [INTEGRACIÓN App Maestra] Manifest propio DESACTIVADO: una sola PWA
+       instalable (Negocios de Caña, manifest raíz). -->
+  <!-- <link rel="manifest" href="./manifest.webmanifest"> -->
+  <link rel="icon" href="./assets/icons/tch-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/icons/tch-icon-192.png">
+  <link rel="stylesheet" href="./css/casur.css">
 </head>
 <body>
-  <div class="box">
-    <div class="tile">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-           stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-    </div>
-    <h1>TCH y Visitas</h1>
-    <p class="sub">Biometría, visitas y fotografías</p>
-    <span class="badge">Integración prevista · Fase 3</span>
-    <p class="note">Módulo cargado correctamente dentro del contenedor aislado de la App Maestra.
-    En esta fase se muestra un marcador de posición; la aplicación real se integrará
-    conservando su comportamiento y sus datos existentes.</p>
-  </div>
+  <div class="topline"></div>
+  <header class="app-header">
+    <button class="brand" data-route="home" aria-label="Ir al inicio">
+      <span class="logo-plate"><img src="./assets/logo_casur.png" alt="CASUR"></span>
+      <span><small>NEGOCIOS DE CAÑA</small><strong>Estimador TCH</strong><em>Biometría y evidencia de campo</em></span>
+    </button>
+    <span class="connection" id="connectionBadge">● En línea</span>
+  </header>
+  <main id="app" class="main" aria-live="polite"></main>
+  <nav class="bottom-nav" aria-label="Navegación principal">
+    <button data-route="home" class="active"><b>⌂</b><span>Inicio</span></button>
+    <button data-route="biometry"><b>🌱</b><span>Biometría</span></button>
+    <button data-route="visits"><b>📷</b><span>Visitas</span></button>
+    <button data-route="history"><b>▤</b><span>Historial</span></button>
+    <button data-route="analytics"><b>⌕</b><span>Consulta</span></button>
+  </nav>
+  <div id="toast" class="toast" role="status"></div>
+  <div id="modal" class="modal" hidden><div class="modal-card" id="modalContent"></div></div>
+  <button id="pwaInstallNotice" class="pwa-install-notice" type="button" aria-label="Instalar app Estimador TCH CASUR" hidden>
+    <span class="pwa-install-icon"><img src="./assets/icons/tch-icon-192.png" alt=""></span>
+    <span class="pwa-install-copy"><b>Instalar Estimador TCH</b><small>Tocá para instalar en tu teléfono</small></span>
+    <span class="pwa-install-arrow">›</span>
+  </button>
+  <input id="masterFile" type="file" accept=".xlsx,.xls" hidden>
+  <input id="estimateFile" type="file" accept=".xlsx,.xls" hidden>
+  <input id="backupFile" type="file" accept=".json" hidden>
+  <input id="visitCameraFile" type="file" accept="image/*" capture="environment" hidden>
+  <input id="visitGalleryFile" type="file" accept="image/*" multiple hidden>
+  <script src="./vendor/xlsx.bundle.js"></script>
+  <script type="module" src="./js/app.js"></script>
 </body>
 </html>

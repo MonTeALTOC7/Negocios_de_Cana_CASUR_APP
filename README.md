@@ -19,7 +19,7 @@ medida en que cada módulo lo soporte.
 | Módulo | Descripción | Estado |
 |---|---|---|
 | Maestro de Suertes | Cronológico e Histórico de suertes CASUR (VF54.6) | Placeholder → Fase 4 |
-| Estimador TCH | Estimación TCH, biometría, visitas y fotografías (v2.7.2) | Placeholder → Fase 3 |
+| Estimador TCH | Estimación TCH, biometría, visitas y fotografías (v2.7.2) | **Integrado v2.7.2 (Fase 3)** · cámara/GPS: validar en dispositivo |
 | Riegos Ejecutados | Seguimiento de riegos por productor (v6, Supabase) | Placeholder → Fase 6 |
 | Insumos Entregados Productores | Fertilizantes, herbicidas e insumos entregados (v2) | Placeholder → Fase 5 |
 | Inventario Pansaco | Kardex, entradas y salidas · Pansaco (v1.4.0, Supabase) | Placeholder → Fase 7 |

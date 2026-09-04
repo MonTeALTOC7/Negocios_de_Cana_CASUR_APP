@@ -9,7 +9,7 @@ import * as router from './core/navigation/router.js';
 import * as registry from './core/module-registry/registry.js';
 import * as gate from './core/permissions/gate.js';
 import * as status from './core/sync/status.js';
-import { APP_VERSION, APP_CHANNEL, moduleVersion } from './core/versions/versions.js';
+import { APP_VERSION, APP_CHANNEL, moduleVersion, moduleStatus } from './core/versions/versions.js';
 import { icon } from './shared/components/icons.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -131,7 +131,7 @@ function viewModule(id) {
       <iframe class="module-host__frame" id="mFrame"
               src="${m.route}"
               title="${m.name}"
-              allow="camera; geolocation; clipboard-read; clipboard-write"
+              allow="camera; geolocation; clipboard-read; clipboard-write; fullscreen"
               referrerpolicy="no-referrer"></iframe>
     </div>`);
 
@@ -195,7 +195,7 @@ async function viewCentroMaestro() {
         <span class="mrow__tile">${icon(m.icon)}</span>
         <span class="mrow__body">
           <span class="mrow__name">${m.name}</span>
-          <span class="mrow__meta">${m.privacy} · ${m.version} · ${m.requiresOnline ? 'requiere red' : 'offline'}${m.usesSupabase ? ' · Supabase' : ''}</span>
+          <span class="mrow__meta">${m.privacy} · ${m.version} · ${m.requiresOnline ? 'requiere red' : 'offline'}${m.usesSupabase ? ' · Supabase' : ''} · ${moduleStatus(m.moduleId)}</span>
         </span>
         <label class="switch" title="Activar módulo">
           <input type="checkbox" ${m.enabled ? 'checked' : ''}>

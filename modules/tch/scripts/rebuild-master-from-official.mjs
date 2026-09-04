@@ -1,0 +1,20 @@
+import fs from "node:fs/promises";
+import vm from "node:vm";
+import { parseMasterWorkbook, normalizeEmbeddedMaster, masterToEmbeddedRows, normalizeText } from "../js/master.js";
+
+const source = process.argv[2];
+if (!source) throw new Error("Uso: node scripts/rebuild-master-from-official.mjs archivo.xlsx");
+const bundle = await fs.readFile(new URL("../vendor/xlsx.bundle.js", import.meta.url), "utf8");
+const sandbox = { console, Uint8Array, ArrayBuffer, Date, Math, JSON, setTimeout, clearTimeout };
+vm.createContext(sandbox);
+vm.runInContext(bundle, sandbox, { filename: "xlsx.bundle.js" });
+globalThis.XLSX = sandbox.XLSX;
+const bytes = await fs.readFile(source);
+const current = normalizeEmbeddedMaster(JSON.parse(await fs.readFile(new URL("../data/suertes.json", import.meta.url), "utf8")));
+const file = { arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
+const parsed = await parseMasterWorkbook(file, current);
+const rows = masterToEmbeddedRows(parsed.lots);
+const producers = rows.filter((row) => normalizeText(row.zona) === "5 productores");
+await fs.writeFile(new URL("../data/suertes.json", import.meta.url), `${JSON.stringify(rows, null, 2)}\n`);
+await fs.writeFile(new URL("../data/productores.json", import.meta.url), `${JSON.stringify(producers, null, 2)}\n`);
+process.stdout.write(`${JSON.stringify({ ...parsed.report, sheetName: parsed.sheetName, productores: producers.length }, null, 2)}\n`);

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#083d25"/>
+      <stop offset="0.62" stop-color="#168549"/>
+      <stop offset="1" stop-color="#0f6688"/>
+    </linearGradient>
+    <linearGradient id="y" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe06b"/>
+      <stop offset="1" stop-color="#e9b82f"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <path d="M120 386c19-91 33-177 34-271M154 239c-41-15-63-48-70-84 43 5 73 30 79 72M155 184c30-33 64-48 101-44-15 42-49 67-101 75M192 386c17-70 27-139 28-208M220 272c-29-12-47-35-54-65 36 4 60 25 63 57M221 225c27-27 54-37 86-32-14 33-42 52-86 57" fill="none" stroke="#fff" stroke-width="17" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
+  <circle cx="367" cy="160" r="68" fill="url(#y)"/>
+  <path d="M337 160h60M367 130v60" stroke="#4f3b00" stroke-width="17" stroke-linecap="round"/>
+  <rect x="80" y="335" width="352" height="102" rx="34" fill="#fff"/>
+  <text x="256" y="407" fill="#0b5530" font-family="Arial, sans-serif" font-size="76" font-weight="900" text-anchor="middle">TCH</text>
+</svg>

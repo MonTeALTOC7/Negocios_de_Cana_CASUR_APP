@@ -25,3 +25,22 @@ export const MODULE_VERSIONS = {
 export function moduleVersion(id) {
   return MODULE_VERSIONS[id] || '—';
 }
+
+/* Estado de integración por módulo (se muestra en Centro Maestro).
+   'integrado' = app real embebida y verificada; 'placeholder' = pendiente
+   de su fase. El TCH está integrado técnicamente; cámara/GPS/Android
+   requieren validación final en dispositivo real tras publicar. */
+export const MODULE_STATUS = {
+  produccion: 'placeholder',
+  tch: 'integrado · cámara/GPS: validar en dispositivo',
+  riego: 'placeholder',
+  insumos: 'placeholder',
+  inventario: 'placeholder',
+  labores: 'placeholder',
+  convertidor: 'integrado',
+  conciliacion: 'placeholder',
+};
+
+export function moduleStatus(id) {
+  return MODULE_STATUS[id] || 'placeholder';
+}

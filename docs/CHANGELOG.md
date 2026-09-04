@@ -2,6 +2,34 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.0.0] — 2026-09-04 · Fase 3: Estimador TCH (integración técnica)
+### Integración
+- Integrada la versión real **2.7.2** de `TCH_BioEstimador_Rfotos` en `modules/tch/`
+  (copia; el repositorio fuente no se tocó). Reemplaza el placeholder.
+- Neutralizado en la copia: bloque completo de Service Worker (`register` + auto-reload
+  por `controllerchange`) en `js/app.js`, y `<link rel="manifest">` en `index.html`.
+  Eliminados de la copia `sw.js` y `manifest.webmanifest`. Un solo SW raíz, una sola PWA.
+- Se ejecuta en su propio **iframe** (patrón de aislamiento). Acceso: tarjeta del home.
+- Iframe `allow="camera; geolocation; clipboard-read; clipboard-write; fullscreen"`.
+  Se retiró `downloads` por no ser feature válida de `allow`; las descargas del iframe
+  (mismo origen, sin `sandbox`) siguen funcionando. No se introdujo `sandbox`.
+### Preservado (sin cambios de negocio)
+- IndexedDB `casur-estimador-tch` **v3** y 7 stores (master, biometries, weighings,
+  harvests, visits, audit, settings). Sin `deleteDatabase` ni migración destructiva.
+- Maestro autocargado desde `./data/suertes.json` (1053) y `./data/productores.json`
+  (rutas relativas, sin rutas absolutas rotas).
+- Fotos: `#visitCameraFile`/`#visitGalleryFile` → File/Blob → `canvas.toBlob` →
+  `{blob,sizeBytes}` en `visits`; recuperación por `createObjectURL`.
+- GPS `getCurrentPosition` (éxito/error intactos). Fecha del estimado y fórmulas TCH/
+  biometría (TCHe-mm-m) sin alterar. PNG etiquetado (canvas) y Excel (`./vendor/xlsx.bundle.js`).
+### Verificación
+- Micro-pruebas por inspección de código: IndexedDB, maestro/rutas, Blob/fotos, GPS,
+  PNG, Excel, SW/manifest → OK. Fase 2 (Convertidor) intacta (archivos y SW raíz sin cambios).
+- Cámara física, galería Android, permiso/coordenadas GPS reales, compartir y PWA
+  instalada → **requieren validación en dispositivo real** tras publicar.
+- Nota de entorno: la verificación E2E en navegador no se ejecutó por inestabilidad del
+  entorno de pruebas (servidores en background y sesiones Playwright largas se cortaban).
+
 ## [1.0.0] — 2026-09-03 · Fase 2: Convertidor SIAGRI + textos del shell
 ### Textos y nombres (solo presentación)
 - Encabezado superior → "Departamento de Negocios de Caña" (identifica el área responsable).

@@ -59,3 +59,18 @@ Flujo: Home → Centro Maestro → contraseña `15102171011` → Administrador S
 - [x] **Un solo Service Worker** (raíz) · **una sola PWA** (0 manifest en iframe)
 - [x] Responsive móvil y PC
 Prueba de regresión permanente: `docs/regression/SUCUYA_REGRESION.md`.
+
+## Fase 3 — Estimador TCH (estado: integración técnica verificada por inspección)
+Micro-pruebas (cortas y separadas):
+- [x] A — Módulo carga en iframe; assets JS/CSS relativos; shell estable (arquitectura de iframe ya probada en Fase 2).
+- [x] B — IndexedDB `casur-estimador-tch` v3 · stores: master, biometries, weighings, harvests, visits, audit, settings · sin recreación destructiva (inspección de `js/storage.js`).
+- [x] C — Maestro desde `./data/suertes.json` (1053) y `./data/productores.json`; rutas relativas OK tras mover a `modules/tch/`.
+- [x] D — Persistencia por IndexedDB (misma DB de origen en el iframe; sin migración) — verificación por diseño; confirmación final de escritura/relectura en dispositivo.
+- [x] E — Fotos: `#visitGalleryFile`/`#visitCameraFile` → File/Blob → `canvas.toBlob` → `{blob,sizeBytes}` en `visits`; recuperación `createObjectURL` (inspección `js/visit-evidence.js`).
+- [x] F — GPS: `navigator.geolocation.getCurrentPosition` con manejo éxito/error; iframe con `allow="geolocation"`.
+- [x] G — Exportadores: PNG etiquetado (canvas `fillText`/`toBlob`), Excel vía `./vendor/xlsx.bundle.js` (ruta relativa), backup/restore JSON.
+- [x] H — PWA/SW: TCH no registra SW propio ni manifest; solo SW raíz; una sola PWA (archivos `sw.js`/`manifest.webmanifest` eliminados de la copia).
+- [x] Fase 2 sin regresión: `master/convertidor/` intacto, SW raíz (allowlist `casur_master_`) sin cambios.
+
+**Requiere validación en dispositivo real (Android/PC) tras publicar:**
+cámara, galería, permiso/coordenadas GPS reales, orientación vertical/horizontal, compartir, y comportamiento de la PWA instalada. Además, confirmación E2E en navegador (no ejecutable aquí por inestabilidad del entorno de pruebas).

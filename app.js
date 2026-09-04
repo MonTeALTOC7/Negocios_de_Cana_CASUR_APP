@@ -54,8 +54,14 @@ function viewHome() {
   const mods = registry.homeModules();
   const view = el(`<div class="view">
     <header class="masthead">
-      <p class="masthead__eyebrow">CASUR · Compañía Azucarera del Sur</p>
-      <h1 class="masthead__title">Negocios de Caña</h1>
+      <div class="masthead__brandrow">
+        <img class="masthead__logo" src="shared/assets/brand/casur-logo.png"
+             alt="CASUR · Compañía Azucarera del Sur, S.A." width="220" height="84">
+        <span class="emct" title="Estado Mayor · Central Tezoatega">
+          <span class="emct__dot"></span>EM-CT</span>
+      </div>
+      <p class="masthead__eyebrow">CASUR · Compañía Azucarera del Sur, S.A.</p>
+      <h1 class="masthead__title">Negocios de Caña CASUR</h1>
       <p class="masthead__desc">Todos los sistemas de campo en una sola app. Elige un módulo para comenzar.</p>
     </header>
     <div class="modules" id="mods"></div>
@@ -130,9 +136,12 @@ function viewModule(id) {
 async function viewCentroMaestro() {
   const mods = registry.all();
   const view = el(`<div class="view panel">
-      <div>
-        <h1 class="panel__title">Centro Maestro</h1>
-        <p class="panel__note">Administración de módulos, estado del sistema y datos.</p>
+      <div class="panel__top">
+        <div>
+          <h1 class="panel__title">Centro Maestro</h1>
+          <p class="panel__note">Administración de módulos, estado del sistema y datos.</p>
+        </div>
+        <button class="btn" id="centroLock" type="button">${icon('lock')} Bloquear</button>
       </div>
 
       <section class="card">
@@ -204,6 +213,7 @@ async function viewCentroMaestro() {
   ).join('');
 
   // --- Acciones ---
+  $('#centroLock', view).addEventListener('click', () => { gate.centroLock(); router.home(); });
   $('#openConv', view).addEventListener('click', () => router.go('/modulo/convertidor'));
   $('#openPriv', view).addEventListener('click', () => router.go('/privado'));
 
@@ -340,12 +350,51 @@ function toast(msg, action) {
   if (!action) toastTimer = setTimeout(() => t.remove(), 2600);
 }
 
+/* ---------------- Gate de Centro Maestro ---------------- */
+function renderCentroGate() {
+  const view = el(`<div class="view panel"><div>
+      <h1 class="panel__title">Centro Maestro</h1>
+      <p class="panel__note">Introduce la contraseña para acceder a la administración.</p></div></div>`);
+  swap(view);
+  renderNav('centro-maestro');
+
+  const overlay = el(`<div class="overlay">
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="cTitle">
+        <h2 class="dialog__title" id="cTitle">Acceso restringido</h2>
+        <p class="dialog__note">El Centro Maestro es de uso administrativo.</p>
+        <div class="field">
+          <label for="cpass">Contraseña</label>
+          <input id="cpass" type="password" inputmode="numeric" autocomplete="off" placeholder="••••••">
+        </div>
+        <p class="dialog__err" id="cErr"></p>
+        <div class="dialog__row">
+          <button class="btn btn--block" id="cCancel" type="button">Cancelar</button>
+          <button class="btn btn--primary btn--block" id="cOk" type="button">Entrar</button>
+        </div>
+      </div></div>`);
+  document.body.appendChild(overlay);
+  const input = $('#cpass', overlay);
+  input.focus();
+
+  const close = () => overlay.remove();
+  const attempt = () => {
+    if (gate.centroUnlock(input.value)) { close(); viewCentroMaestro(); }
+    else { $('#cErr', overlay).textContent = 'Contraseña incorrecta.'; input.select(); }
+  };
+  $('#cOk', overlay).addEventListener('click', attempt);
+  $('#cCancel', overlay).addEventListener('click', () => { close(); router.home(); });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') attempt(); });
+}
+
 /* ---------------- Router → vistas ---------------- */
 function route(r) {
   switch (r.name) {
     case 'home': viewHome(); break;
     case 'modulo': viewModule(r.param); break;
-    case 'centro-maestro': viewCentroMaestro(); break;
+    case 'centro-maestro':
+      if (!gate.isCentroUnlocked()) renderCentroGate();
+      else viewCentroMaestro();
+      break;
     case 'privado': viewPrivado(r.param); break;
     default: viewHome();
   }

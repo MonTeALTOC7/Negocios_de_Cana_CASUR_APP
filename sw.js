@@ -36,7 +36,9 @@ const SHELL_ASSETS = [
   './shared/styles/app.css',
   './shared/assets/icons/icon-192.png',
   './shared/assets/icons/icon-512.png',
+  './shared/assets/icons/emblem-192.png',
   './shared/assets/icons/favicon-48.png',
+  './shared/assets/brand/casur-logo.png',
 ];
 
 /* ---------------- Install ---------------- */

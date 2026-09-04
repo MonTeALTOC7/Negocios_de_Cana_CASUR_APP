@@ -2,6 +2,28 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.0.0] — 2026-09-03 · Fase 1.1: Branding CASUR y acceso
+### Añadido / cambiado
+- **Icono oficial de la app**: se adopta el logo oficial "CASUR · Negocios de Caña"
+  (círculo con caña, sol, apretón de manos y panel de datos) para todos los iconos PWA
+  (192/512, maskable, favicon, apple-touch). El emblema se usa como marca del encabezado.
+- **Branding corporativo**: paleta basada en los colores del logo CASUR (verde `#25A63F`,
+  azul `#159AD6`, lima `#8CC63F`, sol `#F2C94C`) manteniendo el fondo marino premium.
+- **Logo CASUR** (transparente) integrado en el masthead.
+- **Encabezado corregido**: eyebrow → "CASUR · Compañía Azucarera del Sur, S.A.";
+  título → "Negocios de Caña CASUR".
+- **Distintivo EM-CT**: insignia animada (pulso + brillo) junto al encabezado, inspirada en
+  la app de Cronológico.
+- **Centro Maestro protegido por contraseña** (`15102171011`): al entrar pide contraseña;
+  correcta = acceso, incorrecta = bloqueo; botón "Bloquear" para salir; al bloquear vuelve a
+  pedirla. Barrera de interfaz (repositorio público aceptado, sin backend de auth).
+- **Iconos por módulo específicos**: Producción (caña + análisis de datos), TCH (cámara con
+  hoja), Riego (gota con brote), Insumos (saco con hoja), Inventario (bodega con caja, en
+  continuidad con Pansaco), Labores (tractor).
+### Verificado
+- Sin regresiones: navegación, iframe de módulo, SW (preserva cachés ajenas), offline con
+  logo cacheado, área privada. Consola limpia. Responsive móvil y PC.
+
 ## [1.0.0] — 2026-09-03 · Fase 1: Shell
 ### Ajustes tras revisión de Fase 1
 - **SW · fallback de navegación por módulo:** una navegación offline dentro de

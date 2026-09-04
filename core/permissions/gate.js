@@ -53,3 +53,28 @@ export function lock() {
 export function setPin(newPin) {
   store.set(PIN_KEY, weakHash(String(newPin)));
 }
+
+/* ============================================================
+   Gate de CENTRO MAESTRO (barrera de interfaz separada).
+   Contraseña fija: solo evita accesos accidentales de otros
+   usuarios. Repositorio público aceptado; no es seguridad real.
+   ============================================================ */
+const CENTRO_PASS = '15102171011';
+const CENTRO_FLAG = 'centro_unlocked';
+
+/** ¿Centro Maestro desbloqueado en esta sesión? */
+export function isCentroUnlocked() {
+  return sessionStorage.getItem(store.NAMESPACE + CENTRO_FLAG) === '1';
+}
+
+/** Intenta desbloquear Centro Maestro. */
+export function centroUnlock(pass) {
+  const ok = String(pass) === CENTRO_PASS;
+  if (ok) sessionStorage.setItem(store.NAMESPACE + CENTRO_FLAG, '1');
+  return ok;
+}
+
+/** Bloquea de nuevo Centro Maestro. */
+export function centroLock() {
+  sessionStorage.removeItem(store.NAMESPACE + CENTRO_FLAG);
+}

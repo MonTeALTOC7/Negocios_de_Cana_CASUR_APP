@@ -9,13 +9,19 @@ const wrap = (inner) =>
         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
 
 export const ICONS = {
-  // --- Módulos ---
-  produccion: wrap('<path d="M3 20h18"/><path d="M6 20V10"/><path d="M11 20V4"/><path d="M16 20V8"/><path d="M20 20v-6"/>'), // barras de producción
-  tch: wrap('<path d="M12 3C9 7 7 9 7 13a5 5 0 0 0 10 0c0-4-2-6-5-10Z"/><path d="M12 21v-6"/>'), // hoja/biometría
-  riego: wrap('<path d="M12 3s5 5.5 5 9a5 5 0 0 1-10 0c0-3.5 5-9 5-9Z"/><path d="M9.5 13a2.5 2.5 0 0 0 2.5 2.5"/>'), // gota de agua
-  insumos: wrap('<path d="M4 7h16"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/>'), // saco/bolsa
-  inventario: wrap('<path d="M3 8l9-5 9 5v8l-9 5-9-5Z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/>'), // caja 3D
-  labores: wrap('<path d="M14.5 3.5l6 6"/><path d="M3 21l4-1 11-11-3-3L4 17l-1 4Z"/><path d="M13 6l3 3"/>'), // herramienta/azada
+  // --- Módulos (símbolos específicos por tema) ---
+  // Producción: caña + análisis de datos (barras ascendentes + hoja/brote)
+  produccion: wrap('<path d="M3.5 20.5h17"/><path d="M6 20.5v-5"/><path d="M11 20.5v-9"/><path d="M16 20.5v-6"/><path d="M16 14.5c0-2.6 1.8-4.4 4-4.8-.2 2.8-1.4 4.6-4 4.8Z"/><path d="M11 11.5c0-2.2-1.3-3.6-3.2-4 .1 2.3 1.1 3.7 3.2 4Z"/>'),
+  // TCH y Visitas: cámara (fotografía) con hoja como lente (biometría/caña)
+  tch: wrap('<path d="M4 8.5h2.5L8 6.5h8l1.5 2H20a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1Z"/><path d="M12 16.5c-2 0-3.2-1.4-3.2-3.1 0-1.8 3.2-4.4 3.2-4.4s3.2 2.6 3.2 4.4c0 1.7-1.2 3.1-3.2 3.1Z"/>'),
+  // Riego: gota de agua con brote de caña dentro
+  riego: wrap('<path d="M12 3s5.2 5.6 5.2 9.2A5.2 5.2 0 0 1 6.8 12.2C6.8 8.6 12 3 12 3Z"/><path d="M12 17.5v-4"/><path d="M12 14c1.7 0 2.8-1.1 3-2.6"/><path d="M12 15c-1.5 0-2.5-1-2.7-2.3"/>'),
+  // Insumos: saco de insumo/fertilizante con hoja (agrícola)
+  insumos: wrap('<path d="M6.5 7.5l1.8-3h7.4l1.8 3v11.5a1.5 1.5 0 0 1-1.5 1.5H8a1.5 1.5 0 0 1-1.5-1.5Z"/><path d="M8.3 7.5h7.4"/><path d="M12 17c-1.6 0-2.6-1.2-2.6-2.7 0-1.5 2.6-3.6 2.6-3.6s2.6 2.1 2.6 3.6C14.6 15.8 13.6 17 12 17Z"/>'),
+  // Inventario: bodega con caja (continuidad visual con Pansaco)
+  inventario: wrap('<path d="M3 10l9-6 9 6"/><path d="M5 10v10h14V10"/><rect x="9" y="13.5" width="6" height="6.5"/><path d="M9 16.5h6"/>'),
+  // Labores: tractor (labores manuales y mecanizadas en el campo)
+  labores: wrap('<circle cx="7.5" cy="16.5" r="3.3"/><circle cx="17.5" cy="17.5" r="2.4"/><path d="M4 13.2h4l1.2-4.2H14l1.1 4.2h2.4a1.5 1.5 0 0 1 1.5 1.5v1.6"/><path d="M11 13V9"/>'),
   // --- Administración / privado ---
   siagri: wrap('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 4v16"/>'), // hoja de cálculo
   conciliacion: wrap('<path d="M12 3v18"/><path d="M6 7l-3 5h6Z"/><path d="M18 7l-3 5h6Z"/><path d="M6 21h12"/>'), // balanza

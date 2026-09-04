@@ -1,0 +1,89 @@
+/* ============================================================
+   tokens.css — Sistema de diseño "Negocios de Caña CASUR"
+   Identidad: caña de azúcar + campo + riego + tecnología agrícola.
+   Sin fuentes externas (offline-first). Editar aquí para re-tematizar.
+   ============================================================ */
+
+:root {
+  /* --- Paleta base (marino de campo nocturno + verdes de caña) --- */
+  --navy-900: #081A33;
+  --navy-800: #0A1E38;
+  --navy-700: #0E2A4A;
+  --navy-600: #12365F;
+  --navy-500: #1B4B7E;
+
+  --cane-lime: #7DC94A;   /* verde caña principal (identidad CASUR) */
+  --cane-light: #9FE06B;
+  --teal: #2FB39A;        /* agua / riego */
+  --teal-light: #6FD8C4;
+  --gold: #E7B84B;        /* cosecha / azúcar — uso muy puntual */
+  --clay: #C88A3C;        /* tierra / surco */
+
+  /* --- Texto --- */
+  --ink: #EAF2E4;              /* texto principal sobre marino */
+  --ink-soft: #B7C6D6;         /* secundario */
+  --ink-faint: #7C90A6;        /* terciario / metadatos */
+  --ink-on-lime: #06301A;      /* texto sobre verde */
+
+  /* --- Superficies --- */
+  --surface: #0C2340;                       /* tarjeta base */
+  --surface-2: #0F2A4C;                      /* tarjeta elevada */
+  --surface-glass: rgba(18, 54, 95, 0.55);   /* vidrio */
+  --hairline: rgba(155, 190, 225, 0.14);     /* bordes finos */
+  --hairline-strong: rgba(155, 190, 225, 0.28);
+
+  /* --- Estados --- */
+  --ok: #4FBE7A;
+  --warn: #E7B84B;
+  --err: #E4685F;
+  --offline: #7C90A6;
+
+  /* --- Radios --- */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+
+  /* --- Sombras (profundidad 3D moderada) --- */
+  --shadow-card: 0 6px 20px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --shadow-tile: 0 8px 18px rgba(0, 0, 0, 0.40);
+  --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.55);
+
+  /* --- Tipografía: stack de sistema afinado (sin descargas) --- */
+  --font-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+             "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-num: ui-monospace, "SF Mono", "Roboto Mono", Menlo, monospace;
+
+  /* --- Escala de tipo --- */
+  --t-display: clamp(1.6rem, 4.5vw, 2.2rem);
+  --t-h2: clamp(1.15rem, 3vw, 1.4rem);
+  --t-body: 1rem;
+  --t-sm: 0.875rem;
+  --t-xs: 0.75rem;
+
+  /* --- Espaciado --- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 40px;
+
+  /* --- Layout --- */
+  --header-h: 60px;
+  --nav-h: 66px;
+  --content-max: 1080px;
+
+  /* --- Áreas seguras (notch / gestos) --- */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Acentos por módulo (usados por las tarjetas del home) */
+:root {
+  --accent-produccion: #7DC94A;
+  --accent-tch: #2FB39A;
+  --accent-riego: #3EA6FF;
+  --accent-insumos: #E7B84B;
+  --accent-inventario: #B98CF0;
+  --accent-labores: #F08A6C;
+  --accent-admin: #6FD8C4;
+  --accent-private: #E4685F;
+}

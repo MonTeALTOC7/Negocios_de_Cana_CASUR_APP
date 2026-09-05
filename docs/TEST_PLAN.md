@@ -104,3 +104,13 @@ y por orquestación entre iframes:
 - [x] Instalación standalone de Producción neutralizada (beforeinstallprompt/appinstalled/installApp; FAB/tarjeta ocultos).
 - [x] Consumo automático del overlay al abrir Producción (sin re-seleccionar Excel).
 Pendiente dispositivo: gesto real del botón "Paquete solo datos" (descarga ZIP con JSZip) y flujo táctil completo.
+
+## Fase 4.4 — Sincronización automática real (verificado en Node/jsdom)
+- [x] SW: `modules/produccion/data/**` network-first (antes stale-while-revalidate).
+- [x] Detecta version.json distinta; descarga y valida cronológico+histórico ANTES de aplicar.
+- [x] Validaciones: JSON válido, registros>0, versión coherente entre los 3 archivos, Sucuya=0.
+- [x] Caso positivo: `window.CRONO_DATA` refleja el cambio real tras sincronizar (no solo IndexedDB); histórico preservado; recarga controlada solo del iframe (no del shell); guard de sesión sin loop.
+- [x] Offline tras sincronizar: conserva la versión ya descargada.
+- [x] Fail-safe: offline desde el inicio, dataset corrupto, versión incoherente → sin recarga, sin tocar datos, "Sincronización pendiente".
+- [x] Toast "✓ Maestro de Suertes actualizado · versión" una sola vez tras aplicar.
+Pendiente dispositivo: prueba con GitHub Pages real (latencia/CDN) y verificación visual del pill/toast.

@@ -2,6 +2,43 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.0.0] — 2026-09-05 · Fase 4.4: Sincronización automática real de datos publicados
+### SW raíz (único archivo tocado a nivel de caché)
+- `modules/produccion/data/**` pasa de stale-while-revalidate a **network-first**
+  (misma caché de datos `DATA_CACHE`, allowlist ya cubierta), igual que
+  `/master/data/`. Con internet prioriza siempre la versión publicada; sin
+  internet usa la última copia válida cacheada. Ya no puede servir
+  cronologico/historico/version antiguos durante o después de una recarga.
+### Sincronización automática (sin botón del usuario)
+- `checkForDataUpdate()` reescrita: consulta `data/version.json` (no-store);
+  si la versión difiere, **descarga y valida** `cronologico.json` e
+  `historico.json` (no-store) ANTES de aplicar nada: JSON válido, Cronológico
+  con registros, Histórico con registros, versión coherente entre los 3
+  archivos, y **Sucuya (Cod 16) = 0**. Solo si todo pasa, recarga
+  **exclusivamente el iframe de Producción** (no la App Maestra) — con guard
+  de sesión para no repetir ni entrar en bucle. Si falla cualquier validación
+  o no hay red: conserva el dataset anterior intacto y muestra
+  discretamente "Sincronización pendiente"; nunca deja `CRONO_DATA` a medias.
+- Se comprueba al abrir el módulo, al volver a foreground (`focus`), al
+  recuperar conexión (`online`) y cada 5 min; sin loops (early-return si la
+  versión ya coincide).
+- Toast discreto una sola vez tras aplicar: "✓ Maestro de Suertes actualizado
+  · {versión}". Mientras hay internet y la actualización puede aplicarse
+  automáticamente, ya NO queda un rótulo permanente de "Nueva versión …".
+### Verificación (jsdom, con mocks de fetch — sin navegador)
+- Caso real: local `2026.09.01-2627.1` → publicado `2026.09.05-siagri.1055`
+  con una Hac-Sue modificada → validado → recarga controlada solicitada →
+  **`window.CRONO_DATA` refleja el cambio real** (no solo IndexedDB) →
+  Histórico preservado (11598) → offline posterior conserva la versión ya
+  sincronizada.
+- Fail-safe: sin red desde el inicio, cronológico corrupto (0 suertes), y
+  versión incoherente entre archivos → en los 3 casos: **sin recarga**,
+  dataset anterior **intacto**, pill "Sincronización pendiente".
+### No tocado
+Administrador SIAGRI, comparador (Fase 4.3), builder de publicación,
+Histórico como regla de negocio, TCH, branding, instalación PWA, otros
+módulos, adaptador y puente `siagri_last` de Fase 4.
+
 ## [1.0.0] — 2026-09-04 · Fase 4.3: Resumen previo con comparación completa
 - El resumen de "Actualizar Maestro de Suertes" ahora compara el **mismo conjunto de
   variables que el Administrador SIAGRI** (COMPARISON_FIELDS: Área, Variedad, # de corte,

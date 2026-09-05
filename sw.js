@@ -95,7 +95,11 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 3) Datasets oficiales versionados: network-first + cache.
-  if (url.pathname.includes('/master/data/')) {
+  //    Incluye /master/data/ (Centro Maestro) y /modules/produccion/data/**
+  //    (cronologico/historico/version publicados). NUNCA stale-while-revalidate
+  //    para estos: con internet debe priorizar siempre la versión publicada;
+  //    sin internet, la última copia válida cacheada (regla Fase 4.4).
+  if (url.pathname.includes('/master/data/') || url.pathname.includes('/modules/produccion/data/')) {
     event.respondWith(networkFirst(req, DATA_CACHE));
     return;
   }

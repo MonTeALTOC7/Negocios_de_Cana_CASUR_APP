@@ -516,24 +516,83 @@
     } catch (error) { console.error(error); alert(`No se pudo generar el paquete: ${error.message || error}`); }
   }
 
+  let dataSyncInProgress = false;
+
+  function updateSyncPill(message, cls) {
+    const pill = $("casurSyncPill");
+    if (!pill) return;
+    pill.textContent = message;
+    pill.className = "casur-sync-pill" + (cls ? " " + cls : "");
+  }
+
+  function moduleToast(message) {
+    const el = document.getElementById("casurInstallToast");
+    if (!el) return;
+    el.textContent = message;
+    el.hidden = false;
+    requestAnimationFrame(() => el.classList.add("show"));
+    clearTimeout(moduleToast._t);
+    moduleToast._t = setTimeout(() => { el.classList.remove("show"); setTimeout(() => (el.hidden = true), 220); }, 3200);
+  }
+
+  /* [Fase 4.4] Sincronización automática real de datos publicados.
+     1) consulta data/version.json (no-store);
+     2) si difiere de la versión cargada, DESCARGA cronologico.json e
+        historico.json (no-store) y VALIDA antes de aplicar nada
+        (versión.json válido, cronológico/histórico válidos con registros,
+        versión coherente entre los tres archivos, Sucuya Cod 16 = 0);
+     3) si todo pasa: recarga SOLO este iframe (no la App Maestra) para que
+        el arranque normal (data/*.js, ya cacheados network-first por el SW
+        raíz) tome los datos frescos — sin reconstruir el Cronológico desde
+        REPORTE en el dispositivo consumidor;
+     4) si falla cualquier archivo: conserva el dataset anterior intacto y
+        muestra "Sincronización pendiente" discretamente (fail-safe
+        transaccional: descargar → validar → aplicar, nunca parcial). */
   async function checkForDataUpdate(force = false) {
     if (location.protocol === "file:") return;
+    if (dataSyncInProgress) return;
     try {
       const response = await fetch(`data/version.json?ts=${Date.now()}`, { cache: "no-store" });
       if (!response.ok) return;
       const remote = await response.json();
       const local = window.CASUR_RELEASE || {};
-      if (remote.version && local.version && remote.version !== local.version) {
-        const pill = $("casurSyncPill");
-        if (pill) { pill.classList.add("is-update"); pill.textContent = `Nueva versión ${remote.version}`; }
-        const key = `casurReloaded:${remote.version}`;
-        if (!sessionStorage.getItem(key) || force) {
-          sessionStorage.setItem(key, "1");
-          if (navigator.serviceWorker?.getRegistration) (await navigator.serviceWorker.getRegistration())?.update();
-          location.reload();
-        }
-      }
-    } catch (error) { /* La caché local continúa operativa sin conexión. */ }
+      if (!remote || !remote.version) return;
+      if (remote.version === local.version && !force) return;
+
+      dataSyncInProgress = true;
+      updateSyncPill("Sincronizando…", "is-syncing");
+
+      const [cronoRes, histRes] = await Promise.all([
+        fetch(`data/cronologico.json?ts=${Date.now()}`, { cache: "no-store" }),
+        fetch(`data/historico.json?ts=${Date.now()}`, { cache: "no-store" }),
+      ]);
+      if (!cronoRes.ok || !histRes.ok) throw new Error("descarga incompleta");
+      const cronoData = await cronoRes.json();
+      const histData = await histRes.json();
+
+      if (!cronoData || !cronoData.global || !(Number(cronoData.global.suertes) > 0)) throw new Error("cronológico inválido");
+      if (!histData || !histData.meta || !(Number(histData.meta.rows) > 0)) throw new Error("histórico inválido");
+      const cronoVersion = cronoData.meta && cronoData.meta.dataVersion;
+      const histVersion = histData.meta && histData.meta.dataVersion;
+      if (cronoVersion && cronoVersion !== remote.version) throw new Error("versión incoherente (cronológico)");
+      if (histVersion && histVersion !== remote.version) throw new Error("versión incoherente (histórico)");
+      const sucuya = (cronoData.producers || []).some((p) => normal(p.code) === "16");
+      if (sucuya) throw new Error("dataset contiene Sucuya (Cod 16)");
+
+      if (remote.version === local.version) { dataSyncInProgress = false; updateSyncPill(`Datos compartidos · versión ${esc(remote.version)}`, ""); return; }
+
+      /* Todo validado: recarga controlada de ESTE iframe (no de la App Maestra).
+         Los fetch anteriores ya dejaron los 3 archivos frescos en la caché de
+         datos del SW (network-first), por lo que el próximo arranque los usa
+         sin depender del cache del navegador ni de una copia obsoleta. */
+      sessionStorage.setItem("casurDataSyncToast", remote.version);
+      sessionStorage.setItem(`casurDataSynced:${remote.version}`, "1");
+      location.reload();
+    } catch (error) {
+      updateSyncPill("Sincronización pendiente", "is-pending");
+    } finally {
+      dataSyncInProgress = false;
+    }
   }
 
   function initAdmin() {
@@ -569,7 +628,14 @@
   window.CASUR_BUILD_CRONO_DATA = buildCronoData;
 
   window.addEventListener("load", () => {
-    releaseStrip(); installCronoObserver(); initAdmin(); ensureLockDialog(); checkForDataUpdate();
+    releaseStrip(); installCronoObserver(); initAdmin(); ensureLockDialog();
+    const justSynced = sessionStorage.getItem("casurDataSyncToast");
+    if (justSynced) {
+      sessionStorage.removeItem("casurDataSyncToast");
+      moduleToast(`✓ Maestro de Suertes actualizado · ${justSynced}`);
+      updateSyncPill(`Datos compartidos · versión ${esc(justSynced)}`, "");
+    }
+    checkForDataUpdate();
     window.addEventListener("online", () => checkForDataUpdate());
     window.addEventListener("focus", () => checkForDataUpdate());
     setInterval(() => checkForDataUpdate(), 5 * 60 * 1000);

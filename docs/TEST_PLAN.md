@@ -93,3 +93,14 @@ y por orquestación entre iframes:
 4) "Paquete solo datos para GitHub" (Centro Maestro interno de Producción) → 6 archivos + `version.json/js`.
 5) Histórico previo disponible (comparar antes/después). Offline tras cachear. Un solo SW / una sola PWA.
 6) Smoke Administrador SIAGRI y Estimador TCH (sin regresión).
+
+## Fase 4.1 — Bridge real (verificado en Node/jsdom)
+- [x] `window.CASUR_APPLY_REPORT_ROWS` pasa filas REPORTE por `extractRecords→buildCronoData→compareData` y aplica a `window.CRONO_DATA`.
+- [x] Antes/Después de `CRONO_DATA`: 1053 → refleja el payload de prueba (hac 999, área 33.33, s01=11.11).
+- [x] Versión de datos actualizada (`CASUR_RELEASE.version`).
+- [x] Histórico intacto (`APP_DATA` sin cambios, 1.34 MB).
+- [x] Baseline primera actualización = 1053 (no 0) vía datos publicados / `CASUR_GET_CURRENT_REPORT_ROWS`.
+- [x] Paquete solo datos: `cronologico.json` con el cambio, `version.json` nueva versión, `historico.json` preservado.
+- [x] Instalación standalone de Producción neutralizada (beforeinstallprompt/appinstalled/installApp; FAB/tarjeta ocultos).
+- [x] Consumo automático del overlay al abrir Producción (sin re-seleccionar Excel).
+Pendiente dispositivo: gesto real del botón "Paquete solo datos" (descarga ZIP con JSZip) y flujo táctil completo.

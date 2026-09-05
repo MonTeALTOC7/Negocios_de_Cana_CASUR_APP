@@ -2,6 +2,31 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.0.0] — 2026-09-04 · Fase 4.1: Bridge real SIAGRI → builder Producción → CRONO_DATA
+### Corrección (completa el último tramo de Fase 4)
+- **Bridge real en la copia de Producción** (`window.CASUR_APPLY_REPORT_ROWS(payload)`):
+  recibe filas REPORTE y las pasa por el pipeline REAL `extractRecords → buildCronoData →
+  compareData`, reemplazando el Cronológico runtime (`window.CRONO_DATA`) y actualizando la
+  versión de DATOS (`window.CASUR_RELEASE`). NO duplica reglas. NO toca el Histórico (`APP_DATA`).
+- **Consumo automático del overlay**: al abrir/recargar `modules/produccion/`, si existe
+  `casur_master_data/produccion_current` (expuesto como `window.CASUR_MASTER_OVERLAY`), se aplica
+  por el bridge sin volver a seleccionar Excel. (El overlay ya no queda sin consumidor.)
+- **Baseline de la primera actualización**: `window.CASUR_GET_CURRENT_REPORT_ROWS()` en Producción
+  y, en el shell, `baselineReportRows()` toma como base los datos publicados de Producción
+  (1053 suertes) cuando aún no hay `produccion_current` → ya no muestra "0 anteriores".
+- **Alias `Cod`** añadido al mapa de Producción para reconocer la columna del Convertidor.
+- **Instalación standalone de Producción eliminada**: `beforeinstallprompt`/`appinstalled`/
+  `installApp` neutralizados; FAB y tarjeta ocultos. Solo instala "Negocios de Caña".
+- **Paquete solo datos**: usa `dataForScope()` (=CRONO_DATA aplicado) + `appForScope()` (histórico
+  intacto) + `CASUR_RELEASE` (nueva versión); los 6 archivos reflejan el nuevo Cronológico.
+### Verificación (jsdom, builder REAL de Producción — sin navegador)
+- Antes: `CRONO_DATA.global.suertes = 1053`. Baseline API = 1053.
+- Aplicar payload REPORTE (headers del Convertidor) → **Después: CRONO_DATA refleja el cambio**
+  (hac 999, área 33.33, suerte 01 = 11.11), versión de datos = `2026.09.09-siagri.test`.
+- **Histórico intacto** (`APP_DATA` sin cambios; 1.34 MB). Paquete: `cronologico.json` contiene
+  el cambio; `version.json` la nueva versión; `historico.json` preservado.
+- Adaptador (Fase 4) sigue **15/15** en Node; Sucuya=0 (validado en adaptador y en `extractRecords`).
+
 ## [1.0.0] — 2026-09-04 · Fase 4: Maestro de Suertes / Producción (integración + adaptador)
 ### Integración de Producción
 - Integrada la versión real **VF54.6** de `Cronologico_Historico_260726_CASUR_PROGRAMADOR`

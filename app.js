@@ -11,6 +11,8 @@ import * as gate from './core/permissions/gate.js';
 import * as status from './core/sync/status.js';
 import { APP_VERSION, APP_CHANNEL, moduleVersion, moduleStatus } from './core/versions/versions.js';
 import { icon } from './shared/components/icons.js';
+import * as masterStore from './core/shared-data/master-store.js';
+import { adaptSiagriToProduction } from './master/adapters/production-data-adapter.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
@@ -270,6 +272,21 @@ async function viewCentroMaestro() {
         </div>
       </section>
 
+      <section class="card">
+        <div class="card__head"><span class="card__title">Maestro de datos · SIAGRI → Suertes</span></div>
+        <p class="panel__note">Reutiliza el dataset ya validado en Administrador SIAGRI (sin volver a cargar el
+        Excel) para actualizar <strong>Maestro de Suertes</strong>. El adaptador mapea al formato REPORTE y valida
+        <strong>Sucuya = 0</strong>, llave Hac-Sue, duplicados e integridad antes de aplicar. El histórico no se destruye.</p>
+        <div class="stat-grid" id="dataStatus" style="margin-top:10px"></div>
+        <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap">
+          <button class="btn btn-green" id="updateProduccion" type="button">Actualizar Maestro de Suertes</button>
+          <button class="btn" id="genPackage" type="button">Generar paquete datos GitHub</button>
+        </div>
+        <p class="panel__note" style="margin-top:8px; opacity:.8">El paquete de datos (cronologico/historico/version)
+        lo genera el propio Centro Maestro de Producción (botón «Paquete solo datos para GitHub»), ya con los datos
+        aplicados. Versión de <em>datos</em> ≠ versión de <em>código</em> (VF54.6).</p>
+      </section>
+
       <section class="card" id="pinCard"></section>
 
       <section class="card">
@@ -320,6 +337,14 @@ async function viewCentroMaestro() {
   $('#centroLock', view).addEventListener('click', () => { gate.centroLock(); router.home(); });
   $('#openConv', view).addEventListener('click', () => router.go('/modulo/convertidor'));
   $('#openPriv', view).addEventListener('click', () => router.go('/privado'));
+
+  // --- Estado de datos maestros (SIAGRI → Suertes) ---
+  renderDataStatus(view);
+  $('#updateProduccion', view).addEventListener('click', () => updateProduccionFromSiagri());
+  $('#genPackage', view).addEventListener('click', () => {
+    toast('Abre Maestro de Suertes y usa «Paquete solo datos para GitHub» (ya con los datos aplicados).');
+    router.go('/modulo/produccion');
+  });
 
   // Tarjeta de PIN: SOLO permite cambiarlo si el área privada ya está
   // desbloqueada en esta sesión. Si está bloqueada, ofrece desbloquear.
@@ -452,6 +477,105 @@ function toast(msg, action) {
   document.body.appendChild(t);
   clearTimeout(toastTimer);
   if (!action) toastTimer = setTimeout(() => t.remove(), 2600);
+}
+
+/* ---------------- Datos maestros: SIAGRI → Suertes ---------------- */
+/* Lee el último dataset procesado por el Convertidor (puente no invasivo:
+   el Convertidor lo persiste en casur_master_data/datasets/siagri_last). */
+async function readSiagriBridge() {
+  try {
+    const db = await new Promise((res, rej) => {
+      const q = indexedDB.open(masterStore.MASTER_STORE_INFO.DB_NAME, masterStore.MASTER_STORE_INFO.DB_VERSION);
+      q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+    });
+    const rec = await new Promise((res) => {
+      const tx = db.transaction(masterStore.MASTER_STORE_INFO.STORE, 'readonly');
+      const r = tx.objectStore(masterStore.MASTER_STORE_INFO.STORE).get('siagri_last');
+      r.onsuccess = () => res(r.result || null); r.onerror = () => res(null);
+    });
+    db.close();
+    return rec ? rec.payload : null;
+  } catch { return null; }
+}
+
+async function renderDataStatus(view) {
+  const box = $('#dataStatus', view); if (!box) return;
+  const prod = await masterStore.getProduccionStatus();
+  const siagri = await readSiagriBridge();
+  const fmt = (d) => d ? new Date(d).toLocaleDateString('es-NI') : '—';
+  box.innerHTML = `
+    <div class="stat"><div class="stat__label">Maestro SIAGRI (procesado)</div>
+      <div class="stat__value">${siagri ? (siagri.records ? siagri.records.length : '—') + ' suertes' : 'Sin procesar'}</div></div>
+    <div class="stat"><div class="stat__label">SIAGRI · fuente</div>
+      <div class="stat__value">${siagri && siagri.meta ? (siagri.meta.source || 'SIAGRI') : '—'}</div></div>
+    <div class="stat"><div class="stat__label">Maestro de Suertes · datos</div>
+      <div class="stat__value">${prod.present ? (prod.dataVersion || 'aplicado') : 'Sin aplicar (usa data/*)'}</div></div>
+    <div class="stat"><div class="stat__label">Aplicado</div>
+      <div class="stat__value">${prod.present ? fmt(prod.savedAt) : '—'}</div></div>`;
+}
+
+async function baselineReportRows() {
+  /* Segunda actualización en adelante: baseline = último produccion_current. */
+  const prev = await masterStore.loadProduccionDataset();
+  if (prev && prev.payload && Array.isArray(prev.payload.reportRows) && prev.payload.reportRows.length) {
+    return prev.payload.reportRows;
+  }
+  /* Primera actualización: baseline = datos actualmente publicados en Producción
+     (reutiliza su cronológico agregado; no reconstruye reglas). Evita "0 anteriores". */
+  try {
+    const res = await fetch('modules/produccion/data/cronologico.json', { cache: 'no-store' });
+    const j = await res.json();
+    const rows = [];
+    (j.producers || []).forEach((p) => (p.details || []).forEach((d) => rows.push({
+      'Hac-Sue': String(d.codLote || d.hhhsss || ((p.code || '') + '' + (d.suerte || ''))),
+      Area: d.area,
+      Estado: (d.estado != null ? d.estado : ''),
+      TCH_Estimado_Z2627: (d.tchEst2627 != null ? d.tchEst2627 : null),
+    })));
+    return rows;
+  } catch { return []; }
+}
+
+async function updateProduccionFromSiagri() {
+  const siagri = await readSiagriBridge();
+  if (!siagri || !siagri.records || !siagri.records.length) {
+    toast('Primero procesa un SIAGRI en Administrador SIAGRI.');
+    return;
+  }
+  const prevRows = await baselineReportRows();
+  const result = adaptSiagriToProduction(siagri, prevRows);
+
+  const s = result.summary;
+  const vlines = result.validations.checks.map((c) => `${c.ok ? '✓' : '✗'} ${c.detail}`).join('\n');
+  const resumen =
+    `Actualizar Maestro de Suertes\n` +
+    `--------------------------------\n` +
+    `Registros anteriores: ${s.registrosAnteriores}\n` +
+    `Registros nuevos: ${s.registrosNuevos}\n` +
+    `Nuevas suertes: ${s.nuevasSuertes}\n` +
+    `Modificadas: ${s.modificadas}\n` +
+    `Inactivadas: ${s.inactivadas}\n` +
+    `Área anterior: ${s.areaAnterior} ha → nueva: ${s.areaNueva} ha\n` +
+    `Sucuya excluida (Cod 16): ${s.sucuyaExcluidas}\n` +
+    `Fecha de actualización: ${s.fechaActualizacion}\n` +
+    `Versión de datos: ${result.dataVersion}\n` +
+    `--------------------------------\n` +
+    `Validaciones:\n${vlines}\n` +
+    `--------------------------------\n` +
+    (result.ok ? '¿Aplicar esta actualización?' : 'NO se puede aplicar: hay validaciones críticas sin cumplir.');
+
+  if (!result.ok) { window.alert(resumen); return; }
+  if (!window.confirm(resumen)) { toast('Actualización cancelada. No se aplicó ningún cambio.'); return; }
+
+  await masterStore.saveProduccionDataset({
+    reportRows: result.reportRows,
+    dataVersion: result.dataVersion,
+    summary: s,
+    meta: result.meta,
+    /* El histórico NO se toca aquí: Producción lo conserva/ampl­ía con sus reglas. */
+  });
+  toast('Maestro de Suertes actualizado en este dispositivo. Genera el paquete para publicar.');
+  const v = $('#view'); if (v) renderDataStatus(v);
 }
 
 /* ---------------- Gate de Centro Maestro ---------------- */

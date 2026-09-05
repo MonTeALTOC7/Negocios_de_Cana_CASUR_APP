@@ -1625,6 +1625,8 @@ body.crono-print-preview .print-end{display:block!important;text-align:center!im
 <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <style id="casurPwaInstallStyles">
+/* [App Maestra] Instalación standalone oculta */ .casur-install-fab,#casurInstallLayer,.casur-install-layer{display:none!important;}
+
 .casur-install-layer[hidden],#installBtn[hidden],.casur-install-toast[hidden]{display:none!important}
 .casur-install-layer{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(4,24,14,.62);backdrop-filter:blur(10px) saturate(135%);-webkit-backdrop-filter:blur(10px) saturate(135%);opacity:0;transition:opacity .24s ease}
 .casur-install-layer.show{opacity:1}
@@ -3457,7 +3459,7 @@ LyohCgpKU1ppcCB2My4xMC4xIC0gQSBKYXZhU2NyaXB0IGNsYXNzIGZvciBnZW5lcmF0aW5nIGFuZCBy
   const HIST_COLUMNS=['Zafra','Cod. Hacienda','Nombre Hacienda','Ste','hac-sue','Area','Toneladas','TCH','KATM','Edad','# Corte','Variedad','TipoRiego','ZONA','Fecha Corte','Estado','Observacion'];
   const PATCH_COLUMNS=['Accion','Cod. Hacienda','Ste','Campo_a_Modificar','Valor_Nuevo','Observacion'];
   const FIELD_ALIASES={
-    code:['Codigo_Hacienda','Código Hacienda','CodHacienda','Cod_Hacienda','Codigo','Código','Codfinca','Cod Finca','Cod. Hacienda','Cod Hacienda'],
+    code:['Codigo_Hacienda','Código Hacienda','CodHacienda','Cod_Hacienda','Codigo','Código','Codfinca','Cod Finca','Cod. Hacienda','Cod Hacienda','Cod'],
     name:['Hacienda_Productor','Hacienda Productor','Hacienda','Productor','Nombre','Nombre Hacienda','Nombre_Hacienda','Nombre Finca','Finca'],
     suerte:['Suerte','Ste','No Suerte','Numero Suerte','Nro Suerte','No. Suerte','Suerte/Lote','Lote'],
     codLote:['hac-sue','Hac-Sue','CodLote','Cod Lote','Codigo_Suerte','Código Suerte','Codigo Lote','Código Lote'],
@@ -3906,7 +3908,48 @@ function selectedScope(){return (byId('masterScopeSelect')||{}).value||'__all__'
   function setMode(mode){currentMode=mode; document.querySelectorAll('#masterModeGrid label').forEach(l=>l.classList.toggle('active',(l.querySelector('input')||{}).value===mode)); const note=byId('masterColumnNote'); if(note){note.textContent=mode==='patch'?'Corrección parcial: use Acción, Cod. Hacienda, Ste, Campo_a_Modificar y Valor_Nuevo. Para tenencia puede usar CA, CV o PR.':mode==='hist'?'Histórico: por ahora se genera plantilla; actualización histórica completa se implementará en la siguiente fase.':'Cronológico completo: admite plantilla y formato SIAGRI/CASUR, excluyendo Sucuya y Maquila. Tenencia se toma desde Tn: CA=Arriendo, CV=Compra Venta, PR=Propio.';}}
   function goMaster(btn){document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active')); if(btn)btn.classList.add('active'); const el=byId('masterUpdateSection'); if(el){el.open=true; el.scrollIntoView({behavior:'smooth',block:'start'});} if(typeof window.updateState==='function')window.updateState('Versión Maestro · Actualización de Datos','Módulo separado para programador');}
   function initCurrent(){try{const d=window.CRONO_DATA, zones=(d&&d.groups&&d.groups.zona)||[]; byId('masterCronoKpis').innerHTML='<div class="master-kpi main"><span>Área actual</span><strong>'+nfmt(d.global.area)+' ha</strong><em>Base cargada</em></div><div class="master-kpi"><span>Suertes</span><strong>'+nfmt(d.global.suertes,0)+'</strong><em>Cronológico actual</em></div><div class="master-kpi"><span>Haciendas/Productores</span><strong>'+nfmt(d.global.productores,0)+'</strong><em>Unidades</em></div><div class="master-kpi"><span>TCH ponderado</span><strong>'+nfmt(d.global.tch)+'</strong><em>Por área</em></div>'; byId('masterCronoValidation').innerHTML='<h3>Validación</h3><div class="master-status good">Esta versión ya contiene la base actualizada. Puede cargar otro Excel para comparar o exportar.</div>'; byId('masterCronoCompare').innerHTML='<h3>Comparativo contra base actual</h3><small>Cargue un Excel para ver diferencias contra esta base.</small>'; renderMap({}); const sel=byId('masterScopeSelect'); if(sel)sel.innerHTML='<option value="__all__">CASUR completo</option>'+zones.map(z=>'<option value="'+esc(z.key)+'">Solo '+esc(z.key)+'</option>').join(''); byId('masterCronoZones').innerHTML='<h3>Resumen por zona detectada</h3><small>Base actual cargada.</small><div class="master-table-wrap"><table class="master-table"><thead><tr><th>Zona</th><th>Área</th><th>Suertes</th><th>TCH pond.</th></tr></thead><tbody>'+zones.map(z=>'<tr><td>'+esc(z.key)+'</td><td>'+nfmt(z.area)+' ha</td><td>'+nfmt(z.suertes,0)+'</td><td>'+nfmt(z.tch)+'</td></tr>').join('')+'</tbody></table></div>'; ['masterExportHtmlBtn','masterExportOperBtn','masterExportZipBtn'].forEach(id=>{const b=byId(id); if(b)b.classList.remove('master-disabled');});}catch(e){}}
-  window.masterBuildExportHtml=buildExportHtml; window.masterAuditExportHtml=auditExportHtml; window.masterLastExportAudit=function(){return lastExportAudit;}; window.masterReadCronoExcel=readCronoExcel; window.masterDownloadUpdatedHtml=downloadHtml; window.masterDownloadUpdatedZip=downloadZip; window.masterApplyProfile=masterApplyProfile; window.masterModuleChanged=masterModuleChanged; window.goMasterModule=goMaster; window.masterDownloadTemplate=downloadTemplate; window.masterSetMode=setMode; window.masterGetPendingData=function(){return pending&&pending.data||null;}; window.masterApplyPendingData=function(){if(!pending||pending.errors.length)return null; const data=pending.data; window.CASUR_ADMIN_DATA=data; if(window.CRONO_DATA){Object.keys(window.CRONO_DATA).forEach(function(k){delete window.CRONO_DATA[k];});Object.assign(window.CRONO_DATA,data);} pending=null; initCurrent(); return data;}; setTimeout(function(){initCurrent(); masterRefreshModuleUI();},200);
+  window.masterBuildExportHtml=buildExportHtml; window.masterAuditExportHtml=auditExportHtml; window.masterLastExportAudit=function(){return lastExportAudit;}; window.masterReadCronoExcel=readCronoExcel; window.masterDownloadUpdatedHtml=downloadHtml; window.masterDownloadUpdatedZip=downloadZip; window.masterApplyProfile=masterApplyProfile; window.masterModuleChanged=masterModuleChanged; window.goMasterModule=goMaster; window.masterDownloadTemplate=downloadTemplate; window.masterSetMode=setMode; window.masterGetPendingData=function(){return pending&&pending.data||null;}; window.masterApplyPendingData=function(){if(!pending||pending.errors.length)return null; const data=pending.data; window.CASUR_ADMIN_DATA=data; if(window.CRONO_DATA){Object.keys(window.CRONO_DATA).forEach(function(k){delete window.CRONO_DATA[k];});Object.assign(window.CRONO_DATA,data);} pending=null; initCurrent(); return data;};
+  /* [INTEGRACIÓN App Maestra · Fase 4.1] Bridge real: recibe filas REPORTE
+     desde la App Maestra y las pasa por el pipeline REAL de Producción
+     (extractRecords → buildCronoData → compareData) aplicando el resultado
+     al Cronológico runtime (window.CRONO_DATA). NO duplica reglas ni toca
+     el Histórico (window.APP_DATA). Actualiza la versión de DATOS. */
+  window.CASUR_APPLY_REPORT_ROWS=function(payload){
+    try{
+      var rows=(payload&&payload.reportRows)||[];
+      if(!rows.length)return {applied:false,error:'Sin filas REPORTE.'};
+      var parsed=extractRecords(rows);
+      var data=buildCronoData(parsed.records,(payload&&payload.meta&&payload.meta.source)||'SIAGRI');
+      data.meta.rawRows=parsed.raw; data.meta.excludedRows=parsed.excluded;
+      var cmp=compareData(data);
+      window.CASUR_ADMIN_DATA=data;
+      if(window.CRONO_DATA){Object.keys(window.CRONO_DATA).forEach(function(k){delete window.CRONO_DATA[k];});Object.assign(window.CRONO_DATA,data);}
+      if(payload&&payload.dataVersion){try{window.CASUR_RELEASE=Object.assign({},window.CASUR_RELEASE||{},{version:payload.dataVersion,source:(payload.meta&&payload.meta.source)||(window.CASUR_RELEASE&&window.CASUR_RELEASE.source)||'SIAGRI',generated:new Date().toISOString().slice(0,10),cronologicoRows:data.global.suertes});}catch(e){}
+        /* [Fase 4.2] Sincroniza el input de "Paquete solo datos" con la nueva
+           versión aplicada, para que version.json/js la usen sin intervención manual. */
+        try{var _pv=document.getElementById('casurPublishVersion'); if(_pv)_pv.value=payload.dataVersion;}catch(e){}}
+      try{initCurrent();}catch(e){}
+      try{if(typeof masterRefreshModuleUI==='function')masterRefreshModuleUI();}catch(e){}
+      return {applied:true,compare:cmp,meta:data.meta,global:data.global,errors:parsed.errors,warnings:parsed.warnings};
+    }catch(err){try{console.error('CASUR_APPLY_REPORT_ROWS',err);}catch(e){} return {applied:false,error:String(err&&err.message||err)};}
+  };
+  /* Baseline: expone las filas REPORTE actuales de Producción (sin reconstruir). */
+  window.CASUR_GET_CURRENT_REPORT_ROWS=function(){
+    try{return recordsFromCurrent().map(function(r){return {
+      'Hac-Sue':String((r.code||'')+(r.suerte||'')),Cod:r.code,Hacienda:r.name,Suerte:r.suerte,
+      Area:r.area,Variedad:r.variedad,Edad:r.edadExcel,ZONA:r.zona,Tipo_de_Riego:r.tipoRiego,
+      Tenencia:r.tenencia,Destino:r.destino,Textura:r.textura,'F. Siembra':r.fSiembra,
+      'F. Ult. Cte':r.fUltCte,'#_de_Corte':r.corte,Estado:r.estado,'Tch.Act':r.tch,
+      TCH_Estimado_Z2627:r.tchEst2627};});}catch(e){return [];}
+  };
+  /* Consumidor del overlay: al abrir Producción, si hay produccion_current
+     (expuesto por el script de <head> como window.CASUR_MASTER_OVERLAY),
+     se aplica automáticamente por el bridge real. Sin re-seleccionar Excel. */
+  (function(){
+    function _apply(p){ if(p&&p.reportRows&&p.reportRows.length){ try{ window.CASUR_APPLY_REPORT_ROWS(p); }catch(e){} } }
+    try{ if(window.CASUR_MASTER_OVERLAY)_apply(window.CASUR_MASTER_OVERLAY);
+         document.addEventListener('casur-master-overlay',function(ev){_apply(ev.detail);}); }catch(e){}
+  })(); setTimeout(function(){initCurrent(); masterRefreshModuleUI();},200);
 })();
 /* MASTER_UPDATE_SCRIPT_END */
 </script>
@@ -3962,41 +4005,9 @@ function selectedScope(){return (byId('masterScopeSelect')||{}).value||'__all__'
   function closePrompt(){if(!layer)return;layer.classList.remove('show');layer.setAttribute('aria-hidden','true');setTimeout(()=>layer.hidden=true,250);setFab(!!deferredPrompt&&!isStandalone())}
   window.openCasurInstallPrompt=openPrompt;
   window.closeCasurInstallPrompt=closePrompt;
-  window.installApp=async function installApp(){
-    if(isStandalone()){closePrompt();setFab(false);return}
-    if(!deferredPrompt){showToast('La instalación todavía no está disponible. Abrí el enlace con Chrome y esperá unos segundos.');return}
-    const promptEvent=deferredPrompt;
-    try{
-      await promptEvent.prompt();
-      const choice=await promptEvent.userChoice;
-      deferredPrompt=null;
-      closePrompt();
-      if(choice&&choice.outcome==='accepted'){
-        localStorage.setItem(INSTALLED_KEY,'1');
-        setFab(false);
-        showToast('Instalación aceptada. CASUR Suertes se agregará a tu teléfono.');
-      }else{
-        setFab(false);
-      }
-    }catch(err){console.warn('CASUR PWA: no se pudo abrir el diálogo de instalación',err);showToast('No se pudo abrir el instalador. Revisá que estés usando Chrome en Android.')}
-  };
-  window.addEventListener('beforeinstallprompt',event=>{
-    event.preventDefault();
-    deferredPrompt=event;
-    if(isStandalone())return;
-    setFab(true);
-    let alreadySeen=false;
-    try{alreadySeen=localStorage.getItem(OFFER_KEY)==='1'}catch(_){ }
-    if(isAndroid()&&!alreadySeen){
-      try{localStorage.setItem(OFFER_KEY,'1')}catch(_){ }
-      setTimeout(openPrompt,750);
-    }
-  });
-  window.addEventListener('appinstalled',()=>{
-    deferredPrompt=null;
-    try{localStorage.setItem(INSTALLED_KEY,'1')}catch(_){ }
-    closePrompt();setFab(false);showToast('CASUR Suertes quedó instalada correctamente.');
-  });
+  window.installApp=async function installApp(){/* [App Maestra] Instalación standalone DESACTIVADA: solo instala Negocios de Caña. */};
+  window.addEventListener('beforeinstallprompt',function(event){event.preventDefault();/* [App Maestra] Instalación standalone DESACTIVADA: solo instala Negocios de Caña. */});
+  window.addEventListener('appinstalled',function(){/* [App Maestra] Instalación standalone DESACTIVADA. */});
   layer?.addEventListener('click',event=>{if(event.target===layer)closePrompt()});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!layer?.hidden)closePrompt()});
   if(isStandalone()){setFab(false);if(layer)layer.hidden=true}

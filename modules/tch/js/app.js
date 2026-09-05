@@ -2160,17 +2160,20 @@ backupFile.addEventListener("change", async () => {
 });
 
 modal.addEventListener("click", (event) => { if (event.target === modal) closeModal(); });
-window.addEventListener("beforeinstallprompt", (event) => {
-  event.preventDefault();
-  state.installPrompt = event;
-  updateInstallNotice();
-});
-window.addEventListener("appinstalled", () => {
-  state.installPrompt = null;
-  updateInstallNotice();
-  notify("Estimador TCH instalado correctamente.");
-});
-window.matchMedia?.("(display-mode: standalone)")?.addEventListener?.("change", updateInstallNotice);
+// [INTEGRACIÓN App Maestra] Lógica de instalación standalone DESACTIVADA.
+// La captura de beforeinstallprompt/appinstalled vive en el shell maestro;
+// el módulo no debe ofrecer su propia instalación dentro del iframe.
+// window.addEventListener("beforeinstallprompt", (event) => {
+//   event.preventDefault();
+//   state.installPrompt = event;
+//   updateInstallNotice();
+// });
+// window.addEventListener("appinstalled", () => {
+//   state.installPrompt = null;
+//   updateInstallNotice();
+//   notify("Estimador TCH instalado correctamente.");
+// });
+// window.matchMedia?.("(display-mode: standalone)")?.addEventListener?.("change", updateInstallNotice);
 window.addEventListener("online", updateConnection);
 window.addEventListener("offline", updateConnection);
 

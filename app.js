@@ -63,6 +63,94 @@ function renderNav(active) {
   });
 }
 
+/* ============================================================
+   Instalación centralizada de la PWA maestra "Negocios de Caña".
+   Toda la lógica de instalación vive en el shell (nunca en los
+   módulos/iframes). Captura beforeinstallprompt/appinstalled y
+   muestra un banner elegante en el Home con reglas de visibilidad
+   y persistencia local con namespace del shell.
+   ============================================================ */
+const INSTALL_KEYS = {
+  installed: 'casur_master_installed',
+  dismissed: 'casur_master_install_dismissed',
+};
+const INSTALL_DISMISS_MS = 7 * 24 * 60 * 60 * 1000; /* respetar cierre 7 días */
+let deferredInstallPrompt = null;
+
+function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+
+function isAppInstalled() {
+  if (lsGet(INSTALL_KEYS.installed) === '1') return true;
+  if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+  if (window.navigator.standalone === true) return true; /* iOS Safari */
+  return false;
+}
+function installDismissedRecently() {
+  const t = Number(lsGet(INSTALL_KEYS.dismissed) || 0);
+  return t > 0 && (Date.now() - t) < INSTALL_DISMISS_MS;
+}
+function canShowInstall() {
+  return !!deferredInstallPrompt && !isAppInstalled() && !installDismissedRecently();
+}
+
+function installBannerHTML() {
+  return `<div class="install-card" id="installCard" role="region" aria-label="Instalar Negocios de Caña CASUR">
+      <span class="install-card__glow" aria-hidden="true"></span>
+      <span class="install-card__flash" aria-hidden="true"></span>
+      <span class="install-card__icon"><img src="shared/assets/icons/icon-192.png" alt="" width="52" height="52"></span>
+      <span class="install-card__copy">
+        <b class="install-card__title">Instalar Negocios de Caña</b>
+        <small class="install-card__sub">Lleva la app en tu teléfono o PC</small>
+      </span>
+      <button class="install-card__cta" id="installCta" type="button">Instalar ahora</button>
+      <button class="install-card__close" id="installClose" type="button" aria-label="Descartar invitación">×</button>
+    </div>`;
+}
+function mountInstallBanner() {
+  const slot = $('#installSlot');
+  if (!slot) return; /* solo existe en el Home */
+  if (!canShowInstall()) { slot.innerHTML = ''; return; }
+  slot.innerHTML = installBannerHTML();
+  $('#installCta', slot).addEventListener('click', doInstall);
+  $('#installClose', slot).addEventListener('click', dismissInstall);
+  requestAnimationFrame(() => $('#installCard', slot)?.classList.add('is-in'));
+}
+function hideInstallBanner() {
+  const card = $('#installCard');
+  const slot = $('#installSlot');
+  if (card) {
+    card.classList.remove('is-in'); card.classList.add('is-out');
+    setTimeout(() => { if (slot) slot.innerHTML = ''; }, 280);
+  } else if (slot) { slot.innerHTML = ''; }
+}
+async function doInstall() {
+  const promptEvent = deferredInstallPrompt;
+  if (!promptEvent) return;
+  deferredInstallPrompt = null;
+  try {
+    await promptEvent.prompt();
+    const choice = await promptEvent.userChoice;
+    if (choice && choice.outcome === 'accepted') lsSet(INSTALL_KEYS.installed, '1');
+  } catch {}
+  hideInstallBanner();
+}
+function dismissInstall() {
+  lsSet(INSTALL_KEYS.dismissed, String(Date.now()));
+  hideInstallBanner();
+}
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  mountInstallBanner(); /* re-evalúa si el Home ya está visible */
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  lsSet(INSTALL_KEYS.installed, '1');
+  hideInstallBanner();
+});
+
 /* ---------------- Vista: HOME ---------------- */
 function viewHome() {
   const mods = registry.homeModules();
@@ -78,6 +166,7 @@ function viewHome() {
       <h1 class="masthead__title">Negocios de Caña CASUR</h1>
       <p class="masthead__desc">Todos los sistemas de campo en una sola app. Elige un módulo para comenzar.</p>
     </header>
+    <div class="install-slot" id="installSlot"></div>
     <div class="modules" id="mods"></div>
   </div>`);
   const grid = $('#mods', view);
@@ -110,6 +199,7 @@ function viewHome() {
 
   swap(view);
   renderNav('home');
+  mountInstallBanner();
 }
 
 /* ---------------- Vista: MÓDULO (iframe) ---------------- */

@@ -407,3 +407,115 @@ a { color: var(--teal-light); text-decoration: none; }
 }
 
 :focus-visible { outline: 2px solid var(--teal-light); outline-offset: 2px; border-radius: 6px; }
+
+/* ============================================================
+   Banner de instalación de la PWA maestra (solo Home, shell).
+   Diseño premium/3D coherente con CASUR: profundidad, glow sutil
+   y destello elegante. No invasivo. Se anima al entrar/salir.
+   ============================================================ */
+.install-slot { margin: 4px 0 2px; }
+.install-slot:empty { display: none; }
+
+.install-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 14px 14px 16px;
+  border-radius: 18px;
+  overflow: hidden;
+  isolation: isolate;
+  color: #EAF4FF;
+  background:
+    linear-gradient(135deg, rgba(37,166,63,0.16), rgba(21,154,214,0.14) 55%, rgba(12,35,64,0.10)),
+    linear-gradient(180deg, #123A5F 0%, #0C2340 100%);
+  border: 1px solid rgba(140, 198, 63, 0.30);
+  box-shadow:
+    0 18px 40px rgba(0,0,0,0.45),
+    0 1px 0 rgba(255,255,255,0.06) inset,
+    0 0 0 1px rgba(21,154,214,0.10) inset;
+  opacity: 0;
+  transform: translateY(10px) scale(0.985);
+  transition: opacity .32s ease, transform .32s cubic-bezier(.2,.8,.2,1);
+}
+.install-card.is-in { opacity: 1; transform: translateY(0) scale(1); }
+.install-card.is-out { opacity: 0; transform: translateY(6px) scale(.99); }
+
+/* Glow ambiental suave y pulsante detrás del icono */
+.install-card__glow {
+  position: absolute; z-index: -1;
+  left: -30px; top: 50%; width: 180px; height: 180px;
+  transform: translateY(-50%);
+  background: radial-gradient(circle, rgba(140,198,63,0.35), rgba(18,169,140,0.12) 45%, transparent 70%);
+  filter: blur(6px);
+  animation: installGlow 4.2s ease-in-out infinite;
+}
+@keyframes installGlow {
+  0%, 100% { opacity: .55; }
+  50%      { opacity: .95; }
+}
+
+/* Destello diagonal elegante que cruza la tarjeta ocasionalmente */
+.install-card__flash {
+  position: absolute; z-index: 1; inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.16) 48%, rgba(255,255,255,0.28) 50%, transparent 66%);
+  transform: translateX(-120%);
+  animation: installFlash 6.5s ease-in-out 1.2s infinite;
+  pointer-events: none;
+}
+@keyframes installFlash {
+  0%, 82%, 100% { transform: translateX(-120%); }
+  90%           { transform: translateX(120%); }
+}
+
+.install-card__icon {
+  position: relative; z-index: 2;
+  flex: 0 0 auto;
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  display: grid; place-items: center;
+  background: linear-gradient(180deg, #0F2E4E, #0A1E36);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.40), 0 0 0 1px rgba(140,198,63,0.25) inset;
+}
+.install-card__icon img { width: 46px; height: 46px; border-radius: 11px; display: block; }
+
+.install-card__copy { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.install-card__title { font-size: 1rem; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; }
+.install-card__sub { font-size: 0.82rem; color: #A9C6E4; }
+
+.install-card__cta {
+  position: relative; z-index: 2;
+  flex: 0 0 auto;
+  border: 0; cursor: pointer;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 800; font-size: 0.9rem;
+  color: #06251A;
+  background: linear-gradient(180deg, #8CC63F 0%, #25A63F 100%);
+  box-shadow: 0 8px 18px rgba(37,166,63,0.35), 0 1px 0 rgba(255,255,255,0.35) inset;
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.install-card__cta:hover { filter: brightness(1.05); transform: translateY(-1px); }
+.install-card__cta:active { transform: translateY(0); box-shadow: 0 4px 10px rgba(37,166,63,0.35); }
+
+.install-card__close {
+  position: absolute; z-index: 3; top: 8px; right: 10px;
+  width: 26px; height: 26px; line-height: 22px; text-align: center;
+  border: 0; cursor: pointer; border-radius: 8px;
+  font-size: 20px; color: #9FBBDA;
+  background: rgba(255,255,255,0.06);
+  transition: background .15s ease, color .15s ease;
+}
+.install-card__close:hover { background: rgba(255,255,255,0.12); color: #EAF4FF; }
+
+/* Compacto en móviles estrechos: el CTA baja a la siguiente línea */
+@media (max-width: 380px) {
+  .install-card { flex-wrap: wrap; padding-right: 14px; }
+  .install-card__copy { flex-basis: calc(100% - 66px); }
+  .install-card__cta { width: 100%; margin-top: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .install-card, .install-card__glow, .install-card__flash { animation: none; transition: opacity .2s ease; transform: none; }
+  .install-card.is-in { transform: none; }
+}

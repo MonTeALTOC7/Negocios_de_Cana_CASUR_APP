@@ -562,6 +562,10 @@
   window.casurApplyImportedExcel = applyImportedExcel;
   window.casurDownloadDataUpdate = downloadDataUpdate;
   window.casurCheckForDataUpdate = () => checkForDataUpdate(true);
+  /* [INTEGRACIÓN App Maestra] API para que el shell genere el paquete de datos
+     directamente, sin que el usuario navegue manualmente al Centro Maestro de
+     Producción. Reutiliza downloadDataUpdate() sin duplicar su lógica. */
+  window.CASUR_GENERATE_GITHUB_DATA_PACKAGE = downloadDataUpdate;
   window.CASUR_BUILD_CRONO_DATA = buildCronoData;
 
   window.addEventListener("load", () => {

@@ -153,6 +153,60 @@ window.addEventListener('appinstalled', () => {
   hideInstallBanner();
 });
 
+/* ---------- Generar paquete datos GitHub desde Centro Maestro ---------- */
+/* Carga Producción en un iframe oculto same-origin, espera a que:
+   1) consuma produccion_current (overlay → bridge → CRONO_DATA)
+   2) sincronice CASUR_RELEASE
+   3) CASUR_GENERATE_GITHUB_DATA_PACKAGE esté disponible
+   y entonces ejecuta la descarga. Si Producción ya está visible en #mFrame,
+   la usa directamente. Reutiliza el generador de Producción sin duplicar lógica. */
+async function generateGitHubPackageFromCentro() {
+  /* ¿Ya hay un iframe de Producción visible? */
+  const visible = $('#mFrame');
+  if (visible) {
+    try {
+      const fw = visible.contentWindow;
+      if (fw && typeof fw.CASUR_GENERATE_GITHUB_DATA_PACKAGE === 'function') {
+        await fw.CASUR_GENERATE_GITHUB_DATA_PACKAGE();
+        return;
+      }
+    } catch (_) { /* cross-origin o no cargado: caer al flujo con iframe oculto */ }
+  }
+
+  toast('Preparando paquete de datos…');
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+  iframe.src = 'modules/produccion/index.html';
+  document.body.appendChild(iframe);
+
+  try {
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Tiempo de espera agotado cargando Producción.')), 30000);
+      iframe.addEventListener('load', () => {
+        /* Esperar a que el bridge aplique y la API esté lista */
+        let checks = 0;
+        const poll = setInterval(() => {
+          checks++;
+          try {
+            const w = iframe.contentWindow;
+            if (w && typeof w.CASUR_GENERATE_GITHUB_DATA_PACKAGE === 'function' && w.CRONO_DATA && w.CRONO_DATA.global) {
+              clearInterval(poll); clearTimeout(timeout); resolve();
+            }
+          } catch (_) { /* todavía cargando */ }
+          if (checks > 120) { clearInterval(poll); clearTimeout(timeout); reject(new Error('Producción no inicializó la API de paquete.')); }
+        }, 250);
+      });
+      iframe.addEventListener('error', () => { clearTimeout(timeout); reject(new Error('No se pudo cargar Producción.')); });
+    });
+
+    await iframe.contentWindow.CASUR_GENERATE_GITHUB_DATA_PACKAGE();
+  } catch (err) {
+    toast('Error: ' + (err.message || err));
+  } finally {
+    setTimeout(() => { try { iframe.remove(); } catch (_) {} }, 2000);
+  }
+}
+
 /* ---------------- Vista: HOME ---------------- */
 function viewHome() {
   const mods = registry.homeModules();
@@ -341,10 +395,7 @@ async function viewCentroMaestro() {
   // --- Estado de datos maestros (SIAGRI → Suertes) ---
   renderDataStatus(view);
   $('#updateProduccion', view).addEventListener('click', () => updateProduccionFromSiagri());
-  $('#genPackage', view).addEventListener('click', () => {
-    toast('Abre Maestro de Suertes y usa «Paquete solo datos para GitHub» (ya con los datos aplicados).');
-    router.go('/modulo/produccion');
-  });
+  $('#genPackage', view).addEventListener('click', () => generateGitHubPackageFromCentro());
 
   // Tarjeta de PIN: SOLO permite cambiarlo si el área privada ya está
   // desbloqueada en esta sesión. Si está bloqueada, ofrece desbloquear.
@@ -529,6 +580,16 @@ async function baselineReportRows() {
     (j.producers || []).forEach((p) => (p.details || []).forEach((d) => rows.push({
       'Hac-Sue': String(d.codLote || d.hhhsss || ((p.code || '') + '' + (d.suerte || ''))),
       Area: d.area,
+      Variedad: d.variedad,
+      '#_de_Corte': d.corte,
+      'F. Siembra': d.fSiembra,
+      'F. Ult. Cte': d.fUltCte,
+      Destino: d.destino,
+      Tenencia: d.tenencia,
+      Tipo_de_Riego: d.tipoRiego,
+      '#_de_Riegos': (d.numeroRiegos != null ? d.numeroRiegos : null),
+      ZONA: d.zona,
+      TCH_Z2526: (d.tch != null ? d.tch : null),
       Estado: (d.estado != null ? d.estado : ''),
       TCH_Estimado_Z2627: (d.tchEst2627 != null ? d.tchEst2627 : null),
     })));
@@ -547,6 +608,8 @@ async function updateProduccionFromSiagri() {
 
   const s = result.summary;
   const vlines = result.validations.checks.map((c) => `${c.ok ? '✓' : '✗'} ${c.detail}`).join('\n');
+  const desglose = Object.keys(s.fieldCounts || {}).sort((a, b) => s.fieldCounts[b] - s.fieldCounts[a])
+    .map((k) => `   · ${k}: ${s.fieldCounts[k]}`).join('\n');
   const resumen =
     `Actualizar Maestro de Suertes\n` +
     `--------------------------------\n` +
@@ -554,8 +617,10 @@ async function updateProduccionFromSiagri() {
     `Registros nuevos: ${s.registrosNuevos}\n` +
     `Nuevas suertes: ${s.nuevasSuertes}\n` +
     `Modificadas: ${s.modificadas}\n` +
-    `Inactivadas: ${s.inactivadas}\n` +
-    `Área anterior: ${s.areaAnterior} ha → nueva: ${s.areaNueva} ha\n` +
+    `Sin cambios: ${s.sinCambios}\n` +
+    `Inactivadas/retiradas: ${s.inactivadas}\n` +
+    (desglose ? `Cambios por variable:\n${desglose}\n` : '') +
+    `Área anterior: ${s.areaAnterior} ha → nueva: ${s.areaNueva} ha (Δ ${s.areaDelta})\n` +
     `Sucuya excluida (Cod 16): ${s.sucuyaExcluidas}\n` +
     `Fecha de actualización: ${s.fechaActualizacion}\n` +
     `Versión de datos: ${result.dataVersion}\n` +

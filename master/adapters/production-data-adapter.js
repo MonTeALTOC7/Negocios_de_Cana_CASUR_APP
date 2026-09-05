@@ -87,24 +87,88 @@ function sumArea(records) {
   return records.reduce((s, r) => s + (Number(r.area) || 0), 0);
 }
 
-/* Resumen comparativo prev→new (no aplica nada; solo describe el cambio). */
+/* Mismo conjunto y semántica de comparación que el comparador del Administrador
+   SIAGRI (COMPARISON_FIELDS de master/convertidor/js/data-engine.js), expresado
+   sobre columnas REPORTE, más Estado y TCH estimado. No duplica reglas de negocio:
+   solo replica qué variables se comparan y cómo (fecha Y-M-D, número con
+   tolerancia, texto normalizado). Se usa exclusivamente para el resumen previo. */
+const SUMMARY_FIELDS = [
+  { col: 'Area', label: 'Área', type: 'number', tol: 0.01 },
+  { col: 'Variedad', label: 'Variedad', type: 'text' },
+  { col: '#_de_Corte', label: '# de corte', type: 'text' },
+  { col: 'F. Siembra', label: 'F. Siembra', type: 'date' },
+  { col: 'F. Ult. Cte', label: 'F. Ult. Cte', type: 'date' },
+  { col: 'Destino', label: 'Destino', type: 'text' },
+  { col: 'Tenencia', label: 'Tenencia', type: 'text' },
+  { col: 'Tipo_de_Riego', label: 'Tipo de riego', type: 'text' },
+  { col: '#_de_Riegos', label: '# de riegos', type: 'number', tol: 0.01 },
+  { col: 'ZONA', label: 'Zona', type: 'text' },
+  { col: 'TCH_Z2526', label: 'TCH Z25/26', type: 'number', tol: 0.01 },
+  { col: 'Estado', label: 'Estado', type: 'text' },
+  { col: 'TCH_Estimado_Z2627', label: 'TCH estimado', type: 'number', tol: 0.01 },
+];
+
+function foldText(v) {
+  return String(v == null ? '' : v).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/\s+/g, ' ').trim();
+}
+function numOrNull(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(String(v).replace(/,/g, '.').replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+function dateKey(v) {
+  if (v == null || v === '') return '';
+  if (v instanceof Date && !isNaN(v)) return v.toISOString().slice(0, 10);
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (m) return `${m[1]}-${String(+m[2]).padStart(2, '0')}-${String(+m[3]).padStart(2, '0')}`;
+  m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$/);
+  if (m) { let y = +m[3]; if (y < 100) y += 2000; return `${y}-${String(+m[2]).padStart(2, '0')}-${String(+m[1]).padStart(2, '0')}`; }
+  return s;
+}
+function fieldValue(row, field) {
+  const raw = row[field.col];
+  if (field.type === 'date') return dateKey(raw);
+  if (field.type === 'number') return numOrNull(raw);
+  return foldText(raw);
+}
+function fieldEqual(a, b, field) {
+  if (field.type === 'number') {
+    return (a === null && b === null) || (a !== null && b !== null && Math.abs(a - b) <= (field.tol || 0.01));
+  }
+  return a === b;
+}
+
+/* Resumen comparativo prev→new (no aplica nada; solo describe el cambio).
+   Compara filas REPORTE por Hac-Sue con el mismo conjunto de variables que el
+   Administrador SIAGRI, y devuelve además el desglose por variable (fieldCounts). */
 export function buildSummary(records, previousReportRows) {
   const prev = Array.isArray(previousReportRows) ? previousReportRows : [];
-  const prevByKey = new Map(prev.map((row) => [String(row['Hac-Sue'] || '').trim(), row]));
-  const newKeys = new Set(records.map((r) => String(r.hacSue || '').trim()));
+  const newRows = records.map(recordToReportRow);
+  const key = (row) => String(row['Hac-Sue'] || '').trim();
+  const prevByKey = new Map(prev.map((row) => [key(row), row]));
+  const newByKey = new Map(newRows.map((row) => [key(row), row]));
 
-  let nuevas = 0, modificadas = 0;
-  for (const r of records) {
-    const k = String(r.hacSue || '').trim();
+  let nuevas = 0, modificadas = 0, sinCambios = 0;
+  const fieldCounts = {};
+  newByKey.forEach((row, k) => {
     const before = prevByKey.get(k);
-    if (!before) { nuevas += 1; continue; }
-    const changed =
-      Number(before.Area) !== Number(r.area) ||
-      String(before.Estado || '') !== String(r.stateValidated || r.stateDetected || '') ||
-      Number(before.TCH_Estimado_Z2627) !== Number(r.tchEstimate);
-    if (changed) modificadas += 1;
-  }
-  const inactivadas = prev.filter((row) => !newKeys.has(String(row['Hac-Sue'] || '').trim())).length;
+    if (!before) { nuevas += 1; return; }
+    let changed = 0;
+    for (const field of SUMMARY_FIELDS) {
+      if (!fieldEqual(fieldValue(row, field), fieldValue(before, field), field)) {
+        changed += 1;
+        fieldCounts[field.label] = (fieldCounts[field.label] || 0) + 1;
+      }
+    }
+    if (changed) modificadas += 1; else sinCambios += 1;
+  });
+  let inactivadas = 0;
+  prevByKey.forEach((_row, k) => { if (!newByKey.has(k)) inactivadas += 1; });
+
+  const areaAnterior = Number(sumArea(prev.map((row) => ({ area: row.Area }))).toFixed(2));
+  const areaNueva = Number(sumArea(records).toFixed(2));
   const sucuyaExcluidas = records.filter((r) => codeNumber(r.cod) === 16).length; /* debe ser 0 */
 
   return {
@@ -112,10 +176,13 @@ export function buildSummary(records, previousReportRows) {
     registrosNuevos: records.length,
     nuevasSuertes: nuevas,
     modificadas,
+    sinCambios,
     inactivadas,
-    areaAnterior: Number(sumArea(prev.map((row) => ({ area: row.Area }))).toFixed(2)),
-    areaNueva: Number(sumArea(records).toFixed(2)),
+    areaAnterior,
+    areaNueva,
+    areaDelta: Number((areaNueva - areaAnterior).toFixed(2)),
     sucuyaExcluidas,
+    fieldCounts,
     fechaActualizacion: new Date().toISOString().slice(0, 10),
   };
 }

@@ -2,6 +2,19 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.0.0] — 2026-09-04 · Fase 4.3: Resumen previo con comparación completa
+- El resumen de "Actualizar Maestro de Suertes" ahora compara el **mismo conjunto de
+  variables que el Administrador SIAGRI** (COMPARISON_FIELDS: Área, Variedad, # de corte,
+  F. Siembra, F. Ult. Cte, Destino, Tenencia, Tipo de riego, # de riegos, Zona, TCH Z25/26)
+  más **Estado** y **TCH estimado**, con la misma semántica (fecha Y-M-D, número con
+  tolerancia, texto normalizado). Muestra **Sin cambios** y un **desglose por variable**.
+- `baselineReportRows()` recupera del cronológico publicado todas esas variables.
+- Verificado (Node 11/11): baseline 1053; dataset con 14 cambios de # de riegos + 1 de
+  F. Siembra → **0 nuevas, 0 inactivadas, 15 modificadas, 1038 sin cambios, área sin
+  variación**, desglose {# de riegos: 14, F. Siembra: 1}; idéntico → 0 modificadas.
+- Solo cambia el resumen/contador previo: bridge, aplicación, Histórico, Producción, SW,
+  manifest, TCH, Convertidor y branding intactos.
+
 ## [1.0.0] — 2026-09-04 · Fase 4.1: Bridge real SIAGRI → builder Producción → CRONO_DATA
 ### Corrección (completa el último tramo de Fase 4)
 - **Bridge real en la copia de Producción** (`window.CASUR_APPLY_REPORT_ROWS(payload)`):

@@ -6,7 +6,7 @@ Sus datos (IndexedDB/localStorage) se conservan **sin migración** porque compar
 
 | Módulo | Carpeta | Stack | Almacenamiento propio | Supabase | Privacidad |
 |---|---|---|---|---|---|
-| Maestro de Suertes | `modules/produccion/` | HTML monolítico | cache `casur-suertes-vf54-*` | no | pública |
+| Maestro de Suertes | `modules/produccion/` · **integrado VF54.6** (monolito; iframe) | HTML monolítico | cache `casur-suertes-vf54-*` | no | pública |
 | Estimador TCH | `modules/tch/` · **integrado v2.7.2** | JS vanilla | IndexedDB `casur-estimador-tch` (v3) | no | pública |
 | Riegos Ejecutados | `modules/riego/` | Vite/React | sesión GoTrue | sí (publishable) | pública |
 | Insumos Entregados Productores | `modules/insumos/` | JS vanilla | IndexedDB `insumos_casur_db` | no | pública |

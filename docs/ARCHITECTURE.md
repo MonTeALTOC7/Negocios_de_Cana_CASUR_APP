@@ -335,3 +335,36 @@ Leyenda: 🔴 Crítico · 🟠 Alto · 🟡 Medio · 🟢 Bajo.
    real (Supabase RLS) planificado para Fase 8+? El riesgo local queda documentado (§5.4).
 
 **No se iniciará la construcción del shell hasta tu aprobación.**
+
+## Fase 4 — Pipeline Administrador SIAGRI → Adaptador → Maestro de Suertes
+
+```
+Excel SIAGRI
+     │
+     ▼
+Administrador SIAGRI (master/convertidor)  ── procesa, valida, excluye Sucuya (Cod 16)
+     │  publishSiagriBridge()  →  IndexedDB casur_master_data / datasets / "siagri_last"
+     ▼
+ADAPTADOR (master/adapters/production-data-adapter.js)
+     │  · mapea record → fila REPORTE (reutiliza toMasterRow del Convertidor)
+     │  · valida: Sucuya=0, Hac-Sue presente, sin duplicados, integridad
+     │  · resumen prev/nuevas/modificadas/inactivadas/área/Sucuya/fecha/versión-datos
+     ▼  (Centro Maestro: "Actualizar Maestro de Suertes" → muestra resumen → CONFIRMA)
+IndexedDB casur_master_data / datasets / "produccion_current"   { reportRows, dataVersion, summary }
+     │
+     ▼
+Maestro de Suertes (modules/produccion)  ── overlay NO destructivo
+     │  window.CASUR_MASTER_OVERLAY (filas REPORTE)  →  Centro Maestro interno de Producción
+     │  ingiere por su ruta de importación (MISMO builder que el Excel oficial)
+     ▼
+cronologico.js/json + historico.js/json (conservado/ampliado) + version.js/json (versión DATOS)
+     │  "Paquete solo datos para GitHub"  →  6 archivos listos para modules/produccion/data/
+     ▼
+GitHub Pages  →  otros dispositivos detectan data/version.json → descargan datos → offline
+```
+
+Principios: reutilizar el builder de Producción (no reimplementar reglas); NO confundir
+`cronologico_master.json` (esquema del Convertidor) con `data/cronologico.json` (esquema
+agregado de Producción: producers/options/lists/groups/global); NO destruir histórico;
+versión de **datos** ≠ versión de **código** (VF54.6); no aplicar cambios grandes en silencio;
+no publicar datasets corruptos (validaciones críticas bloquean).

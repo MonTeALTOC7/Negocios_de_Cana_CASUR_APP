@@ -2,6 +2,47 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.0.0] — 2026-09-04 · Fase 4: Maestro de Suertes / Producción (integración + adaptador)
+### Integración de Producción
+- Integrada la versión real **VF54.6** de `Cronologico_Historico_260726_CASUR_PROGRAMADOR`
+  en `modules/produccion/` (copia; el repositorio fuente no se tocó). Monolito de ~11 MB
+  (`index.html` 5.5 MB inline). Reemplaza el placeholder. Se ejecuta en su iframe aislado.
+- Neutralizado en la copia: registro de Service Worker (`index.html`) y `<link rel="manifest">`;
+  eliminados `sw.js` y `manifest.webmanifest`. Un solo SW raíz, una sola PWA.
+- Datos preservados: `data/cronologico.js/json`, `data/historico.js/json`, `data/version.js/json`
+  (contrato intacto: `CASUR_REMOTE_CRONO`, `CASUR_REMOTE_HISTORICO`, `CASUR_RELEASE`).
+  Cronológico 1053, **histórico 11598 filas** (no se destruye). Versión **datos**
+  `2026.09.01-2627.1` ≠ versión **código** VF54.6.
+### Adaptador SIAGRI → Maestro de Suertes
+- Nuevo `master/adapters/production-data-adapter.js`: toma el dataset YA validado del
+  Convertidor y lo mapea al formato hoja **REPORTE** (el mismo puente que Producción usa
+  para importar el Excel oficial), reutilizando el mapeo `toMasterRow` del Convertidor.
+  NO reimplementa reglas de edad/estado/TCH/renovación/zonas/áreas/estadísticas.
+- Validaciones antes de aplicar: **Sucuya (Cod 16) = 0**, llave `Hac-Sue` presente,
+  duplicados de llave, integridad de campos críticos (Hacienda/Suerte/Área/Zona).
+- Resumen antes de aplicar (no silencioso): registros anteriores/nuevos, nuevas suertes,
+  modificadas, inactivadas, área anterior/nueva, Sucuya excluida, fecha, versión de datos.
+- Nuevo `core/shared-data/master-store.js`: IndexedDB **`casur_master_data`** (no toca bases
+  antiguas). El Convertidor publica su dataset validado (puente `siagri_last`, no invasivo).
+  "Actualizar Maestro de Suertes" (Centro Maestro) corre el adaptador, muestra el resumen,
+  y al confirmar guarda `produccion_current`. Producción expone un overlay no destructivo
+  (`window.CASUR_MASTER_OVERLAY`) para ingerir esas filas por su propio builder.
+- "Generar paquete datos GitHub": se genera con el propio Centro Maestro de Producción
+  ("Paquete solo datos para GitHub"), que produce los 6 archivos (`cronologico.*`,
+  `historico.*`, `version.*`) ya con los datos aplicados. Mecanismo de actualización remota
+  por `data/version.json` preservado.
+### UI Centro Maestro
+- Nueva tarjeta "Maestro de datos · SIAGRI → Suertes" con estado (Maestro SIAGRI / Maestro de
+  Suertes · datos) y acciones "Actualizar Maestro de Suertes" y "Generar paquete datos GitHub".
+### Verificación
+- Adaptador verificado en Node: **15/15** (mapeo REPORTE, Sucuya=0, duplicados, integridad,
+  resumen prev/nuevas/modificadas/inactivadas/área, versión de datos distinta).
+- Producción verificada estáticamente: manifest/SW inactivos, `data/*.js` cargan, estructura
+  intacta, Sucuya excluida en el dataset publicado, histórico 11598 conservado.
+- **Pendiente de validación en dispositivo** (por inestabilidad del entorno de pruebas y por
+  requerir orquestación entre iframes): flujo completo en navegador Actualizar→aplicar→
+  Producción consume overlay→generar paquete, y smoke E2E de Convertidor/TCH.
+
 ## [1.0.0] — 2026-09-04 · Fase 3: Estimador TCH (integración técnica)
 ### Integración
 - Integrada la versión real **2.7.2** de `TCH_BioEstimador_Rfotos` en `modules/tch/`

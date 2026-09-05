@@ -31,7 +31,7 @@ export function moduleVersion(id) {
    de su fase. El TCH está integrado técnicamente; cámara/GPS/Android
    requieren validación final en dispositivo real tras publicar. */
 export const MODULE_STATUS = {
-  produccion: 'placeholder',
+  produccion: 'integrado · VF54.6 (código) · datos vía SIAGRI→adaptador',
   tch: 'integrado · cámara/GPS: validar en dispositivo',
   riego: 'placeholder',
   insumos: 'placeholder',

@@ -74,3 +74,22 @@ Micro-pruebas (cortas y separadas):
 
 **Requiere validación en dispositivo real (Android/PC) tras publicar:**
 cámara, galería, permiso/coordenadas GPS reales, orientación vertical/horizontal, compartir, y comportamiento de la PWA instalada. Además, confirmación E2E en navegador (no ejecutable aquí por inestabilidad del entorno de pruebas).
+
+## Fase 4 — Maestro de Suertes / Producción (estado)
+Verificado:
+- [x] Producción real integrada en `modules/produccion/` (monolito VF54.6), iframe aislado.
+- [x] SW propio y manifest neutralizados; `sw.js`/`manifest.webmanifest` eliminados. Un solo SW raíz.
+- [x] Datos intactos: `CASUR_REMOTE_CRONO` (1053), `CASUR_REMOTE_HISTORICO` (11598), `CASUR_RELEASE`.
+- [x] Sucuya (Cod 16) excluida en el dataset publicado (regla permanente).
+- [x] Adaptador SIAGRI→REPORTE + validaciones + resumen: **Node 15/15** (`master/adapters/`).
+- [x] Store `casur_master_data` (IndexedDB) y puente `siagri_last` del Convertidor (no invasivo).
+- [x] Centro Maestro: tarjeta de datos + "Actualizar Maestro de Suertes" (con resumen y validaciones antes de aplicar) + "Generar paquete datos GitHub".
+
+Requiere validación en dispositivo real (Android/PC), por inestabilidad del entorno de pruebas
+y por orquestación entre iframes:
+1) Abrir Maestro de Suertes → Cronológico/Histórico/selección múltiple/análisis por zona/fichas/gráficos/exportaciones.
+2) Centro Maestro → Administrador SIAGRI → procesar fixture → "Actualizar Maestro de Suertes" → confirmar Sucuya=0 y resumen → aplicar.
+3) Abrir Producción y confirmar que consume el overlay (`window.CASUR_MASTER_OVERLAY`).
+4) "Paquete solo datos para GitHub" (Centro Maestro interno de Producción) → 6 archivos + `version.json/js`.
+5) Histórico previo disponible (comparar antes/después). Offline tras cachear. Un solo SW / una sola PWA.
+6) Smoke Administrador SIAGRI y Estimador TCH (sin regresión).

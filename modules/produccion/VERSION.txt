@@ -1,0 +1,2 @@
+VF54.6 CASUR · ACCESO TÉCNICO COMPACTO · 03-sep-2026
+El módulo técnico se abre desde una tarjeta protegida en el Panel Ejecutivo, permanece oculto hasta desbloquearse y desaparece de las exportaciones operativas.

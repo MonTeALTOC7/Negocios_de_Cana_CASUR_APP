@@ -1,0 +1,12 @@
+{
+  "name": "cronologico-historico-casur",
+  "version": "54.6.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node tools/local-server.mjs",
+    "start": "node tools/local-server.mjs",
+    "build:data": "node tools/build-official-data.mjs",
+    "test": "node tests/validate-static.mjs"
+  }
+}

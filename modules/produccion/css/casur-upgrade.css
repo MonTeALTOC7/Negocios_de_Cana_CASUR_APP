@@ -1,0 +1,112 @@
+:root{
+  --casur-ink:#10241a;
+  --casur-green:#0b7f3a;
+  --casur-green-dark:#075e2d;
+  --casur-blue:#005baa;
+  --casur-gold:#f4c542;
+  --casur-est:#0f766e;
+  --casur-est-pale:#ecfdf5;
+}
+
+.casur-release-strip{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  margin:0 0 12px;padding:9px 12px;border:1px solid #cfe7d8;border-radius:14px;
+  background:linear-gradient(90deg,#f2fbf5,#f7fbff);color:#365a46;font-size:11px;font-weight:850;
+}
+.casur-release-strip b{color:var(--casur-ink)}
+.casur-release-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:7px;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.12)}
+.casur-sync-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:#fff;border:1px solid #d8e6dc;color:#475569;font-size:10px;font-weight:950}
+.casur-sync-pill.is-update{background:#fff8df;border-color:#f4c542;color:#805b00}
+
+.casur-estimate-kpi{border-left-color:var(--casur-est)!important;background:linear-gradient(145deg,#f0fdfa,#fff)!important}
+.casur-estimate-kpi .value,.casur-estimate-kpi strong{color:#0f766e!important}
+.casur-estimate-kpi small,.casur-estimate-kpi em{color:#4b6b66!important}
+.casur-estimate-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #99f6e4;border-radius:999px;padding:7px 10px;background:#ecfdf5;color:#0f766e;font-size:10.5px;font-weight:950;white-space:nowrap}
+.casur-estimate-badge.is-empty{border-color:#dbe4e0;background:#f8fafc;color:#64748b}
+.casur-estimate-cell{background:#f0fdfa;color:#0f766e;font-weight:950}
+.casur-estimate-cell small{display:block;margin-top:2px;color:#52746d;font-size:9px;font-weight:800}
+.casur-no-estimate{color:#94a3b8;font-weight:850}
+.casur-master-state{max-width:210px;white-space:normal!important;font-weight:850}
+.casur-master-note{max-width:260px;white-space:normal!important;color:#526276}
+
+.master-update-accordion.is-locked{display:none!important}
+.executive-hero .hero-shell{position:relative}
+.executive-hero .hero-copy{padding-right:190px}
+.casur-admin-launcher{
+  position:absolute;top:0;right:0;z-index:4;display:grid;grid-template-columns:38px minmax(0,1fr) 20px;
+  align-items:center;gap:9px;width:176px;min-height:54px;padding:7px 8px;border:1px solid rgba(255,255,255,.34);
+  border-radius:17px;background:linear-gradient(135deg,rgba(42,20,79,.88),rgba(76,29,149,.78));color:#fff;
+  box-shadow:0 10px 24px rgba(18,8,39,.20),inset 0 1px 0 rgba(255,255,255,.20);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-family:inherit;text-align:left;cursor:pointer;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease;
+}
+.casur-admin-launcher:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.55);box-shadow:0 14px 28px rgba(18,8,39,.27),inset 0 1px 0 rgba(255,255,255,.24)}
+.casur-admin-launcher:focus-visible{outline:3px solid #f4c542;outline-offset:3px}
+.casur-admin-launcher-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.20);font-size:19px;line-height:1}
+.casur-admin-launcher-copy{min-width:0;display:block}
+.casur-admin-launcher-copy strong{display:block;color:#fff;font-size:11.5px;font-weight:950;line-height:1.12;white-space:nowrap}
+.casur-admin-launcher-copy small{display:block;margin-top:4px;color:rgba(255,255,255,.72);font-size:9px;font-weight:850;line-height:1.1;white-space:nowrap}
+.casur-admin-launcher-arrow{display:grid;place-items:center;width:20px;height:20px;border-radius:999px;background:rgba(255,255,255,.14);font-size:18px;font-weight:900;line-height:1}
+.casur-admin-launcher.is-unlocked{background:linear-gradient(135deg,rgba(5,94,45,.92),rgba(11,127,58,.82));border-color:rgba(134,239,172,.58)}
+.casur-admin-launcher.is-unlocked .casur-admin-launcher-icon{background:rgba(74,222,128,.18)}
+.casur-admin-hero{display:grid;gap:5px;padding:2px 0 5px}
+.casur-admin-hero strong{font-size:16px;color:var(--casur-ink)}
+.casur-admin-hero small{color:#64748b;font-size:11px;font-weight:800;line-height:1.4}
+.casur-admin-grid{display:grid;grid-template-columns:1fr;gap:12px}
+.casur-admin-card{border:1px solid #dfe8e2;border-radius:20px;background:#fff;padding:15px;box-shadow:0 9px 24px rgba(15,23,42,.05);min-width:0}
+.casur-admin-card.admin-primary{background:linear-gradient(145deg,#f7fff9,#fff);border-color:#bfe0ca}
+.casur-admin-card.admin-publish{background:linear-gradient(145deg,#f8fbff,#fff);border-color:#cbdff5}
+.casur-card-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.casur-step{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border-radius:10px;background:var(--casur-green);color:#fff;font-size:12px;font-weight:950}
+.casur-card-head h3{margin:0;color:var(--casur-ink);font-size:15px}
+.casur-card-head p{margin:3px 0 0;color:#64748b;font-size:10.5px;font-weight:800;line-height:1.4}
+.casur-file-drop{display:block;border:1.5px dashed #9fcdb0;border-radius:16px;padding:14px;background:#fbfffc;cursor:pointer;text-align:center}
+.casur-file-drop:hover{background:#f1fbf4;border-color:var(--casur-green)}
+.casur-file-drop b{display:block;color:#0b6031;font-size:13px}
+.casur-file-drop small{display:block;margin-top:4px;color:#64748b;font-size:10px;font-weight:800}
+.casur-file-drop input{width:100%;margin-top:10px;font-size:11px}
+.casur-official-rule{margin-top:9px;padding:9px 10px;border-radius:12px;background:#fff8df;border:1px solid #f7dfa1;color:#5f4b12;font-size:10.5px;font-weight:800;line-height:1.45}
+.casur-admin-tabs{display:flex;gap:7px;margin:0 0 11px;padding:4px;border-radius:14px;background:#edf3ef}
+.casur-admin-tab{flex:1;border:0;border-radius:10px;padding:9px;background:transparent;color:#526276;font:900 11px inherit;cursor:pointer}
+.casur-admin-tab.is-active{background:#fff;color:var(--casur-green-dark);box-shadow:0 3px 10px rgba(15,23,42,.09)}
+.casur-editor-search{display:grid;grid-template-columns:1fr auto;gap:7px;margin-bottom:10px}
+.casur-editor-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.casur-editor-fields label{display:grid;gap:4px;color:#526276;font-size:9.5px;font-weight:950;text-transform:uppercase;letter-spacing:.18px}
+.casur-editor-fields label.wide{grid-column:1/-1}
+.casur-editor-fields input,.casur-editor-fields select,.casur-editor-fields textarea,.casur-editor-search input{
+  width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:11px;padding:9px 10px;background:#fff;color:#1e293b;font:800 11.5px inherit;text-transform:none;letter-spacing:0;
+}
+.casur-editor-fields textarea{min-height:68px;resize:vertical}
+.casur-editor-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.casur-btn{border:0;border-radius:12px;min-height:40px;padding:9px 12px;background:var(--casur-green);color:#fff;font:950 11px inherit;cursor:pointer}
+.casur-btn:hover{filter:brightness(.96);transform:translateY(-1px)}
+.casur-btn.secondary{background:#e8f1ff;color:#0b4f9c;border:1px solid #c7dcff}
+.casur-btn.neutral{background:#eef4f1;color:#334155;border:1px solid #dbe5dd}
+.casur-btn.danger{background:#fff1f1;color:#a30e0e;border:1px solid #fecaca}
+.casur-change-log{margin-top:9px;max-height:100px;overflow:auto;font-size:10px;font-weight:800;color:#526276}
+.casur-change-log div{padding:5px 0;border-bottom:1px solid #edf2ef}
+.casur-export-guide{display:grid;gap:7px;margin:10px 0}
+.casur-export-guide div{display:flex;gap:8px;align-items:flex-start;padding:8px 9px;border-radius:12px;background:#f8fafc;border:1px solid #edf2ef;color:#526276;font-size:10.5px;font-weight:800;line-height:1.35}
+.casur-export-guide b{color:var(--casur-blue)}
+
+.casur-lock-layer{position:fixed;inset:0;z-index:2147483500;display:grid;place-items:center;padding:18px;background:rgba(4,24,14,.68);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.casur-lock-layer[hidden]{display:none!important}
+.casur-lock-card{width:min(390px,100%);overflow:hidden;border-radius:25px;background:#fff;box-shadow:0 30px 90px rgba(0,0,0,.34);border:1px solid rgba(255,255,255,.75)}
+.casur-lock-accent{height:7px;background:linear-gradient(90deg,var(--casur-green) 0 55%,var(--casur-blue) 55% 78%,var(--casur-gold) 78%)}
+.casur-lock-body{padding:22px}
+.casur-lock-icon{display:grid;place-items:center;width:58px;height:58px;margin:0 auto 12px;border-radius:18px;background:#f3e8ff;color:#6d28d9;font-size:27px}
+.casur-lock-card h2{margin:0;text-align:center;color:var(--casur-ink);font-size:21px}
+.casur-lock-card p{margin:7px auto 15px;max-width:310px;text-align:center;color:#64748b;font-size:11px;font-weight:800;line-height:1.45}
+.casur-lock-card input{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:14px;padding:12px;text-align:center;font-size:18px;font-weight:950;letter-spacing:4px}
+.casur-lock-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.casur-lock-error{min-height:18px;margin-top:7px;text-align:center;color:#b91c1c;font-size:10px;font-weight:900}
+
+@media(min-width:900px){.casur-admin-grid{grid-template-columns:1fr 1fr}.casur-admin-card.admin-publish{grid-column:1/-1}.casur-editor-fields{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:760px){
+  .executive-hero .hero-copy{padding-right:50px}
+  .casur-admin-launcher{top:0;right:0;display:grid;grid-template-columns:1fr;width:44px;min-height:44px;height:44px;padding:4px;border-radius:14px}
+  .casur-admin-launcher-icon{width:34px;height:34px;border-radius:10px;font-size:17px}
+  .casur-admin-launcher-copy,.casur-admin-launcher-arrow{display:none}
+}
+@media(max-width:560px){.casur-editor-fields{grid-template-columns:1fr}.casur-editor-fields label.wide{grid-column:auto}.casur-editor-search{grid-template-columns:1fr}.casur-lock-actions{grid-template-columns:1fr}}
+@media print{.casur-release-strip,.casur-lock-layer{display:none!important}.casur-estimate-cell{background:#fff!important;color:#0f5f58!important}.casur-estimate-kpi{background:#fff!important}}

@@ -231,6 +231,15 @@
       state.masterPage = 1;
       rebuildComparison(false);
       renderAll();
+      /* [INTEGRACIÓN App Maestra] Puente no invasivo: publica el dataset ya
+         validado en IndexedDB casur_master_data (clave siagri_last) para que el
+         Centro Maestro pueda "Actualizar Maestro de Suertes" sin recargar el
+         Excel. Solo lectura por el shell; no altera la lógica del Convertidor. */
+      try {
+        if (state.dataset && state.dataset.audit && state.dataset.audit.criticalPass) {
+          publishSiagriBridge(state.dataset);
+        }
+      } catch (e) { /* el puente es opcional; nunca rompe el Convertidor */ }
     } catch (error) {
       console.error(error);
       state.dataset = null;
@@ -863,3 +872,28 @@
 
   initialize();
 })();
+
+/* [INTEGRACIÓN App Maestra] Publica el dataset SIAGRI validado en la base
+   compartida casur_master_data para consumo del shell (Actualizar Maestro
+   de Suertes). Implementación inline (sin imports) para no alterar la carga
+   del módulo integrado. No toca bases antiguas. */
+function publishSiagriBridge(dataset) {
+  const records = (dataset && dataset.records) || [];
+  const source = (dataset && dataset.source && dataset.source.meta && dataset.source.meta.source)
+    || (dataset && dataset.audit && dataset.audit.source) || "SIAGRI";
+  const payload = { records, meta: { source, rows: records.length, at: new Date().toISOString() } };
+  const req = indexedDB.open("casur_master_data", 1);
+  req.onupgradeneeded = () => {
+    const db = req.result;
+    if (!db.objectStoreNames.contains("datasets")) db.createObjectStore("datasets", { keyPath: "key" });
+  };
+  req.onsuccess = () => {
+    try {
+      const db = req.result;
+      const tx = db.transaction("datasets", "readwrite");
+      tx.objectStore("datasets").put({ key: "siagri_last", payload, savedAt: new Date().toISOString() });
+      tx.oncomplete = () => db.close();
+    } catch (e) { /* opcional */ }
+  };
+  req.onerror = () => { /* opcional */ };
+}

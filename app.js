@@ -13,6 +13,7 @@ import { APP_VERSION, APP_CHANNEL, moduleVersion, moduleStatus } from './core/ve
 import { icon } from './shared/components/icons.js';
 import * as masterStore from './core/shared-data/master-store.js';
 import { adaptSiagriToProduction } from './master/adapters/production-data-adapter.js';
+import { buildMaestroCentralFromReportRows, compareMaestroVersions } from './master/adapters/master-to-riego-adapter.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
@@ -611,6 +612,22 @@ async function renderDataStatus(view) {
   const box = $('#dataStatus', view); if (!box) return;
   const prod = await masterStore.getProduccionStatus();
   const siagri = await readSiagriBridge();
+  /* [Fase 6.2] Backfill no destructivo: si ya existe produccion_current
+     válido pero todavía no existe maestro_suertes_current (dispositivos
+     que actualizaron Producción antes de este hotfix), lo construye desde
+     sus reportRows ya persistidos, sin volver a procesar Excel ni tocar
+     produccion_current. */
+  let maestro = await masterStore.getMaestroStatus();
+  if (!maestro.present && prod.present) {
+    try {
+      const prodRec = await masterStore.loadProduccionDataset();
+      const rows = prodRec && prodRec.payload && prodRec.payload.reportRows;
+      if (rows && rows.length) {
+        const central = buildMaestroCentralFromReportRows(rows, { dataVersion: prod.dataVersion, generatedAt: prodRec.savedAt });
+        if (central) { await masterStore.saveMaestroSuertes(central); maestro = await masterStore.getMaestroStatus(); }
+      }
+    } catch (e) { /* backfill best-effort; no bloquea la vista */ }
+  }
   const fmt = (d) => d ? new Date(d).toLocaleDateString('es-NI') : '—';
   box.innerHTML = `
     <div class="stat"><div class="stat__label">Maestro SIAGRI (procesado)</div>
@@ -620,7 +637,9 @@ async function renderDataStatus(view) {
     <div class="stat"><div class="stat__label">Maestro de Suertes · datos</div>
       <div class="stat__value">${prod.present ? (prod.dataVersion || 'aplicado') : 'Sin aplicar (usa data/*)'}</div></div>
     <div class="stat"><div class="stat__label">Aplicado</div>
-      <div class="stat__value">${prod.present ? fmt(prod.savedAt) : '—'}</div></div>`;
+      <div class="stat__value">${prod.present ? fmt(prod.savedAt) : '—'}</div></div>
+    <div class="stat"><div class="stat__label">Maestro Central · Riego</div>
+      <div class="stat__value">${maestro.present ? `versión ${maestro.version} · ${maestro.rows} suertes` : 'Sin publicar aún'}</div></div>`;
 }
 
 async function baselineReportRows() {
@@ -697,6 +716,25 @@ async function updateProduccionFromSiagri() {
     meta: result.meta,
     /* El histórico NO se toca aquí: Producción lo conserva/ampl­ía con sus reglas. */
   });
+
+  /* [Fase 6.2] Publicar también el Maestro Central de Suertes (subconjunto
+     CENTRAL: farmCode/farmName/lot/area/variety/irrigationType/texture/
+     zone/cropStartDate/erp) en la MISMA actualización — sin un botón
+     separado. Riego lo recibe automáticamente al abrir/recargar, leyendo
+     el Cronológico publicado; esto solo deja disponible una copia
+     canónica adicional en el shell (consistencia + backfill). Nunca
+     retrocede: se compara contra lo ya guardado con el mismo comparador
+     entero-de-secuencia usado en todo el proyecto. */
+  try {
+    const central = buildMaestroCentralFromReportRows(result.reportRows, { dataVersion: result.dataVersion, generatedAt: new Date().toISOString() });
+    if (central) {
+      const prevMaestro = await masterStore.loadMaestroSuertes();
+      const prevVersion = prevMaestro && prevMaestro.payload && prevMaestro.payload.version;
+      const cmp = prevVersion ? compareMaestroVersions(central.version, prevVersion) : 1;
+      if (!prevVersion || cmp === 1) await masterStore.saveMaestroSuertes(central);
+    }
+  } catch (e) { /* el Maestro Central es un valor agregado; nunca bloquea la actualización de Producción */ }
+
   toast('Maestro de Suertes actualizado en este dispositivo. Genera el paquete para publicar.');
   const v = $('#view'); if (v) renderDataStatus(v);
 }

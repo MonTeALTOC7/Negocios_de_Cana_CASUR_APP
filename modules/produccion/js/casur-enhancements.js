@@ -516,6 +516,40 @@
     } catch (error) { console.error(error); alert(`No se pudo generar el paquete: ${error.message || error}`); }
   }
 
+  /* [Fase 4.4.3] Comparador robusto de versiones de datos (NO lexicográfico).
+     Soporta los esquemas vigentes: "2026.09.05-siagri.1055" (adaptador SIAGRI)
+     y "2026.09.01-2627.1" (publicación de código). Compara primero por fecha
+     AAAA.MM.DD y, si coincide, por el número final como desempate. Valida
+     FECHA REAL (mes 1-12, día válido para ese mes, año en rango razonable) y
+     secuencia como entero seguro no negativo: rechaza fechas imposibles.
+     Formatos no reconocidos o fechas inválidas devuelven null (el llamador
+     debe tratarlos como "no actualizar", nunca como "más nueva"). */
+  function parseCasurDataVersion(v) {
+    if (typeof v !== "string") return null;
+    const m = v.match(/^(\d{4})\.(\d{2})\.(\d{2})-([a-zA-Z0-9]+)\.(\d+)$/);
+    if (!m) return null;
+    const year = Number(m[1]), month = Number(m[2]), day = Number(m[3]), seq = Number(m[5]);
+    if (year < 2020 || year > 2100) return null;
+    if (month < 1 || month > 12) return null;
+    if (day < 1 || day > 31) return null;
+    if (!Number.isSafeInteger(seq) || seq < 0) return null;
+    const d = new Date(Date.UTC(year, month - 1, day));
+    if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day) return null;
+    return { date: year * 10000 + month * 100 + day, seq };
+  }
+  /* Devuelve 1 si a es más nueva que b, -1 si a es más antigua, 0 si son
+     iguales (o equivalentes), y null si no se pueden interpretar/comparar. */
+  function compareCasurDataVersions(a, b) {
+    if (a === b) return 0;
+    const pa = parseCasurDataVersion(a);
+    const pb = parseCasurDataVersion(b);
+    if (!pa || !pb) return null;
+    if (pa.date !== pb.date) return pa.date > pb.date ? 1 : -1;
+    if (pa.seq !== pb.seq) return pa.seq > pb.seq ? 1 : -1;
+    return 0;
+  }
+  window.CASUR_COMPARE_DATA_VERSIONS = compareCasurDataVersions;
+
   let dataSyncInProgress = false;
 
   function updateSyncPill(message, cls) {
@@ -535,58 +569,46 @@
     moduleToast._t = setTimeout(() => { el.classList.remove("show"); setTimeout(() => (el.hidden = true), 220); }, 3200);
   }
 
-  /* [Fase 4.4] Sincronización automática real de datos publicados.
-     1) consulta data/version.json (no-store);
-     2) si difiere de la versión cargada, DESCARGA cronologico.json e
-        historico.json (no-store) y VALIDA antes de aplicar nada
-        (versión.json válido, cronológico/histórico válidos con registros,
-        versión coherente entre los tres archivos, Sucuya Cod 16 = 0);
-     3) si todo pasa: recarga SOLO este iframe (no la App Maestra) para que
-        el arranque normal (data/*.js, ya cacheados network-first por el SW
-        raíz) tome los datos frescos — sin reconstruir el Cronológico desde
-        REPORTE en el dispositivo consumidor;
-     4) si falla cualquier archivo: conserva el dataset anterior intacto y
-        muestra "Sincronización pendiente" discretamente (fail-safe
-        transaccional: descargar → validar → aplicar, nunca parcial). */
+  /* [Fase 4.4.3] Sincronización automática real de datos publicados.
+     Desde el Hotfix 4.4.3 el propio Service Worker raíz resuelve una
+     GENERACIÓN COMPLETA y coherente de los 6 archivos (ver sw.js:
+     produccionDataGate/resolveGeneration) y nunca sirve una versión anterior
+     a la última buena conocida. Por eso esta función ya NO vuelve a validar
+     cronológico/histórico por su cuenta (evita duplicar esa lógica): solo
+     detecta si el SW resolvió algo distinto a lo cargado en esta página y,
+     si es así, recarga UNA sola vez este iframe para tomarlo — con guard
+     real contra recargas repetidas y verificación de que lo cargado tras
+     recargar coincide con lo esperado (nunca un toast de éxito falso). */
   async function checkForDataUpdate(force = false) {
     if (location.protocol === "file:") return;
     if (dataSyncInProgress) return;
     try {
       const response = await fetch(`data/version.json?ts=${Date.now()}`, { cache: "no-store" });
       if (!response.ok) return;
-      const remote = await response.json();
+      const resolved = await response.json(); // ya resuelto/protegido por el SW
       const local = window.CASUR_RELEASE || {};
-      if (!remote || !remote.version) return;
-      if (remote.version === local.version && !force) return;
+      if (!resolved || !resolved.version) return;
+      if (resolved.version === local.version) {
+        if (!force) { updateSyncPill(`Datos compartidos · versión ${esc(local.version || "—")}`, ""); return; }
+      } else {
+        /* Segunda capa defensiva: el SW ya garantiza que "resolved" nunca es
+           anterior a "local" cuando ambas provienen del mismo gate, pero se
+           conserva la comprobación explícita para nunca sobrescribir con
+           algo inferior o de formato irreconocible. */
+        const cmp = compareCasurDataVersions(resolved.version, local.version);
+        if (cmp === -1) { console.warn(`[CASUR] Versión resuelta (${resolved.version}) es ANTERIOR a la activa (${local.version}); se ignora.`); return; }
+        if (cmp === null) { console.warn(`[CASUR] Formato de versión no reconocido (resuelta="${resolved.version}", activa="${local.version}"); se ignora.`); return; }
+      }
+
+      /* Guard efectivo contra recargas repetidas: si ya se intentó esta
+         versión en esta sesión, no reintentar en bucle. */
+      const attemptKey = `casurDataSynced:${resolved.version}`;
+      if (sessionStorage.getItem(attemptKey) && !force) return;
 
       dataSyncInProgress = true;
       updateSyncPill("Sincronizando…", "is-syncing");
-
-      const [cronoRes, histRes] = await Promise.all([
-        fetch(`data/cronologico.json?ts=${Date.now()}`, { cache: "no-store" }),
-        fetch(`data/historico.json?ts=${Date.now()}`, { cache: "no-store" }),
-      ]);
-      if (!cronoRes.ok || !histRes.ok) throw new Error("descarga incompleta");
-      const cronoData = await cronoRes.json();
-      const histData = await histRes.json();
-
-      if (!cronoData || !cronoData.global || !(Number(cronoData.global.suertes) > 0)) throw new Error("cronológico inválido");
-      if (!histData || !histData.meta || !(Number(histData.meta.rows) > 0)) throw new Error("histórico inválido");
-      const cronoVersion = cronoData.meta && cronoData.meta.dataVersion;
-      const histVersion = histData.meta && histData.meta.dataVersion;
-      if (cronoVersion && cronoVersion !== remote.version) throw new Error("versión incoherente (cronológico)");
-      if (histVersion && histVersion !== remote.version) throw new Error("versión incoherente (histórico)");
-      const sucuya = (cronoData.producers || []).some((p) => normal(p.code) === "16");
-      if (sucuya) throw new Error("dataset contiene Sucuya (Cod 16)");
-
-      if (remote.version === local.version) { dataSyncInProgress = false; updateSyncPill(`Datos compartidos · versión ${esc(remote.version)}`, ""); return; }
-
-      /* Todo validado: recarga controlada de ESTE iframe (no de la App Maestra).
-         Los fetch anteriores ya dejaron los 3 archivos frescos en la caché de
-         datos del SW (network-first), por lo que el próximo arranque los usa
-         sin depender del cache del navegador ni de una copia obsoleta. */
-      sessionStorage.setItem("casurDataSyncToast", remote.version);
-      sessionStorage.setItem(`casurDataSynced:${remote.version}`, "1");
+      sessionStorage.setItem(attemptKey, "1");
+      sessionStorage.setItem("casurDataSyncExpected", resolved.version);
       location.reload();
     } catch (error) {
       updateSyncPill("Sincronización pendiente", "is-pending");
@@ -629,11 +651,31 @@
 
   window.addEventListener("load", () => {
     releaseStrip(); installCronoObserver(); initAdmin(); ensureLockDialog();
-    const justSynced = sessionStorage.getItem("casurDataSyncToast");
-    if (justSynced) {
-      sessionStorage.removeItem("casurDataSyncToast");
-      moduleToast(`✓ Maestro de Suertes actualizado · ${justSynced}`);
-      updateSyncPill(`Datos compartidos · versión ${esc(justSynced)}`, "");
+    const ACTIVE_KEY = "casur_produccion_active_version";
+    const current = (window.CASUR_RELEASE && window.CASUR_RELEASE.version) || null;
+    const expected = sessionStorage.getItem("casurDataSyncExpected");
+    if (expected) {
+      sessionStorage.removeItem("casurDataSyncExpected");
+      if (current === expected) {
+        /* [Fase 4.4.3] Éxito confirmado: la versión REALMENTE cargada tras la
+           recarga coincide con la esperada. Solo aquí se muestra el toast y
+           se actualiza el marcador (nunca antes, para no mentir). */
+        try { localStorage.setItem(ACTIVE_KEY, current); } catch (e) {}
+        moduleToast(`✓ Maestro de Suertes actualizado · ${current}`);
+        updateSyncPill(`Datos compartidos · versión ${esc(current)}`, "");
+      } else {
+        console.warn(`[CASUR] Se esperaba la versión ${expected} pero se cargó ${current || "—"}.`);
+        updateSyncPill("Sincronización pendiente", "is-pending");
+      }
+    } else if (current) {
+      /* Arranque normal (sin recarga por sync): sincronizar el marcador
+         same-origin SOLO si no implica downgrade respecto al ya conocido. */
+      try {
+        const known = localStorage.getItem(ACTIVE_KEY);
+        const cmp = known ? compareCasurDataVersions(current, known) : 1;
+        if (!known || cmp === 1 || cmp === 0) localStorage.setItem(ACTIVE_KEY, current);
+        /* cmp === -1 o null: NUNCA sobrescribir el marcador con algo inferior o irreconocible. */
+      } catch (e) {}
     }
     checkForDataUpdate();
     window.addEventListener("online", () => checkForDataUpdate());

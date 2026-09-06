@@ -8,19 +8,19 @@
     "productores": 100,
     "generated": "2026-09-06",
     "rule": "Cronológico CASUR sin Maquila/Sucuya; R/RE sin fecha de siembra = renovación con edad 0.",
-    "dataVersion": "2026.09.06-siagri.1345",
-    "publishedAt": "2026-09-06T19:46:10.100Z"
+    "dataVersion": "2026.09.06-siagri.1415",
+    "publishedAt": "2026-09-06T20:16:06.485Z"
   },
   "global": {
-    "area": 10033.22,
+    "area": 10030.65,
     "tch": 63.33,
     "suertes": 1053,
     "productores": 100,
-    "areaBajoTch": 4624.87,
+    "areaBajoTch": 4622.3,
     "areaMedioTch": 1341.58,
     "areaAltoTch": 4015.92,
     "areaSecano": 1013.84,
-    "areaRiego": 9019.38
+    "areaRiego": 9016.81
   },
   "options": [
     {
@@ -579,8 +579,8 @@
       "code": "993",
       "name": "Pansaco",
       "zone": "5-Productores",
-      "area": 411.65,
-      "tch": 64.49,
+      "area": 409.08,
+      "tch": 64.58,
       "label": "993 · Pansaco"
     },
     {
@@ -6795,7 +6795,7 @@
           "observacion": "",
           "renovacion": false,
           "ton": null,
-          "edadExcel": 1.92
+          "edadExcel": 1.93
         },
         {
           "code": "22",
@@ -8537,7 +8537,7 @@
           "observacion": "",
           "renovacion": false,
           "ton": null,
-          "edadExcel": 13.32
+          "edadExcel": 13.33
         },
         {
           "code": "10",
@@ -15649,7 +15649,7 @@
           "observacion": "",
           "renovacion": false,
           "ton": null,
-          "edadExcel": 2.38
+          "edadExcel": 2.39
         },
         {
           "code": "157",
@@ -19874,7 +19874,7 @@
           "observacion": "",
           "renovacion": false,
           "ton": null,
-          "edadExcel": 14.47
+          "edadExcel": 14.48
         },
         {
           "code": "64",
@@ -22899,14 +22899,14 @@
       "tenencia": "Compra Venta",
       "destino": "Molienda",
       "tipoCultivo": "—",
-      "area": 411.65,
-      "tch": 64.49,
+      "area": 409.08,
+      "tch": 64.58,
       "suertes": 49,
-      "areaBajoTch": 175.15,
+      "areaBajoTch": 172.58,
       "areaMedioTch": 96.39,
       "areaAltoTch": 140.11,
       "areaSecano": 0,
-      "areaRiego": 411.65,
+      "areaRiego": 409.08,
       "areaSinDatoRiego": 0,
       "suertesCriticas": 20,
       "riegoDom": "Gravedad",
@@ -23654,7 +23654,7 @@
           "name": "Pansaco",
           "suerte": "24A",
           "codLote": "99324A",
-          "area": 5,
+          "area": 2.43,
           "variedad": "RB 84-5210",
           "surco": "1.65",
           "corte": "R",
@@ -23711,7 +23711,7 @@
           "observacion": "",
           "renovacion": false,
           "ton": null,
-          "edadExcel": 1.23
+          "edadExcel": 1.24
         },
         {
           "code": "993",
@@ -24909,7 +24909,7 @@
           "observacion": "",
           "renovacion": false,
           "ton": null,
-          "edadExcel": 2.38
+          "edadExcel": 2.39
         },
         {
           "code": "14",
@@ -28650,7 +28650,7 @@
           "observacion": "",
           "renovacion": false,
           "ton": null,
-          "edadExcel": 1.92
+          "edadExcel": 1.93
         },
         {
           "code": "19",
@@ -31718,7 +31718,7 @@
           "observacion": "",
           "renovacion": false,
           "ton": null,
-          "edadExcel": 0.54
+          "edadExcel": 0.55
         },
         {
           "code": "2",
@@ -36838,9 +36838,9 @@
       },
       {
         "key": "5-Productores",
-        "area": 2057.6,
+        "area": 2055.03,
         "suertes": 262,
-        "tch": 60.7
+        "tch": 60.71
       },
       {
         "key": "1-Sur",
@@ -36852,7 +36852,7 @@
     "riego": [
       {
         "key": "Gravedad",
-        "area": 5660.63,
+        "area": 5658.06,
         "suertes": 562,
         "tch": 62.59
       },
@@ -36908,15 +36908,15 @@
       },
       {
         "key": "Compra Venta",
-        "area": 2059.53,
+        "area": 2056.96,
         "suertes": 263,
-        "tch": 60.7
+        "tch": 60.72
       }
     ],
     "tipoCultivo": [
       {
         "key": "—",
-        "area": 10033.22,
+        "area": 10030.65,
         "suertes": 1053,
         "tch": 63.33
       }
@@ -36930,9 +36930,9 @@
       },
       {
         "key": "Semilla AS",
-        "area": 424.23,
+        "area": 421.66,
         "suertes": 43,
-        "tch": 56.33
+        "tch": 56.37
       },
       {
         "key": "Semilla",
@@ -36968,9 +36968,9 @@
       },
       {
         "key": "RB 84-5210",
-        "area": 602.62,
+        "area": 600.05,
         "suertes": 57,
-        "tch": 56.72
+        "tch": 56.76
       },
       {
         "key": "VARIEDADES",
@@ -37054,9 +37054,9 @@
     "textura": [
       {
         "key": "Pesado",
-        "area": 5645.23,
+        "area": 5642.66,
         "suertes": 530,
-        "tch": 57.15
+        "tch": 57.16
       },
       {
         "key": "Medio",

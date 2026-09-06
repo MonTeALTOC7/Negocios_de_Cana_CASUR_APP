@@ -1,1 +1,1 @@
-window.CASUR_RELEASE={"version":"2026.09.06-siagri.1345","publishedAt":"2026-09-06T19:46:10.100Z","source":"SIAGRI","sheet":"REPORTE","tchEst2627EffectiveDate":"2026-07-17","cronologicoRows":1053,"historicoRows":11598};
+window.CASUR_RELEASE={"version":"2026.09.06-siagri.1415","publishedAt":"2026-09-06T20:16:06.485Z","source":"SIAGRI","sheet":"REPORTE","tchEst2627EffectiveDate":"2026-07-17","cronologicoRows":1053,"historicoRows":11598};

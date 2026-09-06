@@ -115,10 +115,14 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(produccionDataGate(event, req, url));
     return;
   }
-  //    Resto de datasets oficiales (incluye /master/data/): network-first + cache.
-  //    NUNCA stale-while-revalidate para estos: con internet debe priorizar
+  //    Resto de datasets oficiales (incluye /master/data/ y
+  //    /modules/insumos/data/**, Fase 5): network-first + cache. NUNCA
+  //    stale-while-revalidate para estos: con internet debe priorizar
   //    siempre la versión publicada; sin internet, la última copia cacheada.
-  if (url.pathname.includes('/master/data/') || url.pathname.includes('/modules/produccion/data/')) {
+  //    [Fase 5] Insumos usa esta política GENÉRICA, deliberadamente
+  //    DISTINTA del sistema de generaciones atómicas (LKG) de Producción —
+  //    ambas políticas quedan separadas; esta fase no aplica LKG a Insumos.
+  if (url.pathname.includes('/master/data/') || url.pathname.includes('/modules/produccion/data/') || url.pathname.includes('/modules/insumos/data/')) {
     event.respondWith(networkFirst(req, DATA_CACHE));
     return;
   }

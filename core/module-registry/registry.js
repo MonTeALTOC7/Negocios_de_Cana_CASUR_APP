@@ -46,7 +46,7 @@ const BASE_MODULES = [
     storageNamespaces: ['supabase:fbatjsbdybliradxjhdm'], privacy: 'public' },
 
   { moduleId: 'insumos', name: 'Insumos Entregados Productores', desc: 'Fertilizantes, herbicidas e insumos entregados',
-    version: 'v2', route: 'modules/insumos/index.html', icon: 'insumos',
+    version: '1.0', route: 'modules/insumos/index.html', icon: 'insumos',
     accent: 'var(--accent-insumos)', enabled: true, visible: true, order: 4,
     requiresOnline: false, usesSupabase: false,
     storageNamespaces: ['idb:insumos_casur_db'], privacy: 'public' },

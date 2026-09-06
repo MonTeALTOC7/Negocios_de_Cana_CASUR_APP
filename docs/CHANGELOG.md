@@ -2,6 +2,98 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.0.0] — 2026-09-06 · Fase 5: Insumos Entregados Productores (integración real)
+### Integración
+- Integrada la app real vigente `MonTeALTOC7/Insumos_Entregados_PC` (origin/main,
+  actualizada) en `modules/insumos/` (copia; repositorio fuente sin tocar).
+- **Diff verbatim confirmado**: los ÚNICOS cambios respecto al repo fuente son
+  (1) registro de SW propio comentado, (2) lógica+HTML de instalación standalone
+  eliminados por completo, (3) link a manifest propio comentado, (4) `<script src>`
+  de SheetJS apuntando al vendor local. **Cero cambios** en `openDB`/`idbGet`/
+  `idbSet`/`loadData`/`processSiagri`/render/exportación/reglas de negocio.
+- `sw.js` y `manifest.webmanifest` propios eliminados de la copia.
+- Instalación standalone **eliminada por completo** (no solo oculta): dejar el
+  HTML fuera pero el JS activo habría roto el arranque
+  (`$('#installBtn').addEventListener` sobre un elemento inexistente).
+- **SheetJS 0.18.5 exacto** (no la v0.20.3 ya presente en otros módulos)
+  obtenido vía `npm install xlsx@0.18.5` y vendorizado en
+  `modules/insumos/vendor/xlsx.full.min.js`; confirma offline sin CDN.
+- `core/module-registry/registry.js`: `insumos` → versión `1.0`, ruta ya
+  apuntaba correctamente a `modules/insumos/index.html`.
+- `core/versions/versions.js`: estado `insumos` → "integrado · fuente/Maestro
+  propios (conexión al Maestro Central en Fase 5.1)".
+- `sw.js`: agregada `/modules/insumos/data/**` a la regla network-first
+  genérica (misma política que `/master/data/`), **explícitamente separada**
+  del sistema de generaciones atómicas (LKG) de Producción — NO se aplicó
+  LKG a Insumos en esta fase; el gate `PROD_DATA_RE` de Producción permanece
+  intacto y sin cambios de comportamiento (regresión 4.4.4 repetida y verde).
+### Baseline de datos confirmado
+- `modules/insumos/data/bootstrap.json` es **idéntico byte a byte** (mismo
+  MD5) al `data/bootstrap.json` del repositorio fuente actual. Los conteos
+  reales (3462 eventos / 9201 productos / 1053 Maestro / 212 AAM) provienen
+  del dataset publicado vigente, no de una alteración de la integración. Las
+  cifras 3350/8879 mencionadas como baseline eran de una versión anterior
+  del dataset fuente — **no se "corrigieron"**, se documenta la diferencia.
+### Reglas de negocio verificadas (Node/jsdom, con `processSiagri()` real sin modificar)
+- **Mezcla** (caso documentado en `REGLAS_NEGOCIO.md`, Documento 52587, Hac
+  15, Sue 01, Labor CMC, 4 productos): área evento = 4.78, área-producto
+  (indicador técnico) = 19.12, cada producto cubre el área completa (nunca
+  dividida ni sumada como superficie física).
+- **Sucuya** (Cod 16): 0 eventos en el resultado, filas excluidas contadas.
+- **AAM** (Madurante aéreo, Labor=AAM): marcado `es_madurante_aereo=true`,
+  no contamina otros eventos/productos, separado como módulo propio.
+- 18/18 aserciones verdes sobre datos de prueba sintéticos que reproducen
+  exactamente el ejemplo documentado por el propio repositorio fuente.
+### Persistencia (IndexedDB) — diagnóstico y verificación
+- El primer intento de prueba automatizada reportó `STATE` indefinido; se
+  diagnosticó (no se asumió) que la causa es una **limitación del arnés de
+  prueba**, no de la app: declaraciones `const`/`let` de nivel superior en
+  un `<script>` clásico NO se reflejan como propiedades de `window` (solo
+  `var`/`function` sí) — comportamiento estándar de ECMAScript, no un bug.
+  `openDB`/`idbGet`/`idbSet`/`loadData`/`processSiagri` SON `function` y sí
+  quedan expuestas, por lo que se verificó todo a través de ellas.
+- Corregido además un segundo error del arnés: `fake-indexeddb` v6 expone la
+  instancia real en `.indexedDB` (no el módulo completo) — una vez corregido,
+  **13/13 aserciones verdes**: roundtrip real de las 4 keys (`bootstrap`,
+  `bootstrap_local`, `reviews`, `overrides`) en la base `insumos_casur_db`
+  store `kv`; carga online persiste bootstrap y refleja `meta.version` en el
+  DOM (`#syncTxt`); recarga offline usa el último bootstrap válido de IDB sin
+  error; `bootstrap_local` con `generated_at` más reciente gana correctamente.
+- **NO se modificó** `openDB`/`idbGet`/`idbSet`/`loadData` — no se demostró
+  ningún fallo real de la app, solo del arnés de prueba.
+- Pendiente: validación E2E de persistencia en navegador/dispositivo real
+  (Cache Storage y IndexedDB reales, ciclo completo de instalación/cierre/
+  reapertura de la PWA).
+### Pruebas funcionales de UI (Node/jsdom, app real sin mocks de lógica)
+- Resumen: KPIs "Insumos" y "Madurante aéreo" presentes (drill-down).
+- Explorar: filtros presentes y funcionales.
+- Insumos: barras de producto renderizadas.
+- Productores: filtros presentes.
+- Madurante: **no es pestaña de navegación en la app real** (confirmado en
+  el array `NAV` de `app.js`, solo 5 entradas) — se accede vía el drill-down
+  del KPI "Madurante aéreo" en Resumen; verificado que el drawer abre con
+  contenido correcto por esa ruta real.
+- Admin: barrera de contraseña e input presentes (sin exponer ni probar la
+  clave real en ningún test ni documento).
+- Corregido un error de metodología del primer intento (referencias a
+  botones de navegación cacheadas antes de que `render()` reemplazara el
+  DOM del nav vía `innerHTML` — patrón válido de la app); tras re-consultar
+  el DOM en cada paso, 16/16 aserciones verdes, sin errores reales (el único
+  "error" era `window.scrollTo` no implementado en jsdom, filtrado como
+  limitación conocida del entorno, no de la app).
+### Regresión App Maestra (smoke breve, sin repetir la batería completa de Fase 4)
+- Administrador SIAGRI, Estimador TCH y Maestro de Suertes abren sin errores
+  reales (Node/jsdom); Producción conserva su versión de datos vigente
+  (`2026.09.01-2627.1`, 1053 suertes) sin alteración.
+- Un solo `sw.js`, un solo `manifest.webmanifest` en toda la App Maestra.
+- Ningún CTA de instalación activo dentro de Insumos (confirmado por diff).
+### No hecho todavía (a propósito, per alcance de Fase 5)
+Maestro Central compartido, sincronización Producción↔Insumos, Supabase,
+backend, token de GitHub, nuevo formato de bootstrap, reescritura del motor
+de eventos, cambio de reglas de negocio, actualización masiva de Histórico.
+**Insumos conserva por ahora su fuente operativa y su Maestro propios; la
+conexión al Maestro Central será Fase 5.1** (no iniciada).
+
 ## [1.0.0] — 2026-09-05 · Hotfix 4.4.4: mutex real, migración agrupada, activación sin botón
 ### Problemas cerrados de 4.4.3 (revisión independiente)
 1. `resolveGeneration()` usaba una ventana de coalescencia de **4 segundos**:

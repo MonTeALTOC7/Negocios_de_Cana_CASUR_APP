@@ -149,3 +149,13 @@ Pendiente: TODAS las pruebas anteriores son simuladas (Node vm/jsdom). Falta val
 - [x] `self.skipWaiting()` invocado en `install` (activación sin botón desde 4.4.2).
 - [x] Regresión completa de 4.4.3 (27 aserciones): downgrade, corrupción, incoherencia, offline, concurrencia, fecha imposible, activate — todo repetido sobre el sw.js nuevo, sigue verde.
 Pendiente: TODO lo anterior es simulado (Node vm). Falta validar en navegador/dispositivo real: mutex bajo concurrencia real del navegador, Cache Storage real, y la transición real 4.4.2→4.4.4 sin botón en un dispositivo de verdad.
+
+## Fase 5 — Insumos Entregados Productores (Node/jsdom con app real; diagnóstico transparente de limitaciones de arnés)
+- [x] Baseline bootstrap.json idéntico (MD5) al repo fuente actual; 3462/9201/1053/212 confirmado real.
+- [x] SW/manifest/instalación standalone neutralizados/eliminados (diff verbatim: solo esos 4 cambios).
+- [x] SheetJS 0.18.5 exacto vendorizado localmente; XLSX.version confirmado en runtime.
+- [x] Reglas: mezcla (4.78/19.12 según ejemplo documentado), Sucuya=0, AAM separado — 18/18.
+- [x] IndexedDB `insumos_casur_db`/`kv`: roundtrip de bootstrap/bootstrap_local/reviews/overrides, selección por generated_at, fallback offline — 13/13 (tras corregir el arnés, no la app).
+- [x] UI: Resumen/Explorar/Insumos/Productores/Madurante(drill)/Admin — 16/16, sin errores reales.
+- [x] Smoke Convertidor/TCH/Producción abren; Producción conserva 2026.09.01-2627.1; un solo SW/manifest; sin CTA instalación en Insumos.
+Pendiente real: validación E2E completa en navegador/dispositivo (Cache Storage e IndexedDB reales, instalación/cierre/reapertura real de la PWA, UI táctil).

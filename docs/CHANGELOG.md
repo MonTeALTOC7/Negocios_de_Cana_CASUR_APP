@@ -2,6 +2,253 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.0.0] — 2026-09-05 · Hotfix 4.4.4: mutex real, migración agrupada, activación sin botón
+### Problemas cerrados de 4.4.3 (revisión independiente)
+1. `resolveGeneration()` usaba una ventana de coalescencia de **4 segundos**:
+   si la primera resolución seguía en vuelo pasado ese tiempo, una segunda
+   podía arrancar en paralelo. Se reprodujo: 09.07 se activaba primero y una
+   resolución lenta de 09.06 (que había capturado el `activeVersion` previo
+   al inicio) terminaba después y **retrocedía** `active` a 09.06.
+2. La migración elegía el "mejor" candidato de `version`, `cronologico` e
+   `historico` **por separado**. Una publicación parcial (p.ej. solo
+   `version.json` de 09.06, sin su cronológico/histórico) ganaba esa
+   comparación aislada y hacía perder una generación 09.05 completa y
+   recuperable.
+3. El SW nuevo no llamaba a `self.skipWaiting()` en `install`. La
+   autoactivación (Hotfix 4.4.3) dependía de que el `app.js` YA actualizado
+   enviara el mensaje `SKIP_WAITING`; un dispositivo todavía controlado por
+   el `app.js` de 4.4.2 no lo hacía, y el SW nuevo se quedaba "esperando".
+### Correcciones
+- **Mutex real, sin caducidad** (`resolveGeneration`): `_pending` ahora se
+  limpia ÚNICAMENTE en el `finally` de la propia resolución — nunca por
+  tiempo. La función es síncrona hasta fijar `_pending` (sin `await` de por
+  medio), así que el chequeo-y-registro es atómico frente al bucle de
+  eventos: nunca hay dos `doResolveGeneration()` en vuelo a la vez, sin
+  importar cuánto tarde la primera.
+- **Segunda capa defensiva** (`promoteGenerationIfNewer`): justo antes de
+  escribir el puntero `active`, se **relee** en ese instante y se **aborta**
+  la promoción si la candidata no es estrictamente más nueva. La lectura y
+  la escritura del puntero ocurren dentro de la misma resolución protegida
+  por el mutex (misma exclusión mutua). Si la promoción es rechazada, se
+  relee lo que haya quedado activo (`rereadActive`) en vez de servir la
+  candidata descartada.
+- **Migración agrupada por versión** (`tryMigrateLegacyBaseline`): los
+  candidatos de `DATA_CACHE` y de las claves planas de 4.4.1/4.4.2 se
+  agrupan por versión declarada; para cada versión (de más nueva a más
+  vieja) se exige el **trío completo, válido y coherente**, y se usa la
+  primera que califique. Una publicación parcial de una versión más nueva
+  ya **no** hace perder una generación completa anterior recuperable.
+- **`self.skipWaiting()` en `install`**, justo después de preparar el
+  shell: el SW nuevo se activa automáticamente aunque el dispositivo siga
+  controlado por un `app.js` de una fase anterior que no envíe el mensaje.
+  `clients.claim()` (en `activate`) y el guard de una sola recarga en
+  `controllerchange` (`app.js`) quedan intactos.
+### Verificación — TODAS SIMULADAS (Node `vm` con el `sw.js` real; ninguna
+prueba de navegador ni de dispositivo real en este hotfix)
+- Resolución 09.06 lenta (>4 s) con una segunda solicitud a los 2 s: **una
+  sola resolución de red** (3 fetches, no 6), ambas peticiones reciben el
+  mismo resultado; una resolución posterior e independiente a 09.07 no
+  retrocede jamás a 09.06.
+- Ráfagas separadas por 5–6 s mientras la primera resolución (6 s) sigue
+  pendiente: **una sola resolución efectiva**, todas las respuestas
+  coinciden.
+- Generación completa 09.05 + publicación parcial 09.06 en caché → migra
+  **09.05** (ignora la parcial sin perder la completa).
+- Generaciones completas 09.05 y 09.06 → migra **09.06** (la más nueva).
+- `self.skipWaiting()` se invoca durante `install`, confirmado con un SW
+  simulado "recién instalado" sin depender del `app.js`.
+- Regresión completa de 4.4.3 repetida sobre el `sw.js` nuevo: downgrade,
+  corrupción, incoherencia entre archivos, offline tras upgrade,
+  concurrencia sin mezclar generaciones, fecha imposible/formato
+  desconocido, y conservación de LKG + cachés ajenas en `activate` — **27
+  aserciones, todas verdes**.
+### No tocado
+Administrador SIAGRI, builder de publicación, comparador de 15
+modificaciones (Fase 4.3), Histórico como regla de negocio, TCH, branding,
+otros módulos, los 6 archivos de datos reales (`modules/produccion/data/`
+sigue en `2026.09.01-2627.1`, la publicación genuina de este entorno).
+
+## [1.0.0] — 2026-09-05 · Hotfix 4.4.3: generaciones atómicas + migración segura + verificación real
+### Problemas cerrados de 4.4.2
+- `produccionDataGate()` promovía cada archivo por separado (podía servir
+  `version.js` nuevo con `historico.js` antiguo).
+- Con LKG vacía, ignoraba datos más recientes de `DATA_CACHE` (Fase 4.4) y
+  aceptaba una publicación anterior del servidor como si fuera la primera.
+- Actualizar los `.json` no actualizaba los `.js` usados al arrancar
+  (podían quedar en versiones distintas offline).
+- Sin LKG, una respuesta de red inválida pasaba tal cual al navegador.
+- El comparador de versiones aceptaba fechas imposibles (p.ej. 30 de febrero).
+- El toast de "actualizado" se mostraba sin comprobar la versión realmente
+  cargada tras la recarga; `casurDataSynced:<version>` se escribía pero
+  nunca se volvía a leer (sin guard real contra recargas repetidas).
+### Rediseño: LKG por GENERACIÓN completa (sw.js)
+- Nueva caché `casur_master_prod_lkg` organizada por generación:
+  `gen/<version>/{version,cronologico,historico}.{json,js}` + un puntero
+  `active` que solo se mueve cuando los 6 archivos de esa generación ya
+  están escritos (transaccional: preparar todo → activar al final). Ante
+  cualquier fallo de red/validación/persistencia, la generación anterior
+  queda íntegra e intacta.
+- Los `.js` se **generan desde el mismo JSON validado** (`window.CASUR_RELEASE`,
+  `window.CASUR_REMOTE_CRONO`, `window.CASUR_REMOTE_HISTORICO`), garantizando
+  coherencia total entre los 6 archivos por construcción — ya no se confía
+  en/reenvía el `.js` publicado de forma independiente.
+- `parseCasurDataVersion()` ahora valida **fecha real** (mes 1-12, día válido
+  para ese mes vía `Date.UTC` + verificación de "rebote", año 2020–2100) y
+  secuencia como entero seguro; formatos/fechas inválidas devuelven `null`
+  y nunca se tratan como "más nuevo".
+- `resolveGeneration()` coalesce ráfagas de peticiones casi simultáneas
+  (~4 s) para no disparar 3 fetches de red por cada uno de los 6 archivos
+  que Producción pide al arrancar, y para que todas usen la MISMA
+  resolución (nunca mezclan generaciones).
+- Migración seguraDesde 4.4.1/4.4.2: si no hay generación activa en el
+  nuevo esquema, se buscan y validan publicaciones completas y coherentes
+  en `DATA_CACHE` (network-first genérico de Fase 4.4) y en las claves
+  planas antiguas de `casur_master_prod_lkg`; se usa la más reciente
+  válida como línea base ANTES de aceptar la red. Nunca se borran esas
+  cachés origen (no hace falta completarlo para conservarlas).
+- Sin ninguna publicación válida recuperable (ni red ni LKG): la respuesta
+  es un **fallo controlado (503)** — nunca se ejecutan datos inválidos.
+### Módulo (casur-enhancements.js) y shell (app.js)
+- `checkForDataUpdate()` simplificada: ya no revalida cronológico/histórico
+  por su cuenta (esa validación vive ahora en el gate del SW); detecta si
+  el SW resolvió una versión distinta, aplica un **guard real** contra
+  recargas repetidas (`casurDataSynced:<version>` se escribe Y se consulta),
+  y tras recargar **verifica que la versión cargada coincide con la
+  esperada** antes de mostrar el toast de éxito o actualizar el marcador
+  `casur_produccion_active_version` — nunca un toast falso.
+- `prepareProduccionDataIfNewer()` (Home) simplificada a un único `fetch`
+  que dispara la resolución completa en el SW; sincroniza el marcador local
+  sin permitir jamás que retroceda.
+- `parseCasurDataVersion()` con la misma validación de fecha real, duplicada
+  en los 3 contextos (SW, módulo, shell) por ser un utilitario genérico de
+  parseo, no lógica de negocio.
+- `registerSW()` del shell activa automáticamente el Service Worker nuevo
+  (`SKIP_WAITING`) sin exigir clic, y conserva la recarga única y sin
+  bucles del shell al cambiar de controlador.
+### Verificación — TODAS SIMULADAS (Node/jsdom con el código real vía `vm`;
+no hay pruebas de navegador ni de dispositivo real en este hotfix)
+- Migración desde `DATA_CACHE` (09.05) con LKG vacía y servidor en 09.01:
+  conserva 09.05, también offline tras la migración.
+- LKG activa en 09.05, "reinicio" (nuevo contexto SW, misma Cache Storage)
+  con servidor inferior: los 6 archivos permanecen en 09.05, `.js`/`.json`
+  coherentes.
+- Publicación parcial (histórico 404), archivo corrupto (JSON inválido) y
+  versiones incoherentes entre los 3 archivos: en los tres casos, **ninguna
+  activación parcial** — se conserva la generación anterior íntegra.
+- Actualización desde Home a 09.06 y pérdida de red antes de abrir
+  Producción: los 6 archivos y el runtime usan 09.06, disponible offline.
+- Ráfaga de 6 solicitudes concurrentes (como al arrancar Producción): todas
+  resuelven la MISMA generación, sin mezclar ni retroceder.
+- Fecha imposible (`2026.02.30`) y formato de versión desconocido: ambos
+  rechazados, se conserva la versión activa.
+- Versión cargada distinta de la esperada tras una recarga: sin toast
+  falso, sin recarga repetida para el mismo intento.
+- Activación del SW (`activate`): la LKG y una caché ajena (de otro módulo)
+  sobreviven; solo se borra una caché maestra vieja fuera de la allowlist.
+### Datos reales
+- El ZIP sigue trayendo la publicación real vigente en este entorno,
+  `2026.09.01-2627.1` (1053 suertes / 11598 filas de histórico). **No existe
+  en este entorno ningún dataset auténtico `2026.09.05-siagri.1055`** — todas
+  las referencias a esa versión en este hotfix son fixtures sintéticos de
+  prueba (construidos a partir de copias del dataset real con un campo de
+  versión distinto), usados exclusivamente para validar la lógica del gate.
+  No se fabricó ni se incluyó ningún archivo falso como si fuera real.
+### No tocado
+Administrador SIAGRI, builder de publicación, comparador de 15
+modificaciones (Fase 4.3), Histórico como regla de negocio, TCH, branding,
+otros módulos.
+
+## [1.0.0] — 2026-09-05 · Hotfix 4.4.2: Last Known Good real (blindaje en el SW)
+### Hueco cerrado de 4.4.1
+- Producción carga `data/version.js`/`cronologico.js`/`historico.js` por
+  `<script src>` ANTES de que corra cualquier JS de comparación de versiones,
+  y el marcador `casur_produccion_active_version` se sobrescribía con lo que
+  esos archivos trajeran. Si un ZIP de código publicaba por error datos viejos,
+  el runtime los cargaba igual y el anti-downgrade de 4.4.1 nunca alcanzaba a
+  actuar (comparaba "remoto" contra un "local" que ya era el dato viejo).
+### Solución: Last Known Good (LKG) en el Service Worker
+- Nueva caché **`casur_master_prod_lkg`** (Cache Storage), a propósito **sin
+  sufijo de versión de app** y agregada a `OWNED`: sobrevive publicaciones de
+  código y cierres/reaperturas de la PWA (persistente en disco, no en memoria).
+- Nuevo gate `produccionDataGate()` en `sw.js`, exclusivo para los 6 archivos
+  `modules/produccion/data/{version,cronologico,historico}.{json,js}`:
+  1) obtiene la versión remota (parseando el JSON o el `window.X={...};`);
+  2) la compara contra la LKG con el mismo comparador robusto (fecha manda,
+     no lexicográfico) usado en Fase 4.4.1;
+  3) **remota superior y válida** (JSON con forma esperada, Sucuya=0,
+     registros>0) → se sirve y se **promueve** como nueva LKG;
+  4) **igual** → se sirve la red normalmente, sin tocar la LKG;
+  5) **remota anterior, inválida o de formato irreconocible** → se **rechaza
+     por completo**: el navegador recibe la respuesta de la **LKG**, nunca la
+     de la red. `window.CASUR_RELEASE`/`CRONO_DATA`/`APP_DATA` jamás llegan a
+     verse expuestos al dato viejo — la protección actúa **desde el primer
+     byte de la red**, no después de que el JS del módulo se ejecute.
+- Sin LKG previa (primer arranque de un dispositivo): se acepta la red como
+  línea base si es mínimamente válida.
+### Verificación (Node, cargando el `sw.js` real vía `vm`, con Cache Storage
+persistente entre "reaperturas" simuladas — sin navegador)
+- **Escenario obligatorio**: LKG=`2026.09.05-siagri.1055` establecida →
+  GitHub publica por error `2026.09.01-2627.1` → tras "cerrar/reabrir" (nuevo
+  contexto de SW, misma Cache Storage) → **versión servida = 09.05**,
+  **cronológico servido = 09.05**, **histórico servido = 09.05**, **0
+  downgrade**, LKG intacta (3 entradas, sin sobrescribir), **0 llamadas de
+  red de más (sin loop)**. Sin parpadeo por construcción: el contenido viejo
+  nunca llega al navegador.
+- **Upgrade posterior**: publicado `2026.09.06-siagri.2000` (superior) → se
+  sirve la red, se **promueve como nueva LKG**, y estando luego **offline**
+  se sigue sirviendo `09.06` (disponible offline).
+### No tocado
+Administrador SIAGRI, comparador de 15 modificaciones (Fase 4.3), builder de
+publicación, Histórico como regla de negocio, TCH, branding, otros módulos.
+El anti-downgrade a nivel de módulo/shell (Fase 4.4.1) queda intacto como
+segunda capa de defensa (ya no debería activarse en la práctica, porque el
+SW impide que el dato viejo llegue siquiera a cargarse).
+
+## [1.0.0] — 2026-09-05 · Hotfix 4.4.1: blindaje anti-downgrade de datos de Producción
+### Protección anti-downgrade (comparador robusto, no lexicográfico)
+- Nuevo comparador `compareCasurDataVersions(a,b)` (duplicado como utilitario
+  genérico en `modules/produccion/js/casur-enhancements.js` y en `app.js` del
+  shell — no es lógica de negocio SIAGRI, solo parseo de versión): interpreta
+  los esquemas vigentes `AAAA.MM.DD-tag.NNNN` (`2026.09.05-siagri.1055`,
+  `2026.09.01-2627.1`), compara primero por **fecha** y luego por el número
+  final como desempate. Formatos no reconocidos devuelven "desconocido" y
+  **nunca** se tratan como más nuevos (evita downgrade por formatos raros).
+- `checkForDataUpdate()` distingue explícitamente **remota más nueva** (actualiza),
+  **igual** (no hace nada) y **remota anterior** (**NO descarga, NO aplica, NO
+  recarga**; solo `console.warn` de diagnóstico discreto, sin alarmar al usuario
+  ni tocar la UI). Antes se comparaba con `!==`, lo que hubiera aceptado
+  cualquier versión "distinta", incluida una más vieja publicada por error.
+### Sincronización desde Home (preparación temprana, sin exigir abrir el módulo)
+- El shell (`boot()`) llama a `prepareProduccionDataIfNewer()` al abrir la App
+  Maestra: consulta `modules/produccion/data/version.json` (no-store) contra
+  un marcador same-origin `localStorage['casur_produccion_active_version']`
+  (que el propio módulo escribe en cada arranque). Si la publicada es
+  **realmente más nueva**, precalienta `cronologico.json`/`historico.json` en
+  la caché de datos del SW (network-first) — sin abrir el iframe ni tocar
+  `CRONO_DATA` (eso sigue aplicándolo únicamente el propio módulo al abrirse,
+  sin reconstruir nada). Si es igual/anterior/desconocida, no descarga nada.
+- Anti-polling: guard de sesión de 3 minutos entre consultas desde el shell;
+  si no hay marcador de versión activa conocida, no compara a ciegas.
+### Evitar regresión de datos al publicar el ZIP de código
+- README documenta que `modules/produccion/data/` es contenido **versionado
+  de forma independiente** del código (VF54.6) y qué hacer/no hacer al
+  publicar. La protección runtime (arriba) ya impide que un `version.json`
+  antiguo empaquetado por error llegue a aplicarse en dispositivos con datos
+  más nuevos.
+### Verificación
+- Comparador: **Node 9/9** (incluye el caso real: fecha manda sobre el tag,
+  mismo día por secuencia, formatos desconocidos, cruce de año).
+- Escenario real ocurrido (jsdom): activa `2026.09.05-siagri.1055` vs
+  publicado por error `2026.09.01-2627.1` → **0 reloads, 0 downgrade,
+  `CRONO_DATA` permanece en la versión 09-05, sin tocar el pill** (sin
+  parpadeo). Caso inverso: activa `2026.09.01-2627.1` vs publicado
+  `2026.09.05-siagri.1055` → validado, recarga controlada solicitada,
+  tras el ciclo normal `CRONO_DATA` refleja los datos nuevos, histórico
+  preservado, y offline posterior conserva la versión ya sincronizada.
+### No tocado
+Administrador SIAGRI, builder de publicación, comparador de 15 modificaciones
+(Fase 4.3), Histórico como regla de negocio, TCH, branding, otros módulos.
+
 ## [1.0.0] — 2026-09-05 · Fase 4.4: Sincronización automática real de datos publicados
 ### SW raíz (único archivo tocado a nivel de caché)
 - `modules/produccion/data/**` pasa de stale-while-revalidate a **network-first**

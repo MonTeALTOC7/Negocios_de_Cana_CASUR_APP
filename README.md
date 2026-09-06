@@ -19,6 +19,23 @@ medida en que cada módulo lo soporte.
 | Módulo | Descripción | Estado |
 |---|---|---|
 | Maestro de Suertes | Cronológico e Histórico de suertes CASUR (VF54.6) | **Integrado VF54.6 (Fase 4)** · datos vía Adaptador SIAGRI |
+
+> **⚠️ `modules/produccion/data/` es contenido VERSIONADO de forma independiente del código.**
+> `cronologico.json/js`, `historico.json/js` y `version.json/js` cambian con cada publicación de
+> datos (Administrador SIAGRI → "Paquete solo datos para GitHub"), a un ritmo distinto del código
+> de la app (VF54.6). **Al publicar un ZIP nuevo de la App Maestra (código), NO reemplaces
+> `modules/produccion/data/` con una copia antigua** empaquetada por error — eso provocaría un
+> downgrade de datos. Desde el **Hotfix 4.4.3**, el propio Service Worker raíz (`sw.js`)
+> resuelve una **generación completa y coherente** de los 6 archivos (versión+cronológico+
+> histórico) y **nunca activa** una publicación igual, anterior o incoherente a la última
+> buena conocida — la protección actúa a nivel de red, antes de que el código de Producción
+> llegue a ejecutarse, e incluye migración segura desde cachés de fases anteriores. Por eso
+> un downgrade accidental del ZIP de código **no llega a aplicarse** en los dispositivos que
+> ya tengan una versión de datos más nueva — pero **verifica igualmente antes de publicar** que
+> `modules/produccion/data/` en el ZIP corresponda a la versión de datos más reciente disponible en
+> el workspace; si el workspace tiene una versión de datos más nueva que la base del ZIP de código,
+> conserva esa más nueva (no la sobrescribas, y no inventes/regeneres datos si no están disponibles).
+
 | Estimador TCH | Estimación TCH, biometría, visitas y fotografías (v2.7.2) | **Integrado v2.7.2 (Fase 3)** · cámara/GPS: validar en dispositivo |
 | Riegos Ejecutados | Seguimiento de riegos por productor (v6, Supabase) | Placeholder → Fase 6 |
 | Insumos Entregados Productores | Fertilizantes, herbicidas e insumos entregados (v2) | Placeholder → Fase 5 |

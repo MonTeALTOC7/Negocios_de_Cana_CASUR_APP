@@ -207,6 +207,64 @@ async function generateGitHubPackageFromCentro() {
   }
 }
 
+/* [Fase 4.4.3] Comparador robusto de versiones de datos, duplicado a propósito
+   (no es lógica de negocio SIAGRI/Producción, es un utilitario genérico de
+   parseo de string) para no acoplar el shell al bundle de Producción.
+   Esquemas vigentes: "2026.09.05-siagri.1055" y "2026.09.01-2627.1". Valida
+   FECHA REAL (mes 1-12, día válido para ese mes, año en rango razonable) y
+   secuencia como entero seguro no negativo: rechaza fechas imposibles. */
+function parseCasurDataVersion(v) {
+  if (typeof v !== 'string') return null;
+  const m = v.match(/^(\d{4})\.(\d{2})\.(\d{2})-([a-zA-Z0-9]+)\.(\d+)$/);
+  if (!m) return null;
+  const year = Number(m[1]), month = Number(m[2]), day = Number(m[3]), seq = Number(m[5]);
+  if (year < 2020 || year > 2100) return null;
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+  if (!Number.isSafeInteger(seq) || seq < 0) return null;
+  const d = new Date(Date.UTC(year, month - 1, day));
+  if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day) return null;
+  return { date: year * 10000 + month * 100 + day, seq };
+}
+function compareCasurDataVersions(a, b) {
+  if (a === b) return 0;
+  const pa = parseCasurDataVersion(a);
+  const pb = parseCasurDataVersion(b);
+  if (!pa || !pb) return null;
+  if (pa.date !== pb.date) return pa.date > pb.date ? 1 : -1;
+  if (pa.seq !== pb.seq) return pa.seq > pb.seq ? 1 : -1;
+  return 0;
+}
+
+/* [Fase 4.4.3] "Prepara" la actualización de datos de Producción desde Home,
+   sin exigir abrir el módulo. Desde este hotfix, un ÚNICO fetch a
+   version.json ya atraviesa el gate LKG del Service Worker raíz, que
+   internamente descarga y valida los 3 archivos (versión+cronológico+
+   histórico) como una GENERACIÓN completa y coherente, y promueve/activa
+   esa generación solo si es estrictamente más nueva (nunca downgrade, nunca
+   activación parcial) — ver sw.js: resolveGeneration(). El shell ya NO
+   duplica esa validación; solo dispara la resolución y sincroniza su propio
+   marcador local sin permitir jamás que retroceda. */
+async function prepareProduccionDataIfNewer() {
+  const GUARD_KEY = 'casur_prod_datacheck_at';
+  const GUARD_MS = 3 * 60 * 1000;
+  const last = Number(sessionStorage.getItem(GUARD_KEY) || 0);
+  if (Date.now() - last < GUARD_MS) return;
+  sessionStorage.setItem(GUARD_KEY, String(Date.now()));
+
+  const ACTIVE_KEY = 'casur_produccion_active_version';
+  try {
+    const res = await fetch(`modules/produccion/data/version.json?ts=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const resolved = await res.json();
+    if (!resolved || !resolved.version) return;
+    const active = localStorage.getItem(ACTIVE_KEY);
+    const cmp = active ? compareCasurDataVersions(resolved.version, active) : 1;
+    if (!active || cmp === 1 || cmp === 0) localStorage.setItem(ACTIVE_KEY, resolved.version);
+    /* cmp === -1 o null: NUNCA sobrescribir el marcador con algo inferior o irreconocible. */
+  } catch (e) { /* sin red o fallo de fetch: no hacer nada, no bloquear el Home */ }
+}
+
 /* ---------------- Vista: HOME ---------------- */
 function viewHome() {
   const mods = registry.homeModules();
@@ -698,21 +756,23 @@ function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js', { scope: './' }).then((reg) => {
-      // Aviso de nueva versión disponible (sin recargar de golpe).
+      /* [Hotfix 4.4.3] Activar automáticamente el SW nuevo (incluye el gate
+         LKG de Producción) en cuanto esté instalado, sin exigir un clic del
+         usuario — importante porque la protección anti-downgrade vive en el
+         propio SW. */
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
         const nw = reg.installing;
         if (!nw) return;
         nw.addEventListener('statechange', () => {
           if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-            toast('Nueva versión disponible', {
-              label: 'Actualizar',
-              onClick: () => { nw.postMessage({ type: 'SKIP_WAITING' }); },
-            });
+            nw.postMessage({ type: 'SKIP_WAITING' });
           }
         });
       });
     }).catch((e) => console.warn('SW no registrado:', e));
 
+    /* Recarga del shell UNA sola vez al cambiar de controlador (guard evita bucles). */
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (refreshing) return; refreshing = true; location.reload();
@@ -726,5 +786,6 @@ function boot() {
   router.onChange(route);
   registerSW();
   router.start();
+  prepareProduccionDataIfNewer();
 }
 boot();

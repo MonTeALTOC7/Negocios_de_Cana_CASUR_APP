@@ -114,3 +114,38 @@ Pendiente dispositivo: gesto real del botón "Paquete solo datos" (descarga ZIP 
 - [x] Fail-safe: offline desde el inicio, dataset corrupto, versión incoherente → sin recarga, sin tocar datos, "Sincronización pendiente".
 - [x] Toast "✓ Maestro de Suertes actualizado · versión" una sola vez tras aplicar.
 Pendiente dispositivo: prueba con GitHub Pages real (latencia/CDN) y verificación visual del pill/toast.
+
+## Hotfix 4.4.1 — Anti-downgrade (verificado en Node/jsdom)
+- [x] Comparador `compareCasurDataVersions`: 9/9 (fecha manda, no lexicográfico, formatos desconocidos → null, nunca "más nuevo").
+- [x] Downgrade real (activa 09-05 vs publicado 09-01): 0 reloads, cronológico/histórico NO descargados, versión y datos intactos, sin parpadeo en pill.
+- [x] Upgrade real (activa 09-01 vs publicado 09-05): validado, recarga controlada solicitada, datos nuevos reflejados en CRONO_DATA tras el ciclo, histórico preservado, offline conserva la versión ya sincronizada.
+- [x] Shell: `prepareProduccionDataIfNewer()` con guard anti-polling (3 min) y marcador `localStorage['casur_produccion_active_version']`; no descarga si igual/anterior/desconocida o sin baseline.
+- [x] README documenta `modules/produccion/data/` como contenido versionado independiente del código, con la advertencia anti-downgrade al publicar el ZIP.
+
+## Hotfix 4.4.2 — Last Known Good real en el SW (verificado con `sw.js` real vía Node vm)
+- [x] Caché `casur_master_prod_lkg` persistente (sin sufijo de versión), en `OWNED`.
+- [x] `produccionDataGate()` intercepta los 6 archivos de datos de Producción antes que cualquier JS del módulo.
+- [x] Escenario obligatorio: LKG 09.05 establecida → publicación accidental 09.01 → tras "reapertura": versión/cronológico/histórico servidos siguen en 09.05; 0 downgrade; LKG intacta; 0 llamadas de red de más.
+- [x] Upgrade real a 09.06: se sirve, se promueve como nueva LKG, disponible offline después.
+- [x] Protección funciona desde el arranque (a nivel de red, antes de que `window.CASUR_RELEASE` se asigne), no depende de que el JS de Producción se ejecute.
+Pendiente dispositivo: confirmar en Android/PC real con GitHub Pages (latencia real, Cache Storage del navegador real).
+
+## Hotfix 4.4.3 — Generaciones atómicas + migración segura (TODO simulado: Node/jsdom con código real)
+- [x] Migración desde DATA_CACHE (09.05) con LKG vacía, servidor en 09.01 → conserva 09.05, offline OK.
+- [x] LKG activa 09.05, reinicio simulado, servidor inferior → los 6 archivos permanecen en 09.05.
+- [x] Publicación parcial / archivo corrupto / versiones incoherentes → ninguna activación parcial (3 casos).
+- [x] Update Home→09.06 + pérdida de red antes de abrir Producción → los 6 archivos usan 09.06 offline.
+- [x] 6 solicitudes concurrentes → misma generación, sin mezclar, sin retroceder.
+- [x] Fecha imposible / formato desconocido → rechazados.
+- [x] Versión cargada ≠ esperada → sin toast falso, sin recarga repetida.
+- [x] activate del SW → LKG y caché ajena sobreviven; solo caché maestra vieja se borra.
+Pendiente: TODAS las pruebas anteriores son simuladas (Node vm/jsdom). Falta validar en navegador/dispositivo real: Cache Storage real, Service Worker real, GitHub Pages real, y confirmar visualmente pill/toast en Producción.
+
+## Hotfix 4.4.4 — Mutex real, migración agrupada, activación sin botón (TODO simulado: Node vm con sw.js real)
+- [x] Resolución 09.06 lenta (>4s) + segunda solicitud a los 2s → una sola resolución de red, resultado final nunca retrocede tras una resolución posterior a 09.07.
+- [x] Ráfagas separadas por 5-6s mientras la primera sigue pendiente → una sola resolución efectiva.
+- [x] Completa 09.05 + parcial 09.06 en caché → migra 09.05 (no pierde la completa).
+- [x] Completas 09.05 y 09.06 → migra 09.06 (la más nueva).
+- [x] `self.skipWaiting()` invocado en `install` (activación sin botón desde 4.4.2).
+- [x] Regresión completa de 4.4.3 (27 aserciones): downgrade, corrupción, incoherencia, offline, concurrencia, fecha imposible, activate — todo repetido sobre el sw.js nuevo, sigue verde.
+Pendiente: TODO lo anterior es simulado (Node vm). Falta validar en navegador/dispositivo real: mutex bajo concurrencia real del navegador, Cache Storage real, y la transición real 4.4.2→4.4.4 sin botón en un dispositivo de verdad.

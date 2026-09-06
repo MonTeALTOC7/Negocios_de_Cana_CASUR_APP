@@ -1,0 +1,31 @@
+╔══════════════════════════════════════════════════════════════╗
+║  SEGUIMIENTO DE RIEGOS EJECUTADOS · CASUR                    ║
+║  Instrucciones para subir a GitHub Pages                     ║
+╚══════════════════════════════════════════════════════════════╝
+
+PASO 1: Crear un repositorio NUEVO en GitHub
+  - Nombre: el que vos quieras (ej: "Mi-Riego", "Seguimiento", etc.)
+  - Público, vacío (sin README, sin .gitignore, sin licencia)
+
+PASO 2: Subir TODOS estos archivos al repo
+  - En el repo vacío, clic en "uploading an existing file"
+  - Seleccioná TODOS los archivos y carpetas de esta carpeta:
+    → index.html, 404.html, sw.js, favicon.svg, logo-casur.png,
+      manifest.webmanifest, .nojekyll
+    → Carpetas: assets/, data/, icons/
+  - ¡¡ NO subas este archivo LEEME.txt !!
+  - Commit y listo
+
+PASO 3: Activar GitHub Pages
+  - Settings → Pages → Source: "Deploy from a branch"
+  - Branch: main, carpeta: / (root)
+  - Save
+
+PASO 4: Esperar 2 minutos y abrir la URL
+  - https://tu-usuario.github.io/nombre-del-repo/
+
+IMPORTANTE: Si la página sale en blanco, limpiar cache del navegador:
+  - Chrome Android: Configuración → Privacidad → Borrar datos de navegación
+  - Chrome PC: Ctrl+Shift+Delete → Imágenes y archivos en caché → Borrar
+
+La contraseña del módulo administrativo es: 151021

@@ -33,7 +33,7 @@ export function moduleVersion(id) {
 export const MODULE_STATUS = {
   produccion: 'integrado · VF54.6 (código) · datos vía SIAGRI→adaptador',
   tch: 'integrado · cámara/GPS: validar en dispositivo',
-  riego: 'placeholder',
+  riego: 'integrado · fuente/backend Supabase propios',
   insumos: 'integrado · fuente/Maestro propios (conexión al Maestro Central en Fase 5.1)',
   inventario: 'placeholder',
   labores: 'placeholder',

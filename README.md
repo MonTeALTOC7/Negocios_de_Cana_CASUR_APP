@@ -37,7 +37,7 @@ medida en que cada módulo lo soporte.
 > conserva esa más nueva (no la sobrescribas, y no inventes/regeneres datos si no están disponibles).
 
 | Estimador TCH | Estimación TCH, biometría, visitas y fotografías (v2.7.2) | **Integrado v2.7.2 (Fase 3)** · cámara/GPS: validar en dispositivo |
-| Riegos Ejecutados | Seguimiento de riegos por productor (v6, Supabase) | Placeholder → Fase 6 |
+| Riegos Ejecutados | Seguimiento de riegos por productor (v6, Supabase) | **Integrado (Fase 6)** · fuente/backend Supabase propios |
 | Insumos Entregados Productores | Fertilizantes, herbicidas e insumos entregados (v1.0) | **Integrado (Fase 5)** · fuente/Maestro propios (conexión al Maestro Central en Fase 5.1) |
 | Inventario Pansaco | Kardex, entradas y salidas · Pansaco (v1.4.0, Supabase) | Placeholder → Fase 7 |
 | Seguimiento de Labores · Prefacturas | Labores manuales y mecanizadas (operativo, público) | Placeholder → Fase 8 |

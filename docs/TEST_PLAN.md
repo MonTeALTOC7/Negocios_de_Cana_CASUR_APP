@@ -159,3 +159,14 @@ Pendiente: TODO lo anterior es simulado (Node vm). Falta validar en navegador/di
 - [x] UI: Resumen/Explorar/Insumos/Productores/Madurante(drill)/Admin — 16/16, sin errores reales.
 - [x] Smoke Convertidor/TCH/Producción abren; Producción conserva 2026.09.01-2627.1; un solo SW/manifest; sin CTA instalación en Insumos.
 Pendiente real: validación E2E completa en navegador/dispositivo (Cache Storage e IndexedDB reales, instalación/cierre/reapertura real de la PWA, UI táctil).
+
+## Fase 6 — Riegos Ejecutados (verificación estática; jsdom no ejecuta ESM, ver CHANGELOG)
+- [x] Bundle activo identificado sin adivinar: index-Cw6wzs3D.js / index-B0LwgFY-.css.
+- [x] Diff verbatim: solo sw.js/manifest.webmanifest ausentes + 2 líneas neutralizadas en el bundle + 1 línea comentada en index.html.
+- [x] node --check sobre el bundle editado: sintaxis válida.
+- [x] data/bootstrap.json confirmado como el único consumido (string literal en el bundle); coincide con baseline (1053/28897/2026-08-24/2026-08-24).
+- [x] Assets resueltos (JS/CSS activos, iconos, logo, import dinámico html2canvas).
+- [x] Reglas de negocio confirmadas presentes verbatim: Pansaco(993)/Claudio Reyes(25)/Alfredo Siezar(561), exclusión Sucuya, suertes inactivadas.
+- [x] SW raíz: modules/riego/data/** en network-first genérico; LKG de Producción intacto (regresión repetida verde); passthrough Supabase ya preexistente.
+- [x] Smoke: Convertidor/TCH/Producción/Insumos sin regresión; un solo SW/manifest.
+- [ ] PENDIENTE REAL (no ejecutable aquí): toda prueba funcional/UI/responsive/offline/exportaciones/sincronización Supabase de Riego — requiere navegador o dispositivo real, ya que jsdom no soporta ejecución de scripts type="module".

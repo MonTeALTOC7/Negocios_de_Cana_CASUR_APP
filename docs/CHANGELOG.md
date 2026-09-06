@@ -2,6 +2,101 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.0.0] — 2026-09-06 · Fase 6: Riegos Ejecutados (integración real, Vite/React/Supabase)
+### Integración
+- Integrada la app real vigente `MonTeALTOC7/Riego_Ejecutado_Productor_casur`
+  (origin/main, ya al día) en `modules/riego/` (copia; repo fuente sin tocar).
+  Distribución Vite ya compilada (no se recompila desde cero, conforme a
+  "no reescribir la app / no recompilar si la publicada funciona").
+- **Bundle activo identificado sin adivinar**: `index.html` referencia
+  exactamente `./assets/index-Cw6wzs3D.js` + `./assets/index-B0LwgFY-.css`.
+  El repo trae además 8 archivos JS/CSS con hash de builds anteriores,
+  huérfanos (0 referencias desde el bundle activo) — se conservaron sin
+  tocar (copia íntegra, sin curar), consistente con el resto de fases.
+- **Diff verbatim confirmado contra el repo fuente**: la única diferencia en
+  todo el árbol de archivos es la ausencia de `sw.js` y `manifest.webmanifest`
+  (eliminados a propósito); dentro del bundle JS activo, únicamente 2 líneas
+  cambiaron (registro de SW y no-renderizado del banner de instalación,
+  detalladas abajo); `index.html` solo tiene el link a manifest comentado.
+  Cero cambios en lógica de negocio, cálculo de ICH, agrupación de eventos,
+  Supabase, ni en ningún otro archivo.
+- `sw.js` y `manifest.webmanifest` propios eliminados de la copia. El SW
+  standalone borraba TODAS las cachés distintas de `casur-riego-v6-2026-08-20`
+  en su `activate` — crítico neutralizarlo antes de que pudiera registrarse
+  dentro de la App Maestra (habría borrado shell, LKG de Producción, TCH,
+  Insumos).
+- Registro de SW neutralizado quirúrgicamente en el bundle minificado:
+  `navigator.serviceWorker.register("./sw.js",...)` → no-op, dentro del
+  mismo `window.addEventListener("load",...)`. Verificado `node --check`
+  tras la edición.
+- Banner/CTA de instalación standalone eliminado sin dejar código muerto
+  peligroso: el banner es un componente React autocontenido (`kI`, con sus
+  propios `useState`/`useEffect`, listeners `beforeinstallprompt`/
+  `appinstalled` y UI) insertado una única vez en el árbol via `m.jsx(kI,{})`;
+  se reemplazó esa única invocación por `null` — el componente queda
+  definido pero nunca se monta, por lo que ninguno de sus `useEffect` llega
+  a ejecutarse (cero listeners de instalación activos).
+- `core/module-registry/registry.js`: ya tenía correctamente anticipado
+  `usesSupabase: true` y el namespace `supabase:fbatjsbdybliradxjhdm` desde
+  la auditoría de Fase 0 (confirmado que el project ref real del bundle
+  coincide exactamente); solo faltaba activar el módulo.
+- `core/versions/versions.js`: estado `riego` → "integrado · fuente/backend
+  Supabase propios".
+### Datos: qué archivo consume la app (determinado, no adivinado)
+- El repo trae DOS `bootstrap.json`: uno en la raíz (obsoleto, masterRows
+  1112/irrigationRows 28439, cutoff 2026-08-19/07-27 — **no es el que la
+  app usa**) y otro en `data/bootstrap.json`. Se confirmó mediante búsqueda
+  literal en el bundle compilado (`"./data/bootstrap.json"`) que la app
+  consume EXCLUSIVAMENTE `data/bootstrap.json`.
+- `data/bootstrap.json` integrado: masterRows=1053, irrigationRows=28897,
+  irrigationCutoff=2026-08-24, masterCutoff=2026-08-24 — **coincide
+  exactamente** con el baseline de referencia (no hubo drift como en Fase 5).
+### Service Worker maestro — estrategia de datos
+- `sw.js` (raíz): `/modules/riego/data/**` agregado a la MISMA regla
+  network-first genérica ya usada para `/master/data/` y
+  `/modules/insumos/data/**` — política explícitamente separada del sistema
+  de generaciones atómicas (LKG) de Producción, que permanece intacto y sin
+  cambios (regresión repetida y verde).
+- Las peticiones a Supabase (`*.supabase.co`) ya pasaban de largo sin caché
+  por una regla de passthrough por origen preexistente en `sw.js` (Fase 1),
+  confirmada aquí como suficiente y correcta para Riego sin necesidad de
+  cambios adicionales.
+### Reglas de negocio — verificadas SIN modificar (verbatim, ver diff arriba)
+- Vista ejecutiva/Resumen prioriza Productores (`effectiveActive`, exclusión
+  de zonas no-Productores de los KPI de portada).
+- Pansaco (`farmCode==="993"`), Claudio Reyes (`farmCode==="25"`) y Alfredo
+  Siezar (`farmCode==="561"`) confirmados presentes verbatim como hacienda
+  prioritaria en la vista ejecutiva.
+- Exclusión Sucuya por nombre (`RI=["sucuya"]`) confirmada presente.
+- Suertes inactivadas (`active:!f`, con nota `"Suerte inactivada
+  posteriormente"`) confirmadas presentes — no se reactivan.
+### Pruebas — LIMITACIÓN DE ENTORNO documentada honestamente
+- **jsdom no ejecuta scripts `type="module"`** (confirmado con una prueba
+  trivial aislada: ni un `console.log` dentro de un módulo se ejecuta) —
+  limitación conocida y documentada de jsdom, no implementa el loader de
+  módulos ES. Por tratarse de una SPA React/Vite (a diferencia de
+  Producción/TCH/Insumos/Convertidor, que son scripts clásicos), **no fue
+  posible ejercitar funcionalmente la UI de Riego en este entorno**.
+- Verificación aplicada en su lugar: estática y exhaustiva — diff verbatim
+  completo, `node --check` sobre el bundle editado, resolución de todos los
+  assets referenciados (incluida la importación dinámica de
+  `html2canvas.esm-*.js`), confirmación literal de las reglas de negocio
+  citadas arriba, y confirmación del project ref de Supabase.
+- Smoke breve de regresión del resto de la App Maestra (Node/jsdom):
+  Administrador SIAGRI, TCH y Maestro de Suertes abren sin error; Producción
+  conserva `2026.09.01-2627.1`/1053 suertes; Insumos sigue funcionando (16/16
+  aserciones de Fase 5 repetidas); un solo `sw.js` y un solo
+  `manifest.webmanifest` en toda la App Maestra.
+- **Pendiente real**: toda prueba funcional de Riego (Resumen ejecutivo,
+  Productores, filtros, avance, exportaciones, formularios, sincronización
+  Supabase, offline, responsive Android/PC, ausencia de scroll horizontal)
+  requiere navegador/dispositivo real — no verificable en este entorno.
+### No hecho todavía (a propósito, per alcance de Fase 6)
+Maestro Central → Riego, nuevo backend, nueva autenticación, cambios en
+Supabase/RLS, integración con Inventario, actualización masiva de
+Histórico. **Riego conserva su fuente/backend Supabase propios; la
+centralización será una fase posterior** (no iniciada).
+
 ## [1.0.0] — 2026-09-06 · Fase 5: Insumos Entregados Productores (integración real)
 ### Integración
 - Integrada la app real vigente `MonTeALTOC7/Insumos_Entregados_PC` (origin/main,

@@ -12,6 +12,11 @@ const DB_NAME = 'casur_master_data';
 const DB_VERSION = 1;
 const STORE = 'datasets';          /* key -> { payload, savedAt } */
 const KEY_PRODUCCION = 'produccion_current';
+/* [Fase 6.2] Maestro Central de Suertes: subconjunto CENTRAL derivado de
+   produccion_current, publicado para que otros módulos (Riego) lo
+   consuman sin reprocesar Excel. Misma DB/store; clave nueva, NO
+   reemplaza ni migra produccion_current. */
+const KEY_MAESTRO = 'maestro_suertes_current';
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -66,4 +71,16 @@ export async function getProduccionStatus() {
   } catch { return { present: false }; }
 }
 
-export const MASTER_STORE_INFO = { DB_NAME, DB_VERSION, STORE, KEY_PRODUCCION };
+export const MASTER_STORE_INFO = { DB_NAME, DB_VERSION, STORE, KEY_PRODUCCION, KEY_MAESTRO };
+
+/* [Fase 6.2] --- Maestro Central de Suertes --- */
+export async function saveMaestroSuertes(payload) { return put(KEY_MAESTRO, payload); }
+export async function loadMaestroSuertes() { return get(KEY_MAESTRO); }
+export async function getMaestroStatus() {
+  try {
+    const rec = await get(KEY_MAESTRO);
+    if (!rec) return { present: false };
+    const p = rec.payload || {};
+    return { present: true, savedAt: rec.savedAt, version: p.version || null, rows: p.rows || null };
+  } catch { return { present: false }; }
+}

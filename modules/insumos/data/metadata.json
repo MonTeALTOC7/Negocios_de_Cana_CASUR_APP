@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "generated_at": "2026-08-23 05:43:44",
+  "fecha_corte": "2026-08-23",
+  "fecha_min": "2024-02-06",
+  "archivo_fuente": "registro_de_programacion_de_labores_21-agosto_2026.xlsx",
+  "total_eventos": 3350,
+  "total_productos": 8879,
+  "total_maestro": 1053,
+  "filas_originales": 8879,
+  "filas_validas": 8879,
+  "filas_excluidas_sucuya": 0,
+  "hash": "d91d508cc82f",
+  "labores_aereas_madurante": [
+    "AAM"
+  ],
+  "total_eventos_madurante_aereo": 212,
+  "pwa_min_version": "1.0.0"
+}

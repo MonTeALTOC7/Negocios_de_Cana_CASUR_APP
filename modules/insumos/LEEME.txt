@@ -1,0 +1,40 @@
+╔══════════════════════════════════════════════════════════════╗
+║   CONTROL Y SEGUIMIENTO DE INSUMOS · CASUR                    ║
+║   Negocios de Caña · v2                                        ║
+╚══════════════════════════════════════════════════════════════╝
+
+QUÉ ES
+  Aplicación web instalable (PWA) para controlar y analizar los insumos
+  entregados a productores de caña. Funciona sin conexión.
+
+MÓDULOS (barra inferior)
+  • Resumen      → indicadores ejecutivos. Toca cualquier cuadro para ver
+                   el detalle (drill-down): suertes, productores, alertas...
+  • Explorar     → tabla de eventos con filtros. Toca + para ver productos.
+  • Insumos      → total entregado y desglose por producto.
+  • Productores  → detalle por productor: insumos, cantidad y ha por producto.
+  • Admin        → validaciones + actualización de datos. Clave: 151021
+
+MADURANTE AÉREO
+  La aplicación aérea de madurante (AAM) NO se cobra a productores y se
+  maneja en su propio módulo. No suma en las estadísticas de insumos.
+  (Se accede desde el cuadro "Madurante aéreo" del Resumen.)
+
+ACTUALIZAR DATOS (Admin)
+  1. Entra a Admin con la clave.
+  2. Arrastra el Excel SIAGRI (registro de programación de labores).
+     Opcional: el Cronológico Maestro.
+  3. Revisa los totales → "Aplicar actualización".
+  4. Descarga bootstrap.json y reemplázalo en la carpeta data/ del
+     repositorio para que quede permanente para todos.
+
+ALERTAS
+  En Resumen (cuadro Alertas) y en Admin (Validaciones) puedes revisar
+  cada alerta y marcarla como revisada o resuelta. Las de "área mayor al
+  Maestro" se pueden reparar aplicando el área correcta.
+
+INSTALAR
+  Android/Chrome: menú → "Instalar aplicación" / "Añadir a inicio".
+  iPhone/Safari:  Compartir → "Añadir a pantalla de inicio".
+
+Firma técnica CT · CASUR

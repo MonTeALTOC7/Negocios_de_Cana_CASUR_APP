@@ -13,10 +13,13 @@
 
 import * as store from '../storage/storage.js';
 
-/* PIN por defecto de la Fase 1 (placeholder). El propietario lo
-   cambia en Centro Maestro. Se guarda como hash simple solo para
-   no dejarlo en texto plano; NO es protección fuerte. */
-const DEFAULT_PIN = '2016'; // referencia mnemónica: Sucuya=16, año base
+/* PIN por defecto (Fase 8B.2). El propietario lo cambia en Centro
+   Maestro. Se guarda como hash simple solo para no dejarlo en texto
+   plano; NO es protección fuerte. */
+const DEFAULT_PIN = '2233';
+/* PIN por defecto anterior (Fase 1). Se conserva solo para la
+   migración automática de abajo: nunca se usa como PIN activo. */
+const LEGACY_DEFAULT_PIN = '2016'; // referencia mnemónica: Sucuya=16, año base
 const PIN_KEY = 'private_pin_hash';
 const SESSION_FLAG = 'private_unlocked';
 
@@ -29,7 +32,18 @@ function weakHash(str) {
 }
 
 function currentPinHash() {
-  return store.get(PIN_KEY, weakHash(DEFAULT_PIN));
+  const stored = store.get(PIN_KEY, null);
+  if (stored === null) return weakHash(DEFAULT_PIN);
+  /* Migración no destructiva: si lo guardado es exactamente el PIN por
+     defecto ANTERIOR (nunca fue personalizado explícitamente), migrar
+     automáticamente al nuevo PIN por defecto — evita que dispositivos
+     con la configuración vieja queden bloqueados. Un PIN realmente
+     personalizado (distinto de ambos valores por defecto) nunca se toca. */
+  if (stored === weakHash(LEGACY_DEFAULT_PIN)) {
+    store.set(PIN_KEY, weakHash(DEFAULT_PIN));
+    return weakHash(DEFAULT_PIN);
+  }
+  return stored;
 }
 
 /** ¿El área privada está desbloqueada en esta sesión? */

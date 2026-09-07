@@ -539,6 +539,7 @@ function renderGate(pendingModuleId) {
         <div class="field">
           <label for="pin">PIN</label>
           <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••">
+          <small class="dialog__note">Guía PIN TV</small>
         </div>
         <p class="dialog__err" id="gErr"></p>
         <div class="dialog__row">

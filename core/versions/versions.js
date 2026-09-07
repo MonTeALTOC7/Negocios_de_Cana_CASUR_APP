@@ -36,7 +36,7 @@ export const MODULE_STATUS = {
   riego: 'integrado · fuente/backend Supabase propios',
   insumos: 'integrado · fuente/Maestro propios (conexión al Maestro Central en Fase 5.1)',
   inventario: 'placeholder',
-  labores: 'placeholder',
+  labores: 'integrado · fuente propia',
   convertidor: 'integrado',
   conciliacion: 'placeholder',
 };

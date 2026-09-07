@@ -116,16 +116,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   //    Resto de datasets oficiales (incluye /master/data/,
-  //    /modules/insumos/data/** [Fase 5] y /modules/riego/data/** [Fase 6]):
+  //    /modules/insumos/data/** [Fase 5], /modules/riego/data/** [Fase 6]
+  //    y /modules/labores/datos/** [Fase 8A]):
   //    network-first + cache. NUNCA stale-while-revalidate para estos: con
   //    internet debe priorizar siempre la versión publicada; sin internet,
   //    la última copia cacheada.
-  //    Insumos y Riego usan esta política GENÉRICA, deliberadamente
+  //    Insumos, Riego y Labores usan esta política GENÉRICA, deliberadamente
   //    DISTINTA del sistema de generaciones atómicas (LKG) de Producción —
   //    las políticas quedan separadas; esta fase no aplica LKG a Riego.
   //    Las llamadas a Supabase (origen distinto) NUNCA pasan por aquí: la
   //    regla 1) de passthrough por origen ya las deja seguir sin caché.
-  if (url.pathname.includes('/master/data/') || url.pathname.includes('/modules/produccion/data/') || url.pathname.includes('/modules/insumos/data/') || url.pathname.includes('/modules/riego/data/')) {
+  if (url.pathname.includes('/master/data/') || url.pathname.includes('/modules/produccion/data/') || url.pathname.includes('/modules/insumos/data/') || url.pathname.includes('/modules/riego/data/') || url.pathname.includes('/modules/labores/datos/')) {
     event.respondWith(networkFirst(req, DATA_CACHE));
     return;
   }

@@ -4,8 +4,34 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b4f3c" />
-    <meta name="description" content="Conciliador semanal Nómina–Prefactura CASUR" />
-    <title>Conciliador Nómina–Prefactura CASUR</title>
+    <meta name="description" content="Seguimiento operativo de labores realizadas por semana, hacienda, suerte y labor · CASUR" />
+    <title>Seguimiento de Labores · Prefacturas · CASUR</title>
+    <script>
+      /* [Fase 8B.1] Vista pública restringida a "Seguimiento de labores".
+         La app soporta abrir directamente en esa vista via #tracking. */
+      (function () {
+        var LOCK = 'tracking';
+        if (location.hash.replace('#', '') !== LOCK) location.hash = LOCK;
+        window.addEventListener('hashchange', function () {
+          if (location.hash.replace('#', '') !== LOCK) location.hash = LOCK;
+        });
+      })();
+    </script>
+    <style>
+      /* [Fase 8B.1] Solo "Seguimiento de labores" visible (4ta pestaña del array Ja). */
+      .sidebar > nav > button:not(:nth-child(4)) { display: none !important; }
+      .sidebar-foot { display: none !important; }
+      .brand strong, .brand span { visibility: hidden; position: relative; display: block; }
+      .brand strong::after {
+        visibility: visible; position: absolute; left: 0; top: 0; white-space: nowrap;
+        content: "Seguimiento de Labores";
+      }
+      .brand span::after {
+        visibility: visible; position: absolute; left: 0; top: 0;
+        content: "Prefacturas · por semana, hacienda, suerte y labor";
+      }
+    </style>
+
     <script type="module" crossorigin src="./assets/index-9j5sRMvi.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/react-BRnhmgIC.js">
     <link rel="modulepreload" crossorigin href="./assets/storage-DSGY8JT7.js">

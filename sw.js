@@ -116,8 +116,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   //    Resto de datasets oficiales (incluye /master/data/,
-  //    /modules/insumos/data/** [Fase 5], /modules/riego/data/** [Fase 6]
-  //    y /modules/labores/datos/** [Fase 8A]):
+  //    /modules/insumos/data/** [Fase 5], /modules/riego/data/** [Fase 6],
+  //    /modules/labores/datos/** [Fase 8A, Excel] y /modules/labores/data/**
+  //    [Fase 8B.2, Seguimiento publicado sanitizado]):
   //    network-first + cache. NUNCA stale-while-revalidate para estos: con
   //    internet debe priorizar siempre la versión publicada; sin internet,
   //    la última copia cacheada.
@@ -126,7 +127,7 @@ self.addEventListener('fetch', (event) => {
   //    las políticas quedan separadas; esta fase no aplica LKG a Riego.
   //    Las llamadas a Supabase (origen distinto) NUNCA pasan por aquí: la
   //    regla 1) de passthrough por origen ya las deja seguir sin caché.
-  if (url.pathname.includes('/master/data/') || url.pathname.includes('/modules/produccion/data/') || url.pathname.includes('/modules/insumos/data/') || url.pathname.includes('/modules/riego/data/') || url.pathname.includes('/modules/labores/datos/')) {
+  if (url.pathname.includes('/master/data/') || url.pathname.includes('/modules/produccion/data/') || url.pathname.includes('/modules/insumos/data/') || url.pathname.includes('/modules/riego/data/') || url.pathname.includes('/modules/labores/datos/') || url.pathname.includes('/modules/labores/data/')) {
     event.respondWith(networkFirst(req, DATA_CACHE));
     return;
   }

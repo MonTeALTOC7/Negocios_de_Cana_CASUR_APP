@@ -18,7 +18,7 @@
     <!-- [INTEGRACIÓN App Maestra] Manifest propio DESACTIVADO: una sola PWA instalable (Negocios de Caña). --><!-- <link rel="manifest" href="manifest.webmanifest" /> -->
 
     <title>Seguimiento de Riegos Ejecutados · CASUR</title>
-    <script type="module" crossorigin src="./assets/index-R744-DRILLDOWN-FILTROS.js"></script>
+    <script type="module" crossorigin src="./assets/index-R745-EJECUTIVO-AUDITABLE.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-B0LwgFY-.css">
     <style id="r743-executive-tuning">
       /* R7.4.3 · jerarquía ejecutiva: cada KPI tiene una función y un acento semántico. */
@@ -109,6 +109,27 @@
       .r744-evidence-empty{margin:30px;padding:22px;border:1px dashed #cbdad4;border-radius:14px;background:#f8fbfa;color:#668078;text-align:center;font-size:11px}
       @keyframes r744fade{from{opacity:0}to{opacity:1}}@keyframes r744slide{from{transform:translateX(35px);opacity:.6}to{transform:translateX(0);opacity:1}}
       @media(max-width:820px){.r744-evidence-drawer{width:96vw}.r744-evidence-summary{grid-template-columns:repeat(2,minmax(0,1fr));margin:20px}.r744-evidence-summary>div:nth-child(3){border-left:0;border-top:1px solid #dce7e3}.r744-evidence-summary>div:nth-child(4){border-top:1px solid #dce7e3}.r744-evidence-table-wrap{margin:0 20px 24px;overflow:auto}.r744-evidence-table{min-width:850px}.r744-evidence-head{padding:20px}.r744-evidence-table th{top:104px}.r744-farm-scope{width:100%;justify-content:space-between}.r744-farm-scope select{flex:1;min-width:0}}
+
+      /* R7.4.5 · drawer auditable, ICH explícito y ordenamiento */
+      .r745-evidence-drawer{width:min(1120px,88vw)}
+      .r745-evidence-table-wrap{max-height:calc(100vh - 315px);overflow:auto;border-radius:14px}
+      .r745-table{border-collapse:separate;border-spacing:0;min-width:820px;table-layout:auto}
+      .r745-table th{top:0!important;z-index:3;white-space:nowrap;background:#edf5f1!important;box-shadow:0 1px 0 #d4e3dc}
+      .r745-table th+th,.r745-table td+td{border-left:1px solid #e1ebe7}
+      .r745-table tbody tr:nth-child(even):not(.open){background:#fbfdfc}
+      .r745-table td{white-space:nowrap;vertical-align:middle!important}
+      .r745-table td.focus{background:#e8f6f0!important;color:#086248!important;font-weight:900}
+      .r745-table td.risk-cell{background:#fff1ef;color:#b93831;font-weight:900}
+      .r745-table td.ok-cell{background:#edf8ef;color:#25743b;font-weight:900}
+      .r745-state{display:inline-flex;align-items:center;border-radius:999px;padding:3px 7px;font-size:8px;font-weight:900}
+      .r745-state.done{background:#e8f5e5;color:#39752b}.r745-state.open{background:#fff1d9;color:#9a6414}
+      .r745-evidence-foot{position:sticky;bottom:0;background:#f7faf8!important;z-index:2;margin:0 30px 22px;border:1px solid #dce7e3;border-radius:10px;flex-wrap:wrap}
+      .r745-ich-chip{min-width:48px!important;height:38px!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1!important;padding:3px 7px!important}
+      .r745-ich-chip small{display:block!important;font-size:6px!important;letter-spacing:.08em!important;opacity:.82!important;margin:0 0 2px!important;color:#fff!important}
+      .r745-ich-chip b{font-size:13px;line-height:1;color:#fff}
+      .r745-filters{grid-template-columns:minmax(280px,1fr) minmax(220px,280px)!important}
+      .r745-dir{border-style:dashed!important;min-width:112px}
+      @media(max-width:820px){.r745-evidence-drawer{width:98vw}.r745-evidence-table-wrap{max-height:calc(100vh - 360px);margin:0 14px 16px!important}.r745-evidence-summary{margin:16px 14px!important}.r745-evidence-foot{margin:0 14px 14px}.r745-filters{grid-template-columns:1fr!important}.r745-toolbar{align-items:flex-start}.r745-table{min-width:760px}}
 
     </style>
 

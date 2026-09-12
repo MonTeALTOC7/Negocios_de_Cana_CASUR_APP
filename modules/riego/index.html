@@ -131,7 +131,63 @@
       .r745-dir{border-style:dashed!important;min-width:112px}
       @media(max-width:820px){.r745-evidence-drawer{width:98vw}.r745-evidence-table-wrap{max-height:calc(100vh - 360px);margin:0 14px 16px!important}.r745-evidence-summary{margin:16px 14px!important}.r745-evidence-foot{margin:0 14px 14px}.r745-filters{grid-template-columns:1fr!important}.r745-toolbar{align-items:flex-start}.r745-table{min-width:760px}}
 
-    </style>
+    
+
+      /* R7.4.6 · ajuste fino de Haciendas/Suertes: ICH compacto y sin solapamientos */
+      .lot-row.lot-row-wide{
+        grid-template-columns:39px minmax(150px,1fr) 64px 40px 124px 18px;
+        gap:10px;
+      }
+      .r745-ich-chip{
+        width:34px!important;
+        min-width:34px!important;
+        height:30px!important;
+        padding:2px 4px!important;
+        border-radius:7px!important;
+        justify-self:center;
+      }
+      .r745-ich-chip small{
+        font-size:5px!important;
+        line-height:1!important;
+        letter-spacing:.06em!important;
+        margin:0 0 1px!important;
+      }
+      .r745-ich-chip b{
+        font-size:11px!important;
+        line-height:1!important;
+      }
+      .lot-row.lot-row-wide .lot-status{
+        min-width:0;
+        overflow:visible;
+      }
+      .lot-row.lot-row-wide .days-badge{
+        max-width:100%;
+        white-space:nowrap;
+      }
+      .lot-row.lot-row-wide .last-report-age,
+      .lot-row.lot-row-wide .r744-interval-age{
+        white-space:nowrap;
+        line-height:1.15;
+      }
+      @media(max-width:760px){
+        .lot-row.lot-row-wide{
+          grid-template-columns:35px minmax(92px,1fr) 40px 30px 88px 12px;
+          gap:5px;
+        }
+        .r745-ich-chip{
+          width:27px!important;
+          min-width:27px!important;
+          height:25px!important;
+          padding:1px 3px!important;
+          border-radius:6px!important;
+        }
+        .r745-ich-chip small{font-size:4px!important;margin-bottom:1px!important}
+        .r745-ich-chip b{font-size:9px!important}
+        .lot-row.lot-row-wide .days-badge{font-size:9px;padding:3px 7px}
+        .lot-row.lot-row-wide .last-report-age,
+        .lot-row.lot-row-wide .r744-interval-age{font-size:7px!important}
+      }
+</style>
 
 
   </head>

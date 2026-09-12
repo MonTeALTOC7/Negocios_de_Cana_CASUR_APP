@@ -18,7 +18,7 @@
     <!-- [INTEGRACIÓN App Maestra] Manifest propio DESACTIVADO: una sola PWA instalable (Negocios de Caña). --><!-- <link rel="manifest" href="manifest.webmanifest" /> -->
 
     <title>Seguimiento de Riegos Ejecutados · CASUR</title>
-    <script type="module" crossorigin src="./assets/index-R748-COMPARADOR-HACIENDA.js"></script>
+    <script type="module" crossorigin src="./assets/index-R75-ESTABLE.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-B0LwgFY-.css">
     <style id="r743-executive-tuning">
       /* R7.4.3 · jerarquía ejecutiva: cada KPI tiene una función y un acento semántico. */
@@ -262,6 +262,30 @@
         .r748-card{padding:9px}
         .r748-values b{font-size:13px}
       }
+
+
+      /* R7.4.9 · priorización operativa: salida accionable, factores visibles */
+      .r749-priority{margin:18px 0 16px;border:1px solid #d9e6e1;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 8px 22px rgba(18,66,54,.06)}
+      .r749-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:18px 20px 14px;background:linear-gradient(180deg,#f4faf7 0%,#fff 100%);border-bottom:1px solid #e2ece8}
+      .r749-head>div:first-child{min-width:0}.r749-head small{display:block;color:#70877f;font-size:8px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+      .r749-head h3{margin:4px 0 0;color:#173f35;font-size:18px;letter-spacing:-.02em}.r749-head p{max-width:690px;margin:5px 0 0;color:#70857e;font-size:9px;line-height:1.45}
+      .r749-summary{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.r749-summary span{display:inline-flex;align-items:center;gap:4px;padding:5px 7px;border-radius:999px;font-size:7px;font-weight:800;white-space:nowrap}
+      .r749-summary .high{background:#fff0ee;color:#a93831}.r749-summary .mid{background:#fff7e8;color:#9a6719}.r749-summary .low{background:#eef6fb;color:#47738a}.r749-summary .late{background:#eef7f3;color:#2f6958}
+      .r749-list{display:flex;flex-direction:column}.r749-row{display:grid;grid-template-columns:32px minmax(180px,1.4fr) 105px 110px 118px 86px;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid #e8efec;position:relative}
+      .r749-row:last-child{border-bottom:0}.r749-row::before{content:"";position:absolute;inset:0 auto 0 0;width:4px}.r749-row.alta::before{background:#d94b48}.r749-row.media::before{background:#d99424}.r749-row.baja::before{background:#4c8cab}
+      .r749-order{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#edf5f1;color:#1d6651;font-size:8px;font-weight:900}.r749-farm{min-width:0}.r749-farm strong{display:block;color:#173f35;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.r749-farm small{display:block;margin-top:3px;color:#80938c;font-size:7px}
+      .r749-level b{display:inline-flex;border-radius:999px;padding:4px 7px;font-size:7px;text-transform:uppercase;letter-spacing:.035em}.r749-row.alta .r749-level b{background:#fff0ee;color:#a93831}.r749-row.media .r749-level b{background:#fff7e8;color:#9a6719}.r749-row.baja .r749-level b{background:#eef6fb;color:#47738a}.r749-level small{display:block;margin-top:3px;color:#84958f;font-size:6px}
+      .r749-driver span{display:block;color:#82958e;font-size:6px;text-transform:uppercase;letter-spacing:.04em;font-weight:800}.r749-driver b{display:block;margin-top:2px;color:#25483e;font-size:11px}.r749-driver small{display:block;margin-top:2px;color:#8a9b95;font-size:6px;line-height:1.2}
+      .r749-open{height:31px;border:1px solid #cfe1da;border-radius:8px;background:#f4faf7;color:#146248;font-size:7px;font-weight:900;cursor:pointer}.r749-open:hover{background:#eaf6f0}.r749-empty{padding:20px;text-align:center;color:#71867f;font-size:9px;background:#f9fcfb}
+      .r749-foot{padding:9px 14px;background:#f8fbfa;border-top:1px solid #e5eeea;color:#748981;font-size:7px;line-height:1.45}.r749-foot b{color:#355c50}
+      @media(max-width:900px){.r749-row{grid-template-columns:28px minmax(145px,1fr) 94px 96px 104px 78px;gap:7px;padding:11px 10px}}
+      @media(max-width:760px){.r749-priority{margin:14px 0;border-radius:13px}.r749-head{padding:14px;flex-direction:column}.r749-summary{justify-content:flex-start}.r749-row{grid-template-columns:28px minmax(0,1fr) 82px;grid-template-areas:"ord farm level" "ord area action" "ord excess action";gap:7px 8px;padding:11px 10px}.r749-order{grid-area:ord}.r749-farm{grid-area:farm}.r749-level{grid-area:level}.r749-driver.area-driver{grid-area:area}.r749-driver.excess-driver{grid-area:excess}.r749-open{grid-area:action;height:100%;min-height:44px}.r749-farm strong{font-size:9px}.r749-foot{font-size:6.5px}}
+
+
+      /* R7.4.10 · hardening visual final / accesibilidad; sin nuevos cálculos */
+      .r749-open:focus-visible,.r747-sort button:focus-visible,.r747-farm-btn:focus-visible,.r747-late-btn:focus-visible,.r748-compare-head button:focus-visible{outline:2px solid #0b76b7;outline-offset:2px}
+      .r747-table-wrap{-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+      @media(max-width:760px){.r749-driver span{font-size:6.5px}.r749-driver b{font-size:10.5px}.r749-open{font-size:7.5px}.r747-table-wrap{position:relative}}
 
     </style>
 

@@ -5,8 +5,9 @@
 
    Compatibilidad: si el bootstrap actual trae cycleHistory R7.4.x, ese
    historial se migra en memoria a la semántica R7.5.1 antes de mostrarse.
-   Si no existe detalle suficiente, NO se acepta el promedio R7.4 antiguo
-   como válido y la app pedirá reprocesar el Excel. */
+   Si no existe detalle suficiente o cambió el inicio estructural del ciclo,
+   NO se acepta el promedio R7.4 antiguo como válido y la app pedirá
+   reprocesar el Excel. */
 
 const ORIGINAL_URL = new URL('./index-R75-ESTABLE-ORIGINAL.js', import.meta.url);
 const HTML2CANVAS_URL = new URL('./html2canvas.esm-BfxBtG_O.js', import.meta.url).href;
@@ -46,11 +47,13 @@ async function boot() {
 
   // 3) Migración segura del histórico ya guardado en bootstrap.
   //    Recalcula únicamente a partir de startDate/endDate de cycleHistory;
-  //    no toca eventos, áreas, NR, Maestro ni Supabase.
+  //    no toca eventos, áreas, NR, Maestro ni Supabase. Si el Maestro marcó
+  //    cambio de inicio de ciclo, el legacy NO se migra: debe reprocesarse.
   const migration = `
 function __r751Mean(values){return values.length?values.reduce((sum,v)=>sum+v,0)/values.length:null}
-function __r751NormalizeLegacyState(st){
+function __r751NormalizeLegacyState(st,lot){
   if(!st||String(st.calculationVersion||"").startsWith("R7.5."))return st;
+  if(lot&&lot.cycleStartChanged)return st;
   if(!Array.isArray(st.cycleHistory)||!st.cycleHistory.length)return st;
   const cycles=st.cycleHistory.map(c=>({...c}));
   const closed=cycles.filter(c=>c&&c.closed&&c.startDate).sort((a,b)=>(__r72DayStamp(a.startDate)??Number.POSITIVE_INFINITY)-(__r72DayStamp(b.startDate)??Number.POSITIVE_INFINITY));
@@ -74,7 +77,7 @@ function __r751NormalizeLegacyState(st){
   source = mustReplace(
     source,
     'const st=state[lot.key]||{',
-    'const st=__r751NormalizeLegacyState(state[lot.key])||{',
+    'const st=__r751NormalizeLegacyState(state[lot.key],lot)||{',
     'normalización stateBase por suerte'
   );
 

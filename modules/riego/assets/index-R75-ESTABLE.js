@@ -1,7 +1,12 @@
 /* R7.5.1 · Corrección agronómica de frecuencia de riego.
    Mantiene intacto el bundle R7.5 estable y aplica en memoria un parche
    verificable: frecuencia histórica = INI anterior -> INI siguiente.
-   TER anterior -> INI siguiente se conserva como brecha operativa. */
+   TER anterior -> INI siguiente se conserva como brecha operativa.
+
+   Compatibilidad: si el bootstrap actual trae cycleHistory R7.4.x, ese
+   historial se migra en memoria a la semántica R7.5.1 antes de mostrarse.
+   Si no existe detalle suficiente, NO se acepta el promedio R7.4 antiguo
+   como válido y la app pedirá reprocesar el Excel. */
 
 const ORIGINAL_URL = new URL('./index-R75-ESTABLE-ORIGINAL.js', import.meta.url);
 const HTML2CANVAS_URL = new URL('./html2canvas.esm-BfxBtG_O.js', import.meta.url).href;
@@ -28,7 +33,7 @@ async function boot() {
   if (!response.ok) throw new Error(`[R7.5.1] No se pudo cargar R7.5 estable (${response.status})`);
   let source = await response.text();
 
-  // 1) Cálculo crítico: frecuencia real = INI -> INI.
+  // 1) Cálculo crítico para todo Excel reprocesado: frecuencia real = INI -> INI.
   source = mustReplace(
     source,
     'for(let i=1;i<closed.length;i++){const prev=__r72DayStamp(closed[i-1].endDate),cur=__r72DayStamp(closed[i].startDate);if(prev!=null&&cur!=null&&cur>=prev)closed[i].intervalFromPrevious=(cur-prev)/864e5}',
@@ -36,11 +41,52 @@ async function boot() {
     'frecuencia INI→INI'
   );
 
-  // 2) Marca de versión y compatibilidad de histórico auditable.
+  // 2) Marca de versión de nuevos cálculos.
   source = mustReplace(source, 'calculationVersion:"R7.4.5"', 'calculationVersion:"R7.5.1"', 'calculationVersion');
-  source = mustReplace(source, 'historyReady:/^R7\\.4\\./.test(String(st.calculationVersion||""))', 'historyReady:/^R7\\.(?:4|5)\\./.test(String(st.calculationVersion||""))', 'historyReady R7.5');
 
-  // 3) El import dinámico debe resolverse contra el módulo real, no contra blob:.
+  // 3) Migración segura del histórico ya guardado en bootstrap.
+  //    Recalcula únicamente a partir de startDate/endDate de cycleHistory;
+  //    no toca eventos, áreas, NR, Maestro ni Supabase.
+  const migration = `
+function __r751Mean(values){return values.length?values.reduce((sum,v)=>sum+v,0)/values.length:null}
+function __r751NormalizeLegacyState(st){
+  if(!st||String(st.calculationVersion||"").startsWith("R7.5."))return st;
+  if(!Array.isArray(st.cycleHistory)||!st.cycleHistory.length)return st;
+  const cycles=st.cycleHistory.map(c=>({...c}));
+  const closed=cycles.filter(c=>c&&c.closed&&c.startDate);
+  for(let i=0;i<closed.length;i++){closed[i].intervalFromPrevious=null;closed[i].gapFromPrevious=null}
+  for(let i=1;i<closed.length;i++){
+    const prevStart=__r72DayStamp(closed[i-1].startDate),prevEnd=__r72DayStamp(closed[i-1].endDate),cur=__r72DayStamp(closed[i].startDate);
+    if(prevStart!=null&&cur!=null&&cur>=prevStart)closed[i].intervalFromPrevious=(cur-prevStart)/864e5;
+    if(prevEnd!=null&&cur!=null&&cur>=prevEnd)closed[i].gapFromPrevious=(cur-prevEnd)/864e5;
+  }
+  const intervals=closed.map(c=>c.intervalFromPrevious).filter(v=>Number.isFinite(v)&&v>=0);
+  const durations=closed.map(c=>c.durationDays).filter(v=>Number.isFinite(v)&&v>=0);
+  return {...st,cycleHistory:cycles,closedCycleCount:closed.length,intervalCount:intervals.length,realIntervalAvg:__r751Mean(intervals),avgIrrigationDurationDays:__r751Mean(durations),durationCycleCount:durations.length,calculationVersion:"R7.5.1",frequencyMigratedFrom:st.calculationVersion||"legacy"};
+}
+`;
+  source = mustReplace(
+    source,
+    'CA=function(master,state,overrides,now=new Date){return master.map(lot=>{',
+    migration + 'CA=function(master,state,overrides,now=new Date){return master.map(lot=>{',
+    'migración histórica R7.5.1'
+  );
+  source = mustReplace(
+    source,
+    'const st=state[lot.key]||{',
+    'const st=__r751NormalizeLegacyState(state[lot.key])||{',
+    'normalización stateBase por suerte'
+  );
+
+  // Solo el histórico ya recalculado/migrado con semántica R7.5 se considera listo.
+  source = mustReplace(
+    source,
+    'historyReady:/^R7\\.4\\./.test(String(st.calculationVersion||""))',
+    'historyReady:/^R7\\.5\\./.test(String(st.calculationVersion||""))',
+    'historyReady R7.5'
+  );
+
+  // 4) El import dinámico debe resolverse contra el módulo real, no contra blob:.
   source = mustReplace(
     source,
     'import("./html2canvas.esm-BfxBtG_O.js")',
@@ -48,7 +94,7 @@ async function boot() {
     'html2canvas dinámico'
   );
 
-  // 4) Trazabilidad visible. No cambia los datos ni la lógica de duración.
+  // 5) Trazabilidad visible. No cambia los datos ni la lógica de duración.
   source = optionalReplaceAll(source, 'Intervalos entre riegos', 'Frecuencia entre riegos', 'título evidencia');
   source = optionalReplaceAll(source, 'Cierre del riego anterior → inicio del siguiente', 'Inicio de un riego → inicio del siguiente (INI→INI)', 'subtítulo evidencia');
   source = optionalReplaceAll(source, 'Intervalo real promedio', 'Frecuencia real promedio', 'detalle frecuencia');
@@ -63,7 +109,7 @@ async function boot() {
   source = optionalReplaceAll(source, 'el intervalo histórico requiere ciclos cerrados.', 'la frecuencia histórica requiere ciclos cerrados consecutivos.', 'nota sin histórico');
   source = optionalReplaceAll(source, 'Intervalo histórico promedio = cierre de un riego → inicio del siguiente, ponderado por el área de cada suerte.', 'Frecuencia histórica promedio = inicio de un riego → inicio del siguiente (INI→INI), ponderada por el área exacta de cada suerte.', 'fórmula ejecutiva');
 
-  // 5) Evidencia: la frecuencia usa INI→INI y se conserva TER→INI como brecha operativa.
+  // 6) Evidencia: frecuencia INI→INI + brecha operativa TER→INI.
   source = optionalReplaceAll(
     source,
     'm.jsx("th",{children:"Riego"}),m.jsx("th",{children:"Cierre anterior"}),m.jsx("th",{children:"Inicio siguiente"}),m.jsx("th",{children:"Intervalo"}),m.jsx("th",{children:"Meta"}),m.jsx("th",{children:"Brecha"}),m.jsx("th",{children:"Área"})',

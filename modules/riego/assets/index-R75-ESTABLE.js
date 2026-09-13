@@ -53,7 +53,7 @@ function __r751NormalizeLegacyState(st){
   if(!st||String(st.calculationVersion||"").startsWith("R7.5."))return st;
   if(!Array.isArray(st.cycleHistory)||!st.cycleHistory.length)return st;
   const cycles=st.cycleHistory.map(c=>({...c}));
-  const closed=cycles.filter(c=>c&&c.closed&&c.startDate);
+  const closed=cycles.filter(c=>c&&c.closed&&c.startDate).sort((a,b)=>(__r72DayStamp(a.startDate)??Number.POSITIVE_INFINITY)-(__r72DayStamp(b.startDate)??Number.POSITIVE_INFINITY));
   for(let i=0;i<closed.length;i++){closed[i].intervalFromPrevious=null;closed[i].gapFromPrevious=null}
   for(let i=1;i<closed.length;i++){
     const prevStart=__r72DayStamp(closed[i-1].startDate),prevEnd=__r72DayStamp(closed[i-1].endDate),cur=__r72DayStamp(closed[i].startDate);

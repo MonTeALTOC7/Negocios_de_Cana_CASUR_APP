@@ -1,29 +1,31 @@
-/* R7.5.3 · Frecuencia INI→INI completa + días calendario.
+/* R7.5.4 · Frecuencia INI→INI completa + días calendario + coherencia Maestro/Supabase.
    Mantiene intacto el bundle R7.5 estable y aplica en memoria un parche
-   verificable sobre dos reglas operativas:
+   verificable sobre tres reglas operativas:
    1) frecuencia histórica = INI anterior -> INI siguiente, incluso si el
       segundo riego continúa abierto;
    2) días transcurridos = diferencia entre fechas calendario, sin depender
-      de la hora del día en que se abre la PWA.
+      de la hora del día en que se abre la PWA;
+   3) todo stateBase reconstruido desde Supabase usa primero el Maestro Central
+      vigente, evitando huellas de ciclo calculadas contra un Maestro obsoleto.
 
-   Conserva R7.5.2: ancla auditable del inicio de ciclo y desbloqueo seguro
-   después de reprocesar con el cropStartDate vigente del Maestro Central. */
+   Conserva R7.5.2/R7.5.3: ancla auditable del inicio de ciclo, desbloqueo seguro
+   y separación entre frecuencia INI→INI, brecha TER→INI y duración INI→TER. */
 
 const ORIGINAL_URL = new URL('./index-R75-ESTABLE-ORIGINAL.js', import.meta.url);
 const HTML2CANVAS_URL = new URL('./html2canvas.esm-BfxBtG_O.js', import.meta.url).href;
 
 function mustReplace(source, from, to, label) {
   const first = source.indexOf(from);
-  if (first < 0) throw new Error(`[R7.5.3] No se encontró ancla crítica: ${label}`);
+  if (first < 0) throw new Error(`[R7.5.4] No se encontró ancla crítica: ${label}`);
   if (source.indexOf(from, first + from.length) >= 0) {
-    throw new Error(`[R7.5.3] Ancla crítica ambigua (más de una coincidencia): ${label}`);
+    throw new Error(`[R7.5.4] Ancla crítica ambigua (más de una coincidencia): ${label}`);
   }
   return source.slice(0, first) + to + source.slice(first + from.length);
 }
 
 function optionalReplaceAll(source, from, to, label) {
   if (!source.includes(from)) {
-    console.warn(`[R7.5.3] Etiqueta no encontrada; se conserva texto original: ${label}`);
+    console.warn(`[R7.5.4] Etiqueta no encontrada; se conserva texto original: ${label}`);
     return source;
   }
   return source.split(from).join(to);
@@ -31,7 +33,7 @@ function optionalReplaceAll(source, from, to, label) {
 
 async function boot() {
   const response = await fetch(ORIGINAL_URL, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`[R7.5.3] No se pudo cargar R7.5 estable (${response.status})`);
+  if (!response.ok) throw new Error(`[R7.5.4] No se pudo cargar R7.5 estable (${response.status})`);
   let source = await response.text();
 
   // 1) Antigüedad operativa por fecha calendario. El valor deja de cambiar
@@ -60,7 +62,7 @@ async function boot() {
   );
 
   // 3) Marca de versión de nuevos cálculos.
-  source = mustReplace(source, 'calculationVersion:"R7.4.5"', 'calculationVersion:"R7.5.3"', 'calculationVersion');
+  source = mustReplace(source, 'calculationVersion:"R7.4.5"', 'calculationVersion:"R7.5.4"', 'calculationVersion');
 
   // 4) Todo reproceso conserva la fecha estructural de ciclo utilizada.
   source = mustReplace(
@@ -74,14 +76,14 @@ async function boot() {
   //    Recalcula la frecuencia desde cycleHistory para incluir el INI del ciclo
   //    abierto, pero mantiene duración exclusivamente sobre ciclos cerrados.
   const migration = `
-function __r753Mean(values){return values.length?values.reduce((sum,v)=>sum+v,0)/values.length:null}
-function __r753SameDate(a,b){return String(a||"")===String(b||"")}
-function __r753NormalizeLegacyState(st,lot){
+function __r754Mean(values){return values.length?values.reduce((sum,v)=>sum+v,0)/values.length:null}
+function __r754SameDate(a,b){return String(a||"")===String(b||"")}
+function __r754NormalizeLegacyState(st,lot){
   if(!st)return st;
   const version=String(st.calculationVersion||"");
   const anchor=lot?.cropStartDate||null;
-  const anchorMatches=__r753SameDate(st.analyzedCropStartDate,anchor);
-  if(version==="R7.5.3")return st;
+  const anchorMatches=__r754SameDate(st.analyzedCropStartDate,anchor);
+  if(version==="R7.5.4")return st;
   if(lot&&lot.cycleStartChanged&&!anchorMatches)return st;
   if(!Array.isArray(st.cycleHistory)||!st.cycleHistory.length)return st;
   const cycles=st.cycleHistory.map(c=>({...c})).sort((a,b)=>(__r72DayStamp(a?.startDate)??Number.POSITIVE_INFINITY)-(__r72DayStamp(b?.startDate)??Number.POSITIVE_INFINITY));
@@ -94,19 +96,19 @@ function __r753NormalizeLegacyState(st,lot){
   const closed=cycles.filter(c=>c&&c.closed&&c.startDate);
   const intervals=cycles.map(c=>c.intervalFromPrevious).filter(v=>Number.isFinite(v)&&v>=0);
   const durations=closed.map(c=>c.durationDays).filter(v=>Number.isFinite(v)&&v>=0);
-  return {...st,cycleHistory:cycles,closedCycleCount:closed.length,intervalCount:intervals.length,realIntervalAvg:__r753Mean(intervals),avgIrrigationDurationDays:__r753Mean(durations),durationCycleCount:durations.length,calculationVersion:"R7.5.3",analyzedCropStartDate:st.analyzedCropStartDate||anchor,frequencyMigratedFrom:st.frequencyMigratedFrom||version||"legacy"};
+  return {...st,cycleHistory:cycles,closedCycleCount:closed.length,intervalCount:intervals.length,realIntervalAvg:__r754Mean(intervals),avgIrrigationDurationDays:__r754Mean(durations),durationCycleCount:durations.length,calculationVersion:"R7.5.4",analyzedCropStartDate:st.analyzedCropStartDate||anchor,frequencyMigratedFrom:st.frequencyMigratedFrom||version||"legacy"};
 }
 `;
   source = mustReplace(
     source,
     'CA=function(master,state,overrides,now=new Date){return master.map(lot=>{',
     migration + 'CA=function(master,state,overrides,now=new Date){return master.map(lot=>{',
-    'migración histórica R7.5.3'
+    'migración histórica R7.5.4'
   );
   source = mustReplace(
     source,
     'const st=state[lot.key]||{',
-    'const st=__r753NormalizeLegacyState(state[lot.key],lot)||{',
+    'const st=__r754NormalizeLegacyState(state[lot.key],lot)||{',
     'normalización stateBase por suerte'
   );
 
@@ -114,8 +116,8 @@ function __r753NormalizeLegacyState(st,lot){
   source = mustReplace(
     source,
     'historyReady:/^R7\\.4\\./.test(String(st.calculationVersion||""))',
-    'cycleStartChanged:!!(lot.cycleStartChanged&&!__r753SameDate(st.analyzedCropStartDate,lot.cropStartDate)),historyReady:String(st.calculationVersion||"")==="R7.5.3"&&__r753SameDate(st.analyzedCropStartDate,lot.cropStartDate)',
-    'historyReady + ancla R7.5.3'
+    'cycleStartChanged:!!(lot.cycleStartChanged&&!__r754SameDate(st.analyzedCropStartDate,lot.cropStartDate)),historyReady:String(st.calculationVersion||"")==="R7.5.4"&&__r754SameDate(st.analyzedCropStartDate,lot.cropStartDate)',
+    'historyReady + ancla R7.5.4'
   );
 
   // 7) Consumidores efectivos: histórico no auditable no se muestra ni ordena.
@@ -140,7 +142,24 @@ function __r753NormalizeLegacyState(st,lot){
     'evidencia de frecuencia con ciclo abierto'
   );
 
-  // 9) El import dinámico debe resolverse contra el módulo real, no contra blob:.
+  // 9) Coherencia estructural Supabase -> Maestro Central -> stateBase.
+  //    El payload de Supabase trae todos los eventos, pero su master_lots puede
+  //    ir detrás del Maestro Central. Se marca como dataset completo y __commit
+  //    reconstruye stateBase DESPUÉS de superponer el Maestro vigente.
+  source = mustReplace(
+    source,
+    'const __commit=payload=>{__applied=payload;const normalized=__maestroNormalizeMaster(payload.master);const overlaidMaster=__maestroCentral?__maestroApplyOverlay(normalized,__maestroCentral):normalized;let __result=overlaidMaster!==payload.master?{...payload,master:overlaidMaster}:payload;__result=__maestroNormalizeDates(__result);t(__result),we(payload.meta.masterCutoff)};',
+    'const __commit=payload=>{__applied=payload;const normalized=__maestroNormalizeMaster(payload.master);const overlaidMaster=__maestroCentral?__maestroApplyOverlay(normalized,__maestroCentral):normalized;let __result=overlaidMaster!==payload.master?{...payload,master:overlaidMaster}:payload;if(__maestroCentral&&payload.__r754FullEvents===true&&Array.isArray(payload.recentEvents)){const __r754Overrides=payload.overrides||{};__result={...__result,stateBase:Ud(overlaidMaster,payload.recentEvents,payload.meta.masterCutoff,__r754Overrides)}}__result=__maestroNormalizeDates(__result);t(__result),we(payload.meta.masterCutoff)};',
+    'reconstrucción stateBase con Maestro Central'
+  );
+  source = mustReplace(
+    source,
+    'const __supa={...__refPayload,master:Ae.master||__refPayload.master,overrides:{...__refPayload.overrides,...Ae.overrides||{}},stateBase:Ae.stateBase||__refPayload.stateBase,recentEvents:Ae.centralEvents&&Ae.centralEvents.length?Ae.centralEvents:__refPayload.recentEvents,meta:{...__refPayload.meta,masterCutoff:Ae.masterCutoff||__refPayload.meta.masterCutoff,irrigationCutoff:Ae.irrigationCutoff,masterFile:Ae.masterFile||__refPayload.meta.masterFile,irrigationFile:Ae.irrigationFile||__refPayload.meta.irrigationFile}};',
+    'const __r754Events=Ae.centralEvents&&Ae.centralEvents.length?Ae.centralEvents:null,__supa={...__refPayload,master:Ae.master||__refPayload.master,overrides:{...__refPayload.overrides,...Ae.overrides||{}},stateBase:Ae.stateBase||__refPayload.stateBase,recentEvents:__r754Events||__refPayload.recentEvents,__r754FullEvents:!!__r754Events,meta:{...__refPayload.meta,masterCutoff:Ae.masterCutoff||__refPayload.meta.masterCutoff,irrigationCutoff:Ae.irrigationCutoff,masterFile:Ae.masterFile||__refPayload.meta.masterFile,irrigationFile:Ae.irrigationFile||__refPayload.meta.irrigationFile}};',
+    'marcar eventos completos de Supabase'
+  );
+
+  // 10) El import dinámico debe resolverse contra el módulo real, no contra blob:.
   source = mustReplace(
     source,
     'import("./html2canvas.esm-BfxBtG_O.js")',
@@ -148,7 +167,7 @@ function __r753NormalizeLegacyState(st,lot){
     'html2canvas dinámico'
   );
 
-  // 10) Terminología visible coherente con la regla INI→INI.
+  // 11) Terminología visible coherente con la regla INI→INI.
   source = optionalReplaceAll(source, 'Intervalos entre riegos', 'Frecuencia entre riegos', 'título evidencia');
   source = optionalReplaceAll(source, 'Cierre del riego anterior → inicio del siguiente', 'Inicio de un riego → inicio del siguiente (INI→INI)', 'subtítulo evidencia');
   source = optionalReplaceAll(source, 'Intervalo real promedio', 'Frecuencia real promedio', 'detalle frecuencia');
@@ -169,7 +188,7 @@ function __r753NormalizeLegacyState(st,lot){
   source = optionalReplaceAll(source, 'Meta de intervalo:', 'Meta de frecuencia:', 'meta técnica detalle');
   source = optionalReplaceAll(source, 'habilitar intervalo promedio, duración', 'habilitar frecuencia promedio, duración', 'nota histórico pendiente');
 
-  // 11) Tabla de evidencia: INI→INI + brecha operativa TER→INI.
+  // 12) Tabla de evidencia: INI→INI + brecha operativa TER→INI.
   source = optionalReplaceAll(
     source,
     'm.jsx("th",{children:"Riego"}),m.jsx("th",{children:"Cierre anterior"}),m.jsx("th",{children:"Inicio siguiente"}),m.jsx("th",{children:"Intervalo"}),m.jsx("th",{children:"Meta"}),m.jsx("th",{children:"Brecha"}),m.jsx("th",{children:"Área"})',
@@ -198,10 +217,10 @@ function __r753NormalizeLegacyState(st,lot){
 }
 
 boot().catch((error) => {
-  console.error('[R7.5.3 frecuencia INI→INI completa + días calendario]', error);
+  console.error('[R7.5.4 frecuencia INI→INI + días calendario + coherencia Maestro/Supabase]', error);
   const root = document.getElementById('root');
   if (root) {
-    root.innerHTML = '<main style="font-family:system-ui;padding:24px;max-width:760px;margin:auto"><h1>No se pudo iniciar Riego R7.5.3</h1><p>La corrección de frecuencia/días no pasó su verificación de integridad. Se detuvo para evitar mostrar cálculos incorrectos.</p><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:8px"></pre></main>';
+    root.innerHTML = '<main style="font-family:system-ui;padding:24px;max-width:760px;margin:auto"><h1>No se pudo iniciar Riego R7.5.4</h1><p>La corrección de frecuencia/ciclo no pasó su verificación de integridad. Se detuvo para evitar mostrar cálculos incorrectos.</p><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:8px"></pre></main>';
     const pre = root.querySelector('pre');
     if (pre) pre.textContent = error instanceof Error ? error.message : String(error);
   }

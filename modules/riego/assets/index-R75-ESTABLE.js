@@ -48,15 +48,16 @@ async function boot() {
   // 3) Migración segura del histórico ya guardado en bootstrap.
   //    Recalcula únicamente a partir de startDate/endDate de cycleHistory;
   //    no toca eventos, áreas, NR, Maestro ni Supabase. Si el Maestro marcó
-  //    cambio de inicio de ciclo, el legacy NO se migra: debe reprocesarse.
+  //    cambio de inicio de ciclo, el histórico se invalida hasta reprocesar.
   const migration = `
 function __r751Mean(values){return values.length?values.reduce((sum,v)=>sum+v,0)/values.length:null}
 function __r751NormalizeLegacyState(st,lot){
-  if(!st||String(st.calculationVersion||"").startsWith("R7.5."))return st;
+  if(!st)return st;
   if(lot&&lot.cycleStartChanged)return st;
+  if(String(st.calculationVersion||"").startsWith("R7.5."))return st;
   if(!Array.isArray(st.cycleHistory)||!st.cycleHistory.length)return st;
-  const cycles=st.cycleHistory.map(c=>({...c}));
-  const closed=cycles.filter(c=>c&&c.closed&&c.startDate).sort((a,b)=>(__r72DayStamp(a.startDate)??Number.POSITIVE_INFINITY)-(__r72DayStamp(b.startDate)??Number.POSITIVE_INFINITY));
+  const cycles=st.cycleHistory.map(c=>({...c})).sort((a,b)=>(__r72DayStamp(a?.startDate)??Number.POSITIVE_INFINITY)-(__r72DayStamp(b?.startDate)??Number.POSITIVE_INFINITY));
+  const closed=cycles.filter(c=>c&&c.closed&&c.startDate);
   for(let i=0;i<closed.length;i++){closed[i].intervalFromPrevious=null;closed[i].gapFromPrevious=null}
   for(let i=1;i<closed.length;i++){
     const prevStart=__r72DayStamp(closed[i-1].startDate),prevEnd=__r72DayStamp(closed[i-1].endDate),cur=__r72DayStamp(closed[i].startDate);
@@ -81,11 +82,12 @@ function __r751NormalizeLegacyState(st,lot){
     'normalización stateBase por suerte'
   );
 
-  // Solo el histórico ya recalculado/migrado con semántica R7.5 se considera listo.
+  // Solo el histórico R7.5 auditable y perteneciente al ciclo estructural actual
+  // se considera listo. Un cambio de inicio obliga a reprocesar el Excel.
   source = mustReplace(
     source,
     'historyReady:/^R7\\.4\\./.test(String(st.calculationVersion||""))',
-    'historyReady:/^R7\\.5\\./.test(String(st.calculationVersion||""))',
+    'historyReady:/^R7\\.5\\./.test(String(st.calculationVersion||""))&&!lot.cycleStartChanged',
     'historyReady R7.5'
   );
 

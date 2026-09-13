@@ -1,31 +1,32 @@
-/* R7.5.5 · Hotfix de sincronización sobre R7.5.4.
-   Mantiene intactas las fórmulas ya validadas de R7.5.4:
+/* R7.5.6 · Rebase estructural seguro sobre R7.5.5 / R7.5.4.
+   Mantiene intactas las fórmulas ya validadas:
    - frecuencia histórica = INI anterior -> INI siguiente, incluso si el
      segundo riego continúa abierto;
    - días transcurridos = diferencia entre fechas calendario;
    - brecha operativa = TER anterior -> INI siguiente;
    - duración = INI -> TER.
 
-   R7.5.5 corrige exclusivamente la carga del import activo desde Supabase:
-   aunque nombre/fecha del archivo coincidan, se descargan los eventos para
-   reconstruir stateBase con el Maestro Central vigente y evitar que una suerte
-   con cambio estructural (Pansaco 01) conserve una huella antigua. */
+   R7.5.6 corrige el caso sistémico en que el Maestro Central adelanta el inicio
+   del ciclo (p. ej. Pansaco 01 y 15) pero el stateBase local aún conserva la
+   huella del ciclo anterior. Si cycleHistory representa íntegramente el área
+   acumulada persistida, el estado se rebasa automáticamente al nuevo inicio sin
+   pedir otro Excel. Si la evidencia no es suficiente, se conserva el bloqueo. */
 
 const ORIGINAL_URL = new URL('./index-R75-ESTABLE-ORIGINAL.js', import.meta.url);
 const HTML2CANVAS_URL = new URL('./html2canvas.esm-BfxBtG_O.js', import.meta.url).href;
 
 function mustReplace(source, from, to, label) {
   const first = source.indexOf(from);
-  if (first < 0) throw new Error(`[R7.5.5] No se encontró ancla crítica: ${label}`);
+  if (first < 0) throw new Error(`[R7.5.6] No se encontró ancla crítica: ${label}`);
   if (source.indexOf(from, first + from.length) >= 0) {
-    throw new Error(`[R7.5.5] Ancla crítica ambigua (más de una coincidencia): ${label}`);
+    throw new Error(`[R7.5.6] Ancla crítica ambigua (más de una coincidencia): ${label}`);
   }
   return source.slice(0, first) + to + source.slice(first + from.length);
 }
 
 function optionalReplaceAll(source, from, to, label) {
   if (!source.includes(from)) {
-    console.warn(`[R7.5.5] Etiqueta no encontrada; se conserva texto original: ${label}`);
+    console.warn(`[R7.5.6] Etiqueta no encontrada; se conserva texto original: ${label}`);
     return source;
   }
   return source.split(from).join(to);
@@ -33,11 +34,10 @@ function optionalReplaceAll(source, from, to, label) {
 
 async function boot() {
   const response = await fetch(ORIGINAL_URL, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`[R7.5.5] No se pudo cargar R7.5 estable (${response.status})`);
+  if (!response.ok) throw new Error(`[R7.5.6] No se pudo cargar R7.5 estable (${response.status})`);
   let source = await response.text();
 
-  // 1) Antigüedad operativa por fecha calendario. El valor deja de cambiar
-  //    al cruzar el mediodía y pasa a representar días calendario completos.
+  // 1) Antigüedad operativa por fecha calendario.
   source = mustReplace(
     source,
     'function Vp(e,t=new Date){if(!e)return null;const r=new Date(`${e}T12:00:00`);return Math.max(0,Math.floor((t.getTime()-r.getTime())/864e5))}',
@@ -45,8 +45,7 @@ async function boot() {
     'días calendario'
   );
 
-  // 2) Frecuencia crítica: se calcula entre TODO par de INI consecutivos.
-  //    El segundo ciclo puede estar abierto: su INI ya determina la frecuencia.
+  // 2) Frecuencia crítica: TODO par de INI consecutivos, incluido ciclo abierto.
   //    TER anterior -> INI siguiente continúa como brecha operativa separada.
   source = mustReplace(
     source,
@@ -61,8 +60,7 @@ async function boot() {
     'promedio con todos los INI consecutivos'
   );
 
-  // 3) Marca semántica de cálculo: se conserva R7.5.4 porque R7.5.5 no
-  //    cambia ninguna fórmula, solo corrige la ruta de sincronización.
+  // 3) R7.5.6 no cambia la semántica matemática de R7.5.4.
   source = mustReplace(source, 'calculationVersion:"R7.4.5"', 'calculationVersion:"R7.5.4"', 'calculationVersion');
 
   // 4) Todo reproceso conserva la fecha estructural de ciclo utilizada.
@@ -73,14 +71,67 @@ async function boot() {
     'ancla de inicio de ciclo del reproceso'
   );
 
-  // 5) Migración segura de históricos R7.4 / R7.5.x.
-  //    Recalcula la frecuencia desde cycleHistory para incluir el INI del ciclo
-  //    abierto, pero mantiene duración exclusivamente sobre ciclos cerrados.
+  // 5) Migración histórica + R7.5.6: rebase estructural seguro desde cycleHistory.
+  //    Solo se rebasa cuando:
+  //    a) el inicio de ciclo avanzó en el tiempo;
+  //    b) cycleHistory explica íntegramente el área acumulada persistida;
+  //    c) no se pierde actividad posterior al nuevo inicio.
   const migration = `
 function __r754Mean(values){return values.length?values.reduce((sum,v)=>sum+v,0)/values.length:null}
 function __r754SameDate(a,b){return String(a||"")===String(b||"")}
+function __r756OnOrAfter(value,anchorStamp){const s=__r72DayStamp(value);return s!=null&&s>=anchorStamp}
+function __r756RebaseChangedCycle(st,lot){
+  if(!st||!lot?.cycleStartChanged)return null;
+  const anchor=lot.cropStartDate||null;
+  if(!anchor||__r754SameDate(st.analyzedCropStartDate,anchor))return null;
+  const anchorStamp=__r72DayStamp(anchor);
+  const previous=st.analyzedCropStartDate||lot.previousCropStartDate||null;
+  const previousStamp=__r72DayStamp(previous);
+  if(anchorStamp==null||previousStamp==null||anchorStamp<=previousStamp)return null;
+  if(!Array.isArray(st.cycleHistory))return null;
+  const all=st.cycleHistory.filter(c=>c&&c.startDate).map(c=>({...c})).sort((a,b)=>(__r72DayStamp(a.startDate)??Number.POSITIVE_INFINITY)-(__r72DayStamp(b.startDate)??Number.POSITIVE_INFINITY));
+  const stateArea=Number(st.areaIrrigated)||0;
+  const historyArea=all.reduce((sum,c)=>sum+(Number(c.areaIrrigated)||0),0);
+  const area=Number(lot.area)||0;
+  const tolerance=Math.max(.05,area*.01);
+  if(Math.abs(historyArea-stateArea)>tolerance)return null;
+  const cycles=all.filter(c=>{const s=__r72DayStamp(c.startDate);return s!=null&&s>=anchorStamp});
+  if(!cycles.length){
+    if(__r756OnOrAfter(st.lastActivity,anchorStamp))return null;
+    return {...st,executed:0,lastActivity:null,lastIni:null,lastTer:null,isOpen:false,openStart:null,openProgress:0,starts:0,closures:0,areaIrrigated:0,m3:null,lastCycleArea:0,lastCyclePending:area,cycleHistory:[],closedCycleCount:0,intervalCount:0,realIntervalAvg:null,avgIrrigationDurationDays:null,durationCycleCount:0,calculationVersion:"R7.5.4",analyzedCropStartDate:anchor,structuralRebasedBy:"R7.5.6",structuralRebasedFrom:previous,m3RebaseUnavailable:true};
+  }
+  let cumulativeArea=0;
+  for(let i=0;i<cycles.length;i++){
+    const c=cycles[i];
+    c.index=i+1;
+    c.intervalFromPrevious=null;
+    c.gapFromPrevious=null;
+    cumulativeArea+=Number(c.areaIrrigated)||0;
+    c.cumulativeArea=cumulativeArea;
+    c.cumulativeEquivalent=area>0?cumulativeArea/area:0;
+  }
+  for(let i=1;i<cycles.length;i++){
+    const prevStart=__r72DayStamp(cycles[i-1].startDate),prevEnd=__r72DayStamp(cycles[i-1].endDate),cur=__r72DayStamp(cycles[i].startDate);
+    if(prevStart!=null&&cur!=null&&cur>=prevStart)cycles[i].intervalFromPrevious=(cur-prevStart)/864e5;
+    if(prevEnd!=null&&cur!=null&&cur>=prevEnd)cycles[i].gapFromPrevious=(cur-prevEnd)/864e5;
+  }
+  const closed=cycles.filter(c=>c&&c.closed&&c.startDate);
+  const intervals=cycles.map(c=>c.intervalFromPrevious).filter(v=>Number.isFinite(v)&&v>=0);
+  const durations=closed.map(c=>c.durationDays).filter(v=>Number.isFinite(v)&&v>=0);
+  const lastCycle=cycles[cycles.length-1];
+  const lastIni=__r756OnOrAfter(st.lastIni,anchorStamp)?st.lastIni:lastCycle.startDate;
+  const derivedLastTer=[...closed].reverse().find(c=>c.endDate)?.endDate||null;
+  const lastTer=__r756OnOrAfter(st.lastTer,anchorStamp)?st.lastTer:derivedLastTer;
+  const lastActivity=__r756OnOrAfter(st.lastActivity,anchorStamp)?st.lastActivity:(lastCycle.endDate||lastCycle.startDate||lastIni);
+  const lastIniStamp=__r72DayStamp(lastIni),lastTerStamp=__r72DayStamp(lastTer);
+  const isOpen=!!(lastIni&&(lastTerStamp==null||(lastIniStamp!=null&&lastIniStamp>lastTerStamp)));
+  const lastCycleArea=Number(lastCycle.areaIrrigated)||0;
+  return {...st,executed:area>0?cumulativeArea/area:0,lastActivity,lastIni,lastTer,isOpen,openStart:isOpen?lastIni:null,openProgress:isOpen?lastCycleArea/Math.max(area,1e-4):0,starts:cycles.length,closures:closed.length,areaIrrigated:cumulativeArea,m3:null,lastCycleArea,lastCyclePending:Math.max(0,area-lastCycleArea),cycleHistory:cycles,closedCycleCount:closed.length,intervalCount:intervals.length,realIntervalAvg:__r754Mean(intervals),avgIrrigationDurationDays:__r754Mean(durations),durationCycleCount:durations.length,calculationVersion:"R7.5.4",analyzedCropStartDate:anchor,frequencyMigratedFrom:st.frequencyMigratedFrom||String(st.calculationVersion||"")||"legacy",structuralRebasedBy:"R7.5.6",structuralRebasedFrom:previous,m3RebaseUnavailable:true};
+}
 function __r754NormalizeLegacyState(st,lot){
   if(!st)return st;
+  const rebased=__r756RebaseChangedCycle(st,lot);
+  if(rebased)return rebased;
   const version=String(st.calculationVersion||"");
   const anchor=lot?.cropStartDate||null;
   const anchorMatches=__r754SameDate(st.analyzedCropStartDate,anchor);
@@ -104,7 +155,7 @@ function __r754NormalizeLegacyState(st,lot){
     source,
     'CA=function(master,state,overrides,now=new Date){return master.map(lot=>{',
     migration + 'CA=function(master,state,overrides,now=new Date){return master.map(lot=>{',
-    'migración histórica R7.5.4'
+    'migración histórica + rebase R7.5.6'
   );
   source = mustReplace(
     source,
@@ -143,11 +194,9 @@ function __r754NormalizeLegacyState(st,lot){
     'evidencia de frecuencia con ciclo abierto'
   );
 
-  // 9) R7.5.5: WC no puede considerar sincronizado el estado solo porque
-  //    nombre/fecha del import y archivo Maestro coincidan. Esa salida rápida
-  //    omitía centralEvents y dejaba vivo un stateBase antiguo para Suerte 01.
-  //    Al continuar, WC descarga el import activo completo y permite reconstruir
-  //    el estado con el Maestro Central vigente sin pedir otro Excel al usuario.
+  // 9) R7.5.5: WC debe traer eventos del import activo cuando Supabase sea la
+  //    fuente vigente; se conserva para compatibilidad, aunque R7.5.6 ya no
+  //    depende de Supabase para rebasar históricos locales actuales.
   source = mustReplace(
     source,
     'if(c&&o)return{master:i,overrides:s,masterCutoff:r.master_cutoff||e.masterCutoff,irrigationCutoff:l?.cutoff_date||void 0,masterFile:r.master_file_name,irrigationFile:l?.file_name};',
@@ -156,8 +205,6 @@ function __r754NormalizeLegacyState(st,lot){
   );
 
   // 10) Coherencia estructural Supabase -> Maestro Central -> stateBase.
-  //     El payload de Supabase trae todos los eventos y __commit reconstruye
-  //     stateBase DESPUÉS de superponer el Maestro vigente.
   source = mustReplace(
     source,
     'const __commit=payload=>{__applied=payload;const normalized=__maestroNormalizeMaster(payload.master);const overlaidMaster=__maestroCentral?__maestroApplyOverlay(normalized,__maestroCentral):normalized;let __result=overlaidMaster!==payload.master?{...payload,master:overlaidMaster}:payload;__result=__maestroNormalizeDates(__result);t(__result),we(payload.meta.masterCutoff)};',
@@ -229,10 +276,10 @@ function __r754NormalizeLegacyState(st,lot){
 }
 
 boot().catch((error) => {
-  console.error('[R7.5.5 hotfix sincronización de eventos activos]', error);
+  console.error('[R7.5.6 rebase estructural seguro]', error);
   const root = document.getElementById('root');
   if (root) {
-    root.innerHTML = '<main style="font-family:system-ui;padding:24px;max-width:760px;margin:auto"><h1>No se pudo iniciar Riego R7.5.5</h1><p>La corrección de sincronización no pasó su verificación de integridad. Se detuvo para evitar mostrar cálculos incorrectos.</p><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:8px"></pre></main>';
+    root.innerHTML = '<main style="font-family:system-ui;padding:24px;max-width:760px;margin:auto"><h1>No se pudo iniciar Riego R7.5.6</h1><p>La migración estructural no pasó su verificación de integridad. Se detuvo para evitar mostrar cálculos incorrectos.</p><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:8px"></pre></main>';
     const pre = root.querySelector('pre');
     if (pre) pre.textContent = error instanceof Error ? error.message : String(error);
   }

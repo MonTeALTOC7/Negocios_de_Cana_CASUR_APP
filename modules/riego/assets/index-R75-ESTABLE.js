@@ -1,31 +1,31 @@
-/* R7.5.4 · Frecuencia INI→INI completa + días calendario + coherencia Maestro/Supabase.
-   Mantiene intacto el bundle R7.5 estable y aplica en memoria un parche
-   verificable sobre tres reglas operativas:
-   1) frecuencia histórica = INI anterior -> INI siguiente, incluso si el
-      segundo riego continúa abierto;
-   2) días transcurridos = diferencia entre fechas calendario, sin depender
-      de la hora del día en que se abre la PWA;
-   3) todo stateBase reconstruido desde Supabase usa primero el Maestro Central
-      vigente, evitando huellas de ciclo calculadas contra un Maestro obsoleto.
+/* R7.5.5 · Hotfix de sincronización sobre R7.5.4.
+   Mantiene intactas las fórmulas ya validadas de R7.5.4:
+   - frecuencia histórica = INI anterior -> INI siguiente, incluso si el
+     segundo riego continúa abierto;
+   - días transcurridos = diferencia entre fechas calendario;
+   - brecha operativa = TER anterior -> INI siguiente;
+   - duración = INI -> TER.
 
-   Conserva R7.5.2/R7.5.3: ancla auditable del inicio de ciclo, desbloqueo seguro
-   y separación entre frecuencia INI→INI, brecha TER→INI y duración INI→TER. */
+   R7.5.5 corrige exclusivamente la carga del import activo desde Supabase:
+   aunque nombre/fecha del archivo coincidan, se descargan los eventos para
+   reconstruir stateBase con el Maestro Central vigente y evitar que una suerte
+   con cambio estructural (Pansaco 01) conserve una huella antigua. */
 
 const ORIGINAL_URL = new URL('./index-R75-ESTABLE-ORIGINAL.js', import.meta.url);
 const HTML2CANVAS_URL = new URL('./html2canvas.esm-BfxBtG_O.js', import.meta.url).href;
 
 function mustReplace(source, from, to, label) {
   const first = source.indexOf(from);
-  if (first < 0) throw new Error(`[R7.5.4] No se encontró ancla crítica: ${label}`);
+  if (first < 0) throw new Error(`[R7.5.5] No se encontró ancla crítica: ${label}`);
   if (source.indexOf(from, first + from.length) >= 0) {
-    throw new Error(`[R7.5.4] Ancla crítica ambigua (más de una coincidencia): ${label}`);
+    throw new Error(`[R7.5.5] Ancla crítica ambigua (más de una coincidencia): ${label}`);
   }
   return source.slice(0, first) + to + source.slice(first + from.length);
 }
 
 function optionalReplaceAll(source, from, to, label) {
   if (!source.includes(from)) {
-    console.warn(`[R7.5.4] Etiqueta no encontrada; se conserva texto original: ${label}`);
+    console.warn(`[R7.5.5] Etiqueta no encontrada; se conserva texto original: ${label}`);
     return source;
   }
   return source.split(from).join(to);
@@ -33,7 +33,7 @@ function optionalReplaceAll(source, from, to, label) {
 
 async function boot() {
   const response = await fetch(ORIGINAL_URL, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`[R7.5.4] No se pudo cargar R7.5 estable (${response.status})`);
+  if (!response.ok) throw new Error(`[R7.5.5] No se pudo cargar R7.5 estable (${response.status})`);
   let source = await response.text();
 
   // 1) Antigüedad operativa por fecha calendario. El valor deja de cambiar
@@ -61,7 +61,8 @@ async function boot() {
     'promedio con todos los INI consecutivos'
   );
 
-  // 3) Marca de versión de nuevos cálculos.
+  // 3) Marca semántica de cálculo: se conserva R7.5.4 porque R7.5.5 no
+  //    cambia ninguna fórmula, solo corrige la ruta de sincronización.
   source = mustReplace(source, 'calculationVersion:"R7.4.5"', 'calculationVersion:"R7.5.4"', 'calculationVersion');
 
   // 4) Todo reproceso conserva la fecha estructural de ciclo utilizada.
@@ -142,10 +143,21 @@ function __r754NormalizeLegacyState(st,lot){
     'evidencia de frecuencia con ciclo abierto'
   );
 
-  // 9) Coherencia estructural Supabase -> Maestro Central -> stateBase.
-  //    El payload de Supabase trae todos los eventos, pero su master_lots puede
-  //    ir detrás del Maestro Central. Se marca como dataset completo y __commit
-  //    reconstruye stateBase DESPUÉS de superponer el Maestro vigente.
+  // 9) R7.5.5: WC no puede considerar sincronizado el estado solo porque
+  //    nombre/fecha del import y archivo Maestro coincidan. Esa salida rápida
+  //    omitía centralEvents y dejaba vivo un stateBase antiguo para Suerte 01.
+  //    Al continuar, WC descarga el import activo completo y permite reconstruir
+  //    el estado con el Maestro Central vigente sin pedir otro Excel al usuario.
+  source = mustReplace(
+    source,
+    'if(c&&o)return{master:i,overrides:s,masterCutoff:r.master_cutoff||e.masterCutoff,irrigationCutoff:l?.cutoff_date||void 0,masterFile:r.master_file_name,irrigationFile:l?.file_name};',
+    'if(c&&o){/* R7.5.5: continuar para obtener eventos del import activo y reconstruir stateBase */}',
+    'forzar descarga de eventos del import activo'
+  );
+
+  // 10) Coherencia estructural Supabase -> Maestro Central -> stateBase.
+  //     El payload de Supabase trae todos los eventos y __commit reconstruye
+  //     stateBase DESPUÉS de superponer el Maestro vigente.
   source = mustReplace(
     source,
     'const __commit=payload=>{__applied=payload;const normalized=__maestroNormalizeMaster(payload.master);const overlaidMaster=__maestroCentral?__maestroApplyOverlay(normalized,__maestroCentral):normalized;let __result=overlaidMaster!==payload.master?{...payload,master:overlaidMaster}:payload;__result=__maestroNormalizeDates(__result);t(__result),we(payload.meta.masterCutoff)};',
@@ -159,7 +171,7 @@ function __r754NormalizeLegacyState(st,lot){
     'marcar eventos completos de Supabase'
   );
 
-  // 10) El import dinámico debe resolverse contra el módulo real, no contra blob:.
+  // 11) El import dinámico debe resolverse contra el módulo real, no contra blob:.
   source = mustReplace(
     source,
     'import("./html2canvas.esm-BfxBtG_O.js")',
@@ -167,7 +179,7 @@ function __r754NormalizeLegacyState(st,lot){
     'html2canvas dinámico'
   );
 
-  // 11) Terminología visible coherente con la regla INI→INI.
+  // 12) Terminología visible coherente con la regla INI→INI.
   source = optionalReplaceAll(source, 'Intervalos entre riegos', 'Frecuencia entre riegos', 'título evidencia');
   source = optionalReplaceAll(source, 'Cierre del riego anterior → inicio del siguiente', 'Inicio de un riego → inicio del siguiente (INI→INI)', 'subtítulo evidencia');
   source = optionalReplaceAll(source, 'Intervalo real promedio', 'Frecuencia real promedio', 'detalle frecuencia');
@@ -188,7 +200,7 @@ function __r754NormalizeLegacyState(st,lot){
   source = optionalReplaceAll(source, 'Meta de intervalo:', 'Meta de frecuencia:', 'meta técnica detalle');
   source = optionalReplaceAll(source, 'habilitar intervalo promedio, duración', 'habilitar frecuencia promedio, duración', 'nota histórico pendiente');
 
-  // 12) Tabla de evidencia: INI→INI + brecha operativa TER→INI.
+  // 13) Tabla de evidencia: INI→INI + brecha operativa TER→INI.
   source = optionalReplaceAll(
     source,
     'm.jsx("th",{children:"Riego"}),m.jsx("th",{children:"Cierre anterior"}),m.jsx("th",{children:"Inicio siguiente"}),m.jsx("th",{children:"Intervalo"}),m.jsx("th",{children:"Meta"}),m.jsx("th",{children:"Brecha"}),m.jsx("th",{children:"Área"})',
@@ -217,10 +229,10 @@ function __r754NormalizeLegacyState(st,lot){
 }
 
 boot().catch((error) => {
-  console.error('[R7.5.4 frecuencia INI→INI + días calendario + coherencia Maestro/Supabase]', error);
+  console.error('[R7.5.5 hotfix sincronización de eventos activos]', error);
   const root = document.getElementById('root');
   if (root) {
-    root.innerHTML = '<main style="font-family:system-ui;padding:24px;max-width:760px;margin:auto"><h1>No se pudo iniciar Riego R7.5.4</h1><p>La corrección de frecuencia/ciclo no pasó su verificación de integridad. Se detuvo para evitar mostrar cálculos incorrectos.</p><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:8px"></pre></main>';
+    root.innerHTML = '<main style="font-family:system-ui;padding:24px;max-width:760px;margin:auto"><h1>No se pudo iniciar Riego R7.5.5</h1><p>La corrección de sincronización no pasó su verificación de integridad. Se detuvo para evitar mostrar cálculos incorrectos.</p><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:8px"></pre></main>';
     const pre = root.querySelector('pre');
     if (pre) pre.textContent = error instanceof Error ? error.message : String(error);
   }

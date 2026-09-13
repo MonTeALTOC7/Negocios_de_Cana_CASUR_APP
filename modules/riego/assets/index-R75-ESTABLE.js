@@ -1,29 +1,28 @@
-/* R7.5.1 · Corrección agronómica de frecuencia de riego.
+/* R7.5.2 · Frecuencia INI→INI + ancla auditable de ciclo agrícola.
    Mantiene intacto el bundle R7.5 estable y aplica en memoria un parche
    verificable: frecuencia histórica = INI anterior -> INI siguiente.
    TER anterior -> INI siguiente se conserva como brecha operativa.
 
-   Compatibilidad: si el bootstrap actual trae cycleHistory R7.4.x, ese
-   historial se migra en memoria a la semántica R7.5.1 antes de mostrarse.
-   Si no existe detalle suficiente o cambió el inicio estructural del ciclo,
-   NO se acepta el promedio R7.4 antiguo como válido y la app pedirá
-   reprocesar el Excel. */
+   R7.5.2 corrige además la invalidación persistente cuando el Maestro Central
+   cambia el inicio del ciclo: cada reproceso del Excel guarda la fecha de
+   inicio estructural usada. El histórico solo queda listo cuando esa huella
+   coincide con el inicio de ciclo vigente del Maestro. */
 
 const ORIGINAL_URL = new URL('./index-R75-ESTABLE-ORIGINAL.js', import.meta.url);
 const HTML2CANVAS_URL = new URL('./html2canvas.esm-BfxBtG_O.js', import.meta.url).href;
 
 function mustReplace(source, from, to, label) {
   const first = source.indexOf(from);
-  if (first < 0) throw new Error(`[R7.5.1] No se encontró ancla crítica: ${label}`);
+  if (first < 0) throw new Error(`[R7.5.2] No se encontró ancla crítica: ${label}`);
   if (source.indexOf(from, first + from.length) >= 0) {
-    throw new Error(`[R7.5.1] Ancla crítica ambigua (más de una coincidencia): ${label}`);
+    throw new Error(`[R7.5.2] Ancla crítica ambigua (más de una coincidencia): ${label}`);
   }
   return source.slice(0, first) + to + source.slice(first + from.length);
 }
 
 function optionalReplaceAll(source, from, to, label) {
   if (!source.includes(from)) {
-    console.warn(`[R7.5.1] Etiqueta no encontrada; se conserva texto original: ${label}`);
+    console.warn(`[R7.5.2] Etiqueta no encontrada; se conserva texto original: ${label}`);
     return source;
   }
   return source.split(from).join(to);
@@ -31,10 +30,10 @@ function optionalReplaceAll(source, from, to, label) {
 
 async function boot() {
   const response = await fetch(ORIGINAL_URL, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`[R7.5.1] No se pudo cargar R7.5 estable (${response.status})`);
+  if (!response.ok) throw new Error(`[R7.5.2] No se pudo cargar R7.5 estable (${response.status})`);
   let source = await response.text();
 
-  // 1) Cálculo crítico para todo Excel reprocesado: frecuencia real = INI -> INI.
+  // 1) Cálculo crítico: frecuencia real = INI -> INI; TER -> INI queda como brecha.
   source = mustReplace(
     source,
     'for(let i=1;i<closed.length;i++){const prev=__r72DayStamp(closed[i-1].endDate),cur=__r72DayStamp(closed[i].startDate);if(prev!=null&&cur!=null&&cur>=prev)closed[i].intervalFromPrevious=(cur-prev)/864e5}',
@@ -43,18 +42,33 @@ async function boot() {
   );
 
   // 2) Marca de versión de nuevos cálculos.
-  source = mustReplace(source, 'calculationVersion:"R7.4.5"', 'calculationVersion:"R7.5.1"', 'calculationVersion');
+  source = mustReplace(source, 'calculationVersion:"R7.4.5"', 'calculationVersion:"R7.5.2"', 'calculationVersion');
 
-  // 3) Migración segura del histórico ya guardado en bootstrap.
-  //    Recalcula únicamente a partir de startDate/endDate de cycleHistory;
-  //    no toca eventos, áreas, NR, Maestro ni Supabase. Si el Maestro marcó
-  //    cambio de inicio de ciclo, el histórico se invalida hasta reprocesar.
+  // 3) Todo reproceso guarda la fecha estructural de ciclo utilizada.
+  //    Esto permite distinguir un histórico recién recalculado de uno obsoleto
+  //    después de un cambio posterior de siembra/último corte en el Maestro.
+  source = mustReplace(
+    source,
+    'lastCyclePending:Math.max(0,(Number(lot.area)||0)-lastCycleArea),...calc};',
+    'lastCyclePending:Math.max(0,(Number(lot.area)||0)-lastCycleArea),...calc,analyzedCropStartDate:lot.cropStartDate||null};',
+    'ancla de inicio de ciclo del reproceso'
+  );
+
+  // 4) Migración segura del histórico ya guardado.
+  //    - R7.5.1 sin cambio estructural puede ascender en memoria porque ya usa INI→INI.
+  //    - Si cycleStartChanged=true, un R7.5.1 sin huella NO se presume vigente:
+  //      se mantiene bloqueado hasta un reproceso R7.5.2.
+  //    - R7.4 solo se migra si no existe cambio estructural pendiente.
   const migration = `
-function __r751Mean(values){return values.length?values.reduce((sum,v)=>sum+v,0)/values.length:null}
-function __r751NormalizeLegacyState(st,lot){
+function __r752Mean(values){return values.length?values.reduce((sum,v)=>sum+v,0)/values.length:null}
+function __r752SameDate(a,b){return String(a||"")===String(b||"")}
+function __r752NormalizeLegacyState(st,lot){
   if(!st)return st;
+  const version=String(st.calculationVersion||"");
+  const anchor=lot?.cropStartDate||null;
+  if(version==="R7.5.2")return st;
   if(lot&&lot.cycleStartChanged)return st;
-  if(String(st.calculationVersion||"").startsWith("R7.5."))return st;
+  if(version.startsWith("R7.5."))return {...st,calculationVersion:"R7.5.2",analyzedCropStartDate:anchor,frequencyMigratedFrom:st.frequencyMigratedFrom||version};
   if(!Array.isArray(st.cycleHistory)||!st.cycleHistory.length)return st;
   const cycles=st.cycleHistory.map(c=>({...c})).sort((a,b)=>(__r72DayStamp(a?.startDate)??Number.POSITIVE_INFINITY)-(__r72DayStamp(b?.startDate)??Number.POSITIVE_INFINITY));
   const closed=cycles.filter(c=>c&&c.closed&&c.startDate);
@@ -66,33 +80,35 @@ function __r751NormalizeLegacyState(st,lot){
   }
   const intervals=closed.map(c=>c.intervalFromPrevious).filter(v=>Number.isFinite(v)&&v>=0);
   const durations=closed.map(c=>c.durationDays).filter(v=>Number.isFinite(v)&&v>=0);
-  return {...st,cycleHistory:cycles,closedCycleCount:closed.length,intervalCount:intervals.length,realIntervalAvg:__r751Mean(intervals),avgIrrigationDurationDays:__r751Mean(durations),durationCycleCount:durations.length,calculationVersion:"R7.5.1",frequencyMigratedFrom:st.calculationVersion||"legacy"};
+  return {...st,cycleHistory:cycles,closedCycleCount:closed.length,intervalCount:intervals.length,realIntervalAvg:__r752Mean(intervals),avgIrrigationDurationDays:__r752Mean(durations),durationCycleCount:durations.length,calculationVersion:"R7.5.2",analyzedCropStartDate:anchor,frequencyMigratedFrom:version||"legacy"};
 }
 `;
   source = mustReplace(
     source,
     'CA=function(master,state,overrides,now=new Date){return master.map(lot=>{',
     migration + 'CA=function(master,state,overrides,now=new Date){return master.map(lot=>{',
-    'migración histórica R7.5.1'
+    'migración histórica R7.5.2'
   );
   source = mustReplace(
     source,
     'const st=state[lot.key]||{',
-    'const st=__r751NormalizeLegacyState(state[lot.key],lot)||{',
+    'const st=__r752NormalizeLegacyState(state[lot.key],lot)||{',
     'normalización stateBase por suerte'
   );
 
-  // Solo el histórico R7.5 auditable y perteneciente al ciclo estructural actual
-  // se considera listo. Un cambio de inicio obliga a reprocesar el Excel.
+  // 5) La bandera de cambio estructural queda resuelta SOLO cuando un estado
+  //    R7.5.2 fue calculado con el mismo cropStartDate que hoy manda el Maestro.
+  //    Así los consumidores históricos/actuales dejan de excluir la suerte tras
+  //    el reproceso, pero un cambio futuro vuelve a invalidarla automáticamente.
   source = mustReplace(
     source,
     'historyReady:/^R7\\.4\\./.test(String(st.calculationVersion||""))',
-    'historyReady:/^R7\\.5\\./.test(String(st.calculationVersion||""))&&!lot.cycleStartChanged',
-    'historyReady R7.5'
+    'cycleStartChanged:!!(lot.cycleStartChanged&&!__r752SameDate(st.analyzedCropStartDate,lot.cropStartDate)),historyReady:String(st.calculationVersion||"")==="R7.5.2"&&__r752SameDate(st.analyzedCropStartDate,lot.cropStartDate)',
+    'historyReady + resolución de ancla R7.5.2'
   );
 
-  // 4) Consumidores efectivos: un histórico legacy no auditable no se muestra
-  //    ni participa del ordenamiento de frecuencia aunque conserve realIntervalAvg.
+  // 6) Consumidores efectivos: un histórico no auditable no se muestra
+  //    ni participa del ordenamiento de frecuencia aunque conserve un promedio viejo.
   source = mustReplace(
     source,
     'e.realIntervalAvg!=null&&m.jsxs("small",{className:"r744-interval-age"',
@@ -106,7 +122,7 @@ function __r751NormalizeLegacyState(st,lot){
     'ordenamiento: excluir frecuencia legacy no auditable'
   );
 
-  // 5) El import dinámico debe resolverse contra el módulo real, no contra blob:.
+  // 7) El import dinámico debe resolverse contra el módulo real, no contra blob:.
   source = mustReplace(
     source,
     'import("./html2canvas.esm-BfxBtG_O.js")',
@@ -114,7 +130,7 @@ function __r751NormalizeLegacyState(st,lot){
     'html2canvas dinámico'
   );
 
-  // 6) Trazabilidad visible. No cambia los datos ni la lógica de duración.
+  // 8) Trazabilidad visible. No cambia los datos ni la lógica de duración.
   source = optionalReplaceAll(source, 'Intervalos entre riegos', 'Frecuencia entre riegos', 'título evidencia');
   source = optionalReplaceAll(source, 'Cierre del riego anterior → inicio del siguiente', 'Inicio de un riego → inicio del siguiente (INI→INI)', 'subtítulo evidencia');
   source = optionalReplaceAll(source, 'Intervalo real promedio', 'Frecuencia real promedio', 'detalle frecuencia');
@@ -128,8 +144,10 @@ function __r751NormalizeLegacyState(st,lot){
   source = optionalReplaceAll(source, 'No hay dos ciclos cerrados consecutivos para calcular intervalos.', 'No hay dos ciclos cerrados consecutivos para calcular frecuencia.', 'vacío frecuencia');
   source = optionalReplaceAll(source, 'el intervalo histórico requiere ciclos cerrados.', 'la frecuencia histórica requiere ciclos cerrados consecutivos.', 'nota sin histórico');
   source = optionalReplaceAll(source, 'Intervalo histórico promedio = cierre de un riego → inicio del siguiente, ponderado por el área de cada suerte.', 'Frecuencia histórica promedio = inicio de un riego → inicio del siguiente (INI→INI), ponderada por el área exacta de cada suerte.', 'fórmula ejecutiva');
+  source = optionalReplaceAll(source, 'Meta de intervalo:', 'Meta de frecuencia:', 'meta técnica detalle');
+  source = optionalReplaceAll(source, 'habilitar intervalo promedio, duración', 'habilitar frecuencia promedio, duración', 'nota histórico pendiente');
 
-  // 7) Evidencia: frecuencia INI→INI + brecha operativa TER→INI.
+  // 9) Evidencia: frecuencia INI→INI + brecha operativa TER→INI.
   source = optionalReplaceAll(
     source,
     'm.jsx("th",{children:"Riego"}),m.jsx("th",{children:"Cierre anterior"}),m.jsx("th",{children:"Inicio siguiente"}),m.jsx("th",{children:"Intervalo"}),m.jsx("th",{children:"Meta"}),m.jsx("th",{children:"Brecha"}),m.jsx("th",{children:"Área"})',
@@ -158,10 +176,10 @@ function __r751NormalizeLegacyState(st,lot){
 }
 
 boot().catch((error) => {
-  console.error('[R7.5.1 frecuencia INI→INI]', error);
+  console.error('[R7.5.2 frecuencia INI→INI + ancla de ciclo]', error);
   const root = document.getElementById('root');
   if (root) {
-    root.innerHTML = '<main style="font-family:system-ui;padding:24px;max-width:760px;margin:auto"><h1>No se pudo iniciar Riego R7.5.1</h1><p>La corrección de frecuencia no pasó su verificación de integridad. Se detuvo para evitar mostrar cálculos incorrectos.</p><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:8px"></pre></main>';
+    root.innerHTML = '<main style="font-family:system-ui;padding:24px;max-width:760px;margin:auto"><h1>No se pudo iniciar Riego R7.5.2</h1><p>La corrección de frecuencia/ciclo no pasó su verificación de integridad. Se detuvo para evitar mostrar cálculos incorrectos.</p><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:8px"></pre></main>';
     const pre = root.querySelector('pre');
     if (pre) pre.textContent = error instanceof Error ? error.message : String(error);
   }

@@ -86,7 +86,22 @@ function __r751NormalizeLegacyState(st){
     'historyReady R7.5'
   );
 
-  // 4) El import dinámico debe resolverse contra el módulo real, no contra blob:.
+  // 4) Consumidores efectivos: un histórico legacy no auditable no se muestra
+  //    ni participa del ordenamiento de frecuencia aunque conserve realIntervalAvg.
+  source = mustReplace(
+    source,
+    'e.realIntervalAvg!=null&&m.jsxs("small",{className:"r744-interval-age"',
+    'e.historyReady===true&&e.realIntervalAvg!=null&&m.jsxs("small",{className:"r744-interval-age"',
+    'lista: ocultar frecuencia legacy no auditable'
+  );
+  source = mustReplace(
+    source,
+    'case"intervalo":return(a.realIntervalAvg??-1)-(r.realIntervalAvg??-1);',
+    'case"intervalo":return(a.historyReady===true?a.realIntervalAvg??-1:-1)-(r.historyReady===true?r.realIntervalAvg??-1:-1);',
+    'ordenamiento: excluir frecuencia legacy no auditable'
+  );
+
+  // 5) El import dinámico debe resolverse contra el módulo real, no contra blob:.
   source = mustReplace(
     source,
     'import("./html2canvas.esm-BfxBtG_O.js")',
@@ -94,7 +109,7 @@ function __r751NormalizeLegacyState(st){
     'html2canvas dinámico'
   );
 
-  // 5) Trazabilidad visible. No cambia los datos ni la lógica de duración.
+  // 6) Trazabilidad visible. No cambia los datos ni la lógica de duración.
   source = optionalReplaceAll(source, 'Intervalos entre riegos', 'Frecuencia entre riegos', 'título evidencia');
   source = optionalReplaceAll(source, 'Cierre del riego anterior → inicio del siguiente', 'Inicio de un riego → inicio del siguiente (INI→INI)', 'subtítulo evidencia');
   source = optionalReplaceAll(source, 'Intervalo real promedio', 'Frecuencia real promedio', 'detalle frecuencia');
@@ -109,7 +124,7 @@ function __r751NormalizeLegacyState(st){
   source = optionalReplaceAll(source, 'el intervalo histórico requiere ciclos cerrados.', 'la frecuencia histórica requiere ciclos cerrados consecutivos.', 'nota sin histórico');
   source = optionalReplaceAll(source, 'Intervalo histórico promedio = cierre de un riego → inicio del siguiente, ponderado por el área de cada suerte.', 'Frecuencia histórica promedio = inicio de un riego → inicio del siguiente (INI→INI), ponderada por el área exacta de cada suerte.', 'fórmula ejecutiva');
 
-  // 6) Evidencia: frecuencia INI→INI + brecha operativa TER→INI.
+  // 7) Evidencia: frecuencia INI→INI + brecha operativa TER→INI.
   source = optionalReplaceAll(
     source,
     'm.jsx("th",{children:"Riego"}),m.jsx("th",{children:"Cierre anterior"}),m.jsx("th",{children:"Inicio siguiente"}),m.jsx("th",{children:"Intervalo"}),m.jsx("th",{children:"Meta"}),m.jsx("th",{children:"Brecha"}),m.jsx("th",{children:"Área"})',

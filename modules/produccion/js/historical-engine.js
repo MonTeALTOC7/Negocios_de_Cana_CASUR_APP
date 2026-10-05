@@ -61,7 +61,7 @@
       .replace(/[\s_-]+/g, "");
   }
 
-  function resolvePeriod(zafras, mode = "all", custom) {
+  function resolvePeriod(zafras, mode = "latest", custom) {
     const available = [...new Set((zafras || []).map(finite).filter((value) => value !== null))]
       .sort((a, b) => a - b);
     const normalizedMode = periodMode(mode);
@@ -87,7 +87,22 @@
       }
     }
     const requestedSet = new Set(requested);
-    return available.filter((zafra) => requestedSet.has(zafra));
+    const resolved = available.filter((zafra) => requestedSet.has(zafra));
+    if (!resolved.length) throw new RangeError("El periodo personalizado requiere al menos una zafra disponible.");
+    return resolved;
+  }
+
+  function reconcilePeriodSelection(zafras, mode = "latest", selected = []) {
+    const available = resolvePeriod(zafras, "all");
+    if (!available.length) return [];
+    const normalizedMode = periodMode(mode);
+    if (!["custom", "personalizado", "personalizada"].includes(normalizedMode)) {
+      return resolvePeriod(available, mode);
+    }
+    const requested = new Set((selected instanceof Set ? [...selected] : Array.isArray(selected) ? selected : [selected])
+      .map(finite).filter((value) => value !== null));
+    const reconciled = available.filter((zafra) => requested.has(zafra));
+    return reconciled.length ? reconciled : resolvePeriod(available, "latest");
   }
 
   function matchesScope(row, scope) {
@@ -173,6 +188,16 @@
     };
   }
 
+  function compareHistoricalRows(rows, entityScope, benchmarkScope, period) {
+    const entity = aggregateHistoricalRows(filterHistoricalRows(rows, entityScope, period));
+    const benchmark = aggregateHistoricalRows(filterHistoricalRows(rows, benchmarkScope, period));
+    return {
+      entity,
+      benchmark,
+      deltaTch: entity.tch !== null && benchmark.tch !== null ? round(entity.tch - benchmark.tch) : null,
+    };
+  }
+
   function groupHistoricalBySeason(rows) {
     const groups = new Map();
     (Array.isArray(rows) ? rows : []).forEach((row) => {
@@ -213,8 +238,10 @@
   return Object.freeze({
     normalizeHistoricalRows,
     resolvePeriod,
+    reconcilePeriodSelection,
     filterHistoricalRows,
     aggregateHistoricalRows,
+    compareHistoricalRows,
     groupHistoricalBySeason,
     groupHistoricalByLot,
   });

@@ -11,13 +11,17 @@ await import("../js/historical-engine.js");
 const {
   normalizeHistoricalRows,
   resolvePeriod,
+  reconcilePeriodSelection,
   filterHistoricalRows,
   aggregateHistoricalRows,
+  compareHistoricalRows,
   groupHistoricalBySeason,
   groupHistoricalByLot,
 } = globalThis.CASUR_HISTORICAL_ENGINE;
 
 const historico = JSON.parse(fs.readFileSync(path.join(testRoot, "../data/historico.json"), "utf8"));
+const officialRows = normalizeHistoricalRows(historico.lotCompact);
+const isMainRow = (row) => String(row.farmCode) !== "16" && !String(row.zona).toLowerCase().includes("0-maquila");
 const sampleLotCompact = [
   ["10001", "Lote 10001", "Norte", "V1", "Gravedad", "Propio", null, 0, "100", "Finca A", "01", [
     [2021, 10, 500, 50, 90, 10, 2],
@@ -99,12 +103,21 @@ test("edad nula excluye su área del numerador y denominador", () => {
 
 test("resuelve Última, 3, 5, Todas y Personalizado", async (t) => {
   const zafras = [2526, 2021, 2122, 2223, 2324, 2425, 2425];
+  await t.test("default = Última", () => assert.deepEqual(resolvePeriod(zafras), [2526]));
   await t.test("Última", () => assert.deepEqual(resolvePeriod(zafras, "Última"), [2526]));
   await t.test("3", () => assert.deepEqual(resolvePeriod(zafras, "3"), [2324, 2425, 2526]));
   await t.test("5", () => assert.deepEqual(resolvePeriod(zafras, "5"), [2122, 2223, 2324, 2425, 2526]));
+  await t.test("menos de N disponibles", () => assert.deepEqual(resolvePeriod([2324, 2425], "5"), [2324, 2425]));
   await t.test("Todas", () => assert.deepEqual(resolvePeriod(zafras, "Todas"), [2021, 2122, 2223, 2324, 2425, 2526]));
-  await t.test("Personalizado por lista", () => assert.deepEqual(resolvePeriod(zafras, "Personalizado", [2021, 2425]), [2021, 2425]));
+  await t.test("Personalizado contiguo", () => assert.deepEqual(resolvePeriod(zafras, "Personalizado", [2223, 2324, 2425]), [2223, 2324, 2425]));
+  await t.test("Personalizado no contiguo", () => assert.deepEqual(resolvePeriod(zafras, "Personalizado", [2021, 2425]), [2021, 2425]));
   await t.test("Personalizado por rango", () => assert.deepEqual(resolvePeriod(zafras, "Personalizado", { from: 2223, to: 2425 }), [2223, 2324, 2425]));
+  await t.test("Personalizado rechaza selección vacía", () => assert.throws(() => resolvePeriod(zafras, "Personalizado", []), /al menos una zafra/i));
+});
+
+test("cambiar de alcance elimina zafras no disponibles", () => {
+  assert.deepEqual(reconcilePeriodSelection([2122, 2223], "custom", [2021, 2122]), [2122]);
+  assert.deepEqual(reconcilePeriodSelection([2324, 2425], "custom", [2021, 2122]), [2425]);
 });
 
 test("una finca de una sola suerte agrega igual que esa suerte", () => {
@@ -131,6 +144,70 @@ test("groupHistoricalByLot agrupa por lotId con metadatos", () => {
   assert.deepEqual(groups[0].zafras, [2021, 2122]);
 });
 
+test("área multizafra representa la suma ha-zafra", () => {
+  const rows = filterHistoricalRows(officialRows, { lotId: "75907" }, [2324, 2425, 2526]);
+  const result = aggregateHistoricalRows(rows);
+  assert.equal(result.area, 59.34);
+  assert.equal(result.zafras.length, 3);
+  assert.ok(index.includes("Área cosechada acumulada"));
+  assert.ok(index.includes(" ha-zafra"));
+});
+
+test("comparadores usan exactamente las mismas zafras", async (t) => {
+  const entityScope = { lotId: "75907" };
+  const entityRows = filterHistoricalRows(officialRows, entityScope);
+  const selected = resolvePeriod(entityRows.map((row) => row.zafra), "Personalizado", [2223, 2425, 2526]);
+  const reference = entityRows[0];
+  const cases = [
+    ["CASUR", isMainRow],
+    ["zona", (row) => isMainRow(row) && row.zona === reference.zona],
+    ["variedad", (row) => isMainRow(row) && row.variedad === reference.variedad],
+    ["riego", (row) => isMainRow(row) && row.riego === reference.riego],
+  ];
+  for (const [name, scope] of cases) {
+    await t.test(name, () => {
+      const comparison = compareHistoricalRows(officialRows, entityScope, scope, selected);
+      assert.deepEqual(comparison.entity.zafras, selected);
+      assert.deepEqual(comparison.benchmark.zafras, selected);
+      assert.equal(comparison.deltaTch, Math.round((comparison.entity.tch - comparison.benchmark.tch) * 100) / 100);
+    });
+  }
+});
+
+test("comparador vs histórico completo usa todas las zafras de la entidad", () => {
+  const scope = { lotId: "75907" };
+  const rows = filterHistoricalRows(officialRows, scope);
+  const latest = aggregateHistoricalRows(filterHistoricalRows(rows, null, resolvePeriod(rows.map((row) => row.zafra), "latest")));
+  const full = aggregateHistoricalRows(rows);
+  assert.deepEqual(full.zafras, [1617, 1718, 1819, 1920, 2021, 2122, 2223, 2324, 2425, 2526]);
+  assert.equal(Math.round((latest.tch - full.tch) * 100) / 100, -15.81);
+});
+
+test("caso finca 759 conserva la regresión calculada", () => {
+  const rows = filterHistoricalRows(officialRows, { farmCode: "759" });
+  const available = groupHistoricalBySeason(rows).map((group) => group.zafra);
+  const latest = aggregateHistoricalRows(filterHistoricalRows(rows, null, resolvePeriod(available, "latest")));
+  const all = aggregateHistoricalRows(filterHistoricalRows(rows, null, resolvePeriod(available, "all")));
+  assert.deepEqual(latest, {
+    area: 130.88, ton: 8013.43, tch: 61.23, katm: 80.49, edad: 10.49,
+    suertes: 9, sourceCount: 9, zafras: [2526],
+  });
+  assert.equal(all.tch, 82.21);
+  assert.equal(all.suertes, 18);
+});
+
+test("caso suerte 75907 resuelve todos los periodos sin tocar Corte", () => {
+  const rows = filterHistoricalRows(officialRows, { lotId: "75907" });
+  const available = rows.map((row) => row.zafra);
+  assert.deepEqual(resolvePeriod(available, "latest"), [2526]);
+  assert.deepEqual(resolvePeriod(available, "last3"), [2324, 2425, 2526]);
+  assert.deepEqual(resolvePeriod(available, "last5"), [2122, 2223, 2324, 2425, 2526]);
+  assert.equal(resolvePeriod(available, "all").length, 10);
+  assert.deepEqual(resolvePeriod(available, "custom", [2223, 2425, 2526]), [2223, 2425, 2526]);
+  assert.equal(rows.every((row) => !Object.hasOwn(row, "corte")), true);
+  assert.ok(index.includes("const corte=Number(d.zafra)===latestZafra?latestCorte:null;"));
+});
+
 test("caso 75907 conserva sourceCount y no fabrica corte histórico", () => {
   const lot = historico.lotCompact.find((item) => String(item[0]) === "75907");
   assert.ok(lot);
@@ -150,8 +227,10 @@ test("ninguna función del motor muta lotCompact ni las filas normalizadas", () 
   const rows = normalizeHistoricalRows(input);
   const rowsSnapshot = structuredClone(rows);
   const period = resolvePeriod(rows.map((row) => row.zafra), "3");
+  reconcilePeriodSelection(rows.map((row) => row.zafra), "custom", period);
   filterHistoricalRows(rows, { farmCode: "100" }, period);
   aggregateHistoricalRows(rows);
+  compareHistoricalRows(rows, { lotId: "10001" }, { farmCode: "100" }, period);
   groupHistoricalBySeason(rows);
   groupHistoricalByLot(rows);
   assert.deepEqual(input, inputSnapshot);

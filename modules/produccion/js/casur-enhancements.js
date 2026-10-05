@@ -4,6 +4,7 @@
   const ESTIMATE_DATE = "2026-07-17";
   const PASSWORD_HASH = "6315700c5446173c02844f5fcc514d3b52e8da0ad4b31f6126049d2d8709ad34";
   const UNLOCK_MINUTES = 30;
+  const historicalEngine = window.CASUR_HISTORICAL_ENGINE;
   const $ = (id) => document.getElementById(id);
   const nf = new Intl.NumberFormat("es-NI", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const nf0 = new Intl.NumberFormat("es-NI", { maximumFractionDigits: 0 });
@@ -388,35 +389,30 @@
     const row = (selectedHistoryLot[11] || []).find((item) => Number(item[0]) === season);
     if (!row) return;
     setValue("histArea", row[1]); setValue("histTon", row[2]); setValue("histTch", row[3]);
-    setValue("histRto", row[4]); setValue("histAge", row[5]); setValue("histCut", row[6]);
+    setValue("histRto", row[4]); setValue("histAge", row[5]); setValue("histCut", "N/D");
   }
   function historicalMetric(rows) {
-    if (!rows.length) return { area: 0, ton: 0, tch: null, rto: null, edad: null, corte: null, suertes: 0, zafras: [] };
-    const area = rows.reduce((sum, row) => sum + (finite(row.area) || 0), 0);
-    const ton = rows.reduce((sum, row) => sum + (finite(row.ton) || 0), 0);
-    const areaWeight = (field) => {
-      let numerator = 0; let denominator = 0;
-      rows.forEach((row) => { const a = finite(row.area); const v = finite(row[field]); if (a > 0 && v !== null) { numerator += a * v; denominator += a; } });
-      return denominator ? round(numerator / denominator) : null;
-    };
-    return { area: round(area) || 0, ton: round(ton) || 0, tch: area ? round(ton / area) : null,
-      rto: areaWeight("rto"), edad: areaWeight("edad"), corte: areaWeight("corte"), suertes: rows.length,
+    const metric = historicalEngine.aggregateHistoricalRows(rows);
+    return { area: metric.area, ton: metric.ton, tch: metric.tch,
+      rto: metric.katm, edad: metric.edad, corte: null, suertes: metric.suertes, sourceCount: metric.sourceCount,
       variedad: dominant(rows, "variedad"), riego: dominant(rows, "riego"), zona: dominant(rows, "zona"), tenencia: dominant(rows, "tenencia"),
-      grTenencia: "", zafras: [...new Set(rows.map((row) => row.zafra))].sort() };
+      grTenencia: "", zafras: metric.zafras };
   }
   function rebuildHistorical() {
     const app = window.APP_DATA;
-    const allRows = [];
-    historyLots().forEach((lot) => {
-      if (text(lot[8]) === "16" || normal(lot[2]).includes("0maquila")) return;
-      (lot[11] || []).forEach((row) => allRows.push({
-        lotId: lot[0], code: text(lot[8]), name: text(lot[9]), suerte: text(lot[10]), zafra: Number(row[0]),
-        area: finite(row[1]) || 0, ton: finite(row[2]) || 0, tch: finite(row[3]), rto: finite(row[4]), edad: finite(row[5]), corte: finite(row[6]),
-        zona: text(lot[2]), variedad: text(lot[3]), riego: text(lot[4]), tenencia: text(lot[5]),
-      }));
-    });
+    const lots = historyLots();
+    const allRows = historicalEngine.normalizeHistoricalRows(lots)
+      .filter((row) => row.farmCode !== "16" && !normal(row.zona).includes("0maquila"))
+      .map((row) => ({ ...row, code: row.farmCode, name: row.farmName, tch: row.tchStored, rto: row.katm }));
     const latestSeason = Number(app.meta?.latestZafra || 2526);
     const last3 = app.meta?.last3Zafras || [2324, 2425, 2526];
+    const latestCuts = new Map(lots.map((lot) => {
+      const details = Array.isArray(lot[12]) ? lot[12] : [];
+      const first = details[0];
+      const hasFullHistory = Array.isArray(first) && Number.isFinite(Number(first[0])) && String(first[1] || "").includes("/");
+      const detail = hasFullHistory ? details.find((item) => Number(item[0]) === latestSeason) : first;
+      return [text(lot[0]), Array.isArray(detail) ? finite(detail[hasFullHistory ? 10 : 8]) : null];
+    }));
     const priorEntities = new Map((app.entities || []).map((entity) => [text(entity.code), entity]));
     const grouped = new Map();
     allRows.forEach((row) => { if (!grouped.has(row.code)) grouped.set(row.code, []); grouped.get(row.code).push(row); });
@@ -431,7 +427,7 @@
       return { ...prior, code, name: rows[0]?.name || prior.name || "", latest, hist, last3: last, trend,
         zona: latest.zona || hist.zona, variedad: latest.variedad || hist.variedad, riego: latest.riego || hist.riego, tenencia: latest.tenencia || hist.tenencia,
         details: latestRows.map((row) => ({ suerte: row.suerte, hhhsss: row.lotId, codLote: row.lotId, variedad: row.variedad,
-          riego: row.riego, area: row.area, ton: row.ton, tch: row.tch, rto: row.rto, edad: row.edad, corte: row.corte, zona: row.zona, alerta: "" })),
+          riego: row.riego, area: row.area, ton: row.ton, tch: row.tch, rto: row.rto, edad: row.edad, corte: latestCuts.get(text(row.lotId)) ?? null, zona: row.zona, alerta: "" })),
         search: normal(`${code} ${rows[0]?.name} ${latest.zona} ${latest.variedad} ${latest.riego}`) };
     }).sort((a, b) => a.name.localeCompare(b.name, "es"));
     const latestRows = allRows.filter((row) => row.zafra === latestSeason);
@@ -452,7 +448,7 @@
     const area = finite($("histArea")?.value); const ton = finite($("histTon")?.value);
     if (!row || !(area > 0) || ton === null || ton < 0) { alert("Área y toneladas históricas válidas son obligatorias."); return; }
     row[1] = round(area); row[2] = round(ton); row[3] = round(ton / area); row[4] = round(finite($("histRto")?.value));
-    row[5] = round(finite($("histAge")?.value)); row[6] = round(finite($("histCut")?.value));
+    row[5] = round(finite($("histAge")?.value));
     rebuildHistorical();
     setValue("histTch", row[3]);
     addLog(`Histórico ${selectedHistoryLot[0]} · zafra ${season} actualizado.`);

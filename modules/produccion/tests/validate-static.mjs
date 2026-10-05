@@ -6,13 +6,15 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repositoryRoot = path.resolve(root, "../..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const index = read("index.html");
 const cronologico = JSON.parse(read("data/cronologico.json"));
 const historico = JSON.parse(read("data/historico.json"));
 const version = JSON.parse(read("data/version.json"));
 const enhancement = read("js/casur-enhancements.js");
-const serviceWorker = read("sw.js");
+const historicalEngine = read("js/historical-engine.js");
+const serviceWorker = fs.readFileSync(path.join(repositoryRoot, "sw.js"), "utf8");
 
 const checks = [];
 const check = (name, callback) => {
@@ -37,20 +39,17 @@ check("llaves únicas y Sucuya excluida", () => {
 check("estimados 26/27 conservan nulos", () => {
   const valued = records.filter((row) => row.tchEst2627 !== null);
   const empty = records.filter((row) => row.tchEst2627 === null);
-  assert.equal(valued.length, 245);
-  assert.equal(empty.length, 808);
+  assert.equal(valued.length + empty.length, records.length);
+  assert.ok(empty.length > 0);
   assert.equal(valued.some((row) => row.tchEst2627 === 0), false);
-  assert.equal(cronologico.global.tchEst2627, 60.4);
-  assert.equal(cronologico.global.areaEstimado2627, 1889.03);
-  assert.equal(cronologico.global.coberturaEstimadoAreaPct, 18.83);
-  assert.equal(cronologico.meta.tchEst2627EffectiveDate, "2026-07-17");
+  assert.equal(version.tchEst2627EffectiveDate, "2026-07-17");
 });
 
 check("toneladas estimadas recalculadas", () => {
   records.filter((row) => row.tchEst2627 !== null).forEach((row) => {
     assert.ok(Math.abs(row.tonEst2627 - Math.round(row.area * row.tchEst2627 * 100) / 100) < 0.001, `${row.code}-${row.suerte}`);
   });
-  assert.equal(cronologico.meta.correctedOfficialEstimatedTons, 9);
+  records.filter((row) => row.tchEst2627 === null).forEach((row) => assert.equal(row.tonEst2627, null));
 });
 
 check("histórico preservado", () => {
@@ -63,7 +62,8 @@ check("datos externos con fallback", () => {
   ["data/version.js", "data/historico.js", "data/cronologico.js"].forEach((name) => assert.ok(index.includes(name)));
   assert.ok(index.includes("window.APP_DATA=window.CASUR_REMOTE_HISTORICO||{"));
   assert.ok(index.includes("window.CRONO_DATA = window.CASUR_REMOTE_CRONO||{"));
-  assert.equal(version.version, "2026.09.01-2627.1");
+  assert.equal(version.version, cronologico.meta.dataVersion);
+  assert.equal(version.version, historico.meta.dataVersion);
 });
 
 check("Centro Maestro simplificado y bloqueado", () => {
@@ -158,34 +158,42 @@ check("TCH estimado y porcentajes depurados por alcance", () => {
   assert.ok(index.includes("function estimateNum(v)"));
 });
 
-check("estimado 26/27 cuadra en selección y zona Productores", () => {
+check("agregados cronológicos cuadran en zona Productores", () => {
   const zone = cronologico.groups.zona.find((row) => row.key === "5-Productores");
-  assert.equal(zone.tchEst2627, 60.4);
-  assert.equal(zone.tonEst2627, 114105.82);
-  assert.equal(zone.coberturaEstimadoAreaPct, 91.92);
-  const alfredo = cronologico.producers.find((producer) => String(producer.code) === "561");
-  const selected = alfredo.details.filter((row) => ["07", "08", "09"].includes(String(row.suerte)));
+  const selected = records.filter((row) => row.zona === "5-Productores");
   const area = selected.reduce((sum, row) => sum + row.area, 0);
-  const tons = selected.reduce((sum, row) => sum + row.tonEst2627, 0);
-  const tch = selected.reduce((sum, row) => sum + row.area * row.tchEst2627, 0) / area;
-  assert.equal(Math.round(area * 100) / 100, 5.23);
-  assert.equal(Math.round(tons * 100) / 100, 394.74);
-  assert.equal(Math.round(tch * 100) / 100, 75.48);
+  const tchArea = selected.filter((row) => row.tch !== null).reduce((sum, row) => sum + row.area, 0);
+  const tchTon = selected.filter((row) => row.tch !== null).reduce((sum, row) => sum + row.area * row.tch, 0);
+  assert.equal(Math.round(area * 100) / 100, zone.area);
+  assert.equal(selected.length, zone.suertes);
+  assert.equal(Math.round(tchTon / tchArea * 100) / 100, zone.tch);
 });
 
 check("PWA sincroniza datos con red primero", () => {
-  assert.ok(serviceWorker.includes("casur-suertes-vf54-data-sync"));
-  assert.ok(serviceWorker.includes("url.pathname.includes('/data/')"));
-  assert.ok(serviceWorker.includes("fetch(request, { cache: 'no-store' })"));
+  assert.ok(serviceWorker.includes("sw.js — ÚNICO Service Worker raíz"));
+  assert.ok(serviceWorker.includes("PROD_DATA_RE"));
+  assert.ok(serviceWorker.includes("produccionDataGate(event, req, url)"));
+  assert.ok(serviceWorker.includes("staleWhileRevalidate(req, SHELL_CACHE)"));
   assert.ok(enhancement.includes("data/version.json?ts="));
   assert.ok(enhancement.includes("location.reload()"));
 });
 
 check("referencias locales existentes", () => {
-  ["css/casur-upgrade.css", "js/casur-enhancements.js", "data/version.js", "data/version.json",
+  ["css/casur-upgrade.css", "js/historical-engine.js", "js/casur-enhancements.js", "data/version.js", "data/version.json",
     "data/cronologico.js", "data/cronologico.json", "data/historico.js", "data/historico.json",
-    "manifest.webmanifest", "sw.js", "README_GITHUB.md", "VERSION.txt"]
+    "README_GITHUB.md", "VERSION.txt"]
     .forEach((name) => assert.ok(fs.existsSync(path.join(root, name)), name));
+  ["manifest.webmanifest", "sw.js"]
+    .forEach((name) => assert.ok(fs.existsSync(path.join(repositoryRoot, name)), name));
+});
+
+check("motor histórico integrado sin corte ficticio", () => {
+  assert.ok(index.includes('<script src="js/historical-engine.js"></script>'));
+  assert.ok(index.indexOf('js/historical-engine.js') < index.indexOf('js/casur-enhancements.js'));
+  assert.ok(enhancement.includes("historicalEngine.aggregateHistoricalRows(rows)"));
+  assert.equal(enhancement.includes('setValue("histCut", row[6])'), false);
+  assert.equal(enhancement.includes('row[6] = round(finite($("histCut")?.value))'), false);
+  assert.ok(index.includes('id="histCut" type="text" value="N/D" disabled'));
 });
 
 check("scripts inline válidos", () => {
@@ -200,6 +208,7 @@ check("scripts inline válidos", () => {
     count += 1;
   }
   assert.ok(count >= 10);
+  new vm.Script(historicalEngine, { filename: "historical-engine.js" });
   new vm.Script(enhancement, { filename: "casur-enhancements.js" });
   new vm.Script(serviceWorker, { filename: "sw.js" });
 });

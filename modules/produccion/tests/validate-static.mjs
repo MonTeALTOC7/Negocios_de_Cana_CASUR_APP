@@ -206,6 +206,26 @@ check("gráfico histórico comparte motor, periodo y métrica accesible", () => 
   assert.ok(index.includes("const trend=historicalChart(context)"));
 });
 
+check("gráfico histórico corrige referencia, tooltip y exportación", () => {
+  assert.ok(index.includes('class="historical-chart-reference-badge"'));
+  assert.equal(index.includes('class="historical-chart-reference-label"'), false);
+  assert.ok(index.includes('class="historical-chart-tooltip"'));
+  assert.ok(index.includes('onmouseenter="showHistoricalChartTooltip(this)"'));
+  assert.ok(index.includes('onfocus="showHistoricalChartTooltip(this)"'));
+  assert.ok(index.includes('onclick="pinHistoricalChartTooltip(this,event)"'));
+  assert.ok(index.includes("data-area=\"${esc(area)}\""));
+  assert.ok(index.includes("data-ton=\"${esc(ton)}\""));
+  assert.ok(index.includes("data-tch=\"${esc(tch)}\""));
+  assert.ok(index.includes("data-katm=\"${esc(katm)}\""));
+  assert.ok(index.includes("data-edad=\"${esc(edad)}\""));
+  assert.ok(index.includes('class="historical-chart-line" fill="none" stroke="#94a3b8"'));
+  assert.ok(index.includes('class="historical-chart-selected-line" fill="none" stroke="#0b7f3a"'));
+  assert.ok(index.includes('class="historical-chart-reference" fill="none" stroke="#0b4f9c"'));
+  assert.ok(index.includes("clone('.historical-chart-card',node)"));
+  assert.ok(index.includes(".historical-chart-reference-badge{display:inline-flex!important"));
+  assert.ok(index.includes(".chart-tip-bg,.chart-tip,.mobile-trend-card,.historical-chart-tooltip{display:none!important"));
+});
+
 check("scripts inline válidos", () => {
   const matcher = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
   let match;

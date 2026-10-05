@@ -213,6 +213,12 @@ check("gráfico histórico corrige referencia, tooltip y exportación", () => {
   assert.ok(index.includes('onmouseenter="showHistoricalChartTooltip(this)"'));
   assert.ok(index.includes('onfocus="showHistoricalChartTooltip(this)"'));
   assert.ok(index.includes('onclick="pinHistoricalChartTooltip(this,event)"'));
+  assert.ok(index.includes("referenceText=metricLabel+' ponderado del periodo'"));
+  assert.ok(index.includes('class="historical-chart-hit"'));
+  assert.ok(index.includes('class="historical-chart-dot"'));
+  assert.ok(index.includes('r="22" fill="transparent" stroke="none" pointer-events="all"'));
+  assert.ok(index.includes('class="historical-chart-tooltip-grid"'));
+  assert.ok(index.includes("anchor=point.querySelector('.historical-chart-dot')||point"));
   assert.ok(index.includes("data-area=\"${esc(area)}\""));
   assert.ok(index.includes("data-ton=\"${esc(ton)}\""));
   assert.ok(index.includes("data-tch=\"${esc(tch)}\""));
@@ -222,6 +228,7 @@ check("gráfico histórico corrige referencia, tooltip y exportación", () => {
   assert.ok(index.includes('class="historical-chart-selected-line" fill="none" stroke="#0b7f3a"'));
   assert.ok(index.includes('class="historical-chart-reference" fill="none" stroke="#0b4f9c"'));
   assert.ok(index.includes("clone('.historical-chart-card',node)"));
+  assert.ok(index.includes(".historical-chart-tooltip,.historical-chart-hit',chart"));
   assert.ok(index.includes(".historical-chart-reference-badge{display:inline-flex!important"));
   assert.ok(index.includes(".chart-tip-bg,.chart-tip,.mobile-trend-card,.historical-chart-tooltip{display:none!important"));
 });

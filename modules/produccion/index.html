@@ -289,6 +289,13 @@ body{font-family:'Plus Jakarta Sans','Segoe UI',Roboto,Arial,sans-serif;backgrou
 .historical-fixed-comparison>div:first-child strong{display:block;color:#6d5200;font-size:12px}.historical-fixed-comparison>div:first-child small{display:block;margin-top:3px;color:#7c6a35;font-size:10px;font-weight:800;line-height:1.3}.historical-fixed-comparison .delta{margin:0}
 @media(max-width:560px){.historical-period-card{padding:10px}.historical-period-summary{display:grid;gap:5px}.historical-period-summary small{text-align:left}.historical-period-presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.historical-period-preset{width:100%;padding:8px 7px}.historical-season-chip{min-width:58px;flex:1 0 auto}.historical-fixed-comparison{grid-template-columns:1fr}.historical-fixed-comparison .delta{width:100%}}
 
+/* Fase 3A · Una serie histórica, dos métricas y el periodo activo como contexto */
+.historical-chart-card{margin-top:12px;border:1px solid #d8e7de;border-radius:18px;background:#fff;padding:12px;display:grid;gap:9px;overflow:hidden}
+.historical-chart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.historical-chart-head h3{margin:0;color:#10241a;font-size:15px}.historical-chart-head small{display:block;margin-top:3px;color:#64748b;font-size:10.5px;font-weight:800;line-height:1.35}.historical-chart-tools{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}.historical-chart-reference-badge{display:inline-flex;align-items:center;min-height:32px;padding:5px 10px;border:1px solid #b9d7ff;border-radius:999px;background:#eef6ff;color:#0b4f9c;font-size:10.5px;font-weight:950;white-space:nowrap}
+.historical-chart-metric{display:inline-flex;gap:4px;padding:3px;border:1px solid #d7e3dc;border-radius:13px;background:#f5f9f7}.historical-chart-metric button{min-width:62px;min-height:40px;border:0;border-radius:10px;background:transparent;color:#526276;font:inherit;font-size:11px;font-weight:950;cursor:pointer}.historical-chart-metric button[aria-pressed="true"]{background:#0b7f3a;color:#fff;box-shadow:0 3px 9px rgba(11,127,58,.2)}.historical-chart-metric button:focus-visible{outline:3px solid rgba(0,91,170,.3);outline-offset:2px}
+.historical-chart-card .svgbox{position:relative;margin:0;min-height:250px;padding:4px}.historical-chart-card .svgbox svg{height:260px;overflow:visible}.historical-chart-line{fill:none;stroke:#94a3b8;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:.58}.historical-chart-selected-line{fill:none;stroke:#0b7f3a;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}.historical-chart-reference{fill:none;stroke:#0b4f9c;stroke-width:1.5;stroke-dasharray:7 6}.historical-chart-point{outline:none;cursor:default}.historical-chart-hit{fill:transparent;stroke:none;pointer-events:all}.historical-chart-dot{fill:#94a3b8;stroke:#fff;stroke-width:2.2;opacity:.48;transition:filter .12s ease,stroke-width .12s ease,opacity .12s ease}.historical-chart-point.is-selected .historical-chart-dot{fill:#005baa;opacity:1;stroke-width:2.8}.historical-chart-point.is-missing .historical-chart-dot{fill:#fff;stroke:#94a3b8;stroke-dasharray:2 2}.historical-chart-point.is-selected.is-missing .historical-chart-dot{stroke:#005baa}.historical-chart-point:focus .historical-chart-dot,.historical-chart-point.is-active .historical-chart-dot{stroke:#f4c542;stroke-width:4;opacity:1;filter:drop-shadow(0 0 4px rgba(0,91,170,.35))}.historical-chart-point:focus .historical-chart-value,.historical-chart-point.is-active .historical-chart-value{fill:#0b4f9c}.historical-chart-value{font-size:10px;fill:#64748b;font-weight:900}.historical-chart-point.is-selected .historical-chart-value{fill:#10241a;font-weight:950}.historical-chart-axis-value{font-size:9.5px;fill:#64748b;font-weight:800}.historical-chart-tooltip{position:absolute;z-index:5;width:228px;max-width:calc(100% - 12px);padding:10px;border:1px solid #c7d9ef;border-radius:13px;background:rgba(255,255,255,.98);color:#10241a;box-shadow:0 10px 24px rgba(15,23,42,.14);font-size:10.5px;line-height:1.25;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .12s ease}.historical-chart-tooltip.is-visible{opacity:1;visibility:visible}.historical-chart-tooltip>strong{display:block;margin:0 0 7px;padding:0 0 7px;border-bottom:1px solid #e3ebf5;color:#0b4f9c;font-size:12px}.historical-chart-tooltip-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 10px}.historical-chart-tooltip-grid span{display:grid;gap:1px;min-width:0}.historical-chart-tooltip-grid small{color:#64748b;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.02em}.historical-chart-tooltip-grid b{color:#10241a;font-size:10.5px;font-weight:950;white-space:nowrap}.historical-chart-legend{display:flex;gap:12px;flex-wrap:wrap;color:#526276;font-size:10.5px;font-weight:850}.historical-chart-legend span{display:inline-flex;align-items:center;gap:5px}.historical-chart-legend i{width:10px;height:10px;border-radius:50%;background:#94a3b8;opacity:.5}.historical-chart-legend .selected i{background:#005baa;opacity:1}.historical-chart-legend .reference i{width:16px;height:0;border-radius:0;border-top:2px dashed #0b4f9c;background:transparent;opacity:1}
+@media(max-width:560px){.historical-chart-card{padding:10px}.historical-chart-head{display:grid}.historical-chart-tools{display:grid;justify-content:stretch}.historical-chart-reference-badge{justify-content:center;white-space:normal;text-align:center}.historical-chart-metric{width:100%}.historical-chart-metric button{flex:1}.historical-chart-card .svgbox{min-height:226px}.historical-chart-card .svgbox svg{height:232px}.historical-chart-value{font-size:9px}.historical-chart-legend{gap:8px}}
+
 
 /* V17 · Portada ejecutiva mejorada */
 .executive-hero{padding:18px 18px 10px!important;border-radius:28px!important;overflow:hidden;position:relative}
@@ -1877,6 +1884,8 @@ const DATA = window.APP_DATA;
 const HISTORICAL_ENGINE = window.CASUR_HISTORICAL_ENGINE;
 const HISTORICAL_PERIOD_STATE = {periodMode:'latest',selectedZafras:[]};
 window.CASUR_HISTORICAL_PERIOD_STATE = HISTORICAL_PERIOD_STATE;
+const HISTORICAL_CHART_STATE = {historicalChartMetric:'tch'};
+window.CASUR_HISTORICAL_CHART_STATE = HISTORICAL_CHART_STATE;
 const $ = id => document.getElementById(id);
 const nf = new Intl.NumberFormat('es-NI',{minimumFractionDigits:2,maximumFractionDigits:2});
 const nf0 = new Intl.NumberFormat('es-NI',{maximumFractionDigits:0});
@@ -2216,6 +2225,64 @@ function toggleHistoricalZafra(zafra){
  renderEntity(currentEntity.code);
 }
 
+function setHistoricalChartMetric(metric){
+ const next=String(metric||'').toLowerCase();
+ if(next!=='tch'&&next!=='katm')return;
+ HISTORICAL_CHART_STATE.historicalChartMetric=next;
+ if(currentEntity)renderEntity(currentEntity.code);
+}
+function showHistoricalChartTooltip(point){
+ const box=point&&point.closest('.svgbox'),tip=box&&box.querySelector('.historical-chart-tooltip');if(!box||!tip)return;
+ box.querySelectorAll('.historical-chart-point.is-active').forEach(item=>{if(item!==point)item.classList.remove('is-active');});point.classList.add('is-active');
+ const row=(label,value)=>`<span><small>${label}</small><b>${esc(value||'N/D')}</b></span>`;
+ tip.innerHTML=`<strong>Zafra ${esc(point.dataset.label||'N/D')}</strong><div class="historical-chart-tooltip-grid">${row('Área',point.dataset.area)}${row('Toneladas',point.dataset.ton)}${row('TCH',point.dataset.tch)}${row('KATM',point.dataset.katm)}${row('Edad',point.dataset.edad)}</div>`;
+ tip.classList.add('is-visible');tip.setAttribute('aria-hidden','false');
+ const anchor=point.querySelector('.historical-chart-dot')||point,boxRect=box.getBoundingClientRect(),pointRect=anchor.getBoundingClientRect(),tipRect=tip.getBoundingClientRect();
+ const center=pointRect.left-boxRect.left+pointRect.width/2,maxLeft=Math.max(6,boxRect.width-tipRect.width-6);
+ tip.style.left=Math.max(6,Math.min(maxLeft,center-tipRect.width/2))+'px';
+ const aboveSpace=pointRect.top-boxRect.top-10,belowSpace=boxRect.bottom-pointRect.bottom-10;
+ let top=(aboveSpace>=tipRect.height||aboveSpace>=belowSpace)?pointRect.top-boxRect.top-tipRect.height-10:pointRect.bottom-boxRect.top+10;
+ top=Math.max(6,Math.min(Math.max(6,boxRect.height-tipRect.height-6),top));
+ tip.style.top=top+'px';tip.style.transform='none';
+}
+function pinHistoricalChartTooltip(point,event){
+ if(!point)return;if(event)event.stopPropagation();
+ const box=point.closest('.svgbox');if(box)box.querySelectorAll('.historical-chart-point').forEach(item=>{if(item!==point)delete item.dataset.tooltipPinned;});
+ point.dataset.tooltipPinned='true';showHistoricalChartTooltip(point);
+}
+function hideHistoricalChartTooltip(point,force){
+ if(!point||(!force&&(document.activeElement===point||point.dataset.tooltipPinned==='true')))return;
+ if(force)delete point.dataset.tooltipPinned;
+ const box=point.closest('.svgbox'),tip=box&&box.querySelector('.historical-chart-tooltip');if(!tip)return;
+ point.classList.remove('is-active');tip.classList.remove('is-visible');tip.setAttribute('aria-hidden','true');
+}
+function historicalChart(context){
+ const metric=HISTORICAL_CHART_STATE.historicalChartMetric==='katm'?'katm':'tch';
+ const model=HISTORICAL_ENGINE.buildHistoricalChartModel(context.scopeRows,context.selectedZafras,metric);
+ if(!model.points.length)return '<div class="empty">Sin serie histórica.</div>';
+ const metricLabel=metric==='katm'?'KATM':'TCH';
+ const w=720,h=260,padL=46,padR=24,padT=30,padB=42,plotW=w-padL-padR,plotH=h-padT-padB,baseY=h-padB;
+ const min=model.min==null?0:model.min,max=model.max==null?1:model.max,span=Math.max(max-min,1);
+ const yFor=value=>baseY-((Number(value)-min)/span)*plotH;
+ const points=model.points.map((point,index)=>({...point,label:zlabelJS(point.zafra),x:padL+(index*(plotW)/(model.points.length-1||1)),y:point.value==null?baseY:yFor(point.value)}));
+ const pathFor=predicate=>{let drawing=false,path='';points.forEach(point=>{if(point.value==null||!predicate(point)){drawing=false;return;}path+=(drawing?' L':' M')+point.x.toFixed(1)+' '+point.y.toFixed(1);drawing=true;});return path.trim();};
+ const fullPath=pathFor(()=>true),selectedPath=pathFor(point=>point.selected);
+ const referenceY=model.reference==null?null:yFor(model.reference),referenceText=metricLabel+' ponderado del periodo';
+ const detailVal=(value,suffix='')=>value==null?'N/D':val(value,suffix),detailVal0=(value,suffix='')=>value==null?'N/D':val0(value,suffix);
+ const selector=`<div class="historical-chart-metric no-print" role="group" aria-label="Métrica del gráfico histórico"><button type="button" aria-pressed="${metric==='tch'}" onclick="setHistoricalChartMetric('tch')">TCH</button><button type="button" aria-pressed="${metric==='katm'}" onclick="setHistoricalChartMetric('katm')">KATM</button></div>`;
+ const referenceValue=model.reference==null?'N/D':val(model.reference),referenceBadge=`<span class="historical-chart-reference-badge">${esc(referenceText)}: ${esc(referenceValue)}</span>`;
+ const reference=referenceY==null?'':`<line class="historical-chart-reference" fill="none" stroke="#0b4f9c" stroke-width="1.5" stroke-dasharray="7 6" x1="${padL}" y1="${referenceY.toFixed(1)}" x2="${w-padR}" y2="${referenceY.toFixed(1)}"><title>${esc(referenceText+': '+referenceValue)}</title></line>`;
+ const pointMarkup=points.map((point,index)=>{
+  const area=detailVal(point.area,' ha'),ton=detailVal0(point.ton,' t'),tch=detailVal(point.tch),katm=detailVal(point.katm),edad=detailVal(point.edad,' meses');
+  const tooltip=`Zafra ${point.label} · Área ${area} · Toneladas ${ton} · TCH ${tch} · KATM ${katm} · Edad ${edad}`;
+  const classes=['historical-chart-point',point.selected?'is-selected':'is-muted',point.value==null?'is-missing':''].filter(Boolean).join(' '),showValue=point.selected||index===0||index===points.length-1||index%2===0;
+  const selected=point.selected,missing=point.value==null,fill=missing?'#fff':(selected?'#005baa':'#94a3b8'),stroke=missing?(selected?'#005baa':'#94a3b8'):'#fff',opacity=selected?'1':'.48';
+  return `<g class="${classes}" data-zafra="${point.zafra}" data-selected="${point.selected}" data-label="${esc(point.label)}" data-area="${esc(area)}" data-ton="${esc(ton)}" data-tch="${esc(tch)}" data-katm="${esc(katm)}" data-edad="${esc(edad)}" tabindex="0" role="img" aria-label="${esc(tooltip)}" aria-describedby="historicalChartTooltip" onmouseenter="showHistoricalChartTooltip(this)" onmouseleave="hideHistoricalChartTooltip(this)" onfocus="showHistoricalChartTooltip(this)" onblur="hideHistoricalChartTooltip(this,true)" onclick="pinHistoricalChartTooltip(this,event)"><circle class="historical-chart-hit" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="22" fill="transparent" stroke="none" pointer-events="all"></circle><circle class="historical-chart-dot" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${selected?6.5:5}" fill="${fill}" stroke="${stroke}" stroke-width="${selected?2.8:2.2}" opacity="${opacity}"${missing?' stroke-dasharray="2 2"':''}></circle>${showValue?`<text class="historical-chart-value" fill="${selected?'#10241a':'#64748b'}" font-size="10" font-weight="${selected?'950':'900'}" x="${point.x.toFixed(1)}" y="${Math.max(15,point.y-11).toFixed(1)}" text-anchor="middle">${esc(point.value==null?'N/D':nf.format(point.value))}</text>`:''}<text class="labeltxt" fill="#64748b" font-size="11" font-weight="800" x="${point.x.toFixed(1)}" y="${h-13}" text-anchor="middle">${esc(point.label)}</text></g>`;
+ }).join('');
+ const svg=`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Serie histórica de ${metricLabel}; las zafras del periodo activo están destacadas"><line class="axis" fill="none" stroke="#d7e1dc" stroke-width="1" x1="${padL}" y1="${baseY}" x2="${w-padR}" y2="${baseY}"/><line class="axis" fill="none" stroke="#d7e1dc" stroke-width="1" x1="${padL}" y1="${padT}" x2="${padL}" y2="${baseY}"/><text class="historical-chart-axis-value" fill="#64748b" font-size="9.5" font-weight="800" x="${padL-7}" y="${padT+4}" text-anchor="end">${esc(nf.format(max))}</text><text class="historical-chart-axis-value" fill="#64748b" font-size="9.5" font-weight="800" x="${padL-7}" y="${baseY}" text-anchor="end">${esc(nf.format(min))}</text>${reference}${fullPath?`<path class="historical-chart-line" fill="none" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" d="${fullPath}"/>`:''}${selectedPath?`<path class="historical-chart-selected-line" fill="none" stroke="#0b7f3a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="${selectedPath}"/>`:''}${pointMarkup}</svg>`;
+ return `<div class="historical-chart-card"><div class="historical-chart-head"><div><h3>Histórico ${metricLabel} por zafra</h3><small>Serie completa; el periodo activo queda destacado y la referencia usa su agregado ponderado.</small></div><div class="historical-chart-tools">${referenceBadge}${selector}</div></div><div class="svgbox">${svg}<div class="historical-chart-tooltip" id="historicalChartTooltip" role="tooltip" aria-hidden="true"></div></div><div class="historical-chart-legend"><span class="selected"><i></i>Periodo activo</span><span><i></i>Fuera del periodo</span><span class="reference"><i></i>${esc(referenceText)}</span></div></div>`;
+}
+
 function renderEntity(code){
  const e=getEntity(code);if(!e)return;currentEntity=e;hideSearchSuggestions();
  const q=$('q');if(q)q.value=(e.displayCode||e.code)+' · '+e.name;const ps=$('producerSelect');if(ps)ps.value=code;showFichaEnd(true);
@@ -2233,7 +2300,7 @@ function renderEntity(code){
  ].join('');
  const samePeriodDeltas=`${deltaCard('Vs CASUR',context.deltas.casur,'Mismas zafras')}${deltaCard('Vs zona',context.deltas.zona,'Mismas zafras')}${deltaCard('Vs variedad',context.deltas.variedad,'Mismas zafras')}${deltaCard('Vs riego',context.deltas.riego,'Mismas zafras')}`;
  const fixedComparison=`<div class="historical-fixed-comparison"><div><strong>Referencia fija</strong><small>El histórico completo usa todas las zafras disponibles de esta misma entidad.</small></div>${deltaCard('Vs histórico completo',context.deltas.full,'TCH')}</div>`;
- const trend=lineChart(e.trend),isLotFicha=e.entityType==='lote',table=isLotFicha?detailsTable(entityHistoricDetails(e)):summaryByZafraTable(entitySummaryByZafra(e),e);
+ const trend=historicalChart(context),isLotFicha=e.entityType==='lote',table=isLotFicha?detailsTable(entityHistoricDetails(e)):summaryByZafraTable(entitySummaryByZafra(e),e);
  const detailTitle=isLotFicha?'Detalle del lote · histórico completo':'Resumen de finca · por zafra',detailSmall=isLotFicha?'Todas las zafras disponibles del CodLote seleccionado.':'Ficha ejecutiva consolidada: una fila por zafra, sin abrir el detalle de lotes.';
  $('fichaContent').innerHTML=`<section class="card ficha-card"><div id="printPanel"><div class="print-only print-header"><div><h2>Histórico de Suertes · Ficha individual</h2><p>Departamento de Negocios de Caña · CASUR</p></div><div class="print-meta"><strong>${esc(fichaTitle)}</strong><span>${esc(meta)}</span><span>Consulta: ${esc(now)}</span></div></div><div class="ficha-band no-print"><div><h2>${esc(fichaTitle)}</h2><small>${esc(meta)}</small></div><div class="ficha-actions"><span class="status-pill ${sc(e.statusClass)}">${e.score??'—'} · ${esc(e.status)}</span><button class="ficha-print-btn" onclick="printFicha()">🖨️ <span><b>Imprimir ficha</b><small>Formato carta</small></span></button></div></div><div class="section-title ficha-screen-title no-print"><div><h2>Ficha histórica</h2><small>Código de finca/hacienda, finca CASUR o productor.</small></div></div>${alertsHtml(e.alerts)}${historicalPeriodCard(context)}<div class="section-divider no-print"></div><div class="kpis" style="margin-top:12px">${kpis}</div><div class="historical-comparison-title">Comparadores TCH · mismo periodo seleccionado</div><div class="delta-grid">${samePeriodDeltas}</div>${fixedComparison}<div style="margin-top:12px">${trend}</div><div class="section-title" style="margin-top:12px"><div><h3>${detailTitle}</h3><small>${detailSmall}</small></div></div>${table}<div class="print-end print-only">Documento de consulta ejecutiva · CASUR · Negocios de Caña</div></div></section>`;
  updateState((e.isMaquila?'Maquila · ':'Histórico de Suertes · ')+fichaTitle,'Periodo '+(HISTORICAL_PERIOD_LABELS[HISTORICAL_PERIOD_STATE.periodMode]||'Última')+' · '+context.selectedZafras.map(zlabelJS).join(' · '));nav('fichaSection');
@@ -4184,7 +4251,31 @@ var RENDER_CSS=[
 '.dot{fill:#005baa;stroke:#fff;stroke-width:2.5}',
 '.labeltxt{font-size:11px;fill:#64748b;font-weight:800}',
 '.valuetxt{font-size:11px;fill:#10241a;font-weight:950}',
-'.chart-tip-bg,.chart-tip,.mobile-trend-card{display:none!important}',
+'.chart-tip-bg,.chart-tip,.mobile-trend-card,.historical-chart-tooltip{display:none!important}',
+'.historical-chart-card{display:grid!important;gap:8px!important;width:100%!important;margin:0 0 10px!important;padding:10px!important;border:1px solid #d8e7de!important;border-radius:14px!important;background:#fff!important;overflow:hidden!important}',
+'.historical-chart-head{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important}',
+'.historical-chart-head h3{margin:0!important;color:#10241a!important;font-size:15px!important;line-height:1.15!important;font-weight:950!important}',
+'.historical-chart-head small{display:block!important;margin-top:3px!important;color:#64748b!important;font-size:10px!important;line-height:1.3!important;font-weight:800!important}',
+'.historical-chart-tools{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important}',
+'.historical-chart-reference-badge{display:inline-flex!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #b9d7ff!important;border-radius:999px!important;background:#eef6ff!important;color:#0b4f9c!important;font-size:10.5px!important;font-weight:950!important;white-space:nowrap!important}',
+'.historical-chart-metric{display:none!important}',
+'.historical-chart-card .svgbox{margin:0!important}',
+'.historical-chart-line{fill:none;stroke:#94a3b8;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:.58}',
+'.historical-chart-selected-line{fill:none;stroke:#0b7f3a;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}',
+'.historical-chart-reference{fill:none;stroke:#0b4f9c;stroke-width:1.5;stroke-dasharray:7 6}',
+'.historical-chart-dot{stroke:#fff;stroke-width:2.2}',
+'.historical-chart-point.is-selected .historical-chart-dot{fill:#005baa;opacity:1;stroke-width:2.8}',
+'.historical-chart-point.is-muted .historical-chart-dot{fill:#94a3b8;opacity:.48}',
+'.historical-chart-point.is-missing .historical-chart-dot{fill:#fff;stroke:#94a3b8;stroke-dasharray:2 2}',
+'.historical-chart-point.is-selected.is-missing .historical-chart-dot{stroke:#005baa}',
+'.historical-chart-value{font-size:10px;fill:#64748b;font-weight:900}',
+'.historical-chart-point.is-selected .historical-chart-value{fill:#10241a;font-weight:950}',
+'.historical-chart-axis-value{font-size:9.5px;fill:#64748b;font-weight:800}',
+'.historical-chart-legend{display:flex!important;gap:12px!important;flex-wrap:wrap!important;color:#526276!important;font-size:10.5px!important;font-weight:850!important}',
+'.historical-chart-legend span{display:inline-flex!important;align-items:center!important;gap:5px!important}',
+'.historical-chart-legend i{display:inline-block!important;width:10px!important;height:10px!important;border-radius:50%!important;background:#94a3b8!important;opacity:.5!important}',
+'.historical-chart-legend .selected i{background:#005baa!important;opacity:1!important}',
+'.historical-chart-legend .reference i{width:16px!important;height:0!important;border-radius:0!important;border-top:2px dashed #0b4f9c!important;background:transparent!important;opacity:1!important}',
 
 '.section-title{position:static!important;display:block!important;margin:10px 0 6px!important;padding:0!important}',
 '.section-title>div{width:100%!important;max-width:none!important}',
@@ -4337,7 +4428,8 @@ function historicalDetailTitle(node){return qa('.section-title',node).find(funct
 
 function cleanChart(chart){
   if(!chart)return chart;
-  qa('.chart-tip-bg,.chart-tip,.mobile-trend-card',chart).forEach(remove);
+  qa('.chart-tip-bg,.chart-tip,.mobile-trend-card,.historical-chart-tooltip,.historical-chart-hit',chart).forEach(remove);
+  qa('.historical-chart-point.is-active',chart).forEach(function(point){point.classList.remove('is-active');point.removeAttribute('data-tooltip-pinned');});
   qa('text',chart).forEach(function(t){if(/[UÚuú]ltima/i.test(t.textContent||''))remove(t);});
   qa('rect',chart).forEach(function(r){var c=r.getAttribute('class')||'';if(/chart-tip/i.test(c))remove(r);});
   return chart;
@@ -4349,7 +4441,7 @@ function buildHistorical(node){
   var alerts=clone('.alerts',node);if(alerts){alerts.className='export-alerts';root.appendChild(alerts);}
   var kpis=clone('.kpis',node);if(kpis)root.appendChild(kpis);
   var deltas=clone('.delta-grid',node);if(deltas)root.appendChild(deltas);
-  var chart=cleanChart(clone('.svgbox',node));if(chart)root.appendChild(chart);
+  var chart=cleanChart(clone('.historical-chart-card',node));if(chart)root.appendChild(chart);
   var st=historicalDetailTitle(node);if(st)root.appendChild(cleanElement(st.cloneNode(true)));
   var tw=clone('.table-wrap',node);if(tw)root.appendChild(tw);
   root.appendChild(footer());return root;

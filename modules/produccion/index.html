@@ -270,6 +270,25 @@ body{font-family:'Plus Jakarta Sans','Segoe UI',Roboto,Arial,sans-serif;backgrou
 @media(min-width:760px){#fichaSection .historico-summary-grid{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:560px){#fichaSection .search-suggestions{max-height:300px!important;}}
 
+/* Fase 2 · Periodo único para KPI y comparadores de la ficha histórica */
+.historical-period-card{margin-top:12px;border:1px solid #cfe0d5;border-radius:18px;background:linear-gradient(135deg,#f8fffb,#f5f9ff);padding:12px;display:grid;gap:11px}
+.historical-period-summary{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.historical-period-summary span{display:block;color:#0b6031;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.3px}
+.historical-period-summary strong{display:block;margin-top:3px;color:#10241a;font-size:14px;line-height:1.25}
+.historical-period-summary small{display:block;color:#64748b;font-size:10.5px;font-weight:800;line-height:1.35;text-align:right}
+.historical-period-presets,.historical-season-chips{display:flex;gap:7px;flex-wrap:wrap}
+.historical-period-preset,.historical-season-chip{min-height:40px;border:1px solid #cbd9d0;border-radius:999px;background:#fff;color:#334155;padding:8px 12px;font:inherit;font-size:11px;font-weight:950;cursor:pointer}
+.historical-period-preset:hover,.historical-season-chip:hover{border-color:#0b7f3a;color:#0b6031}
+.historical-period-preset.is-active{background:#0b7f3a;border-color:#0b7f3a;color:#fff}
+.historical-season-picker{display:grid;gap:7px;border-top:1px solid #dfe9e3;padding-top:10px}
+.historical-season-picker[hidden]{display:none!important}
+.historical-season-picker>span{color:#526276;font-size:10.5px;font-weight:900}
+.historical-season-chip.is-selected{background:#e8f1ff;border-color:#0b67c2;color:#0b4f9c;box-shadow:inset 0 0 0 1px #0b67c2}
+.historical-comparison-title{margin:12px 0 7px;color:#526276;font-size:10.5px;font-weight:950;text-transform:uppercase;letter-spacing:.25px}
+.historical-fixed-comparison{margin-top:10px;border:1px dashed #d4b553;border-radius:15px;background:#fffaf0;padding:9px 10px;display:grid;grid-template-columns:minmax(150px,.8fr) minmax(180px,1.2fr);gap:10px;align-items:center}
+.historical-fixed-comparison>div:first-child strong{display:block;color:#6d5200;font-size:12px}.historical-fixed-comparison>div:first-child small{display:block;margin-top:3px;color:#7c6a35;font-size:10px;font-weight:800;line-height:1.3}.historical-fixed-comparison .delta{margin:0}
+@media(max-width:560px){.historical-period-card{padding:10px}.historical-period-summary{display:grid;gap:5px}.historical-period-summary small{text-align:left}.historical-period-presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.historical-period-preset{width:100%;padding:8px 7px}.historical-season-chip{min-width:58px;flex:1 0 auto}.historical-fixed-comparison{grid-template-columns:1fr}.historical-fixed-comparison .delta{width:100%}}
+
 
 /* V17 · Portada ejecutiva mejorada */
 .executive-hero{padding:18px 18px 10px!important;border-radius:28px!important;overflow:hidden;position:relative}
@@ -1856,6 +1875,8 @@ body.crono-print-preview .print-end{display:block!important;text-align:center!im
 <script>
 const DATA = window.APP_DATA;
 const HISTORICAL_ENGINE = window.CASUR_HISTORICAL_ENGINE;
+const HISTORICAL_PERIOD_STATE = {periodMode:'latest',selectedZafras:[]};
+window.CASUR_HISTORICAL_PERIOD_STATE = HISTORICAL_PERIOD_STATE;
 const $ = id => document.getElementById(id);
 const nf = new Intl.NumberFormat('es-NI',{minimumFractionDigits:2,maximumFractionDigits:2});
 const nf0 = new Intl.NumberFormat('es-NI',{maximumFractionDigits:0});
@@ -2050,7 +2071,7 @@ function accordion(id,title,subtitle,body,open=false){return `<details class="ac
 function expandAll(open=true){document.querySelectorAll('details.accordion').forEach(d=>d.open=open);}
 function openFold(id){const el=$(id); if(el){el.open=true; el.scrollIntoView({behavior:'smooth',block:'start'});} }
 function updateState(view='General CASUR sin maquila',filters='Ninguno'){const v=$('viewState'),f=$('filterState'); if(v)v.textContent='Vista actual: '+view; if(f)f.textContent='Filtros activos: '+filters;}
-function restoreView(){currentEntity=null; currentZone=null; const q=$('q'),sel=$('producerSelect'),fc=$('fichaContent'),zs=$('zoneSelect'),zc=$('zoneContent'); if(q)q.value=''; if(sel)sel.value=''; if(fc)fc.innerHTML=''; if(zs)zs.value=''; if(zc)zc.innerHTML=''; hideSearchSuggestions(); showFichaEnd(false); showZoneEnd(false); expandAll(false); updateState(); document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active')); const first=document.querySelector('.bottomnav .navbtn'); if(first)first.classList.add('active'); const home=$('homeSection'); if(home)home.scrollIntoView({behavior:'smooth',block:'start'});}
+function restoreView(){currentEntity=null; currentZone=null; HISTORICAL_PERIOD_STATE.periodMode='latest';HISTORICAL_PERIOD_STATE.selectedZafras=[]; const q=$('q'),sel=$('producerSelect'),fc=$('fichaContent'),zs=$('zoneSelect'),zc=$('zoneContent'); if(q)q.value=''; if(sel)sel.value=''; if(fc)fc.innerHTML=''; if(zs)zs.value=''; if(zc)zc.innerHTML=''; hideSearchSuggestions(); showFichaEnd(false); showZoneEnd(false); expandAll(false); updateState(); document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active')); const first=document.querySelector('.bottomnav .navbtn'); if(first)first.classList.add('active'); const home=$('homeSection'); if(home)home.scrollIntoView({behavior:'smooth',block:'start'});}
 function varietyFamily(name){const s=String(name||'').toUpperCase().trim(); if(!s||s==='SIN DATO')return 'Otras'; if(s.includes('CP 72')||s.includes('CP72')||s.includes('CP-72'))return 'CP 72'; if(s==='NA'||s.startsWith('NA ')||s.includes('NA 85')||s.includes('NA-'))return 'NA'; if(s.startsWith('B ')||s.startsWith('B-')||s.includes('BARBADOS'))return 'Barbados'; return 'Otras';}
 function varietyGroups(){const base={"CP 72":{key:'CP 72',area:0,ton:0,rtoNum:0,count:0},"NA":{key:'NA',area:0,ton:0,rtoNum:0,count:0},"Barbados":{key:'Barbados',area:0,ton:0,rtoNum:0,count:0},"Otras":{key:'Otras',area:0,ton:0,rtoNum:0,count:0}}; Object.values(DATA.benchmarks.variety||{}).forEach(v=>{const fam=varietyFamily(v.key); const g=base[fam]||base.Otras; const area=Number(v.area)||0, ton=Number(v.ton)||0; g.area+=area; g.ton+=ton; g.rtoNum+=(Number(v.rto)||0)*ton; g.count+=(Number(v.productores)||0);}); return ['CP 72','NA','Barbados','Otras'].map(k=>{const g=base[k]; g.tch=g.area?g.ton/g.area:null; g.rto=g.ton?g.rtoNum/g.ton:null; g.area=Number(g.area.toFixed(2)); g.ton=Number(g.ton.toFixed(2)); g.tch=g.tch==null?null:Number(g.tch.toFixed(2)); g.rto=g.rto==null?null:Number(g.rto.toFixed(2)); return g;}).filter(g=>g.area>0);}
 function varietyMatrix(arr){if(!arr||!arr.length)return '<div class="empty">Sin datos varietales.</div>'; const totalArea=arr.reduce((a,b)=>a+(b.area||0),0)||1; return `<div class="table-wrap"><table class="variety-table"><thead><tr><th>Grupo varietal</th><th>Área</th><th>% área</th><th>Toneladas</th><th>TCH</th><th>KATM</th></tr></thead><tbody>${arr.map(v=>`<tr><td><b>${esc(v.key)}</b></td><td>${val(v.area,' ha')}</td><td>${val((v.area/totalArea)*100,' %')}</td><td>${val0(v.ton,' t')}</td><td>${val(v.tch)}</td><td>${val(v.rto)}</td></tr>`).join('')}</tbody></table></div>`;}
@@ -2156,7 +2177,67 @@ function histFichaMeta(e){
   return [`Código ${codigo||'—'}`,zona,tenencia].concat(e&&e.isMaquila?['Maquila']:[]).join(' · ');
 }
 
-function renderEntity(code){const e=getEntity(code); if(!e)return; currentEntity=e; hideSearchSuggestions(); const q=$('q'); if(q)q.value=(e.displayCode||e.code)+' · '+e.name; const ps=$('producerSelect'); if(ps)ps.value=code; showFichaEnd(true); const la=e.latest||{},hi=e.hist||{},l3=e.last3||{}; const fichaTitle=histFichaTitle(e); const meta=histFichaMeta(e); const now=new Date().toLocaleString('es-NI',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); const kpis=[kpi('TCH última zafra',val(la.tch),'Ponderado',true),kpi('Área última zafra',val(la.area,' ha'),''),kpi('Ton última zafra',val0(la.ton,' t'),''),kpi('KATM última zafra',val(la.rto),''),kpi('Edad última zafra',val(la.edad,' meses'),''),kpi('TCH histórico',val(hi.tch),''),kpi('TCH últimas 3',val(l3.tch),''),kpi('Potencial vs zona',val0(e.potentialVsZone,' t'),'')].join(''); const deltas=`${deltaCard('Vs histórico',e.deltas.hist,'TCH')}${deltaCard('Vs últimas 3',e.deltas.last3,'TCH')}${deltaCard('Vs CASUR',e.deltas.casur,'TCH')}${deltaCard('Vs zona',e.deltas.zona,'TCH')}${deltaCard('Vs variedad',e.deltas.variedad,'TCH')}${deltaCard('Vs riego',e.deltas.riego,'TCH')}`; const trend=lineChart(e.trend); const isLotFicha=e.entityType==='lote'; const table=isLotFicha?detailsTable(entityHistoricDetails(e)):summaryByZafraTable(entitySummaryByZafra(e),e); const detailTitle=isLotFicha?'Detalle del lote · histórico completo':'Resumen de finca · por zafra'; const detailSmall=isLotFicha?'Todas las zafras disponibles del CodLote seleccionado.':'Ficha ejecutiva consolidada: una fila por zafra, sin abrir el detalle de lotes.'; $('fichaContent').innerHTML=`<section class="card ficha-card"><div id="printPanel"><div class="print-only print-header"><div><h2>Histórico de Suertes · Ficha individual</h2><p>Departamento de Negocios de Caña · CASUR</p></div><div class="print-meta"><strong>${esc(fichaTitle)}</strong><span>${esc(meta)}</span><span>Consulta: ${esc(now)}</span></div></div><div class="ficha-band no-print"><div><h2>${esc(fichaTitle)}</h2><small>${esc(meta)}</small></div><div class="ficha-actions"><span class="status-pill ${sc(e.statusClass)}">${e.score??'—'} · ${esc(e.status)}</span><button class="ficha-print-btn" onclick="printFicha()">🖨️ <span><b>Imprimir ficha</b><small>Formato carta</small></span></button></div></div><div class="section-title ficha-screen-title no-print"><div><h2>Ficha histórica</h2><small>Código de finca/hacienda, finca CASUR o productor.</small></div></div>${alertsHtml(e.alerts)}<div class="section-divider no-print"></div><div class="kpis" style="margin-top:12px">${kpis}</div><div class="delta-grid" style="margin-top:12px">${deltas}</div><div style="margin-top:12px">${trend}</div><div class="section-title" style="margin-top:12px"><div><h3>${detailTitle}</h3><small>${detailSmall}</small></div></div>${table}<div class="print-end print-only">Documento de consulta ejecutiva · CASUR · Negocios de Caña</div></div></section>`;updateState((e.isMaquila?'Maquila · ':'Histórico de Suertes · ')+fichaTitle,'Código '+(e.displayCode||e.code)+' · '+(e.zona||'Sin zona')+' · '+(e.tenencia||'Sin tenencia'));nav('fichaSection');}
+const HISTORICAL_PERIOD_LABELS={latest:'Última',last3:'Últimas 3',last5:'Últimas 5',all:'Todas',custom:'Personalizado'};
+function historicalEntityScope(e){return e&&e.entityType==='lote'?{lotId:String(e.codLote||e.displayCode||e.code||'').replace(/^LOTE::/,'')}:{farmCode:String(e&&e.code||'')};}
+function historicalMainRow(row){return String(row&&row.farmCode||'')!=='16'&&!normSearch(row&&row.zona).includes('0maquila');}
+function historicalPeriodContext(e){
+ const rows=HISTORICAL_ENGINE.normalizeHistoricalRows(DATA.lotCompact||[]),scope=historicalEntityScope(e),scopeRows=HISTORICAL_ENGINE.filterHistoricalRows(rows,scope);
+ const availableZafras=HISTORICAL_ENGINE.groupHistoricalBySeason(scopeRows).map(group=>group.zafra);
+ const selectedZafras=HISTORICAL_ENGINE.reconcilePeriodSelection(availableZafras,HISTORICAL_PERIOD_STATE.periodMode,HISTORICAL_PERIOD_STATE.selectedZafras);
+ HISTORICAL_PERIOD_STATE.selectedZafras=selectedZafras.slice();
+ const periodRows=HISTORICAL_ENGINE.filterHistoricalRows(scopeRows,null,selectedZafras),metric=HISTORICAL_ENGINE.aggregateHistoricalRows(periodRows),full=HISTORICAL_ENGINE.aggregateHistoricalRows(scopeRows);
+ const compare=benchmarkScope=>HISTORICAL_ENGINE.compareHistoricalRows(rows,scope,benchmarkScope,selectedZafras).deltaTch;
+ const main=row=>historicalMainRow(row);
+ const same=(field,value)=>row=>main(row)&&String(row&&row[field]||'')===String(value||'');
+ return {scope,rows,scopeRows,availableZafras,selectedZafras,metric,full,deltas:{
+  casur:compare(main),zona:compare(same('zona',e.zona)),variedad:compare(same('variedad',e.variedad)),riego:compare(same('riego',e.riego)),
+  full:metric.tch!=null&&full.tch!=null?r2n(metric.tch-full.tch):null
+ }};
+}
+function historicalPeriodCard(context){
+ const mode=HISTORICAL_PERIOD_STATE.periodMode,label=HISTORICAL_PERIOD_LABELS[mode]||HISTORICAL_PERIOD_LABELS.latest;
+ const seasonLabels=context.selectedZafras.map(zlabelJS).join(' · ')||'Sin zafras disponibles';
+ const presets=[['latest','Última'],['last3','Últimas 3'],['last5','Últimas 5'],['all','Todas'],['custom','Personalizado']].map(item=>`<button type="button" class="historical-period-preset ${mode===item[0]?'is-active':''}" aria-pressed="${mode===item[0]}" onclick="setHistoricalPeriodMode('${item[0]}')">${item[1]}</button>`).join('');
+ const selected=new Set(context.selectedZafras.map(Number));
+ const chips=context.availableZafras.map(z=>`<button type="button" class="historical-season-chip ${selected.has(Number(z))?'is-selected':''}" aria-pressed="${selected.has(Number(z))}" onclick="toggleHistoricalZafra(${Number(z)})">${esc(zlabelJS(z))}</button>`).join('');
+ return `<div class="historical-period-card"><div class="historical-period-summary"><div><span>Periodo: ${esc(label)}</span><strong>${esc(seasonLabels)}</strong></div><small>${context.selectedZafras.length} ${context.selectedZafras.length===1?'zafra seleccionada':'zafras seleccionadas'}<br>KPI y comparadores usan el mismo periodo</small></div><div class="historical-period-presets no-print" role="group" aria-label="Periodo histórico">${presets}</div><div class="historical-season-picker no-print" ${mode==='custom'?'':'hidden'}><span>Seleccione una o más zafras disponibles:</span><div class="historical-season-chips">${chips}</div></div></div>`;
+}
+function setHistoricalPeriodMode(mode){
+ if(!Object.prototype.hasOwnProperty.call(HISTORICAL_PERIOD_LABELS,mode))return;
+ HISTORICAL_PERIOD_STATE.periodMode=mode;
+ if(currentEntity)renderEntity(currentEntity.code);
+}
+function toggleHistoricalZafra(zafra){
+ if(!currentEntity)return;
+ HISTORICAL_PERIOD_STATE.periodMode='custom';
+ const next=new Set(HISTORICAL_PERIOD_STATE.selectedZafras.map(Number)),value=Number(zafra);
+ if(next.has(value)){if(next.size===1){alert('Seleccione al menos una zafra para el periodo personalizado.');return;}next.delete(value);}else next.add(value);
+ HISTORICAL_PERIOD_STATE.selectedZafras=[...next].sort((a,b)=>a-b);
+ renderEntity(currentEntity.code);
+}
+
+function renderEntity(code){
+ const e=getEntity(code);if(!e)return;currentEntity=e;hideSearchSuggestions();
+ const q=$('q');if(q)q.value=(e.displayCode||e.code)+' · '+e.name;const ps=$('producerSelect');if(ps)ps.value=code;showFichaEnd(true);
+ const context=historicalPeriodContext(e),metric=context.metric,periodCount=context.selectedZafras.length,multiSeason=periodCount>1;
+ const fichaTitle=histFichaTitle(e),meta=histFichaMeta(e),now=new Date().toLocaleString('es-NI',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+ const areaLabel=multiSeason?'Área cosechada acumulada':'Área cosechada',areaUnit=multiSeason?' ha-zafra':' ha';
+ const kpis=[
+  kpi('TCH ponderado',val(metric.tch),'Toneladas ÷ área',true),
+  kpi('KATM ponderado',val(metric.katm),'Ponderado por toneladas'),
+  kpi('Toneladas acumuladas',val0(metric.ton,' t'),'Suma del periodo'),
+  kpi(areaLabel,val(metric.area,areaUnit),multiSeason?'Suma de áreas por zafra':'Una zafra'),
+  kpi('Edad ponderada',val(metric.edad,' meses'),'Ponderada por área válida'),
+  kpi('Zafras seleccionadas',val0(periodCount),'Periodo activo'),
+  kpi('Suertes únicas',val0(metric.suertes),'lotId únicos')
+ ].join('');
+ const samePeriodDeltas=`${deltaCard('Vs CASUR',context.deltas.casur,'Mismas zafras')}${deltaCard('Vs zona',context.deltas.zona,'Mismas zafras')}${deltaCard('Vs variedad',context.deltas.variedad,'Mismas zafras')}${deltaCard('Vs riego',context.deltas.riego,'Mismas zafras')}`;
+ const fixedComparison=`<div class="historical-fixed-comparison"><div><strong>Referencia fija</strong><small>El histórico completo usa todas las zafras disponibles de esta misma entidad.</small></div>${deltaCard('Vs histórico completo',context.deltas.full,'TCH')}</div>`;
+ const trend=lineChart(e.trend),isLotFicha=e.entityType==='lote',table=isLotFicha?detailsTable(entityHistoricDetails(e)):summaryByZafraTable(entitySummaryByZafra(e),e);
+ const detailTitle=isLotFicha?'Detalle del lote · histórico completo':'Resumen de finca · por zafra',detailSmall=isLotFicha?'Todas las zafras disponibles del CodLote seleccionado.':'Ficha ejecutiva consolidada: una fila por zafra, sin abrir el detalle de lotes.';
+ $('fichaContent').innerHTML=`<section class="card ficha-card"><div id="printPanel"><div class="print-only print-header"><div><h2>Histórico de Suertes · Ficha individual</h2><p>Departamento de Negocios de Caña · CASUR</p></div><div class="print-meta"><strong>${esc(fichaTitle)}</strong><span>${esc(meta)}</span><span>Consulta: ${esc(now)}</span></div></div><div class="ficha-band no-print"><div><h2>${esc(fichaTitle)}</h2><small>${esc(meta)}</small></div><div class="ficha-actions"><span class="status-pill ${sc(e.statusClass)}">${e.score??'—'} · ${esc(e.status)}</span><button class="ficha-print-btn" onclick="printFicha()">🖨️ <span><b>Imprimir ficha</b><small>Formato carta</small></span></button></div></div><div class="section-title ficha-screen-title no-print"><div><h2>Ficha histórica</h2><small>Código de finca/hacienda, finca CASUR o productor.</small></div></div>${alertsHtml(e.alerts)}${historicalPeriodCard(context)}<div class="section-divider no-print"></div><div class="kpis" style="margin-top:12px">${kpis}</div><div class="historical-comparison-title">Comparadores TCH · mismo periodo seleccionado</div><div class="delta-grid">${samePeriodDeltas}</div>${fixedComparison}<div style="margin-top:12px">${trend}</div><div class="section-title" style="margin-top:12px"><div><h3>${detailTitle}</h3><small>${detailSmall}</small></div></div>${table}<div class="print-end print-only">Documento de consulta ejecutiva · CASUR · Negocios de Caña</div></div></section>`;
+ updateState((e.isMaquila?'Maquila · ':'Histórico de Suertes · ')+fichaTitle,'Periodo '+(HISTORICAL_PERIOD_LABELS[HISTORICAL_PERIOD_STATE.periodMode]||'Última')+' · '+context.selectedZafras.map(zlabelJS).join(' · '));nav('fichaSection');
+}
 
 
 function zafraSortValueCASUR(v){

@@ -15,6 +15,7 @@ const {
   filterHistoricalRows,
   aggregateHistoricalRows,
   compareHistoricalRows,
+  buildHistoricalChartModel,
   groupHistoricalBySeason,
   groupHistoricalByLot,
 } = globalThis.CASUR_HISTORICAL_ENGINE;
@@ -183,6 +184,85 @@ test("comparador vs histórico completo usa todas las zafras de la entidad", () 
   assert.equal(Math.round((latest.tch - full.tch) * 100) / 100, -15.81);
 });
 
+test("modelo del gráfico alterna TCH/KATM sin cambiar el periodo", () => {
+  const rows = normalizeHistoricalRows(sampleLotCompact);
+  const selected = [2122];
+  const selectedSnapshot = structuredClone(selected);
+  const tch = buildHistoricalChartModel(rows, selected);
+  const katm = buildHistoricalChartModel(rows, selected, "katm");
+  assert.equal(tch.metric, "tch");
+  assert.equal(katm.metric, "katm");
+  assert.deepEqual(selected, selectedSnapshot);
+  assert.deepEqual(tch.points.map((point) => point.selected), [false, true]);
+  assert.deepEqual(katm.points.map((point) => point.selected), [false, true]);
+  assert.equal(tch.points[1].value, 70);
+  assert.equal(katm.points[1].value, 120);
+  assert.equal(tch.reference, 70);
+  assert.equal(katm.reference, 120);
+});
+
+test("serie TCH por zafra usa toneladas entre área y conserva todo el histórico", () => {
+  const rows = [
+    { lotId: "A", zafra: 2021, area: 10, ton: 500, katm: 80 },
+    { lotId: "B", zafra: 2021, area: 30, ton: 3000, katm: 120 },
+    { lotId: "A", zafra: 2122, area: 10, ton: 600, katm: 90 },
+  ];
+  const model = buildHistoricalChartModel(rows, [2122], "tch");
+  assert.equal(model.points.length, 2);
+  assert.equal(model.points[0].value, 87.5);
+  assert.deepEqual(model.points.filter((point) => point.selected).map((point) => point.zafra), [2122]);
+  assert.deepEqual(model.points.filter((point) => !point.selected).map((point) => point.zafra), [2021]);
+});
+
+test("serie KATM pondera por toneladas y conserva N/D como nulo", () => {
+  const rows = [
+    { lotId: "A", zafra: 2021, area: 90, ton: 100, katm: 80 },
+    { lotId: "B", zafra: 2021, area: 10, ton: 900, katm: 120 },
+    { lotId: "A", zafra: 2122, area: 10, ton: 600, katm: null },
+  ];
+  const model = buildHistoricalChartModel(rows, [2021], "katm");
+  assert.equal(model.points[0].value, 116);
+  assert.equal(model.points[1].value, null);
+  assert.equal(model.reference, 116);
+});
+
+test("escala del gráfico resuelve una serie de un punto y valores idénticos", () => {
+  const one = buildHistoricalChartModel([{ lotId: "A", zafra: 2526, area: 10, ton: 500, katm: 90 }], [2526]);
+  const equal = buildHistoricalChartModel([
+    { lotId: "A", zafra: 2425, area: 10, ton: 500, katm: 90 },
+    { lotId: "A", zafra: 2526, area: 20, ton: 1000, katm: 90 },
+  ], [2425, 2526]);
+  assert.equal(one.points.length, 1);
+  assert.ok(one.min < 50 && one.max > 50);
+  assert.ok(equal.min < 50 && equal.max > 50);
+});
+
+test("casos 759 y 75907 alimentan el gráfico desde el motor común", () => {
+  const farmRows = filterHistoricalRows(officialRows, { farmCode: "759" });
+  const farmPeriod = resolvePeriod(farmRows.map((row) => row.zafra), "last5");
+  const farmTch = buildHistoricalChartModel(farmRows, farmPeriod, "tch");
+  const farmKatm = buildHistoricalChartModel(farmRows, farmPeriod, "katm");
+  assert.equal(farmTch.points.length, 10);
+  assert.equal(farmTch.reference, 74.36);
+  assert.equal(farmKatm.reference, 104.25);
+  assert.deepEqual(farmTch.points.filter((point) => point.selected).map((point) => point.zafra), farmPeriod);
+
+  const lotRows = filterHistoricalRows(officialRows, { lotId: "75907" });
+  const custom = [2223, 2425, 2526];
+  const lot = buildHistoricalChartModel(lotRows, custom, "katm");
+  assert.equal(lot.points.length, 10);
+  assert.deepEqual(lot.points.filter((point) => point.selected).map((point) => point.zafra), custom);
+});
+
+test("estado de métrica es independiente del estado de periodo", () => {
+  assert.match(index, /HISTORICAL_CHART_STATE\s*=\s*\{historicalChartMetric:'tch'\}/);
+  const metricSetter = index.match(/function setHistoricalChartMetric\(metric\)\{[\s\S]*?\n\}/)?.[0] || "";
+  const periodSetter = index.match(/function setHistoricalPeriodMode\(mode\)\{[\s\S]*?\n\}/)?.[0] || "";
+  assert.ok(metricSetter.includes("HISTORICAL_CHART_STATE.historicalChartMetric=next"));
+  assert.equal(metricSetter.includes("selectedZafras="), false);
+  assert.equal(periodSetter.includes("historicalChartMetric="), false);
+});
+
 test("caso finca 759 conserva la regresión calculada", () => {
   const rows = filterHistoricalRows(officialRows, { farmCode: "759" });
   const available = groupHistoricalBySeason(rows).map((group) => group.zafra);
@@ -231,6 +311,7 @@ test("ninguna función del motor muta lotCompact ni las filas normalizadas", () 
   filterHistoricalRows(rows, { farmCode: "100" }, period);
   aggregateHistoricalRows(rows);
   compareHistoricalRows(rows, { lotId: "10001" }, { farmCode: "100" }, period);
+  buildHistoricalChartModel(rows, period, "katm");
   groupHistoricalBySeason(rows);
   groupHistoricalByLot(rows);
   assert.deepEqual(input, inputSnapshot);

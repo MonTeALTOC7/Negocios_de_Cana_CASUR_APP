@@ -289,6 +289,13 @@ body{font-family:'Plus Jakarta Sans','Segoe UI',Roboto,Arial,sans-serif;backgrou
 .historical-fixed-comparison>div:first-child strong{display:block;color:#6d5200;font-size:12px}.historical-fixed-comparison>div:first-child small{display:block;margin-top:3px;color:#7c6a35;font-size:10px;font-weight:800;line-height:1.3}.historical-fixed-comparison .delta{margin:0}
 @media(max-width:560px){.historical-period-card{padding:10px}.historical-period-summary{display:grid;gap:5px}.historical-period-summary small{text-align:left}.historical-period-presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.historical-period-preset{width:100%;padding:8px 7px}.historical-season-chip{min-width:58px;flex:1 0 auto}.historical-fixed-comparison{grid-template-columns:1fr}.historical-fixed-comparison .delta{width:100%}}
 
+/* Fase 3A · Una serie histórica, dos métricas y el periodo activo como contexto */
+.historical-chart-card{margin-top:12px;border:1px solid #d8e7de;border-radius:18px;background:#fff;padding:12px;display:grid;gap:9px;overflow:hidden}
+.historical-chart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.historical-chart-head h3{margin:0;color:#10241a;font-size:15px}.historical-chart-head small{display:block;margin-top:3px;color:#64748b;font-size:10.5px;font-weight:800;line-height:1.35}
+.historical-chart-metric{display:inline-flex;gap:4px;padding:3px;border:1px solid #d7e3dc;border-radius:13px;background:#f5f9f7}.historical-chart-metric button{min-width:62px;min-height:40px;border:0;border-radius:10px;background:transparent;color:#526276;font:inherit;font-size:11px;font-weight:950;cursor:pointer}.historical-chart-metric button[aria-pressed="true"]{background:#0b7f3a;color:#fff;box-shadow:0 3px 9px rgba(11,127,58,.2)}.historical-chart-metric button:focus-visible{outline:3px solid rgba(0,91,170,.3);outline-offset:2px}
+.historical-chart-card .svgbox{margin:0;min-height:250px;padding:4px}.historical-chart-card .svgbox svg{height:260px;overflow:visible}.historical-chart-line{fill:none;stroke:#94a3b8;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:.58}.historical-chart-selected-line{fill:none;stroke:#0b7f3a;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}.historical-chart-reference{stroke:#0b4f9c;stroke-width:1.5;stroke-dasharray:7 6}.historical-chart-reference-label{font-size:10px;fill:#0b4f9c;font-weight:950}.historical-chart-point{outline:none}.historical-chart-point circle{fill:#94a3b8;stroke:#fff;stroke-width:2.2;opacity:.48}.historical-chart-point.is-selected circle{fill:#005baa;opacity:1;stroke-width:2.8}.historical-chart-point.is-missing circle{fill:#fff;stroke:#94a3b8;stroke-dasharray:2 2}.historical-chart-point.is-selected.is-missing circle{stroke:#005baa}.historical-chart-point:focus circle{stroke:#f4c542;stroke-width:4;opacity:1}.historical-chart-point:focus .historical-chart-value{fill:#0b4f9c}.historical-chart-value{font-size:10px;fill:#64748b;font-weight:900}.historical-chart-point.is-selected .historical-chart-value{fill:#10241a;font-weight:950}.historical-chart-axis-value{font-size:9.5px;fill:#64748b;font-weight:800}.historical-chart-legend{display:flex;gap:12px;flex-wrap:wrap;color:#526276;font-size:10.5px;font-weight:850}.historical-chart-legend span{display:inline-flex;align-items:center;gap:5px}.historical-chart-legend i{width:10px;height:10px;border-radius:50%;background:#94a3b8;opacity:.5}.historical-chart-legend .selected i{background:#005baa;opacity:1}.historical-chart-legend .reference i{width:16px;height:0;border-radius:0;border-top:2px dashed #0b4f9c;background:transparent;opacity:1}
+@media(max-width:560px){.historical-chart-card{padding:10px}.historical-chart-head{display:grid}.historical-chart-metric{width:100%}.historical-chart-metric button{flex:1}.historical-chart-card .svgbox{min-height:226px}.historical-chart-card .svgbox svg{height:232px}.historical-chart-reference-label{font-size:9px}.historical-chart-value{font-size:9px}.historical-chart-legend{gap:8px}}
+
 
 /* V17 · Portada ejecutiva mejorada */
 .executive-hero{padding:18px 18px 10px!important;border-radius:28px!important;overflow:hidden;position:relative}
@@ -1877,6 +1884,8 @@ const DATA = window.APP_DATA;
 const HISTORICAL_ENGINE = window.CASUR_HISTORICAL_ENGINE;
 const HISTORICAL_PERIOD_STATE = {periodMode:'latest',selectedZafras:[]};
 window.CASUR_HISTORICAL_PERIOD_STATE = HISTORICAL_PERIOD_STATE;
+const HISTORICAL_CHART_STATE = {historicalChartMetric:'tch'};
+window.CASUR_HISTORICAL_CHART_STATE = HISTORICAL_CHART_STATE;
 const $ = id => document.getElementById(id);
 const nf = new Intl.NumberFormat('es-NI',{minimumFractionDigits:2,maximumFractionDigits:2});
 const nf0 = new Intl.NumberFormat('es-NI',{maximumFractionDigits:0});
@@ -2216,6 +2225,36 @@ function toggleHistoricalZafra(zafra){
  renderEntity(currentEntity.code);
 }
 
+function setHistoricalChartMetric(metric){
+ const next=String(metric||'').toLowerCase();
+ if(next!=='tch'&&next!=='katm')return;
+ HISTORICAL_CHART_STATE.historicalChartMetric=next;
+ if(currentEntity)renderEntity(currentEntity.code);
+}
+function historicalChart(context){
+ const metric=HISTORICAL_CHART_STATE.historicalChartMetric==='katm'?'katm':'tch';
+ const model=HISTORICAL_ENGINE.buildHistoricalChartModel(context.scopeRows,context.selectedZafras,metric);
+ if(!model.points.length)return '<div class="empty">Sin serie histórica.</div>';
+ const metricLabel=metric==='katm'?'KATM':'TCH',unit=metricLabel;
+ const w=720,h=260,padL=46,padR=24,padT=30,padB=42,plotW=w-padL-padR,plotH=h-padT-padB,baseY=h-padB;
+ const min=model.min==null?0:model.min,max=model.max==null?1:model.max,span=Math.max(max-min,1);
+ const yFor=value=>baseY-((Number(value)-min)/span)*plotH;
+ const points=model.points.map((point,index)=>({...point,label:zlabelJS(point.zafra),x:padL+(index*(plotW)/(model.points.length-1||1)),y:point.value==null?baseY:yFor(point.value)}));
+ const pathFor=predicate=>{let drawing=false,path='';points.forEach(point=>{if(point.value==null||!predicate(point)){drawing=false;return;}path+=(drawing?' L':' M')+point.x.toFixed(1)+' '+point.y.toFixed(1);drawing=true;});return path.trim();};
+ const fullPath=pathFor(()=>true),selectedPath=pathFor(point=>point.selected);
+ const referenceY=model.reference==null?null:yFor(model.reference),referenceText=metricLabel+' ponderado del periodo';
+ const detailVal=(value,suffix='')=>value==null?'N/D':val(value,suffix),detailVal0=(value,suffix='')=>value==null?'N/D':val0(value,suffix);
+ const selector=`<div class="historical-chart-metric no-print" role="group" aria-label="Métrica del gráfico histórico"><button type="button" aria-pressed="${metric==='tch'}" onclick="setHistoricalChartMetric('tch')">TCH</button><button type="button" aria-pressed="${metric==='katm'}" onclick="setHistoricalChartMetric('katm')">KATM</button></div>`;
+ const reference=referenceY==null?'':`<line class="historical-chart-reference" x1="${padL}" y1="${referenceY.toFixed(1)}" x2="${w-padR}" y2="${referenceY.toFixed(1)}"><title>${esc(referenceText+': '+val(model.reference,' '+unit))}</title></line><text class="historical-chart-reference-label" x="${padL+6}" y="${Math.max(13,referenceY-7).toFixed(1)}">${esc(referenceText)}: ${esc(val(model.reference,' '+unit))}</text>`;
+ const pointMarkup=points.map((point,index)=>{
+  const tooltip=`Zafra ${point.label} · Área ${detailVal(point.area,' ha')} · Toneladas ${detailVal0(point.ton,' t')} · TCH ${detailVal(point.tch)} · KATM ${detailVal(point.katm)} · Edad ${detailVal(point.edad,' meses')}`;
+  const classes=['historical-chart-point',point.selected?'is-selected':'is-muted',point.value==null?'is-missing':''].filter(Boolean).join(' '),showValue=point.selected||index===0||index===points.length-1||index%2===0;
+  return `<g class="${classes}" data-zafra="${point.zafra}" data-selected="${point.selected}" tabindex="0" role="img" aria-label="${esc(tooltip)}"><title>${esc(tooltip)}</title><circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${point.selected?6.5:5}"></circle>${showValue?`<text class="historical-chart-value" x="${point.x.toFixed(1)}" y="${Math.max(15,point.y-11).toFixed(1)}" text-anchor="middle">${esc(point.value==null?'N/D':nf.format(point.value))}</text>`:''}<text class="labeltxt" x="${point.x.toFixed(1)}" y="${h-13}" text-anchor="middle">${esc(point.label)}</text></g>`;
+ }).join('');
+ const svg=`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Serie histórica de ${metricLabel}; las zafras del periodo activo están destacadas"><line class="axis" x1="${padL}" y1="${baseY}" x2="${w-padR}" y2="${baseY}"/><line class="axis" x1="${padL}" y1="${padT}" x2="${padL}" y2="${baseY}"/><text class="historical-chart-axis-value" x="${padL-7}" y="${padT+4}" text-anchor="end">${esc(nf.format(max))}</text><text class="historical-chart-axis-value" x="${padL-7}" y="${baseY}" text-anchor="end">${esc(nf.format(min))}</text>${reference}${fullPath?`<path class="historical-chart-line" d="${fullPath}"/>`:''}${selectedPath?`<path class="historical-chart-selected-line" d="${selectedPath}"/>`:''}${pointMarkup}</svg>`;
+ return `<div class="historical-chart-card"><div class="historical-chart-head"><div><h3>Histórico ${metricLabel} por zafra</h3><small>Serie completa; el periodo activo queda destacado y la referencia usa su agregado ponderado.</small></div>${selector}</div><div class="svgbox">${svg}</div><div class="historical-chart-legend"><span class="selected"><i></i>Periodo activo</span><span><i></i>Fuera del periodo</span><span class="reference"><i></i>${esc(referenceText)}</span></div></div>`;
+}
+
 function renderEntity(code){
  const e=getEntity(code);if(!e)return;currentEntity=e;hideSearchSuggestions();
  const q=$('q');if(q)q.value=(e.displayCode||e.code)+' · '+e.name;const ps=$('producerSelect');if(ps)ps.value=code;showFichaEnd(true);
@@ -2233,7 +2272,7 @@ function renderEntity(code){
  ].join('');
  const samePeriodDeltas=`${deltaCard('Vs CASUR',context.deltas.casur,'Mismas zafras')}${deltaCard('Vs zona',context.deltas.zona,'Mismas zafras')}${deltaCard('Vs variedad',context.deltas.variedad,'Mismas zafras')}${deltaCard('Vs riego',context.deltas.riego,'Mismas zafras')}`;
  const fixedComparison=`<div class="historical-fixed-comparison"><div><strong>Referencia fija</strong><small>El histórico completo usa todas las zafras disponibles de esta misma entidad.</small></div>${deltaCard('Vs histórico completo',context.deltas.full,'TCH')}</div>`;
- const trend=lineChart(e.trend),isLotFicha=e.entityType==='lote',table=isLotFicha?detailsTable(entityHistoricDetails(e)):summaryByZafraTable(entitySummaryByZafra(e),e);
+ const trend=historicalChart(context),isLotFicha=e.entityType==='lote',table=isLotFicha?detailsTable(entityHistoricDetails(e)):summaryByZafraTable(entitySummaryByZafra(e),e);
  const detailTitle=isLotFicha?'Detalle del lote · histórico completo':'Resumen de finca · por zafra',detailSmall=isLotFicha?'Todas las zafras disponibles del CodLote seleccionado.':'Ficha ejecutiva consolidada: una fila por zafra, sin abrir el detalle de lotes.';
  $('fichaContent').innerHTML=`<section class="card ficha-card"><div id="printPanel"><div class="print-only print-header"><div><h2>Histórico de Suertes · Ficha individual</h2><p>Departamento de Negocios de Caña · CASUR</p></div><div class="print-meta"><strong>${esc(fichaTitle)}</strong><span>${esc(meta)}</span><span>Consulta: ${esc(now)}</span></div></div><div class="ficha-band no-print"><div><h2>${esc(fichaTitle)}</h2><small>${esc(meta)}</small></div><div class="ficha-actions"><span class="status-pill ${sc(e.statusClass)}">${e.score??'—'} · ${esc(e.status)}</span><button class="ficha-print-btn" onclick="printFicha()">🖨️ <span><b>Imprimir ficha</b><small>Formato carta</small></span></button></div></div><div class="section-title ficha-screen-title no-print"><div><h2>Ficha histórica</h2><small>Código de finca/hacienda, finca CASUR o productor.</small></div></div>${alertsHtml(e.alerts)}${historicalPeriodCard(context)}<div class="section-divider no-print"></div><div class="kpis" style="margin-top:12px">${kpis}</div><div class="historical-comparison-title">Comparadores TCH · mismo periodo seleccionado</div><div class="delta-grid">${samePeriodDeltas}</div>${fixedComparison}<div style="margin-top:12px">${trend}</div><div class="section-title" style="margin-top:12px"><div><h3>${detailTitle}</h3><small>${detailSmall}</small></div></div>${table}<div class="print-end print-only">Documento de consulta ejecutiva · CASUR · Negocios de Caña</div></div></section>`;
  updateState((e.isMaquila?'Maquila · ':'Histórico de Suertes · ')+fichaTitle,'Periodo '+(HISTORICAL_PERIOD_LABELS[HISTORICAL_PERIOD_STATE.periodMode]||'Última')+' · '+context.selectedZafras.map(zlabelJS).join(' · '));nav('fichaSection');

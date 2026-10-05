@@ -198,6 +198,39 @@
     };
   }
 
+  function buildHistoricalChartModel(rows, selectedZafras, metric = "tch") {
+    const normalizedMetric = String(metric || "tch").trim().toLowerCase() === "katm" ? "katm" : "tch";
+    const selected = new Set((selectedZafras instanceof Set ? [...selectedZafras] : Array.isArray(selectedZafras) ? selectedZafras : [selectedZafras])
+      .map(finite).filter((value) => value !== null));
+    const points = groupHistoricalBySeason(rows).map((group) => ({
+      zafra: group.zafra,
+      area: group.area,
+      ton: group.ton,
+      tch: group.tch,
+      katm: group.katm,
+      edad: group.edad,
+      suertes: group.suertes,
+      value: group[normalizedMetric],
+      selected: selected.has(group.zafra),
+    }));
+    const periodRows = filterHistoricalRows(rows, null, [...selected]);
+    const period = aggregateHistoricalRows(periodRows);
+    const reference = period[normalizedMetric];
+    const values = points.map((point) => point.value).filter((value) => value !== null);
+    if (reference !== null) values.push(reference);
+    let min = null;
+    let max = null;
+    if (values.length) {
+      const rawMin = Math.min(...values);
+      const rawMax = Math.max(...values);
+      const span = rawMax - rawMin;
+      const padding = span > 0 ? span * 0.12 : Math.max(Math.abs(rawMax) * 0.08, 1);
+      min = rawMin - padding;
+      max = rawMax + padding;
+    }
+    return { metric: normalizedMetric, points, reference, min, max };
+  }
+
   function groupHistoricalBySeason(rows) {
     const groups = new Map();
     (Array.isArray(rows) ? rows : []).forEach((row) => {
@@ -242,6 +275,7 @@
     filterHistoricalRows,
     aggregateHistoricalRows,
     compareHistoricalRows,
+    buildHistoricalChartModel,
     groupHistoricalBySeason,
     groupHistoricalByLot,
   });

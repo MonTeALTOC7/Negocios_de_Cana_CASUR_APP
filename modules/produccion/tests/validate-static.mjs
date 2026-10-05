@@ -196,6 +196,16 @@ check("motor histórico integrado sin corte ficticio", () => {
   assert.ok(index.includes('id="histCut" type="text" value="N/D" disabled'));
 });
 
+check("gráfico histórico comparte motor, periodo y métrica accesible", () => {
+  assert.ok(historicalEngine.includes("function buildHistoricalChartModel"));
+  assert.ok(index.includes("HISTORICAL_ENGINE.buildHistoricalChartModel(context.scopeRows,context.selectedZafras,metric)"));
+  assert.ok(index.includes("const HISTORICAL_CHART_STATE = {historicalChartMetric:'tch'}"));
+  assert.ok(index.includes('aria-label="Métrica del gráfico histórico"'));
+  assert.ok(index.includes('data-selected="${point.selected}"'));
+  assert.ok(index.includes('tabindex="0" role="img"'));
+  assert.ok(index.includes("const trend=historicalChart(context)"));
+});
+
 check("scripts inline válidos", () => {
   const matcher = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
   let match;

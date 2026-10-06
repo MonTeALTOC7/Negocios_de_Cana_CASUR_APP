@@ -268,6 +268,47 @@
       });
   }
 
+  function buildHistoricalDrilldownModel(rows, farmCode, selectedZafra) {
+    const code = text(farmCode);
+    const zafra = finite(selectedZafra);
+    const farmRows = filterHistoricalRows(rows, { farmCode: code });
+    const seasonRows = zafra === null ? [] : filterHistoricalRows(farmRows, null, [zafra]);
+    const first = farmRows[0] || {};
+    return {
+      farmCode: code,
+      farmName: text(first.farmName),
+      selectedZafra: zafra,
+      summary: aggregateHistoricalRows(seasonRows),
+      lots: groupHistoricalByLot(seasonRows),
+    };
+  }
+
+  function updateHistoricalDrilldownState(state, action) {
+    const current = {
+      farmCode: text(state?.farmCode) || null,
+      selectedZafra: finite(state?.selectedZafra),
+      selectedLotId: text(state?.selectedLotId) || null,
+    };
+    const type = text(action?.type);
+    if (type === "openSeason") {
+      return {
+        farmCode: text(action?.farmCode) || current.farmCode,
+        selectedZafra: finite(action?.zafra),
+        selectedLotId: null,
+      };
+    }
+    if (type === "openLot") {
+      return { ...current, selectedLotId: text(action?.lotId) || null };
+    }
+    if (type === "backToFarm") return { ...current, selectedLotId: null };
+    if (type === "changeFarm") {
+      const farmCode = text(action?.farmCode) || null;
+      return farmCode === current.farmCode ? current : { farmCode, selectedZafra: null, selectedLotId: null };
+    }
+    if (type === "close") return { farmCode: current.farmCode, selectedZafra: null, selectedLotId: null };
+    return current;
+  }
+
   return Object.freeze({
     normalizeHistoricalRows,
     resolvePeriod,
@@ -278,5 +319,7 @@
     buildHistoricalChartModel,
     groupHistoricalBySeason,
     groupHistoricalByLot,
+    buildHistoricalDrilldownModel,
+    updateHistoricalDrilldownState,
   });
 });

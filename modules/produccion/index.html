@@ -296,6 +296,10 @@ body{font-family:'Plus Jakarta Sans','Segoe UI',Roboto,Arial,sans-serif;backgrou
 .historical-chart-card .svgbox{position:relative;margin:0;min-height:250px;padding:4px}.historical-chart-card .svgbox svg{height:260px;overflow:visible}.historical-chart-line{fill:none;stroke:#94a3b8;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:.58}.historical-chart-selected-line{fill:none;stroke:#0b7f3a;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}.historical-chart-reference{fill:none;stroke:#0b4f9c;stroke-width:1.5;stroke-dasharray:7 6}.historical-chart-point{outline:none;cursor:default}.historical-chart-hit{fill:transparent;stroke:none;pointer-events:all}.historical-chart-dot{fill:#94a3b8;stroke:#fff;stroke-width:2.2;opacity:.48;transition:filter .12s ease,stroke-width .12s ease,opacity .12s ease}.historical-chart-point.is-selected .historical-chart-dot{fill:#005baa;opacity:1;stroke-width:2.8}.historical-chart-point.is-missing .historical-chart-dot{fill:#fff;stroke:#94a3b8;stroke-dasharray:2 2}.historical-chart-point.is-selected.is-missing .historical-chart-dot{stroke:#005baa}.historical-chart-point:focus .historical-chart-dot,.historical-chart-point.is-active .historical-chart-dot{stroke:#f4c542;stroke-width:4;opacity:1;filter:drop-shadow(0 0 4px rgba(0,91,170,.35))}.historical-chart-point:focus .historical-chart-value,.historical-chart-point.is-active .historical-chart-value{fill:#0b4f9c}.historical-chart-value{font-size:10px;fill:#64748b;font-weight:900}.historical-chart-point.is-selected .historical-chart-value{fill:#10241a;font-weight:950}.historical-chart-axis-value{font-size:9.5px;fill:#64748b;font-weight:800}.historical-chart-tooltip{position:absolute;z-index:5;width:228px;max-width:calc(100% - 12px);padding:10px;border:1px solid #c7d9ef;border-radius:13px;background:rgba(255,255,255,.98);color:#10241a;box-shadow:0 10px 24px rgba(15,23,42,.14);font-size:10.5px;line-height:1.25;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .12s ease}.historical-chart-tooltip.is-visible{opacity:1;visibility:visible}.historical-chart-tooltip>strong{display:block;margin:0 0 7px;padding:0 0 7px;border-bottom:1px solid #e3ebf5;color:#0b4f9c;font-size:12px}.historical-chart-tooltip-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 10px}.historical-chart-tooltip-grid span{display:grid;gap:1px;min-width:0}.historical-chart-tooltip-grid small{color:#64748b;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.02em}.historical-chart-tooltip-grid b{color:#10241a;font-size:10.5px;font-weight:950;white-space:nowrap}.historical-chart-legend{display:flex;gap:12px;flex-wrap:wrap;color:#526276;font-size:10.5px;font-weight:850}.historical-chart-legend span{display:inline-flex;align-items:center;gap:5px}.historical-chart-legend i{width:10px;height:10px;border-radius:50%;background:#94a3b8;opacity:.5}.historical-chart-legend .selected i{background:#005baa;opacity:1}.historical-chart-legend .reference i{width:16px;height:0;border-radius:0;border-top:2px dashed #0b4f9c;background:transparent;opacity:1}
 @media(max-width:560px){.historical-chart-card{padding:10px}.historical-chart-head{display:grid}.historical-chart-tools{display:grid;justify-content:stretch}.historical-chart-reference-badge{justify-content:center;white-space:normal;text-align:center}.historical-chart-metric{width:100%}.historical-chart-metric button{flex:1}.historical-chart-card .svgbox{min-height:226px}.historical-chart-card .svgbox svg{height:232px}.historical-chart-value{font-size:9px}.historical-chart-legend{gap:8px}}
 
+/* Fase 3B · Drilldown de finca a zafra y ficha canónica de suerte */
+.historical-chart-point[role="button"]{cursor:pointer}.historical-chart-open-ring{fill:none;stroke:transparent;stroke-width:2.5;pointer-events:none}.historical-chart-point.is-drilldown-open .historical-chart-open-ring{stroke:#9a6a00;filter:drop-shadow(0 0 3px rgba(154,106,0,.3))}.historical-season-table tr.is-drilldown-open td{box-shadow:inset 0 2px 0 #d4a900,inset 0 -2px 0 #d4a900}.historical-drilldown-trigger,.historical-lot-open,.historical-drilldown-close,.historical-drilldown-breadcrumb button{min-height:40px;border:1px solid #b9d3c3;border-radius:11px;background:#f2faf5;color:#0b6031;padding:8px 11px;font:inherit;font-size:11px;font-weight:950;cursor:pointer;white-space:nowrap}.historical-drilldown-trigger:hover,.historical-lot-open:hover,.historical-drilldown-breadcrumb button:hover{border-color:#0b7f3a;background:#e7f6ec}.historical-drilldown-trigger:focus-visible,.historical-lot-open:focus-visible,.historical-drilldown-close:focus-visible,.historical-drilldown-breadcrumb button:focus-visible,#historicalDrilldownTitle:focus-visible{outline:3px solid rgba(0,91,170,.28);outline-offset:2px}.historical-drilldown-trigger[aria-pressed="true"]{background:#fff4c7;border-color:#d4a900;color:#684c00}.historical-drilldown-mount:empty{display:none}.historical-drilldown-panel{margin-top:14px;border:1px solid #c9ddcf;border-radius:20px;background:linear-gradient(145deg,#f7fcf8,#f7faff);padding:14px;box-shadow:0 8px 20px rgba(15,23,42,.06);display:grid;gap:12px}.historical-drilldown-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.historical-drilldown-head span{display:block;color:#0b6031;font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:.35px}.historical-drilldown-head h3{margin:3px 0 0;color:#10241a;font-size:17px}.historical-drilldown-head small{display:block;margin-top:4px;color:#64748b;font-size:10.5px;font-weight:800}.historical-drilldown-close{background:#fff;color:#526276;border-color:#d8e1dc}.historical-drilldown-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.historical-drilldown-kpi{min-width:0;border:1px solid #dce9e1;border-radius:14px;background:#fff;padding:10px}.historical-drilldown-kpi span{display:block;color:#64748b;font-size:9.5px;font-weight:950;text-transform:uppercase}.historical-drilldown-kpi strong{display:block;margin-top:4px;color:#10241a;font-size:17px}.historical-drilldown-kpi small{display:block;margin-top:3px;color:#64748b;font-size:9.5px;font-weight:700}.historical-drilldown-table{max-height:360px}.historical-drilldown-cards{display:none}.historical-drilldown-breadcrumb{margin:0 0 12px;border:1px solid #cfe0d5;border-radius:14px;background:#f7fcf8;padding:9px;display:flex;align-items:center;justify-content:space-between;gap:10px}.historical-drilldown-breadcrumb small{color:#64748b;font-size:10px;font-weight:800;text-align:right}
+@media(max-width:640px){.historical-drilldown-panel{padding:11px}.historical-drilldown-head{display:grid;grid-template-columns:minmax(0,1fr) auto}.historical-drilldown-head h3{font-size:15px}.historical-drilldown-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.historical-drilldown-table{display:none}.historical-drilldown-cards{display:grid;gap:9px}.historical-lot-card{border:1px solid #dce9e1;border-radius:15px;background:#fff;padding:11px;display:grid;gap:10px}.historical-lot-card>div:first-child strong{display:block;color:#10241a;font-size:14px}.historical-lot-card>div:first-child small{display:block;margin-top:2px;color:#64748b;font-size:10px;font-weight:800}.historical-lot-card dl{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.historical-lot-card dl div{min-width:0;border-radius:10px;background:#f7faf8;padding:7px}.historical-lot-card dt{color:#64748b;font-size:9px;font-weight:950;text-transform:uppercase}.historical-lot-card dd{margin:2px 0 0;color:#10241a;font-size:11px;font-weight:900;overflow-wrap:anywhere}.historical-lot-open{width:100%}.historical-drilldown-breadcrumb{display:grid}.historical-drilldown-breadcrumb button{width:100%;white-space:normal}.historical-drilldown-breadcrumb small{text-align:left}}
+
 
 /* V17 · Portada ejecutiva mejorada */
 .executive-hero{padding:18px 18px 10px!important;border-radius:28px!important;overflow:hidden;position:relative}
@@ -1886,6 +1890,8 @@ const HISTORICAL_PERIOD_STATE = {periodMode:'latest',selectedZafras:[]};
 window.CASUR_HISTORICAL_PERIOD_STATE = HISTORICAL_PERIOD_STATE;
 const HISTORICAL_CHART_STATE = {historicalChartMetric:'tch'};
 window.CASUR_HISTORICAL_CHART_STATE = HISTORICAL_CHART_STATE;
+const HISTORICAL_DRILLDOWN_STATE = {farmCode:null,selectedZafra:null,selectedLotId:null};
+window.CASUR_HISTORICAL_DRILLDOWN_STATE = HISTORICAL_DRILLDOWN_STATE;
 const $ = id => document.getElementById(id);
 const nf = new Intl.NumberFormat('es-NI',{minimumFractionDigits:2,maximumFractionDigits:2});
 const nf0 = new Intl.NumberFormat('es-NI',{maximumFractionDigits:0});
@@ -2080,7 +2086,7 @@ function accordion(id,title,subtitle,body,open=false){return `<details class="ac
 function expandAll(open=true){document.querySelectorAll('details.accordion').forEach(d=>d.open=open);}
 function openFold(id){const el=$(id); if(el){el.open=true; el.scrollIntoView({behavior:'smooth',block:'start'});} }
 function updateState(view='General CASUR sin maquila',filters='Ninguno'){const v=$('viewState'),f=$('filterState'); if(v)v.textContent='Vista actual: '+view; if(f)f.textContent='Filtros activos: '+filters;}
-function restoreView(){currentEntity=null; currentZone=null; HISTORICAL_PERIOD_STATE.periodMode='latest';HISTORICAL_PERIOD_STATE.selectedZafras=[]; const q=$('q'),sel=$('producerSelect'),fc=$('fichaContent'),zs=$('zoneSelect'),zc=$('zoneContent'); if(q)q.value=''; if(sel)sel.value=''; if(fc)fc.innerHTML=''; if(zs)zs.value=''; if(zc)zc.innerHTML=''; hideSearchSuggestions(); showFichaEnd(false); showZoneEnd(false); expandAll(false); updateState(); document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active')); const first=document.querySelector('.bottomnav .navbtn'); if(first)first.classList.add('active'); const home=$('homeSection'); if(home)home.scrollIntoView({behavior:'smooth',block:'start'});}
+function restoreView(){currentEntity=null; currentZone=null; HISTORICAL_PERIOD_STATE.periodMode='latest';HISTORICAL_PERIOD_STATE.selectedZafras=[];Object.assign(HISTORICAL_DRILLDOWN_STATE,{farmCode:null,selectedZafra:null,selectedLotId:null}); const q=$('q'),sel=$('producerSelect'),fc=$('fichaContent'),zs=$('zoneSelect'),zc=$('zoneContent'); if(q)q.value=''; if(sel)sel.value=''; if(fc)fc.innerHTML=''; if(zs)zs.value=''; if(zc)zc.innerHTML=''; hideSearchSuggestions(); showFichaEnd(false); showZoneEnd(false); expandAll(false); updateState(); document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active')); const first=document.querySelector('.bottomnav .navbtn'); if(first)first.classList.add('active'); const home=$('homeSection'); if(home)home.scrollIntoView({behavior:'smooth',block:'start'});}
 function varietyFamily(name){const s=String(name||'').toUpperCase().trim(); if(!s||s==='SIN DATO')return 'Otras'; if(s.includes('CP 72')||s.includes('CP72')||s.includes('CP-72'))return 'CP 72'; if(s==='NA'||s.startsWith('NA ')||s.includes('NA 85')||s.includes('NA-'))return 'NA'; if(s.startsWith('B ')||s.startsWith('B-')||s.includes('BARBADOS'))return 'Barbados'; return 'Otras';}
 function varietyGroups(){const base={"CP 72":{key:'CP 72',area:0,ton:0,rtoNum:0,count:0},"NA":{key:'NA',area:0,ton:0,rtoNum:0,count:0},"Barbados":{key:'Barbados',area:0,ton:0,rtoNum:0,count:0},"Otras":{key:'Otras',area:0,ton:0,rtoNum:0,count:0}}; Object.values(DATA.benchmarks.variety||{}).forEach(v=>{const fam=varietyFamily(v.key); const g=base[fam]||base.Otras; const area=Number(v.area)||0, ton=Number(v.ton)||0; g.area+=area; g.ton+=ton; g.rtoNum+=(Number(v.rto)||0)*ton; g.count+=(Number(v.productores)||0);}); return ['CP 72','NA','Barbados','Otras'].map(k=>{const g=base[k]; g.tch=g.area?g.ton/g.area:null; g.rto=g.ton?g.rtoNum/g.ton:null; g.area=Number(g.area.toFixed(2)); g.ton=Number(g.ton.toFixed(2)); g.tch=g.tch==null?null:Number(g.tch.toFixed(2)); g.rto=g.rto==null?null:Number(g.rto.toFixed(2)); return g;}).filter(g=>g.area>0);}
 function varietyMatrix(arr){if(!arr||!arr.length)return '<div class="empty">Sin datos varietales.</div>'; const totalArea=arr.reduce((a,b)=>a+(b.area||0),0)||1; return `<div class="table-wrap"><table class="variety-table"><thead><tr><th>Grupo varietal</th><th>Área</th><th>% área</th><th>Toneladas</th><th>TCH</th><th>KATM</th></tr></thead><tbody>${arr.map(v=>`<tr><td><b>${esc(v.key)}</b></td><td>${val(v.area,' ha')}</td><td>${val((v.area/totalArea)*100,' %')}</td><td>${val0(v.ton,' t')}</td><td>${val(v.tch)}</td><td>${val(v.rto)}</td></tr>`).join('')}</tbody></table></div>`;}
@@ -2149,7 +2155,64 @@ function summaryByZafraTable(rows,e){
  if(!rows||!rows.length)return '<div class="empty">Sin resumen histórico por zafra disponible.</div>';
  const vals=rows.map(r=>Number(r.tch)).filter(v=>!isNaN(v));
  const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
- return `<div class="table-wrap"><table><thead><tr><th>Zafra</th><th>Área</th><th>Ton</th><th>TCH pond.</th><th>KATM pond.</th><th>Edad prom.</th><th>Variedad dom.</th><th>Zona</th><th>Riego</th><th>Lotes/Suertes</th><th>Estado</th></tr></thead><tbody>${rows.map(r=>{const tch=Number(r.tch)||0; const delta=tch-avg; const tone=delta>=4?'good':(delta<=-4?'bad':'warn'); const rc=tone==='bad'?'tch-low':(tone==='warn'?'tch-warn':'tch-good'); const estado=tone==='good'?'Sobre prom. finca':(tone==='bad'?'Bajo prom. finca':'Medio'); return `<tr class="${rc}"><td>${esc(r.label||r.zafra||'')}</td><td>${val(r.area)}</td><td>${val0(r.ton)}</td><td><span class="tch-val ${tone}">${val(r.tch)}</span></td><td>${val(r.rto)}</td><td>${val(r.edad)}</td><td>${esc(r.variedad||'—')}</td><td>${esc(r.zona||'—')}</td><td>${esc(r.riego||'—')}</td><td>${val0(r.lotes||r.suertes||0,'')}</td><td><span class="detail-status ${tone}">${estado}</span></td></tr>`;}).join('')}</tbody></table></div>`;
+ return `<div class="table-wrap historical-season-table"><table><thead><tr><th>Zafra</th><th>Área</th><th>Ton</th><th>TCH pond.</th><th>KATM pond.</th><th>Edad prom.</th><th>Variedad dom.</th><th>Zona</th><th>Riego</th><th>Lotes/Suertes</th><th>Estado</th><th class="no-print">Acción</th></tr></thead><tbody>${rows.map(r=>{const tch=Number(r.tch)||0; const delta=tch-avg; const tone=delta>=4?'good':(delta<=-4?'bad':'warn'); const rc=tone==='bad'?'tch-low':(tone==='warn'?'tch-warn':'tch-good'); const estado=tone==='good'?'Sobre prom. finca':(tone==='bad'?'Bajo prom. finca':'Medio'); return `<tr class="${rc}" data-zafra="${Number(r.zafra)}"><td>${esc(r.label||r.zafra||'')}</td><td>${val(r.area)}</td><td>${val0(r.ton)}</td><td><span class="tch-val ${tone}">${val(r.tch)}</span></td><td>${val(r.rto)}</td><td>${val(r.edad)}</td><td>${esc(r.variedad||'—')}</td><td>${esc(r.zona||'—')}</td><td>${esc(r.riego||'—')}</td><td>${val0(r.lotes||r.suertes||0,'')}</td><td><span class="detail-status ${tone}">${estado}</span></td><td class="no-print"><button class="historical-drilldown-trigger" type="button" data-zafra="${Number(r.zafra)}" onclick="openHistoricalSeason(this.dataset.zafra)">Ver suertes</button></td></tr>`;}).join('')}</tbody></table></div>`;
+}
+
+function applyHistoricalDrilldownAction(action){
+ const next=HISTORICAL_ENGINE.updateHistoricalDrilldownState(HISTORICAL_DRILLDOWN_STATE,action);
+ Object.assign(HISTORICAL_DRILLDOWN_STATE,next);return next;
+}
+function historicalDrilldownModel(){
+ if(!HISTORICAL_DRILLDOWN_STATE.farmCode||HISTORICAL_DRILLDOWN_STATE.selectedZafra==null)return null;
+ const rows=HISTORICAL_ENGINE.normalizeHistoricalRows(DATA.lotCompact||[]);
+ return HISTORICAL_ENGINE.buildHistoricalDrilldownModel(rows,HISTORICAL_DRILLDOWN_STATE.farmCode,HISTORICAL_DRILLDOWN_STATE.selectedZafra);
+}
+function historicalDrilldownSummaryCard(label,value,sub){return `<div class="historical-drilldown-kpi"><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(sub)}</small></div>`;}
+function historicalDrilldownPanelHtml(model){
+ const summary=model.summary,zafra=zlabelJS(model.selectedZafra),farm=model.farmName||model.farmCode;
+ const cards=[
+  historicalDrilldownSummaryCard('Suertes',val0(summary.suertes),'lotId únicos'),historicalDrilldownSummaryCard('Área',val(summary.area,' ha'),'Cosechada en la zafra'),
+  historicalDrilldownSummaryCard('Toneladas',val0(summary.ton,' t'),'Suma de las suertes'),historicalDrilldownSummaryCard('TCH ponderado',val(summary.tch),'Toneladas ÷ área'),
+  historicalDrilldownSummaryCard('KATM ponderado',val(summary.katm),'Ponderado por toneladas'),historicalDrilldownSummaryCard('Edad ponderada',val(summary.edad,' meses'),'Ponderada por área válida')
+ ].join('');
+ const action=lot=>`<button class="historical-lot-open" type="button" data-lot-id="${esc(lot.lotId)}" onclick="openHistoricalLot(this.dataset.lotId)">Ver ficha</button>`;
+ const desktop=model.lots.map(lot=>`<tr><td>${esc(lot.suerte||'—')}</td><td><b>${esc(lot.lotId)}</b></td><td>${val(lot.area,' ha')}</td><td>${val0(lot.ton,' t')}</td><td>${val(lot.tch)}</td><td>${val(lot.katm)}</td><td>${val(lot.edad,' meses')}</td><td>${esc(lot.variedad||'—')}</td><td>${esc(lot.riego||'—')}</td><td>${action(lot)}</td></tr>`).join('');
+ const mobile=model.lots.map(lot=>`<article class="historical-lot-card"><div><strong>Suerte ${esc(lot.suerte||'—')}</strong><small>Código ${esc(lot.lotId)}</small></div><dl><div><dt>Área</dt><dd>${val(lot.area,' ha')}</dd></div><div><dt>Ton</dt><dd>${val0(lot.ton,' t')}</dd></div><div><dt>TCH</dt><dd>${val(lot.tch)}</dd></div><div><dt>KATM</dt><dd>${val(lot.katm)}</dd></div><div><dt>Edad</dt><dd>${val(lot.edad,' meses')}</dd></div><div><dt>Variedad</dt><dd>${esc(lot.variedad||'—')}</dd></div><div><dt>Riego</dt><dd>${esc(lot.riego||'—')}</dd></div></dl>${action(lot)}</article>`).join('');
+ const content=model.lots.length?`<div class="historical-drilldown-table table-wrap"><table><thead><tr><th>Suerte</th><th>CodLote</th><th>Área</th><th>Ton</th><th>TCH</th><th>KATM</th><th>Edad</th><th>Variedad</th><th>Riego</th><th>Ficha</th></tr></thead><tbody>${desktop}</tbody></table></div><div class="historical-drilldown-cards">${mobile}</div>`:'<div class="empty">No hay suertes con datos para esta zafra.</div>';
+ return `<section class="historical-drilldown-panel no-print export-excluded" aria-labelledby="historicalDrilldownTitle"><div class="historical-drilldown-head"><div><span>Drilldown de zafra</span><h3 id="historicalDrilldownTitle" tabindex="-1">Zafra ${esc(zafra)}</h3><small>${esc(farm)} · Código ${esc(model.farmCode)}<br>Zafra abierta para drilldown · El periodo activo no cambia.</small></div><button class="historical-drilldown-close" type="button" onclick="closeHistoricalDrilldown()" aria-label="Cerrar detalle de la zafra">Cerrar</button></div><div class="historical-drilldown-kpis">${cards}</div>${content}</section>`;
+}
+function syncHistoricalDrilldownVisuals(){
+ const zafra=HISTORICAL_DRILLDOWN_STATE.selectedZafra==null?'':String(HISTORICAL_DRILLDOWN_STATE.selectedZafra),farmOpen=currentEntity&&currentEntity.entityType!=='lote'&&String(currentEntity.code)===String(HISTORICAL_DRILLDOWN_STATE.farmCode);
+ document.querySelectorAll('.historical-chart-point[data-zafra]').forEach(point=>point.classList.toggle('is-drilldown-open',farmOpen&&point.dataset.zafra===zafra));
+ document.querySelectorAll('.historical-season-table tr[data-zafra]').forEach(row=>{const open=farmOpen&&row.dataset.zafra===zafra;row.classList.toggle('is-drilldown-open',open);const button=row.querySelector('.historical-drilldown-trigger');if(button)button.setAttribute('aria-pressed',String(open));});
+}
+function renderHistoricalDrilldownPanel(options={}){
+ const mount=$('historicalDrilldownMount');if(!mount)return;
+ const model=historicalDrilldownModel();
+ if(!model||!currentEntity||currentEntity.entityType==='lote'||String(currentEntity.code)!==String(model.farmCode)){mount.innerHTML='';syncHistoricalDrilldownVisuals();return;}
+ mount.innerHTML=historicalDrilldownPanelHtml(model);syncHistoricalDrilldownVisuals();
+ if(options.focus){const title=$('historicalDrilldownTitle');if(title){title.focus({preventScroll:true});title.scrollIntoView({behavior:'smooth',block:'nearest'});}}
+}
+function openHistoricalSeason(zafra,options={}){
+ if(!currentEntity||currentEntity.entityType==='lote')return;
+ applyHistoricalDrilldownAction({type:'openSeason',farmCode:currentEntity.code,zafra});
+ renderHistoricalDrilldownPanel({focus:options.focus!==false});
+}
+function closeHistoricalDrilldown(){applyHistoricalDrilldownAction({type:'close'});renderHistoricalDrilldownPanel();}
+function openHistoricalLot(lotId){
+ const model=historicalDrilldownModel();if(!model||!model.lots.some(lot=>String(lot.lotId)===String(lotId)))return;
+ applyHistoricalDrilldownAction({type:'openLot',lotId});
+ // La ficha canónica usa la misma identidad LOTE::<lotId> que búsqueda y selección múltiple.
+ renderEntity('LOTE::'+lotId,{preserveDrilldown:true,fromDrilldown:true});
+}
+function backToHistoricalFarm(){
+ const farmCode=HISTORICAL_DRILLDOWN_STATE.farmCode;if(!farmCode)return;
+ applyHistoricalDrilldownAction({type:'backToFarm'});renderEntity(farmCode,{preserveDrilldown:true,restoreDrilldown:true});
+}
+function historicalDrilldownBreadcrumb(){
+ if(!HISTORICAL_DRILLDOWN_STATE.farmCode||HISTORICAL_DRILLDOWN_STATE.selectedZafra==null)return '';
+ const farm=getEntity(HISTORICAL_DRILLDOWN_STATE.farmCode),name=farm&&farm.name||HISTORICAL_DRILLDOWN_STATE.farmCode;
+ return `<div class="historical-drilldown-breadcrumb no-print export-excluded"><button type="button" onclick="backToHistoricalFarm()">← Volver a ${esc(name)} · Zafra ${esc(zlabelJS(HISTORICAL_DRILLDOWN_STATE.selectedZafra))}</button><small>Conserva el periodo y la métrica del gráfico.</small></div>`;
 }
 
 function histFichaCleanName(e){
@@ -2214,7 +2277,7 @@ function historicalPeriodCard(context){
 function setHistoricalPeriodMode(mode){
  if(!Object.prototype.hasOwnProperty.call(HISTORICAL_PERIOD_LABELS,mode))return;
  HISTORICAL_PERIOD_STATE.periodMode=mode;
- if(currentEntity)renderEntity(currentEntity.code);
+ if(currentEntity)renderEntity(currentEntity.code,{preserveDrilldown:true});
 }
 function toggleHistoricalZafra(zafra){
  if(!currentEntity)return;
@@ -2222,14 +2285,14 @@ function toggleHistoricalZafra(zafra){
  const next=new Set(HISTORICAL_PERIOD_STATE.selectedZafras.map(Number)),value=Number(zafra);
  if(next.has(value)){if(next.size===1){alert('Seleccione al menos una zafra para el periodo personalizado.');return;}next.delete(value);}else next.add(value);
  HISTORICAL_PERIOD_STATE.selectedZafras=[...next].sort((a,b)=>a-b);
- renderEntity(currentEntity.code);
+ renderEntity(currentEntity.code,{preserveDrilldown:true});
 }
 
 function setHistoricalChartMetric(metric){
  const next=String(metric||'').toLowerCase();
  if(next!=='tch'&&next!=='katm')return;
  HISTORICAL_CHART_STATE.historicalChartMetric=next;
- if(currentEntity)renderEntity(currentEntity.code);
+ if(currentEntity)renderEntity(currentEntity.code,{preserveDrilldown:true});
 }
 function showHistoricalChartTooltip(point){
  const box=point&&point.closest('.svgbox'),tip=box&&box.querySelector('.historical-chart-tooltip');if(!box||!tip)return;
@@ -2249,6 +2312,13 @@ function pinHistoricalChartTooltip(point,event){
  if(!point)return;if(event)event.stopPropagation();
  const box=point.closest('.svgbox');if(box)box.querySelectorAll('.historical-chart-point').forEach(item=>{if(item!==point)delete item.dataset.tooltipPinned;});
  point.dataset.tooltipPinned='true';showHistoricalChartTooltip(point);
+}
+function activateHistoricalChartPoint(point,event){
+ pinHistoricalChartTooltip(point,event);
+ if(currentEntity&&currentEntity.entityType!=='lote')openHistoricalSeason(point.dataset.zafra);
+}
+function handleHistoricalChartPointKey(point,event){
+ if(!event||!['Enter',' '].includes(event.key))return;event.preventDefault();activateHistoricalChartPoint(point,event);
 }
 function hideHistoricalChartTooltip(point,force){
  if(!point||(!force&&(document.activeElement===point||point.dataset.tooltipPinned==='true')))return;
@@ -2275,16 +2345,20 @@ function historicalChart(context){
  const pointMarkup=points.map((point,index)=>{
   const area=detailVal(point.area,' ha'),ton=detailVal0(point.ton,' t'),tch=detailVal(point.tch),katm=detailVal(point.katm),edad=detailVal(point.edad,' meses');
   const tooltip=`Zafra ${point.label} · Área ${area} · Toneladas ${ton} · TCH ${tch} · KATM ${katm} · Edad ${edad}`;
-  const classes=['historical-chart-point',point.selected?'is-selected':'is-muted',point.value==null?'is-missing':''].filter(Boolean).join(' '),showValue=point.selected||index===0||index===points.length-1||index%2===0;
+   const drilldownOpen=currentEntity&&currentEntity.entityType!=='lote'&&String(currentEntity.code)===String(HISTORICAL_DRILLDOWN_STATE.farmCode)&&Number(HISTORICAL_DRILLDOWN_STATE.selectedZafra)===Number(point.zafra);
+   const classes=['historical-chart-point',point.selected?'is-selected':'is-muted',point.value==null?'is-missing':'',drilldownOpen?'is-drilldown-open':''].filter(Boolean).join(' '),showValue=point.selected||index===0||index===points.length-1||index%2===0;
   const selected=point.selected,missing=point.value==null,fill=missing?'#fff':(selected?'#005baa':'#94a3b8'),stroke=missing?(selected?'#005baa':'#94a3b8'):'#fff',opacity=selected?'1':'.48';
-  return `<g class="${classes}" data-zafra="${point.zafra}" data-selected="${point.selected}" data-label="${esc(point.label)}" data-area="${esc(area)}" data-ton="${esc(ton)}" data-tch="${esc(tch)}" data-katm="${esc(katm)}" data-edad="${esc(edad)}" tabindex="0" role="img" aria-label="${esc(tooltip)}" aria-describedby="historicalChartTooltip" onmouseenter="showHistoricalChartTooltip(this)" onmouseleave="hideHistoricalChartTooltip(this)" onfocus="showHistoricalChartTooltip(this)" onblur="hideHistoricalChartTooltip(this,true)" onclick="pinHistoricalChartTooltip(this,event)"><circle class="historical-chart-hit" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="22" fill="transparent" stroke="none" pointer-events="all"></circle><circle class="historical-chart-dot" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${selected?6.5:5}" fill="${fill}" stroke="${stroke}" stroke-width="${selected?2.8:2.2}" opacity="${opacity}"${missing?' stroke-dasharray="2 2"':''}></circle>${showValue?`<text class="historical-chart-value" fill="${selected?'#10241a':'#64748b'}" font-size="10" font-weight="${selected?'950':'900'}" x="${point.x.toFixed(1)}" y="${Math.max(15,point.y-11).toFixed(1)}" text-anchor="middle">${esc(point.value==null?'N/D':nf.format(point.value))}</text>`:''}<text class="labeltxt" fill="#64748b" font-size="11" font-weight="800" x="${point.x.toFixed(1)}" y="${h-13}" text-anchor="middle">${esc(point.label)}</text></g>`;
+   const canOpen=currentEntity&&currentEntity.entityType!=='lote',activation=canOpen?' · Presione Enter para ver suertes':'';
+   return `<g class="${classes}" data-zafra="${point.zafra}" data-selected="${point.selected}" data-label="${esc(point.label)}" data-area="${esc(area)}" data-ton="${esc(ton)}" data-tch="${esc(tch)}" data-katm="${esc(katm)}" data-edad="${esc(edad)}" tabindex="0" role="${canOpen?'button':'img'}" aria-label="${esc(tooltip+activation)}" aria-describedby="historicalChartTooltip" onmouseenter="showHistoricalChartTooltip(this)" onmouseleave="hideHistoricalChartTooltip(this)" onfocus="showHistoricalChartTooltip(this)" onblur="hideHistoricalChartTooltip(this,true)" onkeydown="handleHistoricalChartPointKey(this,event)" onclick="activateHistoricalChartPoint(this,event)"><circle class="historical-chart-hit" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="22" fill="transparent" stroke="none" pointer-events="all"></circle><circle class="historical-chart-open-ring" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="11"></circle><circle class="historical-chart-dot" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${selected?6.5:5}" fill="${fill}" stroke="${stroke}" stroke-width="${selected?2.8:2.2}" opacity="${opacity}"${missing?' stroke-dasharray="2 2"':''}></circle>${showValue?`<text class="historical-chart-value" fill="${selected?'#10241a':'#64748b'}" font-size="10" font-weight="${selected?'950':'900'}" x="${point.x.toFixed(1)}" y="${Math.max(15,point.y-11).toFixed(1)}" text-anchor="middle">${esc(point.value==null?'N/D':nf.format(point.value))}</text>`:''}<text class="labeltxt" fill="#64748b" font-size="11" font-weight="800" x="${point.x.toFixed(1)}" y="${h-13}" text-anchor="middle">${esc(point.label)}</text></g>`;
  }).join('');
  const svg=`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Serie histórica de ${metricLabel}; las zafras del periodo activo están destacadas"><line class="axis" fill="none" stroke="#d7e1dc" stroke-width="1" x1="${padL}" y1="${baseY}" x2="${w-padR}" y2="${baseY}"/><line class="axis" fill="none" stroke="#d7e1dc" stroke-width="1" x1="${padL}" y1="${padT}" x2="${padL}" y2="${baseY}"/><text class="historical-chart-axis-value" fill="#64748b" font-size="9.5" font-weight="800" x="${padL-7}" y="${padT+4}" text-anchor="end">${esc(nf.format(max))}</text><text class="historical-chart-axis-value" fill="#64748b" font-size="9.5" font-weight="800" x="${padL-7}" y="${baseY}" text-anchor="end">${esc(nf.format(min))}</text>${reference}${fullPath?`<path class="historical-chart-line" fill="none" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" d="${fullPath}"/>`:''}${selectedPath?`<path class="historical-chart-selected-line" fill="none" stroke="#0b7f3a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="${selectedPath}"/>`:''}${pointMarkup}</svg>`;
  return `<div class="historical-chart-card"><div class="historical-chart-head"><div><h3>Histórico ${metricLabel} por zafra</h3><small>Serie completa; el periodo activo queda destacado y la referencia usa su agregado ponderado.</small></div><div class="historical-chart-tools">${referenceBadge}${selector}</div></div><div class="svgbox">${svg}<div class="historical-chart-tooltip" id="historicalChartTooltip" role="tooltip" aria-hidden="true"></div></div><div class="historical-chart-legend"><span class="selected"><i></i>Periodo activo</span><span><i></i>Fuera del periodo</span><span class="reference"><i></i>${esc(referenceText)}</span></div></div>`;
 }
 
-function renderEntity(code){
- const e=getEntity(code);if(!e)return;currentEntity=e;hideSearchSuggestions();
+function renderEntity(code,options={}){
+ const e=getEntity(code);if(!e)return;
+ if(!options.preserveDrilldown){if(e.entityType==='lote')Object.assign(HISTORICAL_DRILLDOWN_STATE,{farmCode:null,selectedZafra:null,selectedLotId:null});else applyHistoricalDrilldownAction({type:'changeFarm',farmCode:e.code});}
+ currentEntity=e;hideSearchSuggestions();
  const q=$('q');if(q)q.value=(e.displayCode||e.code)+' · '+e.name;const ps=$('producerSelect');if(ps)ps.value=code;showFichaEnd(true);
  const context=historicalPeriodContext(e),metric=context.metric,periodCount=context.selectedZafras.length,multiSeason=periodCount>1;
  const fichaTitle=histFichaTitle(e),meta=histFichaMeta(e),now=new Date().toLocaleString('es-NI',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
@@ -2300,10 +2374,10 @@ function renderEntity(code){
  ].join('');
  const samePeriodDeltas=`${deltaCard('Vs CASUR',context.deltas.casur,'Mismas zafras')}${deltaCard('Vs zona',context.deltas.zona,'Mismas zafras')}${deltaCard('Vs variedad',context.deltas.variedad,'Mismas zafras')}${deltaCard('Vs riego',context.deltas.riego,'Mismas zafras')}`;
  const fixedComparison=`<div class="historical-fixed-comparison"><div><strong>Referencia fija</strong><small>El histórico completo usa todas las zafras disponibles de esta misma entidad.</small></div>${deltaCard('Vs histórico completo',context.deltas.full,'TCH')}</div>`;
- const trend=historicalChart(context),isLotFicha=e.entityType==='lote',table=isLotFicha?detailsTable(entityHistoricDetails(e)):summaryByZafraTable(entitySummaryByZafra(e),e);
+ const trend=historicalChart(context),isLotFicha=e.entityType==='lote',table=isLotFicha?detailsTable(entityHistoricDetails(e)):summaryByZafraTable(entitySummaryByZafra(e),e),drilldownLotId=String(e.codLote||e.displayCode||e.code||'').replace(/^LOTE::/,''),drilldownNav=isLotFicha&&String(HISTORICAL_DRILLDOWN_STATE.selectedLotId||'')===drilldownLotId?historicalDrilldownBreadcrumb():'';
  const detailTitle=isLotFicha?'Detalle del lote · histórico completo':'Resumen de finca · por zafra',detailSmall=isLotFicha?'Todas las zafras disponibles del CodLote seleccionado.':'Ficha ejecutiva consolidada: una fila por zafra, sin abrir el detalle de lotes.';
- $('fichaContent').innerHTML=`<section class="card ficha-card"><div id="printPanel"><div class="print-only print-header"><div><h2>Histórico de Suertes · Ficha individual</h2><p>Departamento de Negocios de Caña · CASUR</p></div><div class="print-meta"><strong>${esc(fichaTitle)}</strong><span>${esc(meta)}</span><span>Consulta: ${esc(now)}</span></div></div><div class="ficha-band no-print"><div><h2>${esc(fichaTitle)}</h2><small>${esc(meta)}</small></div><div class="ficha-actions"><span class="status-pill ${sc(e.statusClass)}">${e.score??'—'} · ${esc(e.status)}</span><button class="ficha-print-btn" onclick="printFicha()">🖨️ <span><b>Imprimir ficha</b><small>Formato carta</small></span></button></div></div><div class="section-title ficha-screen-title no-print"><div><h2>Ficha histórica</h2><small>Código de finca/hacienda, finca CASUR o productor.</small></div></div>${alertsHtml(e.alerts)}${historicalPeriodCard(context)}<div class="section-divider no-print"></div><div class="kpis" style="margin-top:12px">${kpis}</div><div class="historical-comparison-title">Comparadores TCH · mismo periodo seleccionado</div><div class="delta-grid">${samePeriodDeltas}</div>${fixedComparison}<div style="margin-top:12px">${trend}</div><div class="section-title" style="margin-top:12px"><div><h3>${detailTitle}</h3><small>${detailSmall}</small></div></div>${table}<div class="print-end print-only">Documento de consulta ejecutiva · CASUR · Negocios de Caña</div></div></section>`;
- updateState((e.isMaquila?'Maquila · ':'Histórico de Suertes · ')+fichaTitle,'Periodo '+(HISTORICAL_PERIOD_LABELS[HISTORICAL_PERIOD_STATE.periodMode]||'Última')+' · '+context.selectedZafras.map(zlabelJS).join(' · '));nav('fichaSection');
+ $('fichaContent').innerHTML=`<section class="card ficha-card"><div id="printPanel"><div class="print-only print-header"><div><h2>Histórico de Suertes · Ficha individual</h2><p>Departamento de Negocios de Caña · CASUR</p></div><div class="print-meta"><strong>${esc(fichaTitle)}</strong><span>${esc(meta)}</span><span>Consulta: ${esc(now)}</span></div></div><div class="ficha-band no-print"><div><h2>${esc(fichaTitle)}</h2><small>${esc(meta)}</small></div><div class="ficha-actions"><span class="status-pill ${sc(e.statusClass)}">${e.score??'—'} · ${esc(e.status)}</span><button class="ficha-print-btn" onclick="printFicha()">🖨️ <span><b>Imprimir ficha</b><small>Formato carta</small></span></button></div></div>${drilldownNav}<div class="section-title ficha-screen-title no-print"><div><h2>Ficha histórica</h2><small>Código de finca/hacienda, finca CASUR o productor.</small></div></div>${alertsHtml(e.alerts)}${historicalPeriodCard(context)}<div class="section-divider no-print"></div><div class="kpis" style="margin-top:12px">${kpis}</div><div class="historical-comparison-title">Comparadores TCH · mismo periodo seleccionado</div><div class="delta-grid">${samePeriodDeltas}</div>${fixedComparison}<div style="margin-top:12px">${trend}</div>${isLotFicha?'':'<div id="historicalDrilldownMount" class="historical-drilldown-mount no-print export-excluded" aria-live="polite"></div>'}<div class="section-title" style="margin-top:12px"><div><h3>${detailTitle}</h3><small>${detailSmall}</small></div></div>${table}<div class="print-end print-only">Documento de consulta ejecutiva · CASUR · Negocios de Caña</div></div></section>`;
+ updateState((e.isMaquila?'Maquila · ':'Histórico de Suertes · ')+fichaTitle,'Periodo '+(HISTORICAL_PERIOD_LABELS[HISTORICAL_PERIOD_STATE.periodMode]||'Última')+' · '+context.selectedZafras.map(zlabelJS).join(' · '));nav('fichaSection');renderHistoricalDrilldownPanel({focus:options.restoreDrilldown});
 }
 
 
@@ -4399,7 +4473,7 @@ function filename(kind,node,ext){return subject(kind,node).normalize('NFD').repl
 
 function cleanElement(el){
   if(!el)return el;
-  qa('button,input,select,textarea,.casur-visual-actions,.ficha-actions,.ficha-band,.ficha-screen-title,.no-print,#cronoEndBox,.section-transition,.searchbox,.crono-actions,.hist-zafra-picker,.hist-multi-toolbar,.crono-multi-toolbar,.hist-multi-remove,.crono-multi-remove,.crono-select-col',el).forEach(remove);
+  qa('button,input,select,textarea,.casur-visual-actions,.ficha-actions,.ficha-band,.ficha-screen-title,.no-print,.export-excluded,#cronoEndBox,.section-transition,.searchbox,.crono-actions,.hist-zafra-picker,.hist-multi-toolbar,.crono-multi-toolbar,.hist-multi-remove,.crono-multi-remove,.crono-select-col',el).forEach(remove);
   qa('[style]',el).forEach(function(n){n.removeAttribute('style');});
   qa('[id]',el).forEach(function(n){n.removeAttribute('id');});
   qa('details',el).forEach(function(n){n.open=true;});
@@ -4428,8 +4502,8 @@ function historicalDetailTitle(node){return qa('.section-title',node).find(funct
 
 function cleanChart(chart){
   if(!chart)return chart;
-  qa('.chart-tip-bg,.chart-tip,.mobile-trend-card,.historical-chart-tooltip,.historical-chart-hit',chart).forEach(remove);
-  qa('.historical-chart-point.is-active',chart).forEach(function(point){point.classList.remove('is-active');point.removeAttribute('data-tooltip-pinned');});
+  qa('.chart-tip-bg,.chart-tip,.mobile-trend-card,.historical-chart-tooltip,.historical-chart-hit,.historical-chart-open-ring',chart).forEach(remove);
+  qa('.historical-chart-point.is-active,.historical-chart-point.is-drilldown-open',chart).forEach(function(point){point.classList.remove('is-active','is-drilldown-open');point.removeAttribute('data-tooltip-pinned');});
   qa('text',chart).forEach(function(t){if(/[UÚuú]ltima/i.test(t.textContent||''))remove(t);});
   qa('rect',chart).forEach(function(r){var c=r.getAttribute('class')||'';if(/chart-tip/i.test(c))remove(r);});
   return chart;
@@ -4443,7 +4517,7 @@ function buildHistorical(node){
   var deltas=clone('.delta-grid',node);if(deltas)root.appendChild(deltas);
   var chart=cleanChart(clone('.historical-chart-card',node));if(chart)root.appendChild(chart);
   var st=historicalDetailTitle(node);if(st)root.appendChild(cleanElement(st.cloneNode(true)));
-  var tw=clone('.table-wrap',node);if(tw)root.appendChild(tw);
+  var tableSource=qa('.table-wrap',node).find(function(item){return!item.closest('.export-excluded');});var tw=tableSource?cleanElement(tableSource.cloneNode(true)):null;if(tw)root.appendChild(tw);
   root.appendChild(footer());return root;
 }
 

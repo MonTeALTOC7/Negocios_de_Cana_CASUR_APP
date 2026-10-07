@@ -213,6 +213,8 @@ check("gráfico histórico corrige referencia, tooltip y exportación", () => {
   assert.ok(index.includes('onmouseenter="showHistoricalChartTooltip(this)"'));
   assert.ok(index.includes('onfocus="showHistoricalChartTooltip(this)"'));
   assert.ok(index.includes('onclick="pinHistoricalChartTooltip(this,event)"'));
+  assert.equal(index.includes("activateHistoricalChartPoint"), false);
+  assert.equal(index.includes("handleHistoricalChartPointKey"), false);
   assert.ok(index.includes("referenceText=metricLabel+' ponderado del periodo'"));
   assert.ok(index.includes('class="historical-chart-hit"'));
   assert.ok(index.includes('class="historical-chart-dot"'));

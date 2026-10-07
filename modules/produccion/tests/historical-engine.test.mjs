@@ -18,6 +18,8 @@ const {
   buildHistoricalChartModel,
   groupHistoricalBySeason,
   groupHistoricalByLot,
+  buildHistoricalDrilldownModel,
+  updateHistoricalDrilldownState,
 } = globalThis.CASUR_HISTORICAL_ENGINE;
 
 const historico = JSON.parse(fs.readFileSync(path.join(testRoot, "../data/historico.json"), "utf8"));
@@ -143,6 +145,102 @@ test("groupHistoricalByLot agrupa por lotId con metadatos", () => {
   assert.equal(groups[0].farmCode, "100");
   assert.equal(groups[0].sourceCount, 3);
   assert.deepEqual(groups[0].zafras, [2021, 2122]);
+});
+
+test("drilldown 759 · 24/25 agrega la zafra y ordena sus suertes naturalmente", () => {
+  const model = buildHistoricalDrilldownModel(officialRows, "759", 2425);
+  assert.equal(model.farmName, "Jesús María");
+  assert.equal(model.selectedZafra, 2425);
+  assert.deepEqual(model.summary, {
+    area: 149.94, ton: 11154.23, tch: 74.39, katm: 97.14, edad: 11.81,
+    suertes: 10, sourceCount: 10, zafras: [2425],
+  });
+  assert.deepEqual(model.lots.map((lot) => lot.lotId), [
+    "75905", "75906", "75907", "75908", "75909", "75910", "75911", "75912", "75913", "75917",
+  ]);
+  assert.ok(model.lots.every((lot) => lot.zafras.length === 1 && lot.zafras[0] === 2425));
+  assert.deepEqual(
+    model.summary,
+    aggregateHistoricalRows(filterHistoricalRows(officialRows, { farmCode: "759" }, [2425])),
+  );
+  const lot = model.lots.find((item) => item.lotId === "75907");
+  assert.deepEqual(lot, {
+    lotId: "75907", farmCode: "759", farmName: "Jesús María", suerte: "07",
+    variedad: "RB 84-5210", riego: "Gravedad", zona: "5-PRODUCTORES", tenencia: "Productores",
+    area: 19.78, ton: 1622.23, tch: 82.01, katm: 99.97, edad: 12.32,
+    suertes: 1, sourceCount: 1, zafras: [2425],
+  });
+});
+
+test("drilldown conserva separadas finca, zafra y suerte seleccionada", () => {
+  const period = { periodMode: "last5", selectedZafras: [2122, 2223, 2324, 2425, 2526] };
+  const chart = { historicalChartMetric: "katm" };
+  const snapshots = [structuredClone(period), structuredClone(chart)];
+  const initial = { farmCode: null, selectedZafra: null, selectedLotId: null };
+  const season = updateHistoricalDrilldownState(initial, { type: "openSeason", farmCode: "759", zafra: 2425 });
+  const lot = updateHistoricalDrilldownState(season, { type: "openLot", lotId: "75907" });
+  const back = updateHistoricalDrilldownState(lot, { type: "backToFarm" });
+  assert.deepEqual(season, { farmCode: "759", selectedZafra: 2425, selectedLotId: null });
+  assert.deepEqual(lot, { farmCode: "759", selectedZafra: 2425, selectedLotId: "75907" });
+  assert.deepEqual(back, season);
+  assert.deepEqual(period, snapshots[0]);
+  assert.deepEqual(chart, snapshots[1]);
+  assert.deepEqual(initial, { farmCode: null, selectedZafra: null, selectedLotId: null });
+});
+
+test("cerrar el drilldown y cambiar de finca limpian solamente su contexto", () => {
+  const open = { farmCode: "759", selectedZafra: 2425, selectedLotId: "75907" };
+  assert.deepEqual(updateHistoricalDrilldownState(open, { type: "close" }), {
+    farmCode: "759", selectedZafra: null, selectedLotId: null,
+  });
+  assert.deepEqual(updateHistoricalDrilldownState(open, { type: "changeFarm", farmCode: "760" }), {
+    farmCode: "760", selectedZafra: null, selectedLotId: null,
+  });
+  assert.deepEqual(updateHistoricalDrilldownState(open, { type: "changeFarm", farmCode: "759" }), open);
+});
+
+test("una zafra fuera de un periodo personalizado no contiguo puede abrirse sin alterarlo", () => {
+  const period = { periodMode: "custom", selectedZafras: [2223, 2425, 2526] };
+  const snapshot = structuredClone(period);
+  const drilldown = updateHistoricalDrilldownState(
+    { farmCode: "759", selectedZafra: null, selectedLotId: null },
+    { type: "openSeason", farmCode: "759", zafra: 1819 },
+  );
+  assert.deepEqual(drilldown, { farmCode: "759", selectedZafra: 1819, selectedLotId: null });
+  assert.deepEqual(period, snapshot);
+});
+
+test("la UI ofrece entradas accesibles y abre la ficha canónica LOTE::lotId", () => {
+  assert.ok(index.includes('<th>Suertes</th><th>Estado</th>'));
+  assert.equal(index.includes("Lotes/Suertes"), false);
+  assert.ok(index.includes('aria-label="Ver suertes de la zafra ${zafra}"'));
+  assert.ok(index.includes(">Ver ›</button>"));
+  assert.equal(index.includes(".historical-season-table th:nth-child(-n+6)"), false);
+  assert.equal(index.includes(".historical-season-table th:nth-child(n+10)"), false);
+  assert.ok(index.includes(".historical-season-table th:nth-child(10)"));
+  assert.ok(index.includes(".historical-season-table th:last-child"));
+  assert.ok(index.includes(">Ver ficha</button>"));
+  assert.equal(index.includes("activateHistoricalChartPoint"), false);
+  assert.equal(index.includes("handleHistoricalChartPointKey"), false);
+  assert.ok(index.includes('tabindex="0" role="img"'));
+  assert.ok(index.includes('onclick="pinHistoricalChartTooltip(this,event)"'));
+  assert.ok(index.includes("renderEntity('LOTE::'+lotId,{preserveDrilldown:true,fromDrilldown:true})"));
+  assert.ok(index.includes("historical-drilldown-cards"));
+  assert.ok(index.includes('class="historical-drilldown-panel" role="dialog" aria-modal="true"'));
+  assert.ok(index.includes("El periodo activo no cambia."));
+});
+
+test("el panel interactivo queda fuera de impresión y exportación", () => {
+  assert.match(index, /historical-drilldown-overlay no-print export-excluded/);
+  assert.ok(index.includes(".no-print,.export-excluded"));
+  assert.ok(index.includes("return!item.closest('.export-excluded')"));
+  assert.ok(index.includes(".historical-chart-tooltip,.historical-chart-hit',chart).forEach(remove)"));
+});
+
+test("periodo y métrica se actualizan in-place sin volver a navegar la ficha", () => {
+  assert.ok(index.includes("{preserveDrilldown:true,inPlace:true}"));
+  assert.ok(index.includes("requestAnimationFrame(()=>window.scrollTo({left:scrollPosition.x,top:scrollPosition.y,behavior:'instant'}))"));
+  assert.match(index, /if\(options\.inPlace&&scrollPosition\)[^;]+;else nav\('fichaSection'\)/);
 });
 
 test("área multizafra representa la suma ha-zafra", () => {
@@ -314,6 +412,8 @@ test("ninguna función del motor muta lotCompact ni las filas normalizadas", () 
   buildHistoricalChartModel(rows, period, "katm");
   groupHistoricalBySeason(rows);
   groupHistoricalByLot(rows);
+  buildHistoricalDrilldownModel(rows, "100", 2122);
+  updateHistoricalDrilldownState({ farmCode: "100", selectedZafra: 2122, selectedLotId: null }, { type: "openLot", lotId: "10001" });
   assert.deepEqual(input, inputSnapshot);
   assert.deepEqual(rows, rowsSnapshot);
 });

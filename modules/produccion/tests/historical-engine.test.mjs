@@ -213,18 +213,27 @@ test("una zafra fuera de un periodo personalizado no contiguo puede abrirse sin 
 test("la UI ofrece entradas accesibles y abre la ficha canónica LOTE::lotId", () => {
   assert.ok(index.includes("Ver suertes"));
   assert.ok(index.includes(">Ver ficha</button>"));
-  assert.ok(index.includes('onkeydown="handleHistoricalChartPointKey(this,event)"'));
-  assert.ok(index.includes("['Enter',' '].includes(event.key)"));
+  assert.equal(index.includes("activateHistoricalChartPoint"), false);
+  assert.equal(index.includes("handleHistoricalChartPointKey"), false);
+  assert.ok(index.includes('tabindex="0" role="img"'));
+  assert.ok(index.includes('onclick="pinHistoricalChartTooltip(this,event)"'));
   assert.ok(index.includes("renderEntity('LOTE::'+lotId,{preserveDrilldown:true,fromDrilldown:true})"));
   assert.ok(index.includes("historical-drilldown-cards"));
-  assert.ok(index.includes("Zafra abierta para drilldown · El periodo activo no cambia."));
+  assert.ok(index.includes('class="historical-drilldown-panel" role="dialog" aria-modal="true"'));
+  assert.ok(index.includes("El periodo activo no cambia."));
 });
 
 test("el panel interactivo queda fuera de impresión y exportación", () => {
-  assert.match(index, /historical-drilldown-panel no-print export-excluded/);
+  assert.match(index, /historical-drilldown-overlay no-print export-excluded/);
   assert.ok(index.includes(".no-print,.export-excluded"));
   assert.ok(index.includes("return!item.closest('.export-excluded')"));
-  assert.ok(index.includes(".historical-chart-open-ring',chart).forEach(remove)"));
+  assert.ok(index.includes(".historical-chart-tooltip,.historical-chart-hit',chart).forEach(remove)"));
+});
+
+test("periodo y métrica se actualizan in-place sin volver a navegar la ficha", () => {
+  assert.ok(index.includes("{preserveDrilldown:true,inPlace:true}"));
+  assert.ok(index.includes("requestAnimationFrame(()=>window.scrollTo({left:scrollPosition.x,top:scrollPosition.y,behavior:'instant'}))"));
+  assert.match(index, /if\(options\.inPlace&&scrollPosition\)[^;]+;else nav\('fichaSection'\)/);
 });
 
 test("área multizafra representa la suma ha-zafra", () => {

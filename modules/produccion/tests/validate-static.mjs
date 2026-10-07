@@ -202,7 +202,7 @@ check("gráfico histórico comparte motor, periodo y métrica accesible", () => 
   assert.ok(index.includes("const HISTORICAL_CHART_STATE = {historicalChartMetric:'tch'}"));
   assert.ok(index.includes('aria-label="Métrica del gráfico histórico"'));
   assert.ok(index.includes('data-selected="${point.selected}"'));
-  assert.ok(index.includes('tabindex="0" role="${canOpen?\'button\':\'img\'}"'));
+  assert.ok(index.includes('tabindex="0" role="img"'));
   assert.ok(index.includes("const trend=historicalChart(context)"));
 });
 
@@ -212,7 +212,9 @@ check("gráfico histórico corrige referencia, tooltip y exportación", () => {
   assert.ok(index.includes('class="historical-chart-tooltip"'));
   assert.ok(index.includes('onmouseenter="showHistoricalChartTooltip(this)"'));
   assert.ok(index.includes('onfocus="showHistoricalChartTooltip(this)"'));
-  assert.ok(index.includes('onclick="activateHistoricalChartPoint(this,event)"'));
+  assert.ok(index.includes('onclick="pinHistoricalChartTooltip(this,event)"'));
+  assert.equal(index.includes("activateHistoricalChartPoint"), false);
+  assert.equal(index.includes("handleHistoricalChartPointKey"), false);
   assert.ok(index.includes("referenceText=metricLabel+' ponderado del periodo'"));
   assert.ok(index.includes('class="historical-chart-hit"'));
   assert.ok(index.includes('class="historical-chart-dot"'));
@@ -228,7 +230,7 @@ check("gráfico histórico corrige referencia, tooltip y exportación", () => {
   assert.ok(index.includes('class="historical-chart-selected-line" fill="none" stroke="#0b7f3a"'));
   assert.ok(index.includes('class="historical-chart-reference" fill="none" stroke="#0b4f9c"'));
   assert.ok(index.includes("clone('.historical-chart-card',node)"));
-  assert.ok(index.includes(".historical-chart-tooltip,.historical-chart-hit,.historical-chart-open-ring',chart"));
+  assert.ok(index.includes(".historical-chart-tooltip,.historical-chart-hit',chart"));
   assert.ok(index.includes(".historical-chart-reference-badge{display:inline-flex!important"));
   assert.ok(index.includes(".chart-tip-bg,.chart-tip,.mobile-trend-card,.historical-chart-tooltip{display:none!important"));
 });

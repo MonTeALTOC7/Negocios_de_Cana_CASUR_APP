@@ -215,8 +215,10 @@ test("la UI ofrece entradas accesibles y abre la ficha canónica LOTE::lotId", (
   assert.equal(index.includes("Lotes/Suertes"), false);
   assert.ok(index.includes('aria-label="Ver suertes de la zafra ${zafra}"'));
   assert.ok(index.includes(">Ver ›</button>"));
-  assert.ok(index.includes(".historical-season-table th:nth-child(-n+6)"));
-  assert.ok(index.includes(".historical-season-table th:nth-child(n+10)"));
+  assert.equal(index.includes(".historical-season-table th:nth-child(-n+6)"), false);
+  assert.equal(index.includes(".historical-season-table th:nth-child(n+10)"), false);
+  assert.ok(index.includes(".historical-season-table th:nth-child(10)"));
+  assert.ok(index.includes(".historical-season-table th:last-child"));
   assert.ok(index.includes(">Ver ficha</button>"));
   assert.equal(index.includes("activateHistoricalChartPoint"), false);
   assert.equal(index.includes("handleHistoricalChartPointKey"), false);

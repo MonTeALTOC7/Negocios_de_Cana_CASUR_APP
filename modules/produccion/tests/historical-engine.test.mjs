@@ -211,7 +211,12 @@ test("una zafra fuera de un periodo personalizado no contiguo puede abrirse sin 
 });
 
 test("la UI ofrece entradas accesibles y abre la ficha canónica LOTE::lotId", () => {
-  assert.ok(index.includes("Ver suertes"));
+  assert.ok(index.includes('<th>Suertes</th><th>Estado</th>'));
+  assert.equal(index.includes("Lotes/Suertes"), false);
+  assert.ok(index.includes('aria-label="Ver suertes de la zafra ${zafra}"'));
+  assert.ok(index.includes(">Ver ›</button>"));
+  assert.ok(index.includes(".historical-season-table th:nth-child(-n+6)"));
+  assert.ok(index.includes(".historical-season-table th:nth-child(n+10)"));
   assert.ok(index.includes(">Ver ficha</button>"));
   assert.equal(index.includes("activateHistoricalChartPoint"), false);
   assert.equal(index.includes("handleHistoricalChartPointKey"), false);

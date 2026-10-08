@@ -158,7 +158,7 @@ test("Cambio TCH usa primera y última zafra efectivamente seleccionadas aunque 
   assert.equal(result.seasonCount, 3);
 });
 
-test("una sola zafra devuelve N/D para Cambio y Estabilidad", () => {
+test("una sola zafra devuelve N/D para Cambio y Variabilidad", () => {
   const rows = filterHistoricalRows(officialRows, { farmCode: "759" });
   const result = buildHistoricalAgronomicKpis(rows, [2526]);
   assert.equal(result.tchChange, null);
@@ -168,7 +168,7 @@ test("una sola zafra devuelve N/D para Cambio y Estabilidad", () => {
   assert.equal(result.seasonCount, 1);
 });
 
-test("Estabilidad TCH devuelve N/D cuando la media entre zafras es cero", () => {
+test("Variabilidad TCH devuelve N/D cuando la media entre zafras es cero", () => {
   const rows = [
     { lotId: "A", zafra: 2021, area: 10, ton: 0 },
     { lotId: "A", zafra: 2122, area: 10, ton: 0 },
@@ -179,7 +179,7 @@ test("Estabilidad TCH devuelve N/D cuando la media entre zafras es cero", () => 
   assert.equal(result.tchCv, null);
 });
 
-test("Estabilidad TCH calcula CV poblacional entre zafras, no entre lotes", () => {
+test("Variabilidad TCH calcula CV poblacional entre zafras, no entre lotes", () => {
   const rows = [
     { lotId: "A", zafra: 2021, area: 10, ton: 500 },
     { lotId: "B", zafra: 2021, area: 30, ton: 3000 },
@@ -321,11 +321,14 @@ test("la ficha prioriza los seis KPI agronómicos y conserva conteos como contex
   assert.ok(index.includes('class="kpis historical-agronomic-kpis"'));
   for (const label of [
     "TCH ponderado", "KATM ponderado", "Edad ponderada",
-    "Cambio TCH", "Estabilidad TCH", "Vs histórico",
+    "Cambio TCH", "Variabilidad TCH", "Vs histórico",
   ]) {
     assert.ok(index.includes(`kpi('${label}'`), `falta la tarjeta ${label}`);
   }
   assert.ok(index.includes("seasonText+' · '+lotText"));
+  assert.ok(index.includes("CV entre zafras · menor = más estable"));
+  assert.ok(index.includes("CV = desviación estándar del TCH entre zafras ÷ promedio de TCH × 100."));
+  assert.ok(index.includes('class="historical-kpi-help" tabindex="0" role="note"'));
   assert.equal(index.includes("kpi('Toneladas acumuladas'"), false);
   assert.equal(index.includes("kpi('Área cosechada acumulada'"), false);
   assert.equal(index.includes("kpi('Zafras incluidas'"), false);

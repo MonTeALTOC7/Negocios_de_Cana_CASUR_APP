@@ -17,6 +17,7 @@ const {
   compareHistoricalRows,
   buildHistoricalChartModel,
   groupHistoricalBySeason,
+  buildHistoricalAgronomicKpis,
   groupHistoricalByLot,
   buildHistoricalDrilldownModel,
   updateHistoricalDrilldownState,
@@ -138,6 +139,84 @@ test("groupHistoricalBySeason agrupa y ordena las zafras", () => {
   assert.equal(groups[1].sourceCount, 4);
 });
 
+test("KPI agronómicos usan las ponderaciones normativas del motor", () => {
+  const rows = normalizeHistoricalRows(sampleLotCompact);
+  const result = buildHistoricalAgronomicKpis(rows, [2021, 2122]);
+  assert.deepEqual(result, {
+    tch: 64.29, katm: 112.5, edad: 11.33,
+    tchChange: 20, tchChangeFrom: 2021, tchChangeTo: 2122,
+    tchCv: 16.67, vsHistorical: 0, seasonCount: 2, lotCount: 2,
+  });
+});
+
+test("Cambio TCH usa primera y última zafra efectivamente seleccionadas aunque no sean contiguas", () => {
+  const rows = filterHistoricalRows(officialRows, { farmCode: "759" });
+  const result = buildHistoricalAgronomicKpis(rows, [2122, 2425, 2526]);
+  assert.equal(result.tchChange, -28.18);
+  assert.equal(result.tchChangeFrom, 2122);
+  assert.equal(result.tchChangeTo, 2526);
+  assert.equal(result.seasonCount, 3);
+});
+
+test("una sola zafra devuelve N/D para Cambio y Estabilidad", () => {
+  const rows = filterHistoricalRows(officialRows, { farmCode: "759" });
+  const result = buildHistoricalAgronomicKpis(rows, [2526]);
+  assert.equal(result.tchChange, null);
+  assert.equal(result.tchChangeFrom, null);
+  assert.equal(result.tchChangeTo, null);
+  assert.equal(result.tchCv, null);
+  assert.equal(result.seasonCount, 1);
+});
+
+test("Estabilidad TCH devuelve N/D cuando la media entre zafras es cero", () => {
+  const rows = [
+    { lotId: "A", zafra: 2021, area: 10, ton: 0 },
+    { lotId: "A", zafra: 2122, area: 10, ton: 0 },
+  ];
+  const result = buildHistoricalAgronomicKpis(rows, [2021, 2122]);
+  assert.equal(result.tch, 0);
+  assert.equal(result.tchChange, 0);
+  assert.equal(result.tchCv, null);
+});
+
+test("Estabilidad TCH calcula CV poblacional entre zafras, no entre lotes", () => {
+  const rows = [
+    { lotId: "A", zafra: 2021, area: 10, ton: 500 },
+    { lotId: "B", zafra: 2021, area: 30, ton: 3000 },
+    { lotId: "A", zafra: 2122, area: 10, ton: 600 },
+  ];
+  const result = buildHistoricalAgronomicKpis(rows, [2021, 2122]);
+  const individualTch = [50, 100, 60];
+  const individualMean = individualTch.reduce((sum, value) => sum + value, 0) / individualTch.length;
+  const individualCv = Math.round((Math.sqrt(individualTch.reduce((sum, value) => sum + ((value - individualMean) ** 2), 0) / individualTch.length) / individualMean) * 10000) / 100;
+  assert.equal(groupHistoricalBySeason(rows)[0].tch, 87.5);
+  assert.equal(result.tchCv, 18.64);
+  assert.notEqual(result.tchCv, individualCv, "no usa los TCH individuales 50, 100 y 60");
+});
+
+test("caso 759 · Últimas 5 produce los seis KPI agronómicos aprobados", () => {
+  const rows = filterHistoricalRows(officialRows, { farmCode: "759" });
+  const selected = resolvePeriod(rows.map((row) => row.zafra), "last5");
+  assert.deepEqual(buildHistoricalAgronomicKpis(rows, selected), {
+    tch: 74.36, katm: 104.25, edad: 11.53,
+    tchChange: -28.18, tchChangeFrom: 2122, tchChangeTo: 2526,
+    tchCv: 12.86, vsHistorical: -7.85, seasonCount: 5, lotCount: 10,
+  });
+});
+
+test("KPI agronómicos funcionan para una suerte y reutilizan su histórico completo", () => {
+  const rows = filterHistoricalRows(officialRows, { lotId: "75907" });
+  const selected = resolvePeriod(rows.map((row) => row.zafra), "last5");
+  const result = buildHistoricalAgronomicKpis(rows, selected);
+  const period = aggregateHistoricalRows(filterHistoricalRows(rows, null, selected));
+  const full = aggregateHistoricalRows(rows);
+  assert.equal(result.tch, period.tch);
+  assert.equal(result.katm, period.katm);
+  assert.equal(result.edad, period.edad);
+  assert.equal(result.vsHistorical, Math.round((period.tch - full.tch) * 100) / 100);
+  assert.equal(result.lotCount, 1);
+});
+
 test("groupHistoricalByLot agrupa por lotId con metadatos", () => {
   const groups = groupHistoricalByLot(normalizeHistoricalRows(sampleLotCompact));
   assert.equal(groups.length, 2);
@@ -237,19 +316,38 @@ test("el panel interactivo queda fuera de impresión y exportación", () => {
   assert.ok(index.includes(".historical-chart-tooltip,.historical-chart-hit',chart).forEach(remove)"));
 });
 
+test("la ficha prioriza los seis KPI agronómicos y conserva conteos como contexto", () => {
+  assert.ok(index.includes("buildHistoricalAgronomicKpis(scopeRows,selectedZafras)"));
+  assert.ok(index.includes('class="kpis historical-agronomic-kpis"'));
+  for (const label of [
+    "TCH ponderado", "KATM ponderado", "Edad ponderada",
+    "Cambio TCH", "Estabilidad TCH", "Vs histórico",
+  ]) {
+    assert.ok(index.includes(`kpi('${label}'`), `falta la tarjeta ${label}`);
+  }
+  assert.ok(index.includes("seasonText+' · '+lotText"));
+  assert.equal(index.includes("kpi('Toneladas acumuladas'"), false);
+  assert.equal(index.includes("kpi('Área cosechada acumulada'"), false);
+  assert.equal(index.includes("kpi('Zafras incluidas'"), false);
+  assert.equal(index.includes("kpi('Suertes únicas'"), false);
+  assert.equal(index.includes("deltaCard('Vs histórico completo'"), false);
+  assert.ok(index.includes(".casur-report-historico>.historical-agronomic-kpis"));
+});
+
 test("periodo y métrica se actualizan in-place sin volver a navegar la ficha", () => {
   assert.ok(index.includes("{preserveDrilldown:true,inPlace:true}"));
   assert.ok(index.includes("requestAnimationFrame(()=>window.scrollTo({left:scrollPosition.x,top:scrollPosition.y,behavior:'instant'}))"));
   assert.match(index, /if\(options\.inPlace&&scrollPosition\)[^;]+;else nav\('fichaSection'\)/);
 });
 
-test("área multizafra representa la suma ha-zafra", () => {
+test("área multizafra permanece disponible en el motor y las tablas", () => {
   const rows = filterHistoricalRows(officialRows, { lotId: "75907" }, [2324, 2425, 2526]);
   const result = aggregateHistoricalRows(rows);
   assert.equal(result.area, 59.34);
   assert.equal(result.zafras.length, 3);
-  assert.ok(index.includes("Área cosechada acumulada"));
-  assert.ok(index.includes(" ha-zafra"));
+  assert.equal(index.includes("Área cosechada acumulada"), false);
+  assert.equal(index.includes("Toneladas acumuladas"), false);
+  assert.ok(index.includes("<th>Área</th><th>Ton</th>"));
 });
 
 test("comparadores usan exactamente las mismas zafras", async (t) => {
@@ -411,6 +509,7 @@ test("ninguna función del motor muta lotCompact ni las filas normalizadas", () 
   compareHistoricalRows(rows, { lotId: "10001" }, { farmCode: "100" }, period);
   buildHistoricalChartModel(rows, period, "katm");
   groupHistoricalBySeason(rows);
+  buildHistoricalAgronomicKpis(rows, period);
   groupHistoricalByLot(rows);
   buildHistoricalDrilldownModel(rows, "100", 2122);
   updateHistoricalDrilldownState({ farmCode: "100", selectedZafra: 2122, selectedLotId: null }, { type: "openLot", lotId: "10001" });

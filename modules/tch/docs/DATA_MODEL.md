@@ -12,6 +12,11 @@ Además de identificación de suerte:
 `currentAgeMonths`, `targetAgeMonths`, `adjustmentPct`, `biometricTch`, `projectedTch`,
 `projectedTons`, `weightTch`, `weightPointCount`, `cvPct`, `quality`, `validation`, `samples`.
 
+Durante la captura, `activeBiometryId` conserva la identidad persistida de la sesión abierta. El
+primer guardado crea el ID y los guardados posteriores reemplazan ese mismo registro, preservan
+`createdAt` e incrementan `revision`. `editingBiometryId` se reserva para registros abiertos
+explícitamente desde el Historial. Iniciar una nueva biometría limpia ambas identidades.
+
 ## Punto v2.4
 `pointCode`, `sampleLengthM`, `stalkCount` o `directStalksPerMeter`,
 `heightM`, `diameterMm`, `rowSpacingM`, `tch`,

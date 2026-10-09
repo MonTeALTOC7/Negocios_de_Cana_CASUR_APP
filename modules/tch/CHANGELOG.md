@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Próxima versión
+
+- Guardar una biometría funciona como checkpoint de la sesión activa: conserva el mismo ID,
+  reemplaza sus puntos y resultados recalculados, mantiene `createdAt` e incrementa `revision`.
+- La edición desde Historial reutiliza esa misma identidad y una acción explícita de nueva
+  biometría inicia otra evaluación, incluso para la misma suerte y fecha.
+- Se bloquea cualquier intento de actualizar la biometría activa desde una suerte distinta.
+- Sin migración de IndexedDB, cambios de fórmulas ni limpieza de registros históricos existentes.
+
 ## 2.7.2 — 2026-08-24
 
 - La fecha efectiva del TCH estimado pasa a ser obligatoria antes de seleccionar el Excel.

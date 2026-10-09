@@ -243,6 +243,41 @@
       .map(([zafra, values]) => ({ zafra, ...aggregateHistoricalRows(values) }));
   }
 
+  function buildHistoricalAgronomicKpis(rows, selectedZafras) {
+    const list = Array.isArray(rows) ? rows : [];
+    const availableZafras = groupHistoricalBySeason(list).map((season) => season.zafra);
+    const requested = selectedZafras === null || selectedZafras === undefined
+      ? availableZafras
+      : (selectedZafras instanceof Set ? [...selectedZafras] : Array.isArray(selectedZafras) ? selectedZafras : [selectedZafras]);
+    const selected = new Set(requested.map(finite).filter((value) => value !== null));
+    const effectiveZafras = availableZafras.filter((zafra) => selected.has(zafra));
+    const periodRows = filterHistoricalRows(list, null, effectiveZafras);
+    const period = aggregateHistoricalRows(periodRows);
+    const full = aggregateHistoricalRows(list);
+    const seasons = groupHistoricalBySeason(periodRows);
+    const first = seasons[0] || null;
+    const last = seasons[seasons.length - 1] || null;
+    const canCompare = seasons.length > 1 && first?.tch !== null && last?.tch !== null;
+    const tchValues = seasons.map((season) => season.tch).filter((value) => value !== null);
+    const mean = tchValues.length ? tchValues.reduce((sum, value) => sum + value, 0) / tchValues.length : null;
+    const variance = tchValues.length > 1 && mean !== null
+      ? tchValues.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / tchValues.length
+      : null;
+
+    return {
+      tch: period.tch,
+      katm: period.katm,
+      edad: period.edad,
+      tchChange: canCompare ? round(last.tch - first.tch) : null,
+      tchChangeFrom: canCompare ? first.zafra : null,
+      tchChangeTo: canCompare ? last.zafra : null,
+      tchCv: variance !== null && mean !== 0 ? round((Math.sqrt(variance) / mean) * 100) : null,
+      vsHistorical: period.tch !== null && full.tch !== null ? round(period.tch - full.tch) : null,
+      seasonCount: effectiveZafras.length,
+      lotCount: period.suertes,
+    };
+  }
+
   function groupHistoricalByLot(rows) {
     const groups = new Map();
     (Array.isArray(rows) ? rows : []).forEach((row) => {
@@ -318,6 +353,7 @@
     compareHistoricalRows,
     buildHistoricalChartModel,
     groupHistoricalBySeason,
+    buildHistoricalAgronomicKpis,
     groupHistoricalByLot,
     buildHistoricalDrilldownModel,
     updateHistoricalDrilldownState,

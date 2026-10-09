@@ -35,6 +35,7 @@ export async function persistBiometryCheckpoint({
   const record = {
     ...recordData,
     id: previousRecord?.id || makeId(),
+    time: previousRecord ? previousRecord.time : recordData.time,
     createdAt: previousRecord?.createdAt || nowIso,
     updatedAt: nowIso,
     revision: nextRevision(previousRecord),

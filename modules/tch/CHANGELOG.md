@@ -3,7 +3,8 @@
 ## Próxima versión
 
 - Guardar una biometría funciona como checkpoint de la sesión activa: conserva el mismo ID,
-  reemplaza sus puntos y resultados recalculados, mantiene `createdAt` e incrementa `revision`.
+  reemplaza sus puntos y resultados recalculados, mantiene `createdAt` y la hora original `time`,
+  e incrementa `revision`; `updatedAt` registra la hora del último checkpoint.
 - La edición desde Historial reutiliza esa misma identidad y una acción explícita de nueva
   biometría inicia otra evaluación, incluso para la misma suerte y fecha.
 - Se bloquea cualquier intento de actualizar la biometría activa desde una suerte distinta.

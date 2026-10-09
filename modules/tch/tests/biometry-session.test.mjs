@@ -39,7 +39,7 @@ function sample(index, { heightM = 2, diameterMm = 25, weightKg = 6 } = {}) {
   };
 }
 
-function calculatedRecordData(samples, lotId = "AIDOSA-08", date = "2026-10-08") {
+function calculatedRecordData(samples, lotId = "AIDOSA-08", date = "2026-10-08", time = "14:00") {
   const tchValues = samples.map((point) => sampleTch(point, point.rowSpacingM));
   const weightValues = samples.map((point) => sampleWeightTch(point, point.rowSpacingM));
   const tch = stats(tchValues);
@@ -47,6 +47,7 @@ function calculatedRecordData(samples, lotId = "AIDOSA-08", date = "2026-10-08")
   return {
     method: "Biometría",
     date,
+    time,
     lotId,
     samples: structuredClone(samples),
     pointCount: tch.count,
@@ -73,7 +74,7 @@ function sessionHarness(initial = []) {
     get records() { return records; },
     get activeBiometryId() { return activeBiometryId; },
     set activeBiometryId(value) { activeBiometryId = value; },
-    async save(samples, nowIso, { lotId = "AIDOSA-08", date = "2026-10-08" } = {}) {
+    async save(samples, nowIso, { lotId = "AIDOSA-08", date = "2026-10-08", time = nowIso.slice(11, 16) } = {}) {
       const result = await persistBiometryCheckpoint({
         repository,
         records,
@@ -81,7 +82,7 @@ function sessionHarness(initial = []) {
         selectedLotId: lotId,
         makeId: () => `bio-${++sequence}`,
         nowIso,
-        recordData: calculatedRecordData(samples, lotId, date),
+        recordData: calculatedRecordData(samples, lotId, date, time),
       });
       records = result.records;
       activeBiometryId = result.activeBiometryId;
@@ -99,6 +100,7 @@ test("P01-P03 crea un único registro con revisión 0 y fechas T1", async () => 
   assert.equal(session.records.length, 1);
   assert.equal(session.repository.rows.size, 1);
   assert.equal(result.record.id, "bio-1");
+  assert.equal(result.record.time, "14:00");
   assert.equal(result.record.pointCount, 3);
   assert.equal(result.record.revision, 0);
   assert.equal(result.record.createdAt, "2026-10-08T14:00:00.000Z");
@@ -116,6 +118,7 @@ test("P04 actualiza el mismo ID, conserva createdAt y recalcula TCH y peso", asy
   assert.equal(session.records.length, 1);
   assert.equal(session.repository.rows.size, 1);
   assert.equal(second.record.id, first.record.id);
+  assert.equal(second.record.time, first.record.time);
   assert.equal(second.record.createdAt, first.record.createdAt);
   assert.notEqual(second.record.updatedAt, first.record.updatedAt);
   assert.equal(second.record.revision, 1);
@@ -134,6 +137,7 @@ test("P05 conserva un registro y el mismo ID con revisión 2", async () => {
   assert.equal(session.records.length, 1);
   assert.equal(session.repository.rows.size, 1);
   assert.equal(third.record.id, first.record.id);
+  assert.equal(third.record.time, first.record.time);
   assert.equal(third.record.createdAt, first.record.createdAt);
   assert.equal(third.record.updatedAt, "2026-10-08T14:10:00.000Z");
   assert.equal(third.record.revision, 2);
@@ -155,6 +159,7 @@ test("Editar desde Historial reemplaza el registro real sin duplicarlo", async (
   const original = {
     ...calculatedRecordData([sample(1), sample(2), sample(3)]),
     id: "bio-history",
+    time: "13:00",
     createdAt: "2026-10-08T13:00:00.000Z",
     updatedAt: "2026-10-08T13:00:00.000Z",
     revision: 0,
@@ -164,6 +169,7 @@ test("Editar desde Historial reemplaza el registro real sin duplicarlo", async (
   const result = await session.save([...original.samples, sample(4)], "2026-10-08T15:00:00.000Z");
 
   assert.equal(result.record.id, original.id);
+  assert.equal(result.record.time, original.time);
   assert.equal(result.record.revision, 1);
   assert.equal(session.records.length, 1);
   assert.equal(session.repository.rows.size, 1);
@@ -200,10 +206,43 @@ test("Nueva biometría explícita crea otro ID aunque coincidan suerte y fecha",
   const second = await session.save([sample(1), sample(2), sample(3)], "2026-10-08T15:00:00.000Z");
 
   assert.notEqual(second.record.id, first.record.id);
+  assert.notEqual(second.record.time, first.record.time);
   assert.equal(second.record.date, first.record.date);
   assert.equal(second.record.lotId, first.record.lotId);
   assert.equal(session.records.length, 2);
   assert.equal(session.repository.rows.size, 2);
+});
+
+test("editar después la biometría más antigua no la convierte en la última de la suerte", async () => {
+  const older = {
+    ...calculatedRecordData([sample(1), sample(2), sample(3)], "AIDOSA-08", "2026-10-08", "08:00"),
+    id: "bio-older",
+    createdAt: "2026-10-08T14:00:00.000Z",
+    updatedAt: "2026-10-08T14:00:00.000Z",
+    revision: 0,
+  };
+  const newer = {
+    ...calculatedRecordData([sample(1), sample(2), sample(3)], "AIDOSA-08", "2026-10-08", "09:00"),
+    id: "bio-newer",
+    createdAt: "2026-10-08T15:00:00.000Z",
+    updatedAt: "2026-10-08T15:00:00.000Z",
+    revision: 0,
+  };
+  const session = sessionHarness([older, newer]);
+  session.activeBiometryId = older.id;
+  const edited = await session.save(
+    [...older.samples, sample(4)],
+    "2026-10-08T18:00:00.000Z",
+    { time: "12:00" },
+  );
+  const latest = session.records.slice()
+    .sort((a, b) => `${b.date}${b.time || ""}`.localeCompare(`${a.date}${a.time || ""}`))[0];
+
+  assert.equal(edited.record.time, "08:00");
+  assert.equal(edited.record.createdAt, older.createdAt);
+  assert.equal(edited.record.updatedAt, "2026-10-08T18:00:00.000Z");
+  assert.equal(edited.record.revision, 1);
+  assert.equal(latest.id, newer.id);
 });
 
 test("cambiar de suerte bloquea la actualización antes de escribir", async () => {

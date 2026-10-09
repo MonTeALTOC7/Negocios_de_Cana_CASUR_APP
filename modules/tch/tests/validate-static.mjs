@@ -1,11 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 
-const root = path.resolve(new URL("..", import.meta.url).pathname);
+const root = fileURLToPath(new URL("..", import.meta.url));
 const required = [
-  "index.html", "manifest.webmanifest", "sw.js", "version.json", "css/casur.css",
-  "js/app.js", "js/tch-engine.js", "js/storage.js", "js/master.js", "js/excel.js", "js/visit-evidence.js",
+  "index.html", "version.json", "css/casur.css",
+  "js/app.js", "js/biometry-session.js", "js/tch-engine.js", "js/storage.js", "js/master.js", "js/excel.js", "js/visit-evidence.js",
   "js/result-image.js", "data/suertes.json", "data/productores.json", "vendor/xlsx.bundle.js",
   "assets/logo_casur.png", "assets/cana-azucar-real.png",
   "assets/icons/tch-icon-192.png", "assets/icons/tch-icon-512.png",
@@ -13,7 +14,7 @@ const required = [
 required.forEach((file) => assert.ok(fs.existsSync(path.join(root, file)), `Falta ${file}`));
 
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-assert.match(html, /manifest\.webmanifest/);
+assert.match(html, /Manifest propio DESACTIVADO/, "El módulo debe usar la PWA única de la App Maestra");
 assert.match(html, /type="module" src="\.\/js\/app\.js"/);
 assert.doesNotMatch(html, /data-route="weighing"/, "Pesaje separado no debe ser navegación principal");
 assert.match(html, /data-route="visits"/, "Visitas debe ser navegación principal");
@@ -60,6 +61,9 @@ assert.match(source, /data-edit-visit/, "El historial debe permitir editar una v
 assert.match(source, /newBiometryForVisit/, "La visita debe enlazar una nueva biometría");
 assert.match(source, /visitBiometryId/, "La visita debe permitir elegir una biometría guardada");
 assert.match(source, /data-edit-biometry/, "Las biometrías guardadas deben poder reabrirse y editarse");
+assert.match(source, /activeBiometryId/, "La biometría activa debe conservar una identidad de sesión");
+assert.match(source, /persistBiometryCheckpoint/, "Guardar debe actualizar el checkpoint activo sin duplicarlo");
+assert.match(source, /data-new-biometry/, "Una nueva biometría debe comenzar mediante una acción explícita");
 assert.match(source, /Cronológico de suertes/, "Análisis debe convertirse en consulta cronológica");
 assert.match(source, /Filtros y exportación/, "La exportación debe quedar contraída en un desplegable");
 

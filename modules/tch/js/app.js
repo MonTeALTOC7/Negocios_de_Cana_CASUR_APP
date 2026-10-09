@@ -10,6 +10,7 @@ import {
 } from "./tch-engine.js";
 import { downloadBlob, downloadWorkbook } from "./excel.js";
 import { createResultImageBlob } from "./result-image.js";
+import { persistBiometryCheckpoint } from "./biometry-session.js";
 import {
   createVisitsPackageBlob, createVisitsWorkbookBlob, prepareVisitPhoto,
   snapshotPhotoFiles, visitPackageFilename, visitsExcelFilename, visitPhotoBlob,
@@ -44,6 +45,7 @@ const state = {
   pendingEstimateSourceDate: "",
   editingLot: null,
   editingBiometryId: "",
+  activeBiometryId: "",
   biometry: null,
   weighing: null,
   visit: null,
@@ -302,6 +304,7 @@ function newSample(index, sampleLengthM = 5) {
 function resetBiometry() {
   state.selectedLot = null;
   state.editingBiometryId = "";
+  state.activeBiometryId = "";
   const first = newSample(0, 5);
   state.biometry = {
     date: todayISO(),
@@ -433,7 +436,7 @@ function renderHome() {
       <span class="eyebrow">🌱 CAMPO · CASUR</span>
       <h1>Biometría TCH y evidencia técnica de cada visita</h1>
       <p>Medí la caña, proyectá el TCH y documentá el estado real de la suerte con fotografías etiquetadas, GPS e historial Excel.</p>
-      <div class="actions"><button class="btn btn-primary" data-route="biometry">＋ Nueva biometría</button><button class="btn btn-gold" data-route="visits">📷 Registrar visita</button></div>
+      <div class="actions"><button class="btn btn-primary" data-new-biometry>＋ Nueva biometría</button><button class="btn btn-gold" data-route="visits">📷 Registrar visita</button></div>
     </section>
     ${state.master.length ? "" : `<div class="warning"><b>No se pudo abrir el Maestro General integrado.</b> ${escapeHtml(state.embeddedMasterError)} Podés actualizarlo desde Maestro.</div>`}
     <section class="kpi-grid">
@@ -443,7 +446,7 @@ function renderHome() {
       <article class="kpi red"><span>Toneladas</span><strong>${formatNumber(tons, 0)}</strong><small>${formatNumber(area, 1)} ha evaluadas</small></article>
     </section>
     <section class="module-grid">
-      <button class="module-card primary-module" data-route="biometry"><span class="module-icon">🌱</span><span><small>OPERACIÓN PRINCIPAL</small><strong>Nueva Biometría</strong><p>Iniciá con P01 y agregá solamente los puntos que necesités.</p></span><b>›</b></button>
+      <button class="module-card primary-module" data-new-biometry><span class="module-icon">🌱</span><span><small>OPERACIÓN PRINCIPAL</small><strong>Nueva Biometría</strong><p>Iniciá con P01 y agregá solamente los puntos que necesités.</p></span><b>›</b></button>
       <button class="module-card visit-main-module" data-route="visits"><span class="module-icon blue">📷</span><span><small>EVIDENCIA PRINCIPAL</small><strong>Visita de campo</strong><p>Fotos libres, GPS, condición agronómica, PNG etiquetado y Excel.</p></span><b>›</b></button>
       <button class="module-card" data-route="history"><span class="module-icon gold">▤</span><span><small>CONSULTA</small><strong>Historial</strong><p>Biometrías, contrastes por peso, pesajes anteriores y TCH real.</p></span><b>›</b></button>
       <button class="module-card" data-route="analytics"><span class="module-icon blue">⌕</span><span><small>CONSULTA OPERATIVA</small><strong>Cronológico de suertes</strong><p>Ficha maestra, TCH estimado Z26/27, biometrías y visitas vinculadas.</p></span><b>›</b></button>
@@ -748,6 +751,7 @@ function editBiometry(record) {
   if (!samples.length) samples.push(newSample(0, record.sampleLengthM || 5));
   state.selectedLot = lot;
   state.editingBiometryId = record.id;
+  state.activeBiometryId = record.id;
   state.biometry = {
     date: record.date || todayISO(), technician: record.technician || "", rowSpacingM: record.rowSpacingM || lot.rowSpacingM || 1.65,
     sampleLengthM: record.sampleLengthM || 5, targetAgeMonths: record.targetAgeMonths || 10,
@@ -1039,7 +1043,6 @@ async function saveBiometry(download = false) {
   if (finiteNumber(b.targetAgeMonths) < summary.age.months) return notify("La edad de referencia no puede ser menor que la edad actual.");
   if (!summary.projected) return notify("Revisá la edad y el ajuste de proyección.");
   const now = new Date();
-  const previousRecord = state.editingBiometryId ? state.biometries.find((item) => item.id === state.editingBiometryId) : null;
   const samples = b.samples.map((sample) => {
     const normalized = normalizedSample(sample);
     const population = stalksPerMeter(normalized);
@@ -1062,13 +1065,9 @@ async function saveBiometry(download = false) {
     };
   }).filter((sample) => sample.tch);
   const lot = state.selectedLot;
-  const record = {
-    id: previousRecord?.id || createId("bio"),
+  const recordData = {
     method: "Biometría",
     formulaVersion: "TCHe-mm-m-v2.4",
-    createdAt: previousRecord?.createdAt || now.toISOString(),
-    updatedAt: now.toISOString(),
-    revision: (previousRecord?.revision || 0) + (previousRecord ? 1 : 0),
     date: b.date,
     time: now.toLocaleTimeString("es-NI", { hour: "2-digit", minute: "2-digit" }),
     technician: b.technician || "Sin registrar",
@@ -1112,10 +1111,24 @@ async function saveBiometry(download = false) {
     samples,
     notes: b.notes,
   };
-  await repository.put("biometries", record);
-  if (previousRecord) state.biometries = state.biometries.map((item) => item.id === record.id ? record : item);
-  else state.biometries.push(record);
-  notify(previousRecord ? "Biometría actualizada y recalculada." : summary.count < 3 ? "Biometría guardada. Muestreo corto marcado como calidad baja." : "Biometría guardada en el teléfono.");
+  let checkpoint;
+  try {
+    checkpoint = await persistBiometryCheckpoint({
+      repository,
+      records: state.biometries,
+      activeBiometryId: state.activeBiometryId,
+      selectedLotId: lot.id,
+      makeId: () => createId("bio"),
+      nowIso: now.toISOString(),
+      recordData,
+    });
+  } catch (error) {
+    return notify(error?.message || "No se pudo guardar la biometría.");
+  }
+  const { record, isUpdate } = checkpoint;
+  state.biometries = checkpoint.records;
+  state.activeBiometryId = checkpoint.activeBiometryId;
+  notify(`✓ Biometría ${isUpdate ? "actualizada" : "guardada"} · ${record.pointCount} puntos`);
   if (download) {
     downloadWorkbook({
       master: state.master,
@@ -1404,6 +1417,13 @@ function addSampleAndOpen() {
 document.addEventListener("click", async (event) => {
   const button = event.target.closest("button");
   if (!button) return;
+  if (button.hasAttribute("data-new-biometry")) {
+    resetBiometry();
+    state.route = "biometry";
+    render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
   if (button.dataset.route) return go(button.dataset.route);
 
   if (button.dataset.consultAction && state.selectedLot) {

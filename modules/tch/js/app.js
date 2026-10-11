@@ -208,21 +208,31 @@ function updateBiometryDraftIndicator() {
 async function flushBiometryDraft() {
   clearTimeout(biometryDraftTimer);
   biometryDraftTimer = null;
+  if (!state.biometryDirty) return { ok: true, status: "noop" };
   const draft = currentBiometryDraft();
-  if (!draft) return null;
+  if (!draft) return { ok: false, status: "error" };
   try {
     await persistBiometryDraft(repository, draft);
     state.biometryDraft = draft;
     state.biometryDraftIssue = "";
     state.biometryDraftStatus = "protected";
     updateBiometryDraftIndicator();
-    return draft;
+    return { ok: true, status: "saved", updatedAt: draft.updatedAt };
   } catch {
     state.biometryDraftStatus = "pending";
     updateBiometryDraftIndicator();
-    return null;
+    return { ok: false, status: "error" };
   }
 }
+
+window.CASUR_MODULE_BRIDGE = Object.freeze({
+  protocolVersion: 1,
+  moduleId: "tch",
+  async checkpoint({ reason } = {}) {
+    void reason;
+    return flushBiometryDraft();
+  },
+});
 
 function scheduleBiometryDraftSave() {
   if (!state.biometryDirty || !state.selectedLot) return;

@@ -6,6 +6,7 @@
    ============================================================ */
 
 import * as router from './core/navigation/router.js';
+import { createModuleCheckpointRunner, resolveHistoryNavigation } from './core/navigation/module-checkpoint.js';
 import * as registry from './core/module-registry/registry.js';
 import * as gate from './core/permissions/gate.js';
 import * as status from './core/sync/status.js';
@@ -21,6 +22,57 @@ const el = (html) => { const t = document.createElement('template'); t.innerHTML
 const app = $('#app');
 const viewEl = $('#view');
 const navEl = $('#nav');
+const MODULE_CHECKPOINT_ERROR = 'No se pudo proteger el trabajo pendiente. El cambio de módulo fue cancelado.';
+let moduleNavigationPending = false;
+let approvedModuleRoute = '';
+let currentRenderedRoute = '';
+let pendingHistoryRoute = null;
+let historyNavigationPending = false;
+
+const runActiveModuleCheckpoint = createModuleCheckpointRunner(() => {
+  const frame = $('#mFrame');
+  return frame?.contentWindow?.CASUR_MODULE_BRIDGE;
+});
+
+async function checkpointActiveModule(reason) {
+  const frame = $('#mFrame');
+  if (!frame) return { ok: true, status: 'no-frame' };
+  return runActiveModuleCheckpoint(reason);
+}
+
+async function navigateFromActiveModule(path, reason) {
+  if (moduleNavigationPending) return false;
+  moduleNavigationPending = true;
+  try {
+    const result = await checkpointActiveModule(reason);
+    if (!result.ok) {
+      toast(MODULE_CHECKPOINT_ERROR);
+      return false;
+    }
+    approvedModuleRoute = path;
+    router.go(path);
+    return true;
+  } finally {
+    moduleNavigationPending = false;
+  }
+}
+
+async function reloadActiveModule(reason = 'reload') {
+  if (moduleNavigationPending) return false;
+  moduleNavigationPending = true;
+  try {
+    const result = await checkpointActiveModule(reason);
+    if (!result.ok) {
+      toast(MODULE_CHECKPOINT_ERROR);
+      return false;
+    }
+    const frame = $('#mFrame');
+    if (frame) frame.src = frame.src;
+    return Boolean(frame);
+  } finally {
+    moduleNavigationPending = false;
+  }
+}
 
 /* Mini-logos (isotipos) por módulo para las tarjetas del home.
    Familia gráfica coherente del ecosistema "Negocios de Caña".
@@ -326,10 +378,14 @@ function viewModule(id) {
   if (m.privacy === 'private' && !gate.isUnlocked()) { router.go('/privado/' + id); return; }
   if (!m.enabled) { router.home(); return; }
 
-  const host = el(`<div class="module-host view">
+  const host = el(`<div class="module-host view" data-module-id="${id}" data-rendered-route="/modulo/${id}">
       <div class="module-host__bar">
         <button class="icon-btn" id="mBack" type="button" aria-label="Volver">${icon('back')}</button>
-        <span class="module-host__title">${m.name}</span>
+        <button class="module-host__switch" id="mSwitch" type="button"
+                aria-haspopup="dialog" aria-expanded="false" aria-controls="moduleSwitcher">
+          <span class="module-host__title">${m.name}</span>
+          <span class="module-host__switch-caret" aria-hidden="true">▾</span>
+        </button>
         <span class="module-host__spacer"></span>
         <button class="icon-btn" id="mReload" type="button" aria-label="Recargar módulo">${icon('refresh')}</button>
       </div>
@@ -338,6 +394,16 @@ function viewModule(id) {
               title="${m.name}"
               allow="camera; geolocation; clipboard-read; clipboard-write; fullscreen"
               referrerpolicy="no-referrer"></iframe>
+      <div class="module-switcher" id="moduleSwitcher" hidden>
+        <div class="module-switcher__backdrop" data-switch-close></div>
+        <section class="module-switcher__panel" role="dialog" aria-modal="true" aria-labelledby="moduleSwitcherTitle">
+          <header class="module-switcher__head">
+            <div><small>ACCESO RÁPIDO</small><strong id="moduleSwitcherTitle">Cambiar módulo</strong></div>
+            <button class="icon-btn module-switcher__close" type="button" data-switch-close aria-label="Cerrar selector">${icon('close')}</button>
+          </header>
+          <div class="module-switcher__list" id="moduleSwitcherList" role="menu"></div>
+        </section>
+      </div>
     </div>`);
 
   // Ocultamos header/nav del shell mientras un módulo ocupa toda la pantalla.
@@ -345,9 +411,71 @@ function viewModule(id) {
   viewEl.innerHTML = '';
   viewEl.appendChild(host);
 
-  $('#mBack', host).addEventListener('click', () => router.home());
-  $('#mReload', host).addEventListener('click', () => {
-    const f = $('#mFrame', host); f.src = f.src;
+  $('#mBack', host).addEventListener('click', () => { void navigateFromActiveModule('/', 'back-home'); });
+  $('#mReload', host).addEventListener('click', () => { void reloadActiveModule(); });
+
+  const trigger = $('#mSwitch', host);
+  const switcher = $('#moduleSwitcher', host);
+  const panel = $('.module-switcher__panel', switcher);
+  const list = $('#moduleSwitcherList', switcher);
+
+  const closeSwitcher = ({ returnFocus = true } = {}) => {
+    if (switcher.hidden) return;
+    switcher.hidden = true;
+    trigger.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('module-switcher-open');
+    if (returnFocus) trigger.focus();
+  };
+
+  const renderSwitcherModules = () => {
+    list.innerHTML = '';
+    registry.homeModules().forEach((target) => {
+      const current = target.moduleId === id;
+      const connectivity = target.requiresOnline
+        ? `<small class="module-switcher__status ${status.isOnline() ? '' : 'is-offline'}">${status.isOnline() ? 'Requiere conexión' : 'Sin conexión'}</small>`
+        : '';
+      const option = el(`<button class="module-switcher__option ${current ? 'is-current' : ''}"
+          type="button" role="menuitem" data-switch-module="${target.moduleId}"
+          style="--accent:${target.accent}" ${current ? 'aria-current="page"' : ''}>
+          <span class="module-switcher__logo"><img src="${logoFor(target.moduleId)}" alt="" width="38" height="38"></span>
+          <span class="module-switcher__copy"><strong>${target.name}</strong>${connectivity}</span>
+          <span class="module-switcher__mark" aria-hidden="true">${current ? '✓' : '›'}</span>
+        </button>`);
+      list.appendChild(option);
+    });
+  };
+
+  const openSwitcher = () => {
+    renderSwitcherModules();
+    switcher.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('module-switcher-open');
+    $('[aria-current="page"]', list)?.focus();
+  };
+
+  trigger.addEventListener('click', () => switcher.hidden ? openSwitcher() : closeSwitcher());
+  switcher.addEventListener('click', (event) => {
+    if (event.target.closest('[data-switch-close]')) { closeSwitcher(); return; }
+    const option = event.target.closest('[data-switch-module]');
+    if (!option) return;
+    const targetId = option.dataset.switchModule;
+    if (targetId === id) { closeSwitcher(); return; }
+    closeSwitcher({ returnFocus: false });
+    void navigateFromActiveModule('/modulo/' + targetId, 'module-switch');
+  });
+  host.addEventListener('keydown', (event) => {
+    if (switcher.hidden) return;
+    if (event.key === 'Escape') { event.preventDefault(); closeSwitcher(); return; }
+    if (event.key !== 'Tab') return;
+    const focusable = [...panel.querySelectorAll('button:not([disabled])')];
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault(); last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault(); first.focus();
+    }
   });
 }
 
@@ -777,7 +905,14 @@ function renderCentroGate() {
 }
 
 /* ---------------- Router → vistas ---------------- */
-function route(r) {
+function routePath(r) {
+  if (r.name === 'modulo') return '/modulo/' + (r.param || '');
+  if (r.name === 'centro-maestro') return '/centro-maestro';
+  if (r.name === 'privado') return '/privado/' + (r.param || '');
+  return '/';
+}
+
+function renderRoute(r) {
   switch (r.name) {
     case 'home': viewHome(); break;
     case 'modulo': viewModule(r.param); break;
@@ -788,6 +923,55 @@ function route(r) {
     case 'privado': viewPrivado(r.param); break;
     default: viewHome();
   }
+  currentRenderedRoute = routePath(r);
+}
+
+function restoreRenderedHash(path) {
+  const hash = '#' + (path || '/');
+  history.replaceState(history.state, '', `${location.pathname}${location.search}${hash}`);
+}
+
+async function protectHistoryNavigation() {
+  if (historyNavigationPending) return;
+  historyNavigationPending = true;
+  const frame = $('#mFrame');
+  const mountedRoute = currentRenderedRoute || frame?.dataset.renderedRoute || '/';
+  try {
+    await resolveHistoryNavigation({
+      checkpoint: checkpointActiveModule,
+      mountedRoute,
+      getLatestRoute: router.current,
+      routePath,
+      renderRoute,
+      restoreRoute: restoreRenderedHash,
+      onFailure: () => toast(MODULE_CHECKPOINT_ERROR),
+    });
+    pendingHistoryRoute = null;
+  } finally {
+    historyNavigationPending = false;
+  }
+}
+
+function route(r) {
+  const requestedRoute = routePath(r);
+  if (requestedRoute === currentRenderedRoute) return;
+
+  const frame = $('#mFrame');
+  if (!frame) {
+    if (approvedModuleRoute === requestedRoute) approvedModuleRoute = '';
+    renderRoute(r);
+    return;
+  }
+
+  if (approvedModuleRoute === requestedRoute) {
+    approvedModuleRoute = '';
+    renderRoute(r);
+    return;
+  }
+
+  approvedModuleRoute = '';
+  pendingHistoryRoute = r;
+  void protectHistoryNavigation();
 }
 
 /* ---------------- Service Worker ---------------- */

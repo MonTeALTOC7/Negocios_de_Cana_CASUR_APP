@@ -296,9 +296,91 @@ a { color: var(--teal-light); text-decoration: none; }
   background: var(--navy-800);
   border-bottom: 1px solid var(--hairline);
 }
-.module-host__title { font-weight: 700; font-size: var(--t-sm); }
+.module-host__switch {
+  min-width: 0; max-width: calc(100vw - 120px); height: 40px;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 0 10px; border-radius: 12px;
+  border: 1px solid transparent; background: transparent; color: var(--ink);
+  transition: background .18s ease, border-color .18s ease, transform .12s ease;
+}
+.module-host__switch:hover,
+.module-host__switch[aria-expanded="true"] { background: var(--surface-glass); border-color: var(--hairline); }
+.module-host__switch:active { transform: scale(.98); }
+.module-host__title {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 700; font-size: var(--t-sm);
+}
+.module-host__switch-caret { flex: 0 0 auto; color: var(--ink-soft); font-size: .8rem; }
 .module-host__frame { flex: 1; width: 100%; border: 0; background: #fff; }
 .module-host__spacer { flex: 1; }
+
+/* Selector rápido: bottom sheet móvil; popover compacto desde tablet. */
+.module-switcher[hidden] { display: none; }
+.module-switcher { position: fixed; inset: 0; z-index: 60; }
+.module-switcher__backdrop {
+  position: absolute; inset: 0;
+  background: rgba(2, 12, 25, .62);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+.module-switcher__panel {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  max-height: min(78dvh, 590px); overflow: hidden;
+  display: flex; flex-direction: column;
+  padding: var(--sp-3) var(--sp-3) calc(var(--sp-3) + var(--safe-bottom));
+  border: 1px solid var(--hairline-strong); border-bottom: 0;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  background: linear-gradient(180deg, var(--navy-700), var(--navy-900));
+  box-shadow: var(--shadow-pop);
+}
+.module-switcher__panel::before {
+  content: ""; width: 42px; height: 4px; margin: 0 auto 8px;
+  border-radius: var(--r-pill); background: var(--hairline-strong);
+}
+.module-switcher__head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding: 0 var(--sp-1) var(--sp-2);
+}
+.module-switcher__head > div { display: grid; line-height: 1.2; }
+.module-switcher__head small { color: var(--cane-light); font-size: .68rem; font-weight: 800; letter-spacing: .08em; }
+.module-switcher__head strong { font-size: 1rem; }
+.module-switcher__close { width: 38px; height: 38px; }
+.module-switcher__list { overflow-y: auto; overscroll-behavior: contain; padding: var(--sp-1); }
+.module-switcher__option {
+  width: 100%; min-height: 58px;
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: 8px 10px; border: 1px solid transparent; border-radius: var(--r-md);
+  background: transparent; color: var(--ink); text-align: left;
+  transition: background .18s ease, border-color .18s ease, transform .12s ease;
+}
+.module-switcher__option:hover { background: var(--surface-glass); border-color: var(--hairline); }
+.module-switcher__option:active { transform: scale(.985); }
+.module-switcher__option.is-current {
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--hairline));
+}
+.module-switcher__logo {
+  width: 44px; height: 44px; flex: 0 0 auto; display: grid; place-items: center;
+  border-radius: 13px; background: var(--navy-800); border: 1px solid var(--hairline);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.module-switcher__logo img { width: 34px; height: 34px; object-fit: contain; }
+.module-switcher__copy { min-width: 0; flex: 1; display: grid; gap: 2px; }
+.module-switcher__copy strong { overflow: hidden; text-overflow: ellipsis; font-size: var(--t-sm); }
+.module-switcher__status { color: var(--ink-soft); font-size: var(--t-xs); }
+.module-switcher__status.is-offline { color: var(--offline); }
+.module-switcher__mark { flex: 0 0 auto; color: var(--accent); font-size: 1.1rem; font-weight: 800; }
+
+@media (min-width: 720px) {
+  .module-host__switch { max-width: min(52vw, 540px); }
+  .module-switcher__backdrop { background: rgba(2, 12, 25, .24); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .module-switcher__panel {
+    top: calc(52px + var(--safe-top) + 6px); bottom: auto; left: 60px; right: auto;
+    width: min(390px, calc(100vw - 80px)); max-height: calc(100dvh - 72px - var(--safe-top));
+    padding: var(--sp-3); border-bottom: 1px solid var(--hairline-strong);
+    border-radius: var(--r-lg);
+  }
+  .module-switcher__panel::before { display: none; }
+}
 
 /* ---------- Paneles (Centro Maestro / Privado) ---------- */
 .panel { display: grid; gap: var(--sp-4); }

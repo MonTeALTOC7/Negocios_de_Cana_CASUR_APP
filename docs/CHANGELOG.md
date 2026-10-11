@@ -2,6 +2,16 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [Sin publicar] — Sprint 3A · cambiador rápido de módulos
+- La barra superior de un módulo permite abrir un selector construido exclusivamente desde `registry.homeModules()`.
+- En móvil se presenta como bottom sheet con safe-area; desde tablet, como popover compacto anclado a la barra.
+- El cambio navega directamente a `#/modulo/:id`, conserva un solo iframe activo y mantiene intactos Volver y Recargar.
+- El módulo actual se marca y seleccionarlo nuevamente no recarga su iframe.
+- Se añadieron controles de teclado, Escape, foco, backdrop y estados informativos de conectividad.
+- Antes de cambiar, volver o recargar, el shell espera hasta 2 segundos el checkpoint same-origin v1 del módulo activo; TCH confirma el borrador sólo después de persistirlo en IndexedDB.
+- Un fallo, excepción o timeout cancela la navegación y conserva el iframe; los módulos sin bridge mantienen la navegación inmediata.
+- Back/Forward y cambios directos del hash pasan por el mismo checkpoint; el shell conserva la ruta realmente montada, evita checkpoints concurrentes y restaura el hash sin crear historial si la protección falla.
+
 ## [1.0.0] — 2026-09-06 · Fase 6: Riegos Ejecutados (integración real, Vite/React/Supabase)
 ### Integración
 - Integrada la app real vigente `MonTeALTOC7/Riego_Ejecutado_Productor_casur`

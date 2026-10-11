@@ -55,6 +55,9 @@ intencionalmente, y el redondeo puede hacer coincidir vértices muy próximos. N
 los fragmentos reales; el visor consume esos componentes de referencia sin usarlos para cálculos
 agronómicos.
 
+GEO-2 debe ejecutar predicates GPS por componentes poligonales o mediante una
+representación espacial validada; no debe asumir que el MultiPolygon agregado es OGC-valid.
+
 El resultado no contiene atributos agronómicos. Cada Feature incluye únicamente `lotId`,
 `fragmentCount`, `bbox` y `geometry`. Ejecutar el build dos veces con la misma fuente, código y
 `dataVersion` debe producir los mismos bytes y SHA-256.
@@ -86,8 +89,17 @@ siguen disponibles.
 ## Service Worker y offline
 
 Existe un único Service Worker raíz. Los assets del motor/visor y Leaflet se precachean en el
-shell. El manifest y las cuatro zonas se preparan automáticamente en `casur_master_geo_v<versión>`
-durante instalación, con reintento `WARM_GEO` al abrir o recuperar conectividad.
+shell. El manifest y las cuatro zonas se preparan automáticamente en
+`casur_master_geo_2026-07-24-maestro-26-27`, identificada por `GEO_DATA_VERSION`,
+independientemente de `APP_VERSION`. Una actualización del shell reutiliza los cinco recursos
+existentes sin descargarlos de nuevo. GEO usa cache-first para la generación publicada.
+
+El warm espera todos los intentos y verifica los cinco recursos antes de devolver `complete`.
+Si falta alguno devuelve `incomplete` con la lista de faltantes; un fallo de Cache Storage devuelve
+`error`. No impide instalar el shell: `WARM_GEO` reintenta al abrir o recuperar conectividad,
+descargando solo los faltantes. Las llamadas concurrentes comparten una preparación y el mensaje
+responde `GEO_WARM_RESULT` al puerto o cliente solicitante. La tolerancia del precache del shell
+permanece independiente.
 
 La geometría tiene caché y estrategia propias. No se mezcla con `DATA_CACHE`, las generaciones
 SIAGRI ni `PROD_LKG_CACHE`; la estrategia LKG de Producción permanece intacta.
@@ -108,3 +120,5 @@ exportación y no modifica periodo, KPI, drilldown ni `renderEntity`.
 El procedimiento y dependencias se detallan en `tools/geo/README.md`. El ZIP/SHP fuente nunca se
 commitea; solo se versionan los derivados mínimos y auditables. Toda actualización debe repetir
 auditoría, crosswalk, build doble, hashes, pruebas automáticas y QA online/offline.
+La versión `manifest.dataVersion` y `GEO_DATA_VERSION` en `sw.js` deben actualizarse juntas;
+una prueba automática exige que coincidan.

@@ -29,7 +29,7 @@ test("la geometría y Leaflet local forman parte del offline automático", () =>
   for (const asset of ["manifest.json", "zona-1-sur.geojson", "zona-2-centro.geojson", "zona-3-norte.geojson", "zona-5-productores.geojson"]) {
     assert.match(geoAssets, new RegExp(asset.replace(".", "\\.")));
   }
-  assert.match(serviceWorker, /const GEO_CACHE\s+= MASTER_PREFIX \+ 'geo_v'/);
+  assert.match(serviceWorker, /const GEO_CACHE\s+= MASTER_PREFIX \+ 'geo_' \+ GEO_DATA_VERSION/);
   assert.match(serviceWorker, /event\.data\.type === 'WARM_GEO'/);
   assert.match(serviceWorker, /url\.pathname\.includes\('\/shared\/geo\/data\/'\)/);
 });

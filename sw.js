@@ -13,7 +13,8 @@ const APP_VERSION = '1.2.0';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;
-const GEO_CACHE   = MASTER_PREFIX + 'geo_v' + APP_VERSION;
+const GEO_DATA_VERSION = '2026-07-24-maestro-26-27';
+const GEO_CACHE   = MASTER_PREFIX + 'geo_' + GEO_DATA_VERSION;
 /* [Hotfix 4.4.2] Caché "Last Known Good" de datos de Producción. A propósito
    SIN sufijo de APP_VERSION: debe sobrevivir a publicaciones de código y a
    cierres/reaperturas de la PWA (Cache Storage es persistente en disco). */
@@ -104,7 +105,13 @@ self.addEventListener('activate', (event) => {
 /* ---------------- Mensajes (actualización controlada) ---------------- */
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
-  if (event.data && event.data.type === 'WARM_GEO') event.waitUntil(warmGeoCache());
+  if (event.data && event.data.type === 'WARM_GEO') {
+    event.waitUntil(warmGeoCache().then((result) => {
+      // Respuesta opcional para diagnóstico; el shell no requiere intervención.
+      const target = event.ports?.[0] || event.source;
+      target?.postMessage({ type: 'GEO_WARM_RESULT', ...result });
+    }));
+  }
 });
 
 /* ---------------- Fetch (estrategias por patrón) ---------------- */
@@ -142,7 +149,7 @@ self.addEventListener('fetch', (event) => {
   }
   // 3b) Geometría web mínima: caché propia, nunca mezclada con LKG ni datos agronómicos.
   if (url.pathname.includes('/shared/geo/data/')) {
-    event.respondWith(networkFirst(req, GEO_CACHE));
+    event.respondWith(cacheFirst(req, GEO_CACHE));
     return;
   }
   //    Resto de datasets oficiales (incluye /master/data/,
@@ -208,13 +215,26 @@ async function networkFirst(req, cacheName, fallbackUrl) {
   }
 }
 
-async function warmGeoCache() {
-  const cache = await caches.open(GEO_CACHE);
-  await Promise.all(GEO_ASSETS.map(async (url) => {
-    if (await cache.match(url)) return;
-    try { await cache.add(url); }
-    catch (error) { console.warn('[SW] geometría no cacheada:', url, error); }
-  }));
+let geoWarmInFlight = null;
+function warmGeoCache() {
+  if (geoWarmInFlight) return geoWarmInFlight;
+  geoWarmInFlight = (async () => {
+    try {
+      const cache = await caches.open(GEO_CACHE);
+      // Esperar TODOS los intentos antes de verificar o permitir un reintento.
+      await Promise.allSettled(GEO_ASSETS.map(async (url) => {
+        if (!(await cache.match(url))) await cache.add(url);
+      }));
+      const available = await Promise.all(GEO_ASSETS.map((url) => cache.match(url)));
+      const missing = GEO_ASSETS.filter((url, index) => !available[index]);
+      if (missing.length) console.warn('[SW] generación GEO incompleta:', missing);
+      return { status: missing.length ? 'incomplete' : 'complete', dataVersion: GEO_DATA_VERSION, missing };
+    } catch (error) {
+      console.warn('[SW] error preparando GEO:', error);
+      return { status: 'error', dataVersion: GEO_DATA_VERSION, missing: [...GEO_ASSETS] };
+    }
+  })().finally(() => { geoWarmInFlight = null; });
+  return geoWarmInFlight;
 }
 
 async function cacheFirst(req, cacheName) {

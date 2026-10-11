@@ -1,5 +1,5 @@
 const GEO_SCHEMA = "casur-master-geometry";
-const GEO_SCHEMA_VERSION = 1;
+const GEO_SCHEMA_VERSION = 2;
 const DEFAULT_MANIFEST_URL = new URL("./data/manifest.json", import.meta.url).href;
 
 let runtime = {
@@ -141,6 +141,11 @@ function validateFeature(feature, zoneKey) {
   if (!validBbox(feature.bbox)) throw new Error(`Feature ${lotId} tiene bbox inválida`);
   if (!feature.geometry || !["Polygon", "MultiPolygon"].includes(feature.geometry.type)) {
     throw new Error(`Feature ${lotId} no contiene geometría poligonal`);
+  }
+  const anchor = feature.properties?.anchor;
+  if (!Array.isArray(anchor) || anchor.length !== 2 || !anchor.every(Number.isFinite)
+      || anchor[0] < -180 || anchor[0] > 180 || anchor[1] < -90 || anchor[1] > 90) {
+    throw new Error(`Feature ${lotId} no contiene anchor válido`);
   }
   return lotId;
 }

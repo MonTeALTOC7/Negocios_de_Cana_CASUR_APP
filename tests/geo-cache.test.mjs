@@ -40,7 +40,7 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.2.0', 
   });
   const executable = source
     .replace("const APP_VERSION = '1.2.0';", `const APP_VERSION = '${appVersion}';`)
-    .replace("const GEO_DATA_VERSION = '2026-07-24-maestro-26-27';", `const GEO_DATA_VERSION = '${geoVersion}';`);
+    .replace("const GEO_DATA_VERSION = '2026-07-24-maestro-26-27-r2';", `const GEO_DATA_VERSION = '${geoVersion}';`);
   vm.runInContext(executable, context);
   const value = (expression) => vm.runInContext(expression, context);
   async function dispatch(type, extra = {}) {
@@ -60,7 +60,7 @@ test('GEO_DATA_VERSION coincide con el manifest y no depende de APP_VERSION', ()
   const current = harness();
   const next = harness({ appVersion: '1.2.1' });
   assert.equal(current.value('GEO_DATA_VERSION'), manifest.dataVersion);
-  assert.equal(current.value('GEO_CACHE'), 'casur_master_geo_2026-07-24-maestro-26-27');
+  assert.equal(current.value('GEO_CACHE'), 'casur_master_geo_2026-07-24-maestro-26-27-r2');
   assert.equal(current.value('GEO_CACHE'), next.value('GEO_CACHE'));
   assert.notEqual(current.value('SHELL_CACHE'), next.value('SHELL_CACHE'));
 });
@@ -119,7 +119,7 @@ test('actualizar solo el shell conserva GEO durante activate y no lo redescarga'
   assert.equal((await response).status, 200);
 });
 
-test('upgrade GEO conserva A completa mientras B está incompleta y promueve B solo al completar 5/5', async () => {
+test('upgrade GEO r1→r2 conserva r1 completa mientras r2 está incompleta y promueve solo al completar 5/5', async () => {
   const storage = new Map();
   const generationA = harness({ storage, geoVersion: '2026-07-24-maestro-26-27' });
   assert.equal((await generationA.message()).status, 'complete');
@@ -127,7 +127,7 @@ test('upgrade GEO conserva A completa mientras B está incompleta y promueve B s
   assert.equal((await generationA.value('readGeoActive()')).dataVersion, '2026-07-24-maestro-26-27');
 
   const missingUrl = './shared/geo/data/zona-3-norte.geojson';
-  const generationB = harness({ storage, geoVersion: '2027-01-15-maestro-27-28', fail: new Set([missingUrl]) });
+  const generationB = harness({ storage, geoVersion: '2026-07-24-maestro-26-27-r2', fail: new Set([missingUrl]) });
   const incomplete = await generationB.message();
   assert.equal(incomplete.status, 'incomplete');
   assert.equal(incomplete.activeVersion, '2026-07-24-maestro-26-27');
@@ -150,11 +150,11 @@ test('upgrade GEO conserva A completa mientras B está incompleta y promueve B s
   generationB.fail.clear();
   const complete = await generationB.message();
   assert.equal(complete.status, 'complete');
-  assert.equal(complete.activeVersion, '2027-01-15-maestro-27-28');
+  assert.equal(complete.activeVersion, '2026-07-24-maestro-26-27-r2');
   assert.equal(generationB.downloads.at(-1), missingUrl, 'reintenta únicamente el faltante');
   assert.equal(generationB.downloads.length, 6);
-  assert.equal((await geoFetch('manifest.json')).generation, '2027-01-15-maestro-27-28');
-  assert.equal((await geoFetch('zona-3-norte.geojson')).generation, '2027-01-15-maestro-27-28');
+  assert.equal((await geoFetch('manifest.json')).generation, '2026-07-24-maestro-26-27-r2');
+  assert.equal((await geoFetch('zona-3-norte.geojson')).generation, '2026-07-24-maestro-26-27-r2');
   assert.ok(!storage.has(cacheA), 'A se poda solo después de promover B completa');
 });
 
@@ -172,11 +172,11 @@ test('preparaciones concurrentes comparten trabajo y un error de storage permite
 
 test('los cinco hashes publicados GEO permanecen exactamente iguales', () => {
   const hashes = {
-    'manifest.json': 'b5d5ec87c0f5d3f8da815e1e0e5caf93201e03c960dac69e5f3f993ab7dcf571',
-    'zona-1-sur.geojson': '74e4cf619cdec26437cbc4e75d240eb16cd765e26efcf4e39e215457d3e2bdd9',
-    'zona-2-centro.geojson': 'aa07521bc289a8179ff58a5cf498c4788904b626d41e2364215937f3b01dc2bb',
-    'zona-3-norte.geojson': 'dc226a536a693ac640506d5ccf9a44237a585eedda5265c25a9b47c9101fad7e',
-    'zona-5-productores.geojson': 'df0aaea2ee46f29d4a3bb60b55e003de355fe3ca678aecd70bc849e68d3cf737',
+    'manifest.json': '83a2bf5396f8e94ced8fb28e92575a1679551c8d532b1514132ed2b5fa8d684b',
+    'zona-1-sur.geojson': 'fc677abdfaa295f60c01fac61b57655f85fa82206b4256efac7b3990955787ef',
+    'zona-2-centro.geojson': '12dfdcf652716462503aaf7ae3f54a7748b4c6a644a820228417aae1c0f68647',
+    'zona-3-norte.geojson': '3cf84bdb399c5ac9acada189bc49bedaef6ad72ddab9285bdcf428f5cee4c69b',
+    'zona-5-productores.geojson': '50e0697081f78ab15108d32e2575b9e3ad627a8edd262a468478503a32b7ad10',
   };
   for (const [file, expected] of Object.entries(hashes)) {
     assert.equal(createHash('sha256').update(readFileSync(new URL('../shared/geo/data/' + file, import.meta.url))).digest('hex'), expected, file);

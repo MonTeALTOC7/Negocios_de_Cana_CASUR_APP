@@ -7,7 +7,7 @@ function polygon(lotId, offset = 0) {
   return {
     type: "Feature",
     bbox: [-85.8 + offset, 11.4, -85.79 + offset, 11.41],
-    properties: { lotId, fragmentCount: 1 },
+    properties: { lotId, fragmentCount: 1, anchor: [-85.795 + offset, 11.405] },
     geometry: {
       type: "MultiPolygon",
       coordinates: [[[[-85.8 + offset, 11.4], [-85.79 + offset, 11.4], [-85.79 + offset, 11.41], [-85.8 + offset, 11.4]]]],
@@ -35,7 +35,7 @@ function fakeElement() {
 }
 
 function fakeLeaflet() {
-  const records = { tiles: [], geo: [], controls: [] };
+  const records = { tiles: [], geo: [], controls: [], markers: [] };
   class Bounds {
     constructor(valid = true) { this.valid = valid; this.extended = 0; }
     isValid() { return this.valid; }
@@ -48,12 +48,15 @@ function fakeLeaflet() {
       this.options = options;
       this.events = new Map();
       this.children = [];
-      this.bounds = new Bounds(kind === "geo");
+      this.bounds = new Bounds(kind === "geo" || kind === "feature");
     }
     addTo(map) { map.addLayer(this); return this; }
     on(name, fn) { this.events.set(name, fn); return this; }
     off(name) { this.events.delete(name); return this; }
     getBounds() { return this.bounds; }
+    setStyle(style) { this.style = style; return this; }
+    bringToFront() { this.front = true; return this; }
+    unbindTooltip() { this.tooltip = null; return this; }
   }
   class FakeMap {
     constructor(element, options) {
@@ -84,7 +87,7 @@ function fakeLeaflet() {
       records.tiles.push(layer);
       return layer;
     },
-    layerGroup() { return new Layer("blank"); },
+    layerGroup(children = []) { const layer = new Layer("group"); layer.children = children; return layer; },
     geoJSON(payload, options) {
       const layer = new Layer("geo", payload, options);
       const features = payload.type === "FeatureCollection" ? payload.features : [payload];
@@ -100,6 +103,11 @@ function fakeLeaflet() {
       records.geo.push(layer);
       return layer;
     },
+    circleMarker(latlng, options) {
+      const marker = new Layer("marker", latlng, options);
+      records.markers.push(marker);
+      return marker;
+    },
     control: {
       layers(baseLayers, overlays, options) {
         records.controls.push({ baseLayers, overlays, options });
@@ -110,34 +118,47 @@ function fakeLeaflet() {
   return { L, records };
 }
 
-test("createCasurMap monta bases locales, vecinos tenues y selección amarilla", () => {
+test("createCasurMap monta híbrido, vecinos azules y selección amarilla sin reconstruir GeoJSON", () => {
   const element = fakeElement();
   const { L, records } = fakeLeaflet();
   const selections = [];
   const viewer = createCasurMap(element, { leaflet: L, onSelectLot: (feature) => selections.push(feature.properties.lotId) });
 
-  assert.deepEqual(Object.keys(viewer), ["setLot", "setLots", "fitToData", "destroy"]);
+  assert.deepEqual(Object.keys(viewer), ["selectLot", "getSelectedLotId", "fitToLot", "fitToData", "setLot", "setLots", "destroy"]);
   assert.equal(element.attributes.get("role"), "region");
   assert.equal(element.attributes.get("aria-label"), "Mapa agrícola CASUR");
-  assert.equal(records.tiles.length, 2);
+  assert.equal(records.tiles.length, 5);
   assert.match(records.tiles[0].payload, /openstreetmap/);
   assert.match(records.tiles[1].payload, /arcgisonline/);
-  assert.deepEqual(Object.keys(records.controls[0].baseLayers), ["Satélite", "Mapa claro", "Sin mapa base"]);
+  assert.match(records.tiles[3].payload, /World_Transportation/);
+  assert.deepEqual(Object.keys(records.controls[0].baseLayers), ["Híbrido", "Satélite", "Mapa claro", "Sin mapa base"]);
+  records.tiles[1].events.get("tileerror")();
+  records.tiles[1].events.get("tileerror")();
+  records.tiles[1].events.get("tileerror")();
+  records.tiles[1].events.get("tileerror")();
+  assert.equal(element.classList.contains("casur-geo-map--offline"), true, "errores de tiles conservan polígonos y activan fondo neutro");
 
-  viewer.setLots([polygon("75907"), polygon("75908", 0.03)], "75907");
-  const lastThree = records.geo.slice(-3);
-  assert.equal(lastThree[0].options.pane, "casurGeoNeighborsPane");
-  assert.equal(lastThree[1].options.pane, "casurGeoHaloPane");
-  assert.equal(lastThree[2].options.pane, "casurGeoSelectedPane");
-  assert.equal(lastThree[1].options.style().color, "#fff4b0");
-  assert.equal(lastThree[2].options.style().color, "#f4c542");
-  assert.equal(lastThree[2].children[0].tooltip.label, "Suerte 75907");
-  assert.equal(lastThree[2].children[0].tooltip.options.permanent, true);
+  viewer.setLots([polygon("75907"), polygon("75908", 0.03), polygon("75909", 0.06)], "75907");
+  const lots = records.geo[0];
+  assert.equal(records.geo.length, 1);
+  assert.equal(lots.options.pane, "casurGeoLotsPane");
+  assert.equal(lots.children[0].style.color, "#ffca28");
+  assert.equal(lots.children[1].style.color, "#087ea4");
+  assert.equal(lots.children[0].tooltip.label, "Suerte 75907");
+  assert.equal(lots.children[0].tooltip.options.permanent, true);
+  assert.equal(records.markers[0].payload[0], 11.405);
   assert.equal(records.map.fitCalls.length, 1);
 
-  lastThree[0].children[0].events.get("click")();
+  lots.children[1].events.get("click")();
   assert.deepEqual(selections, ["75908"]);
-  assert.equal(records.geo.at(-1).children[0].tooltip.label, "Suerte 75908");
+  assert.equal(viewer.getSelectedLotId(), "75908");
+  viewer.selectLot("75909");
+  viewer.selectLot("75907");
+  assert.equal(viewer.getSelectedLotId(), "75907");
+  assert.equal(records.geo.length, 1, "A→B→C→A no reconstruye la capa GeoJSON");
+  assert.equal(records.map.fitCalls.length, 1, "seleccionar no cambia el encuadre");
+  assert.equal(viewer.fitToLot(), true);
+  assert.equal(records.map.fitCalls.length, 2);
 
   viewer.destroy();
   assert.equal(records.map.removed, true);
@@ -153,7 +174,8 @@ test("setLot tolera ausencia de geometría sin inventar un polígono", () => {
   assert.equal(records.geo.length, 0);
   assert.equal(records.map.fitCalls.length, 0);
   viewer.setLot(polygon("25605A"));
-  assert.equal(records.geo.length, 2, "halo y polígono seleccionado");
+  assert.equal(records.geo.length, 1, "una única capa interactiva");
+  assert.equal(viewer.getSelectedLotId(), "25605A");
   viewer.destroy();
 });
 

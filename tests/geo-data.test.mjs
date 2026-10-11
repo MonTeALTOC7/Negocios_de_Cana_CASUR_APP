@@ -15,7 +15,7 @@ const MANIFEST_URL = "https://casur.test/shared/geo/data/manifest.json";
 const feature = (lotId, min = -85.8) => ({
   type: "Feature",
   bbox: [min, 11.4, min + 0.01, 11.41],
-  properties: { lotId, fragmentCount: 1 },
+  properties: { lotId, fragmentCount: 1, anchor: [min + 0.003, 11.403] },
   geometry: {
     type: "MultiPolygon",
     coordinates: [[[[min, 11.4], [min + 0.01, 11.4], [min + 0.01, 11.41], [min, 11.4]]]],
@@ -26,7 +26,7 @@ function fixtureFetch() {
   const calls = [];
   const manifest = {
     schema: "casur-master-geometry",
-    schemaVersion: 1,
+    schemaVersion: 2,
     dataVersion: "fixture-v1",
     crs: "EPSG:4326",
     source: "fixture.zip",

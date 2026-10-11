@@ -21,14 +21,14 @@ from typing import Any, Iterable
 import geopandas as gpd
 import pyogrio  # noqa: F401 - fail early when the requested build engine is absent
 from shapely import make_valid, normalize, to_wkb
-from shapely.geometry import GeometryCollection, MultiPolygon, Polygon, mapping
+from shapely.geometry import GeometryCollection, MultiPolygon, Point, Polygon, mapping, shape
 from shapely.geometry.base import BaseGeometry
 
 
 SCHEMA = "casur-master-geometry"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 COORDINATE_DECIMALS = 6
-DEFAULT_DATA_VERSION = "2026-07-24-maestro-26-27"
+DEFAULT_DATA_VERSION = "2026-07-24-maestro-26-27-r2"
 
 ZONE_FILES = {
     "1-Sur": "zona-1-sur.geojson",
@@ -138,17 +138,52 @@ def _json_bytes(value: Any, *, pretty: bool = False) -> bytes:
     return text.encode("utf-8")
 
 
+def _representative_anchor(geometry: MultiPolygon) -> list[float]:
+    """Return a deterministic six-decimal point covered by the largest part.
+
+    The anchor is calculated from the already-rounded publication geometry so
+    the browser, tests and generated payload all evaluate the same polygon.
+    Rounding the representative point can move it just outside a very narrow
+    polygon, therefore nearby grid points are checked deterministically.
+    """
+
+    largest = max(geometry.geoms, key=lambda polygon: (polygon.area, _polygon_sort_key(polygon)))
+    representative = largest.representative_point()
+    x0 = round(float(representative.x), COORDINATE_DECIMALS)
+    y0 = round(float(representative.y), COORDINATE_DECIMALS)
+    candidate = Point(x0, y0)
+    if largest.covers(candidate):
+        return [x0, y0]
+
+    step = 10 ** -COORDINATE_DECIMALS
+    for radius in range(1, 101):
+        offsets = (
+            [(dx, -radius) for dx in range(-radius, radius + 1)]
+            + [(radius, dy) for dy in range(-radius + 1, radius + 1)]
+            + [(dx, radius) for dx in range(radius - 1, -radius - 1, -1)]
+            + [(-radius, dy) for dy in range(radius - 1, -radius, -1)]
+        )
+        for dx, dy in offsets:
+            point = Point(round(x0 + dx * step, COORDINATE_DECIMALS), round(y0 + dy * step, COORDINATE_DECIMALS))
+            if largest.covers(point):
+                return [float(point.x), float(point.y)]
+    raise BuildError("No se pudo calcular un anchor interior a seis decimales")
+
+
 def _feature(lot_id: str, polygons: list[Polygon]) -> dict[str, Any]:
     ordered = sorted((normalize(polygon) for polygon in polygons), key=_polygon_sort_key)
     geometry = MultiPolygon(ordered)
     geojson_geometry = mapping(geometry)
     geojson_geometry["coordinates"] = _round_coordinates(geojson_geometry["coordinates"])
+    rounded_geometry = shape(geojson_geometry)
+    anchor = _representative_anchor(rounded_geometry)
     return {
         "type": "Feature",
-        "bbox": _round_bbox(geometry.bounds),
+        "bbox": _round_bbox(rounded_geometry.bounds),
         "properties": {
             "lotId": lot_id,
             "fragmentCount": len(ordered),
+            "anchor": anchor,
         },
         "geometry": geojson_geometry,
     }

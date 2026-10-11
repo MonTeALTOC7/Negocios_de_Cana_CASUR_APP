@@ -1,7 +1,9 @@
 import { normalizeGeoLotId } from "./geo-data.js";
 
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-const ESRI_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const ESRI_IMAGERY_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const ESRI_TRANSPORT_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}";
+const ESRI_LABELS_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}";
 
 function resolveContainer(container) {
   if (typeof container === "string") {
@@ -35,6 +37,11 @@ function featureCollection(features) {
   return { type: "FeatureCollection", features };
 }
 
+function featureAnchor(feature) {
+  const anchor = feature?.properties?.anchor;
+  return Array.isArray(anchor) && anchor.length === 2 && anchor.every(Number.isFinite) ? anchor : null;
+}
+
 /** Reusable CASUR polygon viewer. It does not fetch geometry or own application state. */
 export function createCasurMap(container, options = {}) {
   const element = resolveContainer(container);
@@ -50,61 +57,53 @@ export function createCasurMap(container, options = {}) {
   element.setAttribute?.("aria-label", options.ariaLabel || "Mapa agrícola CASUR");
   if (!element.hasAttribute?.("tabindex")) element.setAttribute?.("tabindex", "0");
 
-  const map = L.map(element, {
+  const mapOptions = {
     zoomControl: true,
-    preferCanvas: true,
+    preferCanvas: options.preferCanvas === true,
     attributionControl: true,
     ...(options.mapOptions || {}),
-  });
-
-  const panes = {
-    halo: "casurGeoHaloPane",
-    neighbors: "casurGeoNeighborsPane",
-    selected: "casurGeoSelectedPane",
   };
-  Object.entries({ [panes.halo]: 395, [panes.neighbors]: 405, [panes.selected]: 415 }).forEach(([name, zIndex]) => {
+  if (!mapOptions.preferCanvas && !mapOptions.renderer && typeof L.svg === "function") mapOptions.renderer = L.svg();
+  const map = L.map(element, mapOptions);
+
+  const panes = { lots: "casurGeoLotsPane", anchor: "casurGeoAnchorPane" };
+  Object.entries({ [panes.lots]: 405, [panes.anchor]: 425 }).forEach(([name, zIndex]) => {
     if (typeof map.createPane === "function" && !map.getPane?.(name)) map.createPane(name);
     const pane = map.getPane?.(name);
-    if (pane?.style) {
-      pane.style.zIndex = String(zIndex);
-      if (name === panes.halo) pane.style.pointerEvents = "none";
-    }
+    if (pane?.style) pane.style.zIndex = String(zIndex);
   });
 
-  const osm = L.tileLayer(OSM_URL, {
-    maxZoom: 22,
-    maxNativeZoom: 19,
-    attribution: "&copy; OpenStreetMap contributors",
-  });
-  const satellite = L.tileLayer(ESRI_URL, {
-    maxZoom: 22,
-    maxNativeZoom: 19,
-    attribution: "Tiles &copy; Esri",
-  });
+  const tileOptions = { maxZoom: 22, maxNativeZoom: 19 };
+  const osm = L.tileLayer(OSM_URL, { ...tileOptions, attribution: "&copy; OpenStreetMap contributors" });
+  const satellite = L.tileLayer(ESRI_IMAGERY_URL, { ...tileOptions, attribution: "Tiles &copy; Esri" });
+  const hybridImagery = L.tileLayer(ESRI_IMAGERY_URL, { ...tileOptions, attribution: "Tiles &copy; Esri" });
+  const hybridTransport = L.tileLayer(ESRI_TRANSPORT_URL, { ...tileOptions, attribution: "Referencia &copy; Esri" });
+  const hybridLabels = L.tileLayer(ESRI_LABELS_URL, { ...tileOptions, attribution: "Referencia &copy; Esri" });
+  const hybrid = L.layerGroup([hybridImagery, hybridTransport, hybridLabels]);
   const blank = L.layerGroup();
-  const bases = { satellite, osm, blank };
-  const namedBases = { "Satélite": satellite, "Mapa claro": osm, "Sin mapa base": blank };
+  const bases = { hybrid, satellite, osm, blank };
+  const namedBases = { "Híbrido": hybrid, "Satélite": satellite, "Mapa claro": osm, "Sin mapa base": blank };
   L.control?.layers?.(namedBases, {}, { collapsed: options.layersCollapsed !== false })?.addTo?.(map);
 
   let destroyed = false;
   let currentBase = null;
-  let preferredOnlineBase = ["satellite", "osm", "blank"].includes(options.initialBase)
+  let preferredOnlineBase = ["hybrid", "satellite", "osm", "blank"].includes(options.initialBase)
     ? options.initialBase
-    : "satellite";
+    : "hybrid";
   let visibleFeatures = [];
   let selectedLotId = "";
-  let neighborsLayer = null;
-  let haloLayer = null;
-  let selectedLayer = null;
+  let lotsLayer = null;
+  let anchorLayer = null;
   let tileErrorCount = 0;
   let resizeObserver = null;
+  const layersByLot = new Map();
 
   const offlineNotice = typeof document !== "undefined" ? document.createElement("div") : null;
   if (offlineNotice) {
     offlineNotice.className = "casur-geo-offline-notice";
     offlineNotice.setAttribute("role", "status");
     offlineNotice.setAttribute("aria-live", "polite");
-    offlineNotice.textContent = "Sin mapa base: polígonos CASUR disponibles.";
+    offlineNotice.textContent = "Sin mapa base: polígonos, ficha y coordenadas CASUR disponibles.";
     offlineNotice.hidden = true;
     element.append?.(offlineNotice);
   }
@@ -138,14 +137,14 @@ export function createCasurMap(container, options = {}) {
     if (tileErrorCount >= (options.tileErrorThreshold || 4) && currentBase !== "blank") activateBase("blank", false);
   }
   function onBaseLayerChange(event) {
-    const next = event?.layer === satellite ? "satellite" : event?.layer === osm ? "osm" : "blank";
+    const next = Object.entries(bases).find(([, layer]) => event?.layer === layer)?.[0] || "blank";
     currentBase = next;
     if (next !== "blank") preferredOnlineBase = next;
     updateOfflineUi(next === "blank");
   }
 
-  satellite.on?.("tileerror", onTileError);
-  osm.on?.("tileerror", onTileError);
+  const onlineTiles = [osm, satellite, hybridImagery, hybridTransport, hybridLabels];
+  onlineTiles.forEach((layer) => layer.on?.("tileerror", onTileError));
   map.on?.("baselayerchange", onBaseLayerChange);
   if (typeof window !== "undefined") {
     window.addEventListener("offline", onOffline);
@@ -155,40 +154,33 @@ export function createCasurMap(container, options = {}) {
   activateBase(startsOffline ? "blank" : preferredOnlineBase, false);
 
   const neighborStyle = {
-    color: options.neighborColor || "#2f6847",
-    weight: 1.4,
-    opacity: 0.8,
-    fillColor: options.neighborFill || "#5f9571",
+    color: options.neighborColor || "#087ea4",
+    weight: 1.8,
+    opacity: 0.9,
+    fillColor: options.neighborFill || "#22b8cf",
     fillOpacity: 0.16,
   };
-  const haloStyle = {
-    color: options.haloColor || "#fff4b0",
-    weight: 8,
-    opacity: 0.78,
-    fillOpacity: 0,
-    interactive: false,
-  };
   const selectedStyle = {
-    color: options.selectedColor || "#f4c542",
-    weight: 4,
+    color: options.selectedColor || "#ffca28",
+    weight: 5,
     opacity: 1,
-    fillColor: options.selectedFill || "#f4c542",
-    fillOpacity: 0.32,
+    fillColor: options.selectedFill || "#ffd54f",
+    fillOpacity: 0.42,
   };
 
-  function labelFeature(feature, layer, selected = false) {
+  function styleFor(feature) {
+    return featureLotId(feature) === selectedLotId ? { ...selectedStyle } : { ...neighborStyle };
+  }
+
+  function bindLabel(feature, layer) {
     const lotId = featureLotId(feature);
+    const selected = lotId === selectedLotId;
+    layer.unbindTooltip?.();
     layer.bindTooltip?.(`Suerte ${lotId}`, {
       permanent: selected || options.permanentLabels === true,
       direction: "center",
       className: selected ? "casur-geo-label casur-geo-label--selected" : "casur-geo-label",
       opacity: 1,
-    });
-    layer.on?.("click", () => {
-      if (destroyed || lotId === selectedLotId) return;
-      selectedLotId = lotId;
-      renderLayers();
-      options.onSelectLot?.(feature);
     });
   }
 
@@ -196,53 +188,66 @@ export function createCasurMap(container, options = {}) {
     if (layer && map.hasLayer?.(layer)) map.removeLayer(layer);
   }
 
-  function renderLayers() {
-    removeLayer(neighborsLayer);
-    removeLayer(haloLayer);
-    removeLayer(selectedLayer);
-    neighborsLayer = null;
-    haloLayer = null;
-    selectedLayer = null;
-
-    const selected = visibleFeatures.find((feature) => featureLotId(feature) === selectedLotId) || null;
-    const neighbors = selected
-      ? visibleFeatures.filter((feature) => feature !== selected)
-      : visibleFeatures;
-
-    if (neighbors.length) {
-      neighborsLayer = L.geoJSON(featureCollection(neighbors), {
-        pane: panes.neighbors,
-        style: () => ({ ...neighborStyle }),
-        onEachFeature: (feature, layer) => labelFeature(feature, layer, false),
-      }).addTo(map);
-    }
-    if (selected) {
-      haloLayer = L.geoJSON(selected, {
-        pane: panes.halo,
-        interactive: false,
-        style: () => ({ ...haloStyle }),
-      }).addTo(map);
-      selectedLayer = L.geoJSON(selected, {
-        pane: panes.selected,
-        style: () => ({ ...selectedStyle }),
-        onEachFeature: (feature, layer) => labelFeature(feature, layer, true),
-      }).addTo(map);
-    }
+  function updateAnchor() {
+    removeLayer(anchorLayer);
+    anchorLayer = null;
+    if (!selectedLotId || typeof L.circleMarker !== "function") return;
+    const feature = visibleFeatures.find((item) => featureLotId(item) === selectedLotId);
+    const anchor = featureAnchor(feature);
+    if (!anchor) return;
+    anchorLayer = L.circleMarker([anchor[1], anchor[0]], {
+      pane: panes.anchor,
+      radius: 5,
+      weight: 2,
+      color: "#5b4200",
+      fillColor: "#fff7cf",
+      fillOpacity: 1,
+      interactive: false,
+    }).addTo(map);
   }
 
-  function combinedBounds() {
-    let bounds = null;
-    [neighborsLayer, selectedLayer].forEach((layer) => {
-      const candidate = layer?.getBounds?.();
-      if (!candidate?.isValid?.()) return;
-      bounds = bounds ? bounds.extend(candidate) : candidate;
+  function refreshSelectionStyles() {
+    layersByLot.forEach((layer, lotId) => {
+      layer.setStyle?.(lotId === selectedLotId ? { ...selectedStyle } : { ...neighborStyle });
+      bindLabel(layer.feature, layer);
+      if (lotId === selectedLotId) layer.bringToFront?.();
     });
-    return bounds;
+    updateAnchor();
   }
 
-  function fitToData() {
+  function selectLot(lotId, selectOptions = {}) {
     assertActive();
-    const bounds = combinedBounds();
+    const requested = normalizeGeoLotId(lotId);
+    if (requested && !layersByLot.has(requested)) return false;
+    if (requested === selectedLotId) {
+      if (selectOptions.fit === true && requested) fitToLot(requested);
+      return true;
+    }
+    selectedLotId = requested;
+    refreshSelectionStyles();
+    const feature = visibleFeatures.find((item) => featureLotId(item) === selectedLotId) || null;
+    if (feature && selectOptions.notify !== false) options.onSelectLot?.(feature);
+    if (feature && selectOptions.fit === true) fitToLot(selectedLotId);
+    return true;
+  }
+
+  function addFeatureLayer(feature, layer) {
+    const lotId = featureLotId(feature);
+    layer.feature = feature;
+    layersByLot.set(lotId, layer);
+    bindLabel(feature, layer);
+    layer.on?.("click", () => selectLot(lotId));
+  }
+
+  function clearLotsLayer() {
+    removeLayer(lotsLayer);
+    removeLayer(anchorLayer);
+    lotsLayer = null;
+    anchorLayer = null;
+    layersByLot.clear();
+  }
+
+  function fitBounds(bounds) {
     if (!bounds?.isValid?.()) return false;
     map.invalidateSize?.({ animate: false });
     map.fitBounds(bounds, {
@@ -251,6 +256,21 @@ export function createCasurMap(container, options = {}) {
       animate: options.animateFit === true,
     });
     return true;
+  }
+
+  function fitToData() {
+    assertActive();
+    return fitBounds(lotsLayer?.getBounds?.());
+  }
+
+  function fitToLot(lotId = selectedLotId) {
+    assertActive();
+    const layer = layersByLot.get(normalizeGeoLotId(lotId));
+    return fitBounds(layer?.getBounds?.());
+  }
+
+  function getSelectedLotId() {
+    return selectedLotId;
   }
 
   function setLots(features, requestedSelectedLotId = "") {
@@ -266,7 +286,15 @@ export function createCasurMap(container, options = {}) {
       });
     const requested = normalizeGeoLotId(requestedSelectedLotId);
     selectedLotId = requested && seen.has(requested) ? requested : "";
-    renderLayers();
+    clearLotsLayer();
+    if (visibleFeatures.length) {
+      lotsLayer = L.geoJSON(featureCollection(visibleFeatures), {
+        pane: panes.lots,
+        style: styleFor,
+        onEachFeature: addFeatureLayer,
+      }).addTo(map);
+      refreshSelectionStyles();
+    }
     if (options.autoFit !== false) fitToData();
     return api;
   }
@@ -283,8 +311,7 @@ export function createCasurMap(container, options = {}) {
     }
     resizeObserver?.disconnect?.();
     resizeObserver = null;
-    satellite.off?.("tileerror", onTileError);
-    osm.off?.("tileerror", onTileError);
+    onlineTiles.forEach((layer) => layer.off?.("tileerror", onTileError));
     map.off?.("baselayerchange", onBaseLayerChange);
     map.remove?.();
     offlineNotice?.remove?.();
@@ -304,7 +331,7 @@ export function createCasurMap(container, options = {}) {
     resizeObserver.observe(element);
   }
 
-  const api = Object.freeze({ setLot, setLots, fitToData, destroy });
+  const api = Object.freeze({ selectLot, getSelectedLotId, fitToLot, fitToData, setLot, setLots, destroy });
   return api;
 }
 

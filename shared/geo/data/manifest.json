@@ -1,7 +1,7 @@
 {
   "schema": "casur-master-geometry",
-  "schemaVersion": 1,
-  "dataVersion": "2026-07-24-maestro-26-27",
+  "schemaVersion": 2,
+  "dataVersion": "2026-07-24-maestro-26-27-r2",
   "crs": "EPSG:4326",
   "coordinateDecimals": 6,
   "source": "Maestro_26_27_2472026_QGIS_SHP.zip",
@@ -34,9 +34,9 @@
         -85.66112,
         11.579266
       ],
-      "bytes": 1031150,
-      "gzipBytes": 236682,
-      "sha256": "74e4cf619cdec26437cbc4e75d240eb16cd765e26efcf4e39e215457d3e2bdd9"
+      "bytes": 1039252,
+      "gzipBytes": 238942,
+      "sha256": "fc677abdfaa295f60c01fac61b57655f85fa82206b4256efac7b3990955787ef"
     },
     "2-Centro": {
       "file": "zona-2-centro.geojson",
@@ -49,9 +49,9 @@
         -85.856671,
         11.648957
       ],
-      "bytes": 1234249,
-      "gzipBytes": 285022,
-      "sha256": "aa07521bc289a8179ff58a5cf498c4788904b626d41e2364215937f3b01dc2bb"
+      "bytes": 1241813,
+      "gzipBytes": 287146,
+      "sha256": "12dfdcf652716462503aaf7ae3f54a7748b4c6a644a820228417aae1c0f68647"
     },
     "3-Norte": {
       "file": "zona-3-norte.geojson",
@@ -64,9 +64,9 @@
         -85.897377,
         11.758686
       ],
-      "bytes": 1137751,
-      "gzipBytes": 262611,
-      "sha256": "dc226a536a693ac640506d5ccf9a44237a585eedda5265c25a9b47c9101fad7e"
+      "bytes": 1147145,
+      "gzipBytes": 265180,
+      "sha256": "3cf84bdb399c5ac9acada189bc49bedaef6ad72ddab9285bdcf428f5cee4c69b"
     },
     "5-Productores": {
       "file": "zona-5-productores.geojson",
@@ -79,9 +79,9 @@
         -85.595346,
         11.787239
       ],
-      "bytes": 1436293,
-      "gzipBytes": 324542,
-      "sha256": "df0aaea2ee46f29d4a3bb60b55e003de355fe3ca678aecd70bc849e68d3cf737"
+      "bytes": 1444487,
+      "gzipBytes": 326961,
+      "sha256": "50e0697081f78ab15108d32e2575b9e3ad627a8edd262a468478503a32b7ad10"
     }
   },
   "lotIndex": {

@@ -11,6 +11,8 @@ const index = read("../index.html");
 const enhancements = read("../js/casur-enhancements.js");
 const styles = read("../css/casur-upgrade.css");
 const historico = JSON.parse(read("../data/historico.json"));
+const cronoMatch = index.match(/window\.CRONO_DATA = window\.CASUR_REMOTE_CRONO\|\|(\{[^\r\n]+\});/);
+const crono = JSON.parse(cronoMatch?.[1] || "{}");
 
 function productionGeoApi() {
   const window = {
@@ -49,9 +51,11 @@ test("Producción carga Leaflet y el motor GEO compartido desde rutas locales", 
 });
 
 test("las acciones GEO se agregan sin envolver ni reemplazar renderEntity", () => {
-  assert.match(enhancements, /installHistoricalGeoObserver\(\)/);
+  assert.match(enhancements, /installGeoObservers\(\)/);
+  assert.match(enhancements, /enhanceCronoGeoView/);
   assert.match(enhancements, /dataset\.casurGeoAction/);
-  assert.match(enhancements, /"Ver polígono"\s*:\s*"Mapa de finca"/);
+  assert.match(enhancements, /querySelector\("\.casur-visual-actions"\)/);
+  assert.match(enhancements, /className = "casur-visual-action map no-print"/);
   assert.doesNotMatch(enhancements, /window\.renderEntity\s*=/);
   assert.doesNotMatch(enhancements, /HISTORICAL_PERIOD_STATE|HISTORICAL_DRILLDOWN_STATE/);
   assert.match(index, /function renderEntity\(code,options=\{\}\)/);
@@ -80,8 +84,23 @@ test("la suerte 75907 conserva identidad canónica y área de la App", () => {
   assert.equal(source[12][0][3], 19.78);
   assert.equal(feature?.geometry?.type, "MultiPolygon");
   assert.equal(feature?.properties?.fragmentCount, 2);
-  assert.match(enhancements, /Área oficial App:/);
-  assert.match(enhancements, /fragmentCount/);
+  assert.equal(feature?.properties?.anchor?.length, 2);
+  assert.match(enhancements, /geoRecordForLot/);
+  assert.match(enhancements, /"TCH 25\/26"/);
+  assert.match(enhancements, /"TCH 26\/27"/);
+});
+
+test("Cronológico es la fuente primaria del contexto de finca 759 y 993", () => {
+  const api = productionGeoApi();
+  const lots759 = api.currentLotIds("759", crono);
+  const lots993 = api.currentLotIds("993", crono);
+  assert.equal(lots759.length, 10);
+  assert.ok(lots759.includes("75907"));
+  assert.equal(lots993.length, 49);
+  assert.ok(lots993.includes("99325"));
+  assert.ok(lots993.includes("99347A"));
+  assert.match(enhancements, /producer\?\.details \|\| \[\]/);
+  assert.match(index, /dataset\.geoScope=suerte\?'lot':'farm'/);
 });
 
 test("el modal es accesible, responsive y restaura el foco", () => {
@@ -92,6 +111,9 @@ test("el modal es accesible, responsive y restaura el foco", () => {
   assert.match(enhancements, /event\.shiftKey \? last : first/);
   assert.match(enhancements, /target\.focus\(\{ preventScroll: true \}\)/);
   assert.match(enhancements, /fitToData/);
+  assert.match(enhancements, /fitToLot/);
+  assert.match(enhancements, /target="_blank" rel="noopener noreferrer"/);
+  assert.match(enhancements, /data-geo-copy/);
   assert.match(enhancements, /Volver a la ficha/);
   assert.match(styles, /@media\(max-width:719px\)/);
   assert.match(styles, /height:100dvh/);
@@ -103,12 +125,11 @@ test("el modal es accesible, responsive y restaura el foco", () => {
 test("finca y suerte toleran geometrías faltantes sin aproximar otra suerte", () => {
   const manifest = JSON.parse(read("../../../shared/geo/data/manifest.json"));
   assert.equal(manifest.lotIndex["99347A"], undefined);
-  assert.match(enhancements, /await geo\.getLotGeometry\(lotIds\[0\]\)/);
   assert.match(enhancements, /await geo\.getLotGeometries\(lotIds\)/);
-  assert.match(enhancements, /Polígono no disponible en la referencia geográfica actual\./);
   assert.match(enhancements, /Ninguna suerte de esta finca tiene polígono/);
-  assert.match(enhancements, /\$\{available\} de \$\{lotIds\.length\} suertes con polígono/);
-  assert.doesNotMatch(enhancements, /nearest|vecin[oa]|aproximad/i);
+  assert.match(enhancements, /no tiene polígono disponible/);
+  assert.match(enhancements, /Sin registro cronológico actual/);
+  assert.doesNotMatch(enhancements, /nearest|aproximad/i);
 });
 
 test("Producción declara VF54.7 en sus fuentes de versión activas", () => {

@@ -12,7 +12,9 @@ en este repositorio.
 - Se conservan solo componentes `Polygon`; cada suerte se publica como
   `MultiPolygon`, sin `dissolve`, `unary_union` ni simplificación.
 - Coordenadas redondeadas a seis decimales.
-- Atributos publicados por feature: solo `lotId` y `fragmentCount`.
+- Atributos publicados por feature: `lotId`, `fragmentCount` y `anchor`.
+- `anchor` es un punto representativo interior del componente de mayor área,
+  calculado sobre la geometría final redondeada y publicado a seis decimales.
 - Orden de suertes y fragmentos determinístico; no se escriben timestamps.
 
 La reparación se valida por geometría física antes de agrupar. El `MultiPolygon`
@@ -43,7 +45,7 @@ $source = 'C:\ruta\externa\Maestro_26_27_2472026_QGIS_SHP.zip'
 .\.venv-geo\Scripts\python.exe tools\geo\build-casur-geometry.py `
   --source $source `
   --output shared\geo\data `
-  --data-version 2026-07-24-maestro-26-27 `
+  --data-version 2026-07-24-maestro-26-27-r2 `
   --expected-source-sha256 02636373feb1d3ab79ee0d83e028018c60e7798a5b09eec761297fd522d12170
 ```
 

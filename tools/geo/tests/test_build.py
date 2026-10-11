@@ -53,7 +53,8 @@ class PublishedGeometryTests(unittest.TestCase):
     def test_manifest_contract_and_index(self) -> None:
         manifest = self.manifest
         self.assertEqual(manifest["schema"], "casur-master-geometry")
-        self.assertEqual(manifest["schemaVersion"], 1)
+        self.assertEqual(manifest["schemaVersion"], 2)
+        self.assertEqual(manifest["dataVersion"], "2026-07-24-maestro-26-27-r2")
         self.assertEqual(manifest["crs"], "EPSG:4326")
         self.assertEqual(manifest["coordinateDecimals"], 6)
         self.assertEqual(len(manifest["lotIndex"]), manifest["lotCount"])
@@ -78,10 +79,17 @@ class PublishedGeometryTests(unittest.TestCase):
             self.assertEqual(len(lot_ids), self.manifest["zones"][zone]["lotCount"])
             for feature in collection["features"]:
                 properties = feature["properties"]
-                self.assertEqual(set(properties), {"lotId", "fragmentCount"})
+                self.assertEqual(set(properties), {"lotId", "fragmentCount", "anchor"})
                 self.assertTrue(agronomic_fields.isdisjoint({key.lower() for key in properties}))
                 self.assertEqual(feature["geometry"]["type"], "MultiPolygon")
                 self.assertEqual(properties["fragmentCount"], len(feature["geometry"]["coordinates"]))
+                anchor = properties["anchor"]
+                self.assertEqual(len(anchor), 2)
+                self.assertEqual(anchor[0], round(anchor[0], 6))
+                self.assertEqual(anchor[1], round(anchor[1], 6))
+                rounded_geometry = geo_build.shape(feature["geometry"])
+                largest = max(rounded_geometry.geoms, key=lambda polygon: polygon.area)
+                self.assertTrue(largest.covers(geo_build.Point(anchor)))
                 self.assertEqual(len(feature["bbox"]), 4)
                 self.assertLessEqual(feature["bbox"][0], feature["bbox"][2])
                 self.assertLessEqual(feature["bbox"][1], feature["bbox"][3])
@@ -113,6 +121,11 @@ class PublishedGeometryTests(unittest.TestCase):
         )
         self.assertEqual(feature["geometry"]["type"], "MultiPolygon")
         self.assertEqual(feature["properties"]["fragmentCount"], 2)
+        self.assertTrue(
+            geo_build.shape(feature["geometry"]).covers(
+                geo_build.Point(feature["properties"]["anchor"])
+            )
+        )
 
 
 @unittest.skipUnless(os.environ.get("CASUR_GEO_SOURCE"), "CASUR_GEO_SOURCE no definido")

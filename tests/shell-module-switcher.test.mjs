@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { runModuleCheckpoint } from "../core/navigation/module-checkpoint.js";
+import {
+  createModuleCheckpointRunner, resolveHistoryNavigation, runModuleCheckpoint,
+} from "../core/navigation/module-checkpoint.js";
 
 const source = readFileSync(new URL("../app.js", import.meta.url), "utf8");
 const css = readFileSync(new URL("../shared/styles/app.css", import.meta.url), "utf8");
@@ -127,4 +129,99 @@ test("selector, Volver y Recargar esperan el checkpoint antes de actuar", () => 
   assert.match(reload, /await checkpointActiveModule\(reason\)[^]*frame\.src = frame\.src/);
   assert.match(source, /if \(moduleNavigationPending\) return false/);
   assert.match(source, /No se pudo proteger el trabajo pendiente\. El cambio de módulo fue cancelado\./);
+});
+
+test("una transición aprobada marca su destino y evita un segundo checkpoint", () => {
+  const navigate = sourceBetween("async function navigateFromActiveModule", "async function reloadActiveModule");
+  const route = sourceBetween("function route(r)", "/* ---------------- Service Worker");
+  assert.match(navigate, /approvedModuleRoute = path;[^]*router\.go\(path\)/);
+  assert.match(route, /approvedModuleRoute === requestedRoute[^]*approvedModuleRoute = '';[^]*renderRoute\(r\)/);
+});
+
+test("hashchange externo con iframe ejecuta checkpoint de historial", () => {
+  const route = sourceBetween("function route(r)", "/* ---------------- Service Worker");
+  const protect = sourceBetween("async function protectHistoryNavigation", "function route(r)");
+  assert.match(route, /const frame = \$\('#mFrame'\)/);
+  assert.match(route, /pendingHistoryRoute = r;[^]*protectHistoryNavigation\(\)/);
+  assert.match(protect, /resolveHistoryNavigation\(\{[^]*checkpoint: checkpointActiveModule/);
+});
+
+test("hashchange sin iframe renderiza directamente", () => {
+  const route = sourceBetween("function route(r)", "/* ---------------- Service Worker");
+  assert.match(route, /if \(!frame\) \{[^]*renderRoute\(r\);[^]*return;/);
+});
+
+test("Back exitoso permite renderizar la ruta histórica más reciente", async () => {
+  const rendered = [];
+  const result = await resolveHistoryNavigation({
+    checkpoint: async () => ({ ok: true, status: "saved" }),
+    mountedRoute: "/modulo/tch",
+    getLatestRoute: () => ({ name: "home" }),
+    routePath: (route) => route.name === "home" ? "/" : "/modulo/tch",
+    renderRoute: (route) => rendered.push(route.name),
+    restoreRoute: () => assert.fail("no debe restaurar"),
+    onFailure: () => assert.fail("no debe avisar fallo"),
+  });
+  assert.deepEqual(result, { ok: true, status: "saved", route: "/" });
+  assert.deepEqual(rendered, ["home"]);
+});
+
+test("Back con error conserva iframe y restaura el hash montado", async () => {
+  const shell = { hash: "#/", iframe: { id: "mFrame", memory: "P04=56" }, toast: "" };
+  const result = await resolveHistoryNavigation({
+    checkpoint: async () => ({ ok: false, status: "error" }),
+    mountedRoute: "/modulo/tch",
+    getLatestRoute: () => ({ name: "home" }),
+    routePath: () => "/",
+    renderRoute: () => { shell.iframe = null; },
+    restoreRoute: (path) => { shell.hash = `#${path}`; },
+    onFailure: () => { shell.toast = "No se pudo proteger el trabajo pendiente. El cambio de módulo fue cancelado."; },
+  });
+  assert.deepEqual(result, { ok: false, status: "error", route: "/modulo/tch" });
+  assert.equal(shell.hash, "#/modulo/tch");
+  assert.deepEqual(shell.iframe, { id: "mFrame", memory: "P04=56" });
+  assert.equal(shell.toast, "No se pudo proteger el trabajo pendiente. El cambio de módulo fue cancelado.");
+
+  const protect = sourceBetween("async function protectHistoryNavigation", "function route(r)");
+  assert.match(protect, /const mountedRoute = currentRenderedRoute \|\| frame\?\.dataset\.renderedRoute/);
+  assert.match(protect, /restoreRoute: restoreRenderedHash/);
+  assert.match(protect, /onFailure: \(\) => toast\(MODULE_CHECKPOINT_ERROR\)/);
+  const restore = sourceBetween("function restoreRenderedHash", "async function protectHistoryNavigation");
+  assert.match(restore, /history\.replaceState/);
+  assert.doesNotMatch(restore, /renderRoute|viewHome|viewModule/);
+});
+
+test("la identidad montada no depende del hash ya modificado", () => {
+  assert.match(source, /data-module-id="\$\{id\}" data-rendered-route="\/modulo\/\$\{id\}"/);
+  assert.match(source, /let currentRenderedRoute = ''/);
+  assert.match(source, /currentRenderedRoute = routePath\(r\)/);
+});
+
+test("cambios repetidos comparten un solo checkpoint", async () => {
+  let calls = 0;
+  let release;
+  const runner = createModuleCheckpointRunner(() => ({
+    protocolVersion: 1,
+    checkpoint() {
+      calls += 1;
+      return new Promise((resolve) => { release = resolve; });
+    },
+  }));
+  const first = runner("history-navigation");
+  const second = runner("history-navigation");
+  await Promise.resolve();
+  assert.equal(calls, 1);
+  release({ ok: true, status: "saved" });
+  assert.deepEqual(await Promise.all([first, second]), [
+    { ok: true, status: "saved" },
+    { ok: true, status: "saved" },
+  ]);
+});
+
+test("cambios históricos repetidos conservan la ruta solicitada más reciente", () => {
+  const route = sourceBetween("function route(r)", "/* ---------------- Service Worker");
+  const protect = sourceBetween("async function protectHistoryNavigation", "function route(r)");
+  assert.match(route, /pendingHistoryRoute = r/);
+  assert.match(protect, /getLatestRoute: router\.current/);
+  assert.match(protect, /if \(historyNavigationPending\) return/);
 });

@@ -10,6 +10,7 @@ Formato: [versión] — fecha · resumen.
 - Se añadieron controles de teclado, Escape, foco, backdrop y estados informativos de conectividad.
 - Antes de cambiar, volver o recargar, el shell espera hasta 2 segundos el checkpoint same-origin v1 del módulo activo; TCH confirma el borrador sólo después de persistirlo en IndexedDB.
 - Un fallo, excepción o timeout cancela la navegación y conserva el iframe; los módulos sin bridge mantienen la navegación inmediata.
+- Back/Forward y cambios directos del hash pasan por el mismo checkpoint; el shell conserva la ruta realmente montada, evita checkpoints concurrentes y restaura el hash sin crear historial si la protección falla.
 
 ## [1.0.0] — 2026-09-06 · Fase 6: Riegos Ejecutados (integración real, Vite/React/Supabase)
 ### Integración

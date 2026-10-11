@@ -27,3 +27,44 @@ export async function runModuleCheckpoint(bridge, { reason = "navigation", timeo
     clearTimeout(timeoutId);
   }
 }
+
+export function createModuleCheckpointRunner(readBridge) {
+  let pendingCheckpoint = null;
+
+  return async function checkpoint(reason) {
+    if (pendingCheckpoint) return pendingCheckpoint;
+    pendingCheckpoint = (async () => {
+      try {
+        return await runModuleCheckpoint(readBridge(), { reason });
+      } catch {
+        return { ok: false, status: "error" };
+      }
+    })();
+    try {
+      return await pendingCheckpoint;
+    } finally {
+      pendingCheckpoint = null;
+    }
+  };
+}
+
+export async function resolveHistoryNavigation({
+  checkpoint,
+  mountedRoute,
+  getLatestRoute,
+  routePath,
+  renderRoute,
+  restoreRoute,
+  onFailure,
+}) {
+  const result = await checkpoint("history-navigation");
+  if (!result.ok) {
+    restoreRoute(mountedRoute);
+    onFailure();
+    return { ok: false, status: result.status || "error", route: mountedRoute };
+  }
+
+  const latestRoute = getLatestRoute();
+  if (routePath(latestRoute) !== mountedRoute) renderRoute(latestRoute);
+  return { ok: true, status: result.status, route: routePath(latestRoute) };
+}

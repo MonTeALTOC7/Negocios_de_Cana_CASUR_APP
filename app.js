@@ -6,7 +6,7 @@
    ============================================================ */
 
 import * as router from './core/navigation/router.js';
-import { runModuleCheckpoint } from './core/navigation/module-checkpoint.js';
+import { createModuleCheckpointRunner, resolveHistoryNavigation } from './core/navigation/module-checkpoint.js';
 import * as registry from './core/module-registry/registry.js';
 import * as gate from './core/permissions/gate.js';
 import * as status from './core/sync/status.js';
@@ -24,15 +24,20 @@ const viewEl = $('#view');
 const navEl = $('#nav');
 const MODULE_CHECKPOINT_ERROR = 'No se pudo proteger el trabajo pendiente. El cambio de módulo fue cancelado.';
 let moduleNavigationPending = false;
+let approvedModuleRoute = '';
+let currentRenderedRoute = '';
+let pendingHistoryRoute = null;
+let historyNavigationPending = false;
+
+const runActiveModuleCheckpoint = createModuleCheckpointRunner(() => {
+  const frame = $('#mFrame');
+  return frame?.contentWindow?.CASUR_MODULE_BRIDGE;
+});
 
 async function checkpointActiveModule(reason) {
   const frame = $('#mFrame');
   if (!frame) return { ok: true, status: 'no-frame' };
-  try {
-    return await runModuleCheckpoint(frame.contentWindow?.CASUR_MODULE_BRIDGE, { reason });
-  } catch {
-    return { ok: false, status: 'error' };
-  }
+  return runActiveModuleCheckpoint(reason);
 }
 
 async function navigateFromActiveModule(path, reason) {
@@ -44,6 +49,7 @@ async function navigateFromActiveModule(path, reason) {
       toast(MODULE_CHECKPOINT_ERROR);
       return false;
     }
+    approvedModuleRoute = path;
     router.go(path);
     return true;
   } finally {
@@ -372,7 +378,7 @@ function viewModule(id) {
   if (m.privacy === 'private' && !gate.isUnlocked()) { router.go('/privado/' + id); return; }
   if (!m.enabled) { router.home(); return; }
 
-  const host = el(`<div class="module-host view">
+  const host = el(`<div class="module-host view" data-module-id="${id}" data-rendered-route="/modulo/${id}">
       <div class="module-host__bar">
         <button class="icon-btn" id="mBack" type="button" aria-label="Volver">${icon('back')}</button>
         <button class="module-host__switch" id="mSwitch" type="button"
@@ -899,7 +905,14 @@ function renderCentroGate() {
 }
 
 /* ---------------- Router → vistas ---------------- */
-function route(r) {
+function routePath(r) {
+  if (r.name === 'modulo') return '/modulo/' + (r.param || '');
+  if (r.name === 'centro-maestro') return '/centro-maestro';
+  if (r.name === 'privado') return '/privado/' + (r.param || '');
+  return '/';
+}
+
+function renderRoute(r) {
   switch (r.name) {
     case 'home': viewHome(); break;
     case 'modulo': viewModule(r.param); break;
@@ -910,6 +923,55 @@ function route(r) {
     case 'privado': viewPrivado(r.param); break;
     default: viewHome();
   }
+  currentRenderedRoute = routePath(r);
+}
+
+function restoreRenderedHash(path) {
+  const hash = '#' + (path || '/');
+  history.replaceState(history.state, '', `${location.pathname}${location.search}${hash}`);
+}
+
+async function protectHistoryNavigation() {
+  if (historyNavigationPending) return;
+  historyNavigationPending = true;
+  const frame = $('#mFrame');
+  const mountedRoute = currentRenderedRoute || frame?.dataset.renderedRoute || '/';
+  try {
+    await resolveHistoryNavigation({
+      checkpoint: checkpointActiveModule,
+      mountedRoute,
+      getLatestRoute: router.current,
+      routePath,
+      renderRoute,
+      restoreRoute: restoreRenderedHash,
+      onFailure: () => toast(MODULE_CHECKPOINT_ERROR),
+    });
+    pendingHistoryRoute = null;
+  } finally {
+    historyNavigationPending = false;
+  }
+}
+
+function route(r) {
+  const requestedRoute = routePath(r);
+  if (requestedRoute === currentRenderedRoute) return;
+
+  const frame = $('#mFrame');
+  if (!frame) {
+    if (approvedModuleRoute === requestedRoute) approvedModuleRoute = '';
+    renderRoute(r);
+    return;
+  }
+
+  if (approvedModuleRoute === requestedRoute) {
+    approvedModuleRoute = '';
+    renderRoute(r);
+    return;
+  }
+
+  approvedModuleRoute = '';
+  pendingHistoryRoute = r;
+  void protectHistoryNavigation();
 }
 
 /* ---------------- Service Worker ---------------- */

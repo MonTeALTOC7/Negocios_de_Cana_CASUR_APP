@@ -2,6 +2,14 @@
 
 ## Próxima versión
 
+- La captura de biometría mantiene un borrador automático local, con debounce de 500 ms y
+  flush al ocultar o abandonar la página. El borrador usa la clave independiente
+  `draft:biometry:v1` del store `settings`, sin crear registros oficiales.
+- Inicio ofrece continuar o descartar explícitamente una biometría pendiente. Todas las rutas
+  para iniciar otra biometría protegen el borrador; la recuperación conserva punto activo,
+  fase, GPS, pesajes, validación e identidad de la sesión oficial cuando ya existe.
+- IndexedDB continúa en v3 y el guardado oficial elimina el borrador sin cambiar fórmulas,
+  datos maestros ni Service Worker.
 - Guardar una biometría funciona como checkpoint de la sesión activa: conserva el mismo ID,
   reemplaza sus puntos y resultados recalculados, mantiene `createdAt` y la hora original `time`,
   e incrementa `revision`; `updatedAt` registra la hora del último checkpoint.

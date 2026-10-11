@@ -18,6 +18,14 @@ primer guardado crea el ID y los guardados posteriores reemplazan ese mismo regi
 checkpoint. `editingBiometryId` se reserva para registros abiertos
 explícitamente desde el Historial. Iniciar una nueva biometría limpia ambas identidades.
 
+## Borrador de biometría v1
+
+El store `settings` conserva, bajo la clave independiente `draft:biometry:v1`, un único objeto
+`{ version, updatedAt, lotId, activeBiometryId, editingBiometryId, biometry }`. `biometry`
+incluye la sesión capturada completa (fecha, técnico, parámetros, fase, puntos, punto activo y
+validación), pero nunca una copia del Maestro General ni campos oficiales como `id`, `revision`,
+`createdAt` o `time`. El borrador no escribe en `biometries`; un guardado oficial lo elimina.
+
 ## Punto v2.4
 `pointCode`, `sampleLengthM`, `stalkCount` o `directStalksPerMeter`,
 `heightM`, `diameterMm`, `rowSpacingM`, `tch`,

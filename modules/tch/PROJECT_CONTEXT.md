@@ -59,6 +59,10 @@ Pesaje por tallo:
 No borrar IndexedDB. Stores actuales:
 `master`, `biometries`, `weighings`, `harvests`, `visits`, `audit`, `settings`.
 
+El borrador automático de biometría vive en `settings` con la clave `draft:biometry:v1`.
+No es un registro oficial, no cambia la versión 3 de IndexedDB y se elimina al guardar o
+descartar explícitamente la sesión.
+
 ## TCH estimado 26/27
 
 - Fuente auditada: `Productores_V3`, columna `TCH_Est_170726`.

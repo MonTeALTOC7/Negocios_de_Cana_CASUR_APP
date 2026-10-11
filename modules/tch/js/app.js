@@ -12,6 +12,10 @@ import { downloadBlob, downloadWorkbook } from "./excel.js";
 import { createResultImageBlob } from "./result-image.js";
 import { persistBiometryCheckpoint } from "./biometry-session.js";
 import {
+  createBiometryDraft, discardBiometryDraft, inspectBiometryDraft,
+  loadBiometryDraft, persistBiometryDraft,
+} from "./biometry-draft.js";
+import {
   createVisitsPackageBlob, createVisitsWorkbookBlob, prepareVisitPhoto,
   snapshotPhotoFiles, visitPackageFilename, visitsExcelFilename, visitPhotoBlob,
   visitPhotoFilename, visitPhotoPreviewUrl, createLabeledVisitPhotoBlob,
@@ -47,6 +51,10 @@ const state = {
   editingBiometryId: "",
   activeBiometryId: "",
   biometry: null,
+  biometryDirty: false,
+  biometryDraft: null,
+  biometryDraftIssue: "",
+  biometryDraftStatus: "idle",
   weighing: null,
   visit: null,
   visitView: "new",
@@ -67,6 +75,8 @@ const state = {
 };
 
 const photoPreviewCache = new WeakMap();
+let biometryDraftTimer = null;
+let pendingBiometryRequest = null;
 
 function photoPreview(photo) {
   if (photo?.dataUrl) return photo.dataUrl;
@@ -164,6 +174,93 @@ function openModal(html) {
 function closeModal() {
   modal.hidden = true;
   modalContent.innerHTML = "";
+}
+
+function currentBiometryDraft(updatedAt = new Date().toISOString()) {
+  return createBiometryDraft({
+    lotId: state.selectedLot?.id || "",
+    activeBiometryId: state.activeBiometryId,
+    editingBiometryId: state.editingBiometryId,
+    biometry: state.biometry,
+    dirty: state.biometryDirty,
+    updatedAt,
+  });
+}
+
+function pendingDraftInspection() {
+  const current = state.route === "biometry" ? currentBiometryDraft(state.biometryDraft?.updatedAt) : null;
+  return inspectBiometryDraft(current || state.biometryDraft, state.master);
+}
+
+function updateBiometryDraftIndicator() {
+  const indicator = document.querySelector("#biometryDraftStatus");
+  if (!indicator) return;
+  const labels = {
+    pending: "Cambios pendientes",
+    protected: "✓ Borrador protegido en este dispositivo",
+    saved: "✓ Biometría guardada",
+  };
+  indicator.textContent = labels[state.biometryDraftStatus] || "";
+  indicator.dataset.status = state.biometryDraftStatus;
+  indicator.hidden = !labels[state.biometryDraftStatus];
+}
+
+async function flushBiometryDraft() {
+  clearTimeout(biometryDraftTimer);
+  biometryDraftTimer = null;
+  const draft = currentBiometryDraft();
+  if (!draft) return null;
+  try {
+    await persistBiometryDraft(repository, draft);
+    state.biometryDraft = draft;
+    state.biometryDraftIssue = "";
+    state.biometryDraftStatus = "protected";
+    updateBiometryDraftIndicator();
+    return draft;
+  } catch {
+    state.biometryDraftStatus = "pending";
+    updateBiometryDraftIndicator();
+    return null;
+  }
+}
+
+function scheduleBiometryDraftSave() {
+  if (!state.biometryDirty || !state.selectedLot) return;
+  clearTimeout(biometryDraftTimer);
+  biometryDraftTimer = setTimeout(() => { void flushBiometryDraft(); }, 500);
+}
+
+function markBiometryDirty() {
+  if (!state.selectedLot || !state.biometry) return;
+  state.biometryDirty = true;
+  state.biometryDraftStatus = "pending";
+  state.biometryDraft = currentBiometryDraft();
+  updateBiometryDraftIndicator();
+  scheduleBiometryDraftSave();
+}
+
+async function clearBiometryDraft(status = "idle") {
+  clearTimeout(biometryDraftTimer);
+  biometryDraftTimer = null;
+  await discardBiometryDraft(repository);
+  state.biometryDraft = null;
+  state.biometryDraftIssue = "";
+  state.biometryDirty = false;
+  state.biometryDraftStatus = status;
+  updateBiometryDraftIndicator();
+}
+
+function restoreBiometryDraft(inspection = pendingDraftInspection()) {
+  if (inspection.status !== "valid") return false;
+  state.selectedLot = inspection.lot;
+  state.activeBiometryId = inspection.draft.activeBiometryId || "";
+  state.editingBiometryId = inspection.draft.editingBiometryId || "";
+  state.biometry = structuredClone(inspection.draft.biometry);
+  state.biometryDraft = inspection.draft;
+  state.biometryDraftIssue = "";
+  state.biometryDirty = true;
+  state.biometryDraftStatus = "protected";
+  return true;
 }
 
 async function persistSettings() {
@@ -305,6 +402,8 @@ function resetBiometry() {
   state.selectedLot = null;
   state.editingBiometryId = "";
   state.activeBiometryId = "";
+  state.biometryDirty = false;
+  state.biometryDraftStatus = "idle";
   const first = newSample(0, 5);
   state.biometry = {
     date: todayISO(),
@@ -387,6 +486,7 @@ async function loadState() {
     repository.all("visits"),
     repository.all("audit"),
     repository.get("settings", "app"),
+    loadBiometryDraft(repository),
   ]);
   [state.master, state.biometries, state.weighings, state.harvests, state.visits, state.audit] = loaded;
   state.settings = {
@@ -404,10 +504,22 @@ async function loadState() {
   resetBiometry();
   resetWeighing();
   resetVisit();
+  const draftInspection = inspectBiometryDraft(loaded[7], state.master);
+  state.biometryDraft = draftInspection.draft;
+  if (draftInspection.status === "valid") restoreBiometryDraft(draftInspection);
+  if (draftInspection.status === "lot-missing") {
+    state.biometryDraftIssue = "La suerte de esta biometría pendiente ya no existe en el Maestro General.";
+    state.biometryDraftStatus = "protected";
+  }
+  if (["invalid", "unsupported"].includes(draftInspection.status)) {
+    state.biometryDraftIssue = "Hay un borrador protegido que esta versión no puede recuperar.";
+    state.biometryDraftStatus = "protected";
+  }
   await refreshStorageEstimate();
 }
 
 function go(route) {
+  if (state.route === "biometry" && route !== "biometry") void flushBiometryDraft();
   state.route = route;
   if (route === "biometry" && !state.biometry) resetBiometry();
   if (route === "weighing" && !state.weighing) resetWeighing();
@@ -431,6 +543,7 @@ function renderHome() {
   const area = latest.reduce((sum, record) => sum + finiteNumber(record.area), 0);
   const weighted = weightedMean(latest, "projectedTch", "area");
   const producerLots = state.master.filter((lot) => lot.zone === "5-Productores");
+  const draftCard = renderBiometryDraftCard();
   return `
     <section class="hero">
       <span class="eyebrow">🌱 CAMPO · CASUR</span>
@@ -438,6 +551,7 @@ function renderHome() {
       <p>Medí la caña, proyectá el TCH y documentá el estado real de la suerte con fotografías etiquetadas, GPS e historial Excel.</p>
       <div class="actions"><button class="btn btn-primary" data-new-biometry>＋ Nueva biometría</button><button class="btn btn-gold" data-route="visits">📷 Registrar visita</button></div>
     </section>
+    ${draftCard}
     ${state.master.length ? "" : `<div class="warning"><b>No se pudo abrir el Maestro General integrado.</b> ${escapeHtml(state.embeddedMasterError)} Podés actualizarlo desde Maestro.</div>`}
     <section class="kpi-grid">
       <article class="kpi"><span>Maestro General</span><strong>${state.master.length}</strong><small>suertes operativas CASUR</small></article>
@@ -458,6 +572,23 @@ function renderHome() {
       <div><strong>Guía rápida de biometría</strong><p>Tramo → POB → altura → diámetro → repetición de puntos → revisión del TCH.</p></div>
       <button class="btn btn-light guide-open" data-field-guide>Ver pasos</button>
     </section>`;
+}
+
+function renderBiometryDraftCard() {
+  const inspection = pendingDraftInspection();
+  if (inspection.status === "empty") return "";
+  const sampleCount = inspection.draft?.biometry?.samples?.length || 0;
+  const updated = inspection.draft?.updatedAt
+    ? new Date(inspection.draft.updatedAt).toLocaleTimeString("es-NI", { hour: "2-digit", minute: "2-digit" })
+    : "sin hora registrada";
+  if (inspection.status !== "valid") return `<section class="pending-biometry-card warning-card">
+    <div><small>BIOMETRÍA PENDIENTE</small><strong>Borrador protegido</strong><p>${escapeHtml(state.biometryDraftIssue || "No se puede recuperar automáticamente este borrador.")}</p><span>Último respaldo: ${escapeHtml(updated)}</span></div>
+    <div class="actions"><button class="btn btn-light" id="discardBiometryDraft">Descartar</button></div>
+  </section>`;
+  return `<section class="pending-biometry-card">
+    <div><small>BIOMETRÍA PENDIENTE</small><strong>${escapeHtml(inspection.lot.producer)} · Suerte ${escapeHtml(inspection.lot.lot)}</strong><p>${sampleCount} punto(s) · último respaldo ${escapeHtml(updated)}</p></div>
+    <div class="actions"><button class="btn btn-green" id="continueBiometryDraft">Continuar</button><button class="btn btn-light" id="discardBiometryDraft">Descartar</button></div>
+  </section>`;
 }
 
 function searchBox(value, context) {
@@ -735,7 +866,8 @@ function renderCalculateStage() {
 }
 
 function renderBiometry() {
-  return `${pageHead(state.editingBiometryId ? "Editar biometría" : "Nueva biometría", "Flujo por etapas: medí los puntos necesarios y pasá luego al cálculo del TCH proyectado.")}${state.editingBiometryId ? `<div class="editing-banner"><div><b>Editando una biometría guardada</b><span>Los cálculos se actualizarán al guardar esta revisión.</span></div><button class="btn btn-light" id="cancelBiometryEdit">Cancelar edición</button></div>` : ""}${state.biometry.phase === "calculate" ? renderCalculateStage() : renderMeasureStage()}`;
+  const labels = { pending: "Cambios pendientes", protected: "✓ Borrador protegido en este dispositivo", saved: "✓ Biometría guardada" };
+  return `${pageHead(state.editingBiometryId ? "Editar biometría" : "Nueva biometría", "Flujo por etapas: medí los puntos necesarios y pasá luego al cálculo del TCH proyectado.")}<div id="biometryDraftStatus" class="biometry-draft-status" data-status="${state.biometryDraftStatus}" ${labels[state.biometryDraftStatus] ? "" : "hidden"}>${labels[state.biometryDraftStatus] || ""}</div>${state.editingBiometryId ? `<div class="editing-banner"><div><b>Editando una biometría guardada</b><span>Los cálculos se actualizarán al guardar esta revisión.</span></div><button class="btn btn-light" id="cancelBiometryEdit">Cancelar edición</button></div>` : ""}${state.biometry.phase === "calculate" ? renderCalculateStage() : renderMeasureStage()}`;
 }
 
 function editBiometry(record) {
@@ -752,6 +884,8 @@ function editBiometry(record) {
   state.selectedLot = lot;
   state.editingBiometryId = record.id;
   state.activeBiometryId = record.id;
+  state.biometryDirty = false;
+  state.biometryDraftStatus = "idle";
   state.biometry = {
     date: record.date || todayISO(), technician: record.technician || "", rowSpacingM: record.rowSpacingM || lot.rowSpacingM || 1.65,
     sampleLengthM: record.sampleLengthM || 5, targetAgeMonths: record.targetAgeMonths || 10,
@@ -1128,7 +1262,18 @@ async function saveBiometry(download = false) {
   const { record, isUpdate } = checkpoint;
   state.biometries = checkpoint.records;
   state.activeBiometryId = checkpoint.activeBiometryId;
-  notify(`✓ Biometría ${isUpdate ? "actualizada" : "guardada"} · ${record.pointCount} puntos`);
+  let draftClearFailed = false;
+  try {
+    await clearBiometryDraft("saved");
+  } catch {
+    draftClearFailed = true;
+    state.biometryDraftStatus = "pending";
+    state.biometryDirty = true;
+    updateBiometryDraftIndicator();
+  }
+  notify(draftClearFailed
+    ? `✓ Biometría ${isUpdate ? "actualizada" : "guardada"}; no se pudo limpiar el borrador local.`
+    : `✓ Biometría ${isUpdate ? "actualizada" : "guardada"} · ${record.pointCount} puntos`);
   if (download) {
     downloadWorkbook({
       master: state.master,
@@ -1338,7 +1483,7 @@ function render() {
   app.innerHTML = (views[state.route] || renderHome)();
 }
 
-async function captureGps(target) {
+async function captureGps(target, onSuccess = null) {
   if (!navigator.geolocation) return notify("Este dispositivo no permite capturar GPS.");
   notify("Obteniendo ubicación GPS…");
   navigator.geolocation.getCurrentPosition((position) => {
@@ -1348,6 +1493,7 @@ async function captureGps(target) {
       gpsAccuracyM: position.coords.accuracy,
       capturedAt: new Date().toISOString(),
     });
+    onSuccess?.();
     render();
     notify(position.coords.accuracy > 30 ? `GPS capturado con precisión baja: ±${Math.round(position.coords.accuracy)} m.` : "GPS capturado correctamente.");
   }, () => notify("No se pudo capturar GPS. Revisá el permiso del navegador."), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
@@ -1391,19 +1537,7 @@ function selectLot(id, context) {
 
 function startBiometryForVisit() {
   if (!state.selectedLot) return notify("Seleccioná primero la suerte de la visita.");
-  const lot = state.selectedLot;
-  state.visitReturnFromBiometry = true;
-  resetBiometry();
-  state.selectedLot = lot;
-  state.biometry.search = `${lot.id} · ${lot.producer} · Suerte ${lot.lot}`;
-  state.biometry.rowSpacingM = lot.rowSpacingM || 1.65;
-  const age = ageFromLot(lot, state.biometry.date);
-  if (age.months && finiteNumber(state.biometry.targetAgeMonths) < age.months) {
-    state.biometry.targetAgeMonths = TARGET_AGES.find((target) => target >= age.months) || Math.ceil(age.months * 2) / 2;
-  }
-  state.route = "biometry";
-  render();
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  requestNewBiometry({ type: "visit", lotId: state.selectedLot.id });
 }
 
 function addSampleAndOpen() {
@@ -1411,25 +1545,69 @@ function addSampleAndOpen() {
   state.biometry.samples.push(sample);
   state.biometry.activeSampleId = sample.id;
   invalidateValidation();
+  markBiometryDirty();
   render();
+}
+
+function beginBiometryRequest(request = { type: "new" }) {
+  pendingBiometryRequest = null;
+  if (request.type === "edit") {
+    const record = state.biometries.find((item) => item.id === request.recordId);
+    if (record) editBiometry(record);
+    return;
+  }
+  resetBiometry();
+  if (request.lotId) selectLot(request.lotId, "biometry");
+  state.visitReturnFromBiometry = request.type === "visit";
+  state.route = "biometry";
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function requestNewBiometry(request = { type: "new" }) {
+  const inspection = pendingDraftInspection();
+  if (inspection.status === "empty") return beginBiometryRequest(request);
+  pendingBiometryRequest = request;
+  const canContinue = inspection.status === "valid";
+  openModal(`<h2>Hay una biometría pendiente</h2><p>Elegí qué hacer con el borrador protegido antes de iniciar otra biometría.</p>${state.biometryDraftIssue ? `<div class="warning">${escapeHtml(state.biometryDraftIssue)}</div>` : ""}<div class="actions pending-draft-actions"><button class="btn btn-green" id="continuePendingBiometry" ${canContinue ? "" : "disabled"}>Continuar pendiente</button><button class="btn btn-danger" id="discardAndStartBiometry">Descartar e iniciar nueva</button><button class="btn btn-light" id="cancelPendingBiometryRequest">Cancelar</button></div>`);
+}
+
+function openBiometryRoute() {
+  const inspection = pendingDraftInspection();
+  if (inspection.status === "valid") {
+    restoreBiometryDraft(inspection);
+    state.route = "biometry";
+    render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  if (inspection.status !== "empty") {
+    requestNewBiometry({ type: "new" });
+    return;
+  }
+  go("biometry");
+}
+
+function confirmDiscardBiometry({ startPending = false } = {}) {
+  openModal(`<h2>¿Descartar biometría pendiente?</h2><p>Esta biometría tiene cambios no guardados. ¿Descartar el borrador?</p><div class="actions"><button class="btn btn-danger" id="confirmDiscardBiometry" data-start-pending="${startPending ? "true" : "false"}">Descartar borrador</button><button class="btn btn-light" id="cancelDiscardBiometry">Cancelar</button></div>`);
 }
 
 document.addEventListener("click", async (event) => {
   const button = event.target.closest("button");
   if (!button) return;
   if (button.hasAttribute("data-new-biometry")) {
-    resetBiometry();
-    state.route = "biometry";
-    render();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    requestNewBiometry({ type: "new" });
     return;
   }
-  if (button.dataset.route) return go(button.dataset.route);
+  if (button.dataset.route) {
+    if (button.dataset.route === "biometry" && state.route !== "biometry") return openBiometryRoute();
+    return go(button.dataset.route);
+  }
 
   if (button.dataset.consultAction && state.selectedLot) {
     const lot = state.selectedLot;
     if (button.dataset.consultAction === "biometry") {
-      resetBiometry(); state.selectedLot = lot; selectLot(lot.id, "biometry"); state.route = "biometry"; render();
+      requestNewBiometry({ type: "new", lotId: lot.id });
     }
     if (button.dataset.consultAction === "visit") {
       resetVisit(); state.selectedLot = lot; selectLot(lot.id, "visits"); state.route = "visits"; state.visitView = "new"; render();
@@ -1443,14 +1621,64 @@ document.addEventListener("click", async (event) => {
 
   if (button.dataset.editBiometry) {
     const record = state.biometries.find((item) => item.id === button.dataset.editBiometry);
-    if (record) editBiometry(record);
+    if (record) requestNewBiometry({ type: "edit", recordId: record.id });
     return;
   }
   if (button.id === "cancelBiometryEdit") {
-    resetBiometry();
-    state.route = "history";
-    render();
-    notify("Edición cancelada. La biometría original no cambió.");
+    if (state.biometryDirty) {
+      pendingBiometryRequest = { type: "cancel-edit" };
+      confirmDiscardBiometry({ startPending: true });
+    } else {
+      resetBiometry();
+      state.route = "history";
+      render();
+      notify("Edición cancelada. La biometría original no cambió.");
+    }
+    return;
+  }
+
+  if (button.id === "continueBiometryDraft" || button.id === "continuePendingBiometry") {
+    if (pendingDraftInspection().status !== "valid") return notify("La suerte del borrador ya no está disponible en el maestro.");
+    pendingBiometryRequest = null;
+    closeModal();
+    openBiometryRoute();
+    return;
+  }
+
+  if (button.id === "discardBiometryDraft") {
+    pendingBiometryRequest = null;
+    confirmDiscardBiometry();
+    return;
+  }
+
+  if (button.id === "discardAndStartBiometry") {
+    confirmDiscardBiometry({ startPending: true });
+    return;
+  }
+
+  if (button.id === "confirmDiscardBiometry") {
+    const request = button.dataset.startPending === "true" ? pendingBiometryRequest : null;
+    await clearBiometryDraft();
+    closeModal();
+    if (request?.type === "cancel-edit") {
+      pendingBiometryRequest = null;
+      resetBiometry();
+      state.route = "history";
+      render();
+      notify("Edición cancelada. La biometría original no cambió.");
+    } else if (request) beginBiometryRequest(request);
+    else {
+      resetBiometry();
+      state.route = "home";
+      render();
+      notify("Borrador descartado.");
+    }
+    return;
+  }
+
+  if (button.id === "cancelDiscardBiometry" || button.id === "cancelPendingBiometryRequest") {
+    pendingBiometryRequest = null;
+    closeModal();
     return;
   }
 
@@ -1590,12 +1818,20 @@ document.addEventListener("click", async (event) => {
     notify("Visita y fotografías eliminadas del teléfono.");
   }
 
-  if (button.dataset.selectLot) return selectLot(button.dataset.selectLot, document.querySelector("#lotSearch")?.dataset.searchContext);
+  if (button.dataset.selectLot) {
+    const context = document.querySelector("#lotSearch")?.dataset.searchContext;
+    if (context === "biometry" && state.biometryDirty && state.selectedLot?.id !== button.dataset.selectLot) {
+      requestNewBiometry({ type: "new", lotId: button.dataset.selectLot });
+      return;
+    }
+    return selectLot(button.dataset.selectLot, context);
+  }
 
   if (button.id === "addSample" || button.id === "addSampleBottom") return addSampleAndOpen();
 
   if (button.dataset.openSample) {
     state.biometry.activeSampleId = button.dataset.openSample;
+    if (state.biometryDirty) markBiometryDirty();
     render();
   }
 
@@ -1609,6 +1845,7 @@ document.addEventListener("click", async (event) => {
     state.biometry.samples.forEach((item, i) => { item.pointCode = `P${String(i + 1).padStart(2, "0")}`; });
     state.biometry.activeSampleId = state.biometry.samples[Math.min(index, state.biometry.samples.length - 1)].id;
     invalidateValidation();
+    markBiometryDirty();
     render();
   }
 
@@ -1617,6 +1854,7 @@ document.addEventListener("click", async (event) => {
     if (sample) {
       sample.countMode = button.dataset.countMode;
       invalidateValidation();
+      markBiometryDirty();
       render();
     }
   }
@@ -1631,13 +1869,14 @@ document.addEventListener("click", async (event) => {
         sample.weighedTotalKg = "";
       }
       invalidateValidation();
+      markBiometryDirty();
       render();
     }
   }
 
   if (button.dataset.gpsSample) {
     const sample = state.biometry.samples.find((s) => s.id === button.dataset.gpsSample);
-    if (sample) captureGps(sample);
+    if (sample) captureGps(sample, markBiometryDirty);
   }
 
   if (button.dataset.revisitPoint) {
@@ -1656,6 +1895,7 @@ document.addEventListener("click", async (event) => {
         notes: `Revisita de ${prior.pointCode}`,
       });
       state.biometry.activeSampleId = target.id;
+      markBiometryDirty();
       render();
       notify(`Punto ${prior.pointCode} preparado para revisita.`);
     }
@@ -1666,12 +1906,14 @@ document.addEventListener("click", async (event) => {
     const summary = biometrySummary();
     if (!summary.count) return notify("Completá por lo menos un punto con POB, H y D.");
     state.biometry.phase = "calculate";
+    markBiometryDirty();
     window.scrollTo({ top: 0, behavior: "smooth" });
     render();
   }
 
   if (button.id === "editMeasurements") {
     state.biometry.phase = "measure";
+    markBiometryDirty();
     window.scrollTo({ top: 0, behavior: "smooth" });
     render();
   }
@@ -1685,6 +1927,7 @@ document.addEventListener("click", async (event) => {
       validatedAt: new Date().toISOString(),
       validatedBy: state.biometry.technician || state.settings.technician || "Sin registrar",
     };
+    markBiometryDirty();
     render();
     notify("Cálculo validado. Si modificás un dato, la validación se retirará.");
   }
@@ -1744,6 +1987,7 @@ document.addEventListener("click", async (event) => {
     if (value < 1 || value > 3) return notify("Ingresá una distancia entre 1.00 y 3.00 m.");
     state.biometry.rowSpacingM = value;
     invalidateValidation();
+    markBiometryDirty();
     closeModal();
     render();
     notify(`Distancia entre surcos: ${formatNumber(value, 2)} m.`);
@@ -1755,6 +1999,7 @@ document.addEventListener("click", async (event) => {
     state.biometry.sampleLengthM = value;
     state.biometry.samples.forEach((sample) => { sample.sampleLengthM = value; });
     invalidateValidation();
+    markBiometryDirty();
     closeModal();
     render();
     notify(`Longitud común del tramo: ${formatNumber(value, 1)} m.`);
@@ -1772,6 +2017,7 @@ document.addEventListener("click", async (event) => {
     if (currentAge && customAge < currentAge) return notify("La edad de referencia no puede ser menor que la edad actual.");
     state.biometry.targetAgeMonths = customAge;
     invalidateValidation();
+    markBiometryDirty();
     closeModal();
     render();
     notify(`Edad de referencia establecida en ${formatNumber(customAge, 1)} meses.`);
@@ -1964,6 +2210,7 @@ document.addEventListener("input", (event) => {
     if (sample) {
       sample[input.dataset.sampleField] = input.value;
       invalidateValidation();
+      markBiometryDirty();
       updateActivePointResult();
     }
   }
@@ -1972,6 +2219,7 @@ document.addEventListener("input", (event) => {
   if (bioMap[input.id]) {
     state.biometry[bioMap[input.id]] = input.type === "number" ? finiteNumber(input.value) : input.value;
     if (input.id !== "bioTechnician") invalidateValidation();
+    markBiometryDirty();
     if (state.biometry.phase === "measure") updateActivePointResult();
   }
 
@@ -2014,6 +2262,7 @@ document.addEventListener("change", (event) => {
       state.biometry.targetAgeMonths = TARGET_AGES.find((target) => target >= age.months) || Math.ceil(age.months * 2) / 2;
     }
     invalidateValidation();
+    markBiometryDirty();
     render();
   }
 
@@ -2049,6 +2298,7 @@ document.addEventListener("change", (event) => {
     } else {
       state.biometry.rowSpacingM = finiteNumber(input.value);
       invalidateValidation();
+      markBiometryDirty();
       render();
     }
   }
@@ -2061,6 +2311,7 @@ document.addEventListener("change", (event) => {
       state.biometry.sampleLengthM = value;
       state.biometry.samples.forEach((sample) => { sample.sampleLengthM = value; });
       invalidateValidation();
+      markBiometryDirty();
       render();
     }
   }
@@ -2072,18 +2323,21 @@ document.addEventListener("change", (event) => {
     } else {
       state.biometry.targetAgeMonths = finiteNumber(input.value);
       invalidateValidation();
+      markBiometryDirty();
       render();
     }
   }
 
   if (input.id === "adjustmentPct" || input.id === "bioNotes") {
     invalidateValidation();
+    markBiometryDirty();
     render();
   }
 
   if (input.id === "adjustmentReason") {
     state.biometry.adjustmentReason = input.value;
     invalidateValidation();
+    markBiometryDirty();
     render();
   }
 
@@ -2196,6 +2450,10 @@ modal.addEventListener("click", (event) => { if (event.target === modal) closeMo
 // window.matchMedia?.("(display-mode: standalone)")?.addEventListener?.("change", updateInstallNotice);
 window.addEventListener("online", updateConnection);
 window.addEventListener("offline", updateConnection);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") void flushBiometryDraft();
+});
+window.addEventListener("pagehide", () => { void flushBiometryDraft(); });
 
 function updateConnection() {
   const badge = document.querySelector("#connectionBadge");

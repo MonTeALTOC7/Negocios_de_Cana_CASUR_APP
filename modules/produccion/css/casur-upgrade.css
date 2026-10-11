@@ -110,3 +110,47 @@
 }
 @media(max-width:560px){.casur-editor-fields{grid-template-columns:1fr}.casur-editor-fields label.wide{grid-column:auto}.casur-editor-search{grid-template-columns:1fr}.casur-lock-actions{grid-template-columns:1fr}}
 @media print{.casur-release-strip,.casur-lock-layer{display:none!important}.casur-estimate-cell{background:#fff!important;color:#0f5f58!important}.casur-estimate-kpi{background:#fff!important}}
+
+/* GEO-1 · Mapa agrícola contextual en ficha histórica */
+.casur-geo-action{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:8px 12px;
+  border:1px solid rgba(255,255,255,.34);border-radius:14px;background:rgba(255,255,255,.14);color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16);font:900 11px inherit;cursor:pointer;white-space:nowrap;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease;
+}
+.casur-geo-action:hover{background:rgba(255,255,255,.23);border-color:rgba(255,255,255,.58);transform:translateY(-1px)}
+.casur-geo-action:focus-visible,.casur-geo-control:focus-visible,.casur-geo-close:focus-visible{outline:3px solid #f4c542;outline-offset:3px}
+.casur-geo-action>span{display:grid;place-items:center;width:25px;height:25px;border-radius:9px;background:#f4c542;color:#173c25;font-size:16px;line-height:1}
+body.casur-geo-open{overflow:hidden}
+.casur-geo-layer{position:fixed;inset:0;z-index:2147483490;display:grid;place-items:center;padding:24px;background:rgba(3,20,12,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.casur-geo-layer[hidden]{display:none!important}
+.casur-geo-backdrop{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent;cursor:default}
+.casur-geo-dialog{position:relative;display:grid;grid-template-rows:auto minmax(0,1fr) auto;width:min(1120px,calc(100vw - 48px));height:min(760px,calc(100dvh - 48px));overflow:hidden;border:1px solid rgba(255,255,255,.72);border-radius:26px;background:#f6faf7;box-shadow:0 32px 100px rgba(0,0,0,.38)}
+.casur-geo-dialog>.casur-geo-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:17px 18px 14px;border-bottom:1px solid #dbe7df;background:linear-gradient(135deg,#082617,#0b6031 62%,#073d73)!important;color:#fff;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.casur-geo-head h2{margin:2px 0 0;color:#fff;font-size:22px;line-height:1.1}
+.casur-geo-head p{margin:6px 0 0;max-width:760px;color:rgba(255,255,255,.78);font-size:10.5px;font-weight:800;line-height:1.4}
+.casur-geo-eyebrow{color:#f7dc79;font-size:9px;font-weight:950;letter-spacing:.8px;text-transform:uppercase}
+.casur-geo-close,.casur-geo-control{min-height:44px;border:1px solid #cbdad1;border-radius:13px;padding:9px 13px;background:#fff;color:#17412a;font:900 11px inherit;cursor:pointer}
+.casur-geo-close{flex:0 0 auto;border-color:rgba(255,255,255,.38);background:rgba(255,255,255,.14);color:#fff}
+.casur-geo-control:disabled{opacity:.5;cursor:not-allowed}
+.casur-geo-control.is-primary{border-color:#0b6031;background:#0b6031;color:#fff}
+.casur-geo-body{position:relative;min-height:0;background:#dfe8e1}
+.casur-geo-map{width:100%;height:100%;min-height:350px;background:radial-gradient(circle at 50% 45%,#edf3ee,#d3ded6)}
+.casur-geo-loading,.casur-geo-empty{position:absolute;inset:0;z-index:2;display:grid;place-items:center;padding:28px;text-align:center;color:#385044;font-size:13px;font-weight:900;line-height:1.5;background:radial-gradient(circle at 50% 42%,#fff,#e6eee8)}
+.casur-geo-loading[hidden],.casur-geo-empty[hidden],.casur-geo-map[hidden]{display:none!important}
+.casur-geo-empty{color:#526276}
+.casur-geo-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 15px;border-top:1px solid #dbe7df;background:#fff}
+.casur-geo-foot p{margin:0;color:#526276;font-size:10.5px;font-weight:900}
+.casur-geo-foot-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+
+@media(max-width:719px){
+  .casur-geo-layer{align-items:end;padding:0}
+  .casur-geo-dialog{width:100%;height:100dvh;max-height:none;border:0;border-radius:0}
+  .casur-geo-dialog>.casur-geo-head{padding:calc(12px + env(safe-area-inset-top)) 13px 11px}
+  .casur-geo-head h2{font-size:18px}.casur-geo-head p{font-size:9.5px}
+  .casur-geo-close{padding:8px 10px}
+  .casur-geo-map{min-height:280px}
+  .casur-geo-foot{align-items:stretch;flex-direction:column;padding:9px 10px calc(9px + env(safe-area-inset-bottom))}
+  .casur-geo-foot-actions{display:grid;grid-template-columns:1fr 1fr}.casur-geo-control{width:100%}
+}
+@media print{.casur-geo-layer,.casur-geo-action{display:none!important}}

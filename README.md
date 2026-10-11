@@ -8,9 +8,9 @@ Se publica en **GitHub Pages** (sin servidor Node) con `index.html` en la raíz,
 **instalable** en Android, Windows y navegadores compatibles, y funciona **offline** en la
 medida en que cada módulo lo soporte.
 
-> Estado actual: **v1.1.0 — App Maestra con módulos operativos integrados**. Incluye navegación
-> rápida con checkpoint seguro y acceso contextual opcional desde TCH a la ficha existente de una
-> suerte en Maestro. Ver `docs/ARCHITECTURE.md`.
+> Estado actual: **v1.2.0 — App Maestra con referencia geográfica agrícola automática**. Incluye
+> navegación segura, acceso contextual TCH → Maestro y mapas de finca/suerte publicados desde el
+> Shape oficial, disponibles offline después de la primera actualización. Ver `docs/ARCHITECTURE.md`.
 
 ---
 
@@ -18,12 +18,12 @@ medida en que cada módulo lo soporte.
 
 | Módulo | Descripción | Estado |
 |---|---|---|
-| Maestro de Suertes | Cronológico e Histórico de suertes CASUR (VF54.6) | **Integrado VF54.6 (Fase 4)** · datos vía Adaptador SIAGRI |
+| Maestro de Suertes | Cronológico, Histórico y mapa agrícola de suertes CASUR (VF54.7) | **Integrado VF54.7** · datos vía Adaptador SIAGRI · geometría de solo lectura |
 
 > **⚠️ `modules/produccion/data/` es contenido VERSIONADO de forma independiente del código.**
 > `cronologico.json/js`, `historico.json/js` y `version.json/js` cambian con cada publicación de
 > datos (Administrador SIAGRI → "Paquete solo datos para GitHub"), a un ritmo distinto del código
-> de la app (VF54.6). **Al publicar un ZIP nuevo de la App Maestra (código), NO reemplaces
+> de la app (VF54.7). **Al publicar un ZIP nuevo de la App Maestra (código), NO reemplaces
 > `modules/produccion/data/` con una copia antigua** empaquetada por error — eso provocaría un
 > downgrade de datos. Desde el **Hotfix 4.4.3**, el propio Service Worker raíz (`sw.js`)
 > resuelve una **generación completa y coherente** de los 6 archivos (versión+cronológico+
@@ -55,6 +55,8 @@ Detalle en `docs/MODULES.md`.
 ## Funcionamiento offline
 
 - El **shell** (inicio, navegación, Centro Maestro) funciona sin conexión.
+- La referencia geográfica mínima (manifest y cuatro zonas) se prepara automáticamente con red;
+  offline conserva polígonos, etiquetas y controles locales aunque no haya tiles satelitales/OSM.
 - Cada módulo es offline según su propia naturaleza: los locales (Producción, TCH, Insumos,
   Labores) funcionan offline; los que usan **Supabase** (Riego, Inventario) requieren red para
   sincronizar, con cola offline donde ya existe.

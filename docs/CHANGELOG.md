@@ -2,6 +2,16 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.2.0] — 2026-10-11 · mapa agrícola automático en Maestro de Suertes
+- El Shape oficial `Maestro_26_27_2472026_QGIS_SHP.zip` se transforma mediante un pipeline
+  reproducible en GeoJSON mínimo por zona, unido exclusivamente por `CodSuerte`/`lotId`.
+- La App Maestra incorpora un motor geográfico y visor Leaflet 1.9.4 locales y reutilizables;
+  Producción VF54.7 ofrece `Mapa de finca` y `Ver polígono` sin alterar datos ni cálculos.
+- El Service Worker prepara automáticamente manifest y cuatro zonas en una caché geográfica
+  independiente de datos SIAGRI y de `PROD_LKG_CACHE`; offline conserva polígonos y controles.
+- Se documentan trazabilidad, cobertura, reparación `make_valid`, límites de responsabilidad y
+  el contrato que reutilizará TCH en GEO-2, sin integrar aún puntos P01–Pxx.
+
 ## [1.1.0] — 2026-10-10 · versionado y atajo contextual TCH → Maestro
 - La versión visible y técnica de la App Maestra queda sincronizada en `versions.js`, `sw.js` e
   `index.html`; el Service Worker usa `casur_master_shell_v1.1.0` y `casur_master_data_v1.1.0`.

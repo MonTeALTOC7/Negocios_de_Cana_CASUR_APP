@@ -77,7 +77,7 @@ cámara, galería, permiso/coordenadas GPS reales, orientación vertical/horizon
 
 ## Fase 4 — Maestro de Suertes / Producción (estado)
 Verificado:
-- [x] Producción real integrada en `modules/produccion/` (monolito VF54.6), iframe aislado.
+- [x] Producción real integrada en `modules/produccion/` (monolito VF54.7), iframe aislado.
 - [x] SW propio y manifest neutralizados; `sw.js`/`manifest.webmanifest` eliminados. Un solo SW raíz.
 - [x] Datos intactos: `CASUR_REMOTE_CRONO` (1053), `CASUR_REMOTE_HISTORICO` (11598), `CASUR_RELEASE`.
 - [x] Sucuya (Cod 16) excluida en el dataset publicado (regla permanente).

@@ -565,6 +565,243 @@
     moduleToast._t = setTimeout(() => { el.classList.remove("show"); setTimeout(() => (el.hidden = true), 220); }, 3200);
   }
 
+  /* GEO-1 · Integración quirúrgica con el motor geográfico compartido.
+     La identidad territorial siempre nace del Maestro (`lotCompact`):
+     lot[0] = lotId / CodSuerte y lot[8] = código de finca. El Shape no se
+     usa para reconstruir fincas ni para aportar datos agronómicos. */
+  let geoFichaObserver = null;
+  let geoMapController = null;
+  let geoReturnFocus = null;
+  let geoRequest = 0;
+
+  function geoLotId(value) {
+    return text(value).toUpperCase();
+  }
+
+  function activeHistoricalEntity() {
+    /* currentEntity es el estado canónico del script clásico de index.html.
+       El fallback conserva compatibilidad si en el futuro se expone solo
+       getEntity() y evita inferir identidad desde textos visibles. */
+    try {
+      if (typeof currentEntity !== "undefined" && currentEntity) return currentEntity;
+    } catch (error) {}
+    const code = text($("producerSelect")?.value);
+    try {
+      return code && typeof window.getEntity === "function" ? window.getEntity(code) : null;
+    } catch (error) { return null; }
+  }
+
+  function geoLotIdsForEntity(entity, lots = historyLots()) {
+    if (!entity) return [];
+    if (entity.entityType === "lote") {
+      const lotId = geoLotId(entity.codLote || entity.displayCode || text(entity.code).replace(/^LOTE::/i, ""));
+      return lotId ? [lotId] : [];
+    }
+    const farmCode = text(entity.code);
+    return [...new Set((lots || [])
+      .filter((lot) => Array.isArray(lot) && text(lot[8]) === farmCode)
+      .map((lot) => geoLotId(lot[0])).filter(Boolean))];
+  }
+
+  function geoOfficialArea(entity) {
+    if (!entity || entity.entityType !== "lote") return null;
+    const latest = finite(entity.latest?.area);
+    if (latest !== null) return latest;
+    const lotId = geoLotIdsForEntity(entity)[0];
+    const lot = historyLots().find((row) => geoLotId(row?.[0]) === lotId);
+    return finite(lot?.[12]?.[0]?.[3]);
+  }
+
+  function ensureGeoDialog() {
+    if ($("casurGeoLayer")) return $("casurGeoLayer");
+    document.body.insertAdjacentHTML("beforeend", `
+      <div class="casur-geo-layer no-print export-excluded" id="casurGeoLayer" hidden>
+        <button class="casur-geo-backdrop" type="button" tabindex="-1" data-geo-close aria-label="Cerrar mapa"></button>
+        <section class="casur-geo-dialog" role="dialog" aria-modal="true" aria-labelledby="casurGeoTitle" aria-describedby="casurGeoStatus">
+          <header class="casur-geo-head">
+            <div><span class="casur-geo-eyebrow">Referencia geográfica CASUR</span><h2 id="casurGeoTitle" tabindex="-1">Mapa agrícola</h2><p id="casurGeoSummary"></p></div>
+            <button class="casur-geo-close" type="button" data-geo-close aria-label="Cerrar mapa">Cerrar</button>
+          </header>
+          <div class="casur-geo-body" id="casurGeoBody" aria-busy="false">
+            <div class="casur-geo-loading" id="casurGeoLoading" role="status">Preparando referencia geográfica…</div>
+            <div class="casur-geo-empty" id="casurGeoEmpty" hidden></div>
+            <div class="casur-geo-map" id="casurGeoMap" hidden aria-label="Mapa de polígonos agrícolas CASUR"></div>
+          </div>
+          <footer class="casur-geo-foot">
+            <p id="casurGeoStatus" role="status" aria-live="polite"></p>
+            <div class="casur-geo-foot-actions"><button type="button" class="casur-geo-control" id="casurGeoFit" disabled>Centrar polígono</button><button type="button" class="casur-geo-control is-primary" data-geo-close>Volver a la ficha</button></div>
+          </footer>
+        </section>
+      </div>`);
+    const layer = $("casurGeoLayer");
+    layer.querySelectorAll("[data-geo-close]").forEach((button) => button.addEventListener("click", closeCasurGeoDialog));
+    $("casurGeoFit").addEventListener("click", () => {
+      try { geoMapController?.fitToData?.(); } catch (error) {}
+    });
+    layer.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") { event.preventDefault(); closeCasurGeoDialog(); return; }
+      if (event.key !== "Tab") return;
+      const focusable = [...layer.querySelectorAll("button:not([disabled]),[href],input,select,textarea,[tabindex]:not([tabindex='-1'])")]
+        .filter((node) => !node.hidden && node.offsetParent !== null);
+      if (!focusable.length) return;
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (!focusable.includes(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      }
+      else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
+    return layer;
+  }
+
+  function destroyGeoMap() {
+    const controller = geoMapController;
+    geoMapController = null;
+    if (controller && typeof controller.destroy === "function") {
+      try { controller.destroy(); } catch (error) {}
+    }
+    const map = $("casurGeoMap");
+    if (map) map.replaceChildren();
+  }
+
+  function closeCasurGeoDialog() {
+    const layer = $("casurGeoLayer");
+    if (!layer || layer.hidden) return;
+    geoRequest += 1;
+    destroyGeoMap();
+    layer.hidden = true;
+    document.body.classList.remove("casur-geo-open");
+    const target = geoReturnFocus;
+    geoReturnFocus = null;
+    if (target && target.isConnected && typeof target.focus === "function") target.focus({ preventScroll: true });
+  }
+
+  function resetGeoDialog(entity, total) {
+    const isLot = entity?.entityType === "lote";
+    const lotId = geoLotIdsForEntity(entity)[0] || "";
+    $("casurGeoTitle").textContent = isLot ? `Suerte ${lotId}` : `Mapa de finca · ${text(entity?.name) || text(entity?.code)}`;
+    $("casurGeoSummary").textContent = isLot
+      ? "Polígono oficial de referencia; los datos agronómicos provienen de la App."
+      : `${total} suertes identificadas desde el Maestro de Suertes.`;
+    $("casurGeoStatus").textContent = "Cargando geometría publicada…";
+    $("casurGeoLoading").hidden = false;
+    $("casurGeoEmpty").hidden = true;
+    $("casurGeoEmpty").textContent = "";
+    $("casurGeoMap").hidden = true;
+    $("casurGeoFit").disabled = true;
+    $("casurGeoBody").setAttribute("aria-busy", "true");
+  }
+
+  function showGeoEmpty(message, status = message) {
+    $("casurGeoLoading").hidden = true;
+    $("casurGeoMap").hidden = true;
+    $("casurGeoEmpty").hidden = false;
+    $("casurGeoEmpty").textContent = message;
+    $("casurGeoStatus").textContent = status;
+    $("casurGeoBody").setAttribute("aria-busy", "false");
+  }
+
+  async function openCasurGeoDialog(entity, trigger) {
+    if (!entity) return;
+    const request = ++geoRequest;
+    const layer = ensureGeoDialog();
+    destroyGeoMap();
+    geoReturnFocus = trigger || document.activeElement;
+    const lotIds = geoLotIdsForEntity(entity);
+    resetGeoDialog(entity, lotIds.length);
+    layer.hidden = false;
+    document.body.classList.add("casur-geo-open");
+    requestAnimationFrame(() => $("casurGeoTitle")?.focus({ preventScroll: true }));
+
+    try {
+      const geo = window.CASUR_GEO_DATA;
+      const createMap = window.createCasurMap;
+      if (!geo || typeof geo.getLotGeometry !== "function" || typeof geo.getLotGeometries !== "function" || typeof createMap !== "function") {
+        throw new Error("Motor geográfico no disponible");
+      }
+      if (!lotIds.length) {
+        showGeoEmpty("No hay suertes identificadas para esta finca en el Maestro de Suertes.");
+        return;
+      }
+
+      const isLot = entity.entityType === "lote";
+      const features = isLot
+        ? [await geo.getLotGeometry(lotIds[0])].filter(Boolean)
+        : await geo.getLotGeometries(lotIds);
+      if (request !== geoRequest || layer.hidden) return;
+      if (!features.length) {
+        showGeoEmpty(isLot
+          ? "Polígono no disponible en la referencia geográfica actual."
+          : "Ninguna suerte de esta finca tiene polígono en la referencia geográfica actual.",
+        isLot ? "0 de 1 suertes con polígono" : `0 de ${lotIds.length} suertes con polígono`);
+        return;
+      }
+
+      const mapNode = $("casurGeoMap");
+      mapNode.hidden = false;
+      $("casurGeoLoading").hidden = true;
+      geoMapController = await Promise.resolve(createMap(mapNode, {
+        initialBase: "satellite",
+        layersCollapsed: true,
+      }));
+      if (!geoMapController || request !== geoRequest || layer.hidden) {
+        destroyGeoMap();
+        return;
+      }
+      if (isLot) await Promise.resolve(geoMapController.setLot(features[0]));
+      else await Promise.resolve(geoMapController.setLots(features));
+      await Promise.resolve(geoMapController.fitToData());
+      const available = features.length;
+      if (isLot) {
+        const fragments = Number(features[0]?.properties?.fragmentCount) || 0;
+        const area = geoOfficialArea(entity);
+        $("casurGeoSummary").textContent = `Área oficial App: ${area === null ? "N/D" : fmt(area, " ha")} · ${nf0.format(fragments)} ${fragments === 1 ? "fragmento geográfico" : "fragmentos geográficos"}.`;
+      }
+      $("casurGeoStatus").textContent = `${available} de ${lotIds.length} suertes con polígono`;
+      $("casurGeoFit").disabled = false;
+      $("casurGeoBody").setAttribute("aria-busy", "false");
+    } catch (error) {
+      if (request !== geoRequest || layer.hidden) return;
+      console.warn("[CASUR GEO] No se pudo abrir el mapa:", error);
+      showGeoEmpty("No fue posible cargar la referencia geográfica. Intente nuevamente.", "Mapa temporalmente no disponible");
+    }
+  }
+
+  function enhanceHistoricalGeoView() {
+    const content = $("fichaContent");
+    const actions = content?.querySelector(".ficha-actions");
+    if (!actions || actions.querySelector("[data-casur-geo-action]")) return;
+    const entity = activeHistoricalEntity();
+    if (!entity) return;
+    const isLot = entity.entityType === "lote";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "casur-geo-action no-print";
+    button.dataset.casurGeoAction = isLot ? "lot" : "farm";
+    button.innerHTML = `<span aria-hidden="true">⌖</span><b>${isLot ? "Ver polígono" : "Mapa de finca"}</b>`;
+    button.setAttribute("aria-label", isLot
+      ? `Ver polígono de la suerte ${geoLotIdsForEntity(entity)[0] || "seleccionada"}`
+      : `Abrir mapa de la finca ${text(entity.name || entity.code)}`);
+    button.addEventListener("click", () => openCasurGeoDialog(entity, button));
+    actions.appendChild(button);
+  }
+
+  function installHistoricalGeoObserver() {
+    const content = $("fichaContent");
+    if (!content || geoFichaObserver) return;
+    geoFichaObserver = new MutationObserver(enhanceHistoricalGeoView);
+    geoFichaObserver.observe(content, { childList: true, subtree: true });
+    enhanceHistoricalGeoView();
+  }
+
+  window.CASUR_PRODUCTION_GEO = Object.freeze({
+    lotIdsForEntity: geoLotIdsForEntity,
+    enhance: enhanceHistoricalGeoView,
+    open: openCasurGeoDialog,
+    close: closeCasurGeoDialog,
+  });
+
   /* [Fase 4.4.3] Sincronización automática real de datos publicados.
      Desde el Hotfix 4.4.3 el propio Service Worker raíz resuelve una
      GENERACIÓN COMPLETA y coherente de los 6 archivos (ver sw.js:
@@ -666,7 +903,7 @@
   });
 
   window.addEventListener("load", () => {
-    releaseStrip(); installCronoObserver(); initAdmin(); ensureLockDialog();
+    releaseStrip(); installCronoObserver(); installHistoricalGeoObserver(); initAdmin(); ensureLockDialog(); ensureGeoDialog();
     const ACTIVE_KEY = "casur_produccion_active_version";
     const current = (window.CASUR_RELEASE && window.CASUR_RELEASE.version) || null;
     const expected = sessionStorage.getItem("casurDataSyncExpected");

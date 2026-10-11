@@ -28,7 +28,7 @@ import * as store from '../storage/storage.js';
    reemplaza el contenido de esa carpeta, no esta tabla. */
 const BASE_MODULES = [
   { moduleId: 'produccion', name: 'Maestro de Suertes', desc: 'Cronológico e Histórico de suertes CASUR',
-    version: 'VF54.6', route: 'modules/produccion/index.html', icon: 'produccion',
+    version: 'VF54.7', route: 'modules/produccion/index.html', icon: 'produccion',
     accent: 'var(--accent-produccion)', enabled: true, visible: true, order: 1,
     requiresOnline: false, usesSupabase: false,
     storageNamespaces: ['cache:casur-suertes-vf54-*'], privacy: 'public' },

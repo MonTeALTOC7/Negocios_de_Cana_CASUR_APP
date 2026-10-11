@@ -12,12 +12,26 @@ function captured(source, pattern, label) {
   return value;
 }
 
-test("la versión 1.1.0 coincide en la fuente canónica, el SW y el fallback HTML", () => {
+test("la versión 1.2.0 coincide en la fuente canónica, el SW y el fallback HTML", () => {
   const canonical = captured(versions, /export const APP_VERSION = ['"]([^'"]+)['"];/, "APP_VERSION canónica");
   const sw = captured(serviceWorker, /const APP_VERSION = ['"]([^'"]+)['"];/, "APP_VERSION del Service Worker");
   const fallback = captured(index, /id="appVersion">v([^<]+)</, "versión fallback de index.html");
-  assert.equal(canonical, "1.1.0");
-  assert.deepEqual([canonical, sw, fallback], ["1.1.0", "1.1.0", "1.1.0"]);
+  assert.equal(canonical, "1.2.0");
+  assert.deepEqual([canonical, sw, fallback], ["1.2.0", "1.2.0", "1.2.0"]);
+});
+
+test("la geometría y Leaflet local forman parte del offline automático", () => {
+  const assets = captured(serviceWorker, /const SHELL_ASSETS = \[([\s\S]*?)\n\];/, "SHELL_ASSETS");
+  const geoAssets = captured(serviceWorker, /const GEO_ASSETS = \[([\s\S]*?)\n\];/, "GEO_ASSETS");
+  for (const asset of ["geo-data.js", "geo-map.js", "geo.css", "leaflet.js", "leaflet.css"]) {
+    assert.match(assets, new RegExp(asset.replace(".", "\\.")));
+  }
+  for (const asset of ["manifest.json", "zona-1-sur.geojson", "zona-2-centro.geojson", "zona-3-norte.geojson", "zona-5-productores.geojson"]) {
+    assert.match(geoAssets, new RegExp(asset.replace(".", "\\.")));
+  }
+  assert.match(serviceWorker, /const GEO_CACHE\s+= MASTER_PREFIX \+ 'geo_v'/);
+  assert.match(serviceWorker, /event\.data\.type === 'WARM_GEO'/);
+  assert.match(serviceWorker, /url\.pathname\.includes\('\/shared\/geo\/data\/'\)/);
 });
 
 test("el checkpoint de navegación forma parte del precache del shell", () => {

@@ -9,10 +9,11 @@
    neutralizados dentro de la Maestra: aquí no se registran.
    ============================================================ */
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;
+const GEO_CACHE   = MASTER_PREFIX + 'geo_v' + APP_VERSION;
 /* [Hotfix 4.4.2] Caché "Last Known Good" de datos de Producción. A propósito
    SIN sufijo de APP_VERSION: debe sobrevivir a publicaciones de código y a
    cierres/reaperturas de la PWA (Cache Storage es persistente en disco). */
@@ -20,7 +21,16 @@ const PROD_LKG_CACHE = MASTER_PREFIX + 'prod_lkg';
 const PROD_DATA_RE = /\/modules\/produccion\/data\/(version|cronologico|historico)\.(json|js)$/;
 
 /* Cachés que este SW puede administrar/borrar. Nunca fuera de aquí. */
-const OWNED = new Set([SHELL_CACHE, DATA_CACHE, PROD_LKG_CACHE]);
+const OWNED = new Set([SHELL_CACHE, DATA_CACHE, GEO_CACHE, PROD_LKG_CACHE]);
+
+/* Geometría operativa publicada: dataset independiente de datos SIAGRI/LKG. */
+const GEO_ASSETS = [
+  './shared/geo/data/manifest.json',
+  './shared/geo/data/zona-1-sur.geojson',
+  './shared/geo/data/zona-2-centro.geojson',
+  './shared/geo/data/zona-3-norte.geojson',
+  './shared/geo/data/zona-5-productores.geojson',
+];
 
 /* App-shell: lo mínimo para arrancar offline. Los módulos se
    cachean bajo demanda (no se precachea el monolito de Producción). */
@@ -40,6 +50,16 @@ const SHELL_ASSETS = [
   './shared/components/icons.js',
   './shared/styles/tokens.css',
   './shared/styles/app.css',
+  './shared/geo/geo-data.js',
+  './shared/geo/geo-map.js',
+  './shared/geo/geo.css',
+  './shared/vendor/leaflet/leaflet.js',
+  './shared/vendor/leaflet/leaflet.css',
+  './shared/vendor/leaflet/images/layers.png',
+  './shared/vendor/leaflet/images/layers-2x.png',
+  './shared/vendor/leaflet/images/marker-icon.png',
+  './shared/vendor/leaflet/images/marker-icon-2x.png',
+  './shared/vendor/leaflet/images/marker-shadow.png',
   './shared/assets/icons/icon-192.png',
   './shared/assets/icons/icon-512.png',
   './shared/assets/icons/emblem-192.png',
@@ -52,9 +72,12 @@ self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
     // addAll falla si un archivo falta; usamos add individual tolerante.
-    await Promise.all(SHELL_ASSETS.map((url) =>
-      cache.add(url).catch((e) => console.warn('[SW] no cacheado:', url, e))
-    ));
+    await Promise.all([
+      ...SHELL_ASSETS.map((url) =>
+        cache.add(url).catch((e) => console.warn('[SW] no cacheado:', url, e))
+      ),
+      warmGeoCache(),
+    ]);
     /* [Hotfix 4.4.4] Activar automáticamente este SW nuevo, incluso en
        dispositivos todavía controlados por un app.js de una fase anterior
        (p.ej. 4.4.2) que no envía el mensaje SKIP_WAITING. clients.claim()
@@ -81,6 +104,7 @@ self.addEventListener('activate', (event) => {
 /* ---------------- Mensajes (actualización controlada) ---------------- */
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data && event.data.type === 'WARM_GEO') event.waitUntil(warmGeoCache());
 });
 
 /* ---------------- Fetch (estrategias por patrón) ---------------- */
@@ -114,6 +138,11 @@ self.addEventListener('fetch', (event) => {
   //    no depende de que el JS de Producción llegue a ejecutarse.
   if (PROD_DATA_RE.test(url.pathname)) {
     event.respondWith(produccionDataGate(event, req, url));
+    return;
+  }
+  // 3b) Geometría web mínima: caché propia, nunca mezclada con LKG ni datos agronómicos.
+  if (url.pathname.includes('/shared/geo/data/')) {
+    event.respondWith(networkFirst(req, GEO_CACHE));
     return;
   }
   //    Resto de datasets oficiales (incluye /master/data/,
@@ -177,6 +206,15 @@ async function networkFirst(req, cacheName, fallbackUrl) {
     }
     return new Response('Sin conexión y sin copia en caché.', { status: 503, statusText: 'Offline' });
   }
+}
+
+async function warmGeoCache() {
+  const cache = await caches.open(GEO_CACHE);
+  await Promise.all(GEO_ASSETS.map(async (url) => {
+    if (await cache.match(url)) return;
+    try { await cache.add(url); }
+    catch (error) { console.warn('[SW] geometría no cacheada:', url, error); }
+  }));
 }
 
 async function cacheFirst(req, cacheName) {

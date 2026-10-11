@@ -72,7 +72,7 @@ export function createCasurMap(container, options = {}) {
     if (pane?.style) pane.style.zIndex = String(zIndex);
   });
 
-  const tileOptions = { maxZoom: 22, maxNativeZoom: 19 };
+  const tileOptions = { maxZoom: 22, maxNativeZoom: 19, crossOrigin: "anonymous" };
   const osm = L.tileLayer(OSM_URL, { ...tileOptions, attribution: "&copy; OpenStreetMap contributors" });
   const satellite = L.tileLayer(ESRI_IMAGERY_URL, { ...tileOptions, attribution: "Tiles &copy; Esri" });
   const hybridImagery = L.tileLayer(ESRI_IMAGERY_URL, { ...tileOptions, attribution: "Tiles &copy; Esri" });
@@ -80,8 +80,12 @@ export function createCasurMap(container, options = {}) {
   const hybrid = L.layerGroup([hybridImagery, hybridTransport]);
   const blank = L.layerGroup();
   const bases = { hybrid, satellite, osm, blank };
+  const baseLabels = { hybrid: "Híbrido", satellite: "Satélite", osm: "Mapa claro", blank: "Sin fondo" };
   const namedBases = { "Híbrido": hybrid, "Satélite": satellite, "Mapa claro": osm, "Sin mapa base": blank };
-  L.control?.layers?.(namedBases, {}, { collapsed: options.layersCollapsed !== false })?.addTo?.(map);
+  L.control?.layers?.(namedBases, {}, {
+    collapsed: options.layersCollapsed !== false,
+    position: options.layersPosition || "topleft",
+  })?.addTo?.(map);
 
   let destroyed = false;
   let currentBase = null;
@@ -95,6 +99,24 @@ export function createCasurMap(container, options = {}) {
   const tileErrorCounts = { hybrid: 0, satellite: 0, osm: 0 };
   let resizeObserver = null;
   const layersByLot = new Map();
+  let baseIndicatorNode = null;
+  let baseIndicatorControl = null;
+
+  if (typeof L.control === "function") {
+    baseIndicatorControl = L.control({ position: options.baseIndicatorPosition || "topleft" });
+    baseIndicatorControl.onAdd = () => {
+      const node = L.DomUtil?.create?.("div", "casur-geo-base-indicator")
+        || (typeof document !== "undefined" ? document.createElement("div") : null);
+      if (!node) return null;
+      node.classList?.add?.("casur-geo-base-indicator");
+      node.setAttribute?.("role", "status");
+      node.setAttribute?.("aria-live", "polite");
+      node.setAttribute?.("aria-label", "Mapa base activo");
+      baseIndicatorNode = node;
+      return node;
+    };
+    baseIndicatorControl.addTo?.(map);
+  }
 
   const offlineNotice = typeof document !== "undefined" ? document.createElement("div") : null;
   if (offlineNotice) {
@@ -115,6 +137,12 @@ export function createCasurMap(container, options = {}) {
     if (offlineNotice) offlineNotice.hidden = !isOffline;
   }
 
+  function updateBaseIndicator() {
+    const label = baseLabels[currentBase] || baseLabels.blank;
+    if (baseIndicatorNode) baseIndicatorNode.textContent = `Base · ${label}`;
+    options.onBaseChange?.({ key: currentBase || "blank", label });
+  }
+
   function activateBase(key, remember = true) {
     assertActive();
     const nextKey = Object.prototype.hasOwnProperty.call(bases, key) ? key : "blank";
@@ -123,6 +151,7 @@ export function createCasurMap(container, options = {}) {
     currentBase = nextKey;
     if (remember && nextKey !== "blank") preferredOnlineBase = nextKey;
     updateOfflineUi(nextKey === "blank");
+    updateBaseIndicator();
   }
 
   function onOffline() { activateBase("blank", false); }
@@ -147,6 +176,7 @@ export function createCasurMap(container, options = {}) {
       tileErrorCounts[next] = 0;
     }
     updateOfflineUi(next === "blank");
+    updateBaseIndicator();
   }
 
   const tileErrorHandlers = [
@@ -284,6 +314,10 @@ export function createCasurMap(container, options = {}) {
     return selectedLotId;
   }
 
+  function getActiveBase() {
+    return currentBase || "blank";
+  }
+
   function setLots(features, requestedSelectedLotId = "") {
     assertActive();
     const seen = new Set();
@@ -324,6 +358,9 @@ export function createCasurMap(container, options = {}) {
     resizeObserver = null;
     tileErrorHandlers.forEach(([layer, handler]) => layer.off?.("tileerror", handler));
     map.off?.("baselayerchange", onBaseLayerChange);
+    baseIndicatorControl?.remove?.();
+    baseIndicatorControl = null;
+    baseIndicatorNode = null;
     map.remove?.();
     offlineNotice?.remove?.();
     element.classList?.remove("casur-geo-map", "casur-geo-map--offline");
@@ -342,7 +379,7 @@ export function createCasurMap(container, options = {}) {
     resizeObserver.observe(element);
   }
 
-  const api = Object.freeze({ selectLot, getSelectedLotId, fitToLot, fitToData, setLot, setLots, destroy });
+  const api = Object.freeze({ selectLot, getSelectedLotId, getActiveBase, fitToLot, fitToData, setLot, setLots, destroy });
   return api;
 }
 

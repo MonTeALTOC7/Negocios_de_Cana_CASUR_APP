@@ -9,20 +9,27 @@ const testRoot = path.dirname(fileURLToPath(import.meta.url));
 const read = (relative) => fs.readFileSync(path.join(testRoot, relative), "utf8");
 const index = read("../index.html");
 const enhancements = read("../js/casur-enhancements.js");
+const historicalEngineSource = read("../js/historical-engine.js");
 const styles = read("../css/casur-upgrade.css");
 const historico = JSON.parse(read("../data/historico.json"));
 const cronoMatch = index.match(/window\.CRONO_DATA = window\.CASUR_REMOTE_CRONO\|\|(\{[^\r\n]+\});/);
 const crono = JSON.parse(cronoMatch?.[1] || "{}");
 
+const historicalEngineContext = vm.createContext({});
+new vm.Script(historicalEngineSource, { filename: "historical-engine.js" }).runInContext(historicalEngineContext);
+const historicalEngine = historicalEngineContext.CASUR_HISTORICAL_ENGINE;
+
 function productionGeoApi() {
   const window = {
-    CASUR_HISTORICAL_ENGINE: {},
+    CASUR_HISTORICAL_ENGINE: historicalEngine,
+    APP_DATA: historico,
+    CRONO_DATA: crono,
     addEventListener() {},
   };
   window.window = window;
   const context = vm.createContext({
     window,
-    document: { getElementById() { return null; } },
+    document: { baseURI: "http://127.0.0.1:8765/modules/produccion/", getElementById() { return null; } },
     console,
     setTimeout,
     clearTimeout,
@@ -47,7 +54,10 @@ test("Producción carga Leaflet y el motor GEO compartido desde rutas locales", 
     "../../../shared/geo/geo.css",
     "../../../shared/geo/geo-data.js",
     "../../../shared/geo/geo-map.js",
+    "../../riego/assets/html2canvas.esm-BfxBtG_O.js",
   ].forEach((relative) => assert.ok(fs.existsSync(path.resolve(testRoot, relative)), `falta ${relative}`));
+  assert.match(enhancements, /html2canvas\.esm-BfxBtG_O\.js/);
+  assert.doesNotMatch(enhancements, /https?:\/\/[^"']*html2canvas/i);
 });
 
 test("las acciones GEO se agregan sin envolver ni reemplazar renderEntity", () => {
@@ -56,7 +66,7 @@ test("las acciones GEO se agregan sin envolver ni reemplazar renderEntity", () =
   assert.match(enhancements, /dataset\.casurGeoAction/);
   assert.match(enhancements, /querySelector\("\.casur-visual-actions"\)/);
   assert.match(enhancements, /className = "casur-visual-action map no-print"/);
-  assert.doesNotMatch(enhancements, /window\.renderEntity\s*=/);
+  assert.doesNotMatch(enhancements, /window\.renderEntity\s*=(?!=)/);
   assert.doesNotMatch(enhancements, /HISTORICAL_PERIOD_STATE|HISTORICAL_DRILLDOWN_STATE/);
   assert.match(index, /function renderEntity\(code,options=\{\}\)/);
 });
@@ -86,8 +96,8 @@ test("la suerte 75907 conserva identidad canónica y área de la App", () => {
   assert.equal(feature?.properties?.fragmentCount, 2);
   assert.equal(feature?.properties?.anchor?.length, 2);
   assert.match(enhancements, /geoRecordForLot/);
-  assert.match(enhancements, /"TCH 25\/26"/);
-  assert.match(enhancements, /"Est\. 26\/27"/);
+  assert.match(enhancements, /\["TCH 25\/26"/);
+  assert.match(enhancements, /\["Est\. 26\/27"/);
   assert.match(enhancements, /<b>Coordenada de referencia<\/b>/);
   assert.doesNotMatch(enhancements, /<b>Anchor<\/b>/);
 });
@@ -115,10 +125,12 @@ test("el modal es accesible, responsive y restaura el foco", () => {
   assert.match(enhancements, /fitToData/);
   assert.match(enhancements, /fitToLot/);
   assert.match(enhancements, /id="casurGeoFitFarm" disabled>Finca completa<\/button>/);
-  assert.match(enhancements, /id="casurGeoFitLot" disabled>Centrar suerte<\/button>/);
+  assert.match(enhancements, /id="casurGeoFitLot" disabled>Centrar seleccionada<\/button>/);
+  assert.match(enhancements, /id="casurGeoPngFarm" disabled>PNG finca<\/button>/);
+  assert.match(enhancements, /id="casurGeoPngLot" disabled>PNG suerte<\/button>/);
   assert.match(enhancements, /\$\("casurGeoFitFarm"\)\.addEventListener\("click"[\s\S]+?fitToData/);
-  assert.match(enhancements, /\$\("casurGeoFitLot"\)\.addEventListener\("click"[\s\S]+?fitToLot/);
-  assert.match(enhancements, /\$\("casurGeoFitLot"\)\.disabled = !selected/);
+  assert.match(enhancements, /\$\("casurGeoFitLot"\)\.addEventListener\("click"[\s\S]+?selectLot\?\.\(origin, \{ fit: true \}\)[\s\S]+?fitToLot/);
+  assert.match(enhancements, /fitLot\.textContent = origin \? `Volver a \$\{origin\}` : "Centrar seleccionada"/);
   assert.doesNotMatch(enhancements, /id="casurGeoFit" disabled/);
   assert.match(enhancements, /target="_blank" rel="noopener noreferrer"/);
   assert.match(enhancements, /data-geo-copy/);
@@ -127,8 +139,111 @@ test("el modal es accesible, responsive y restaura el foco", () => {
   assert.match(styles, /height:100dvh/);
   assert.match(styles, /min-height:44px/);
   assert.match(styles, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(styles, /\.casur-geo-export-sheet[^}]*width:1600px/);
   assert.match(styles, /\.casur-geo-dialog>\.casur-geo-head[^}]*background:[^;]+!important/);
   assert.match(styles, /\.casur-geo-layer,.casur-geo-action\{display:none!important\}/);
+});
+
+test("Cronológico conserva fuente operativa y sustituye Estado por Destino", () => {
+  const api = productionGeoApi();
+  const producer = crono.producers.find((item) => String(item.code) === "993");
+  const context = {
+    source: "cronologico",
+    entityType: "lote",
+    farmCode: "993",
+    name: producer.name,
+    currentRows: producer.details,
+  };
+  const markup = api.chronologicalCardMarkup(context, "99325", false);
+  ["Área", "Edad", "Corte", "TCH 25/26", "Est. 26/27", "Variedad", "Riego", "N.º riegos", "Destino"]
+    .forEach((label) => assert.match(markup, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));
+  assert.match(markup, /Semilla/);
+  assert.doesNotMatch(markup, />Estado</);
+  assert.doesNotMatch(markup, /data-geo-view-detail/, "la lámina exportada no contiene acciones");
+});
+
+test("Histórico usa todas las zafras del motor y nunca currentRows cronológico", () => {
+  const api = productionGeoApi();
+  const poisonedContext = {
+    source: "historico",
+    farmCode: "759",
+    name: "Jesús María",
+    currentRows: [{ codLote: "75907", tch: 9999, katm: 9999, edadExcel: 9999, corte: "inventado", destino: "inventado" }],
+  };
+  const normalized = historicalEngine.normalizeHistoricalRows(historico.lotCompact);
+  const rows = historicalEngine.filterHistoricalRows(normalized, { lotId: "75907" });
+  const seasons = historicalEngine.groupHistoricalBySeason(rows);
+  const expectedLatest = historicalEngine.aggregateHistoricalRows(
+    historicalEngine.filterHistoricalRows(rows, null, [seasons.at(-1).zafra]),
+  );
+  const expectedAll = historicalEngine.aggregateHistoricalRows(rows);
+  const expectedKpis = historicalEngine.buildHistoricalAgronomicKpis(rows, seasons.map((season) => season.zafra));
+  const model = api.historicalCardModel(poisonedContext, "75907", historico.lotCompact);
+
+  assert.equal(model.latestSeason, seasons.at(-1).zafra);
+  assert.equal(model.latest.area, expectedLatest.area);
+  assert.equal(model.latest.tch, expectedLatest.tch);
+  assert.equal(model.allHistory.tch, expectedAll.tch);
+  assert.equal(model.allHistory.katm, expectedAll.katm);
+  assert.equal(model.allHistory.edad, expectedAll.edad);
+  assert.equal(model.historicalKpis.seasonCount, expectedKpis.seasonCount);
+  assert.equal(model.historicalKpis.tchChange, expectedKpis.tchChange);
+  assert.equal(model.historicalKpis.tchCv, expectedKpis.tchCv);
+  assert.deepEqual(
+    [model.latestSeason, model.latest.area, model.latest.tch, model.allHistory.tch, model.allHistory.katm, model.allHistory.edad, model.historicalKpis.seasonCount, model.historicalKpis.tchChange, model.historicalKpis.tchCv],
+    [2526, 19.78, 56.24, 72.05, 110.66, 11.74, 10, -7.17, 27.96],
+  );
+
+  const markup = api.historicalCardMarkup(poisonedContext, "75907", false);
+  ["Última zafra", "Área últ. zafra", "TCH últ. zafra", "TCH hist. pond.", "KATM hist. pond.", "Edad hist. pond.", "Zafras", "Cambio TCH", "CV TCH"]
+    .forEach((label) => assert.match(markup, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));
+  ["Corte", "Destino", "Est. 26/27", "N.º riegos", "9999", "inventado"]
+    .forEach((label) => assert.doesNotMatch(markup, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i")));
+});
+
+test("resumen histórico de finca 759 proviene del mismo motor común", () => {
+  const api = productionGeoApi();
+  const context = { source: "historico", farmCode: "759", name: "Jesús María", currentRows: [] };
+  const model = api.historicalCardModel(context, "", historico.lotCompact);
+  assert.deepEqual(
+    [model.latestSeason, model.latest.area, model.latest.ton, model.latest.tch, model.allHistory.tch, model.allHistory.katm, model.allHistory.edad, model.historicalKpis.seasonCount, model.historicalKpis.lotCount, model.historicalKpis.tchChange, model.historicalKpis.tchCv],
+    [2526, 130.88, 8013.43, 61.23, 82.21, 107.44, 11.73, 10, 18, -11.49, 14.92],
+  );
+  const markup = api.historicalCardMarkup(context, "", false);
+  assert.match(markup, /Finca 759 · Histórico/);
+  assert.match(markup, /Área última zafra/);
+  assert.match(markup, /Ton última zafra/);
+  assert.match(markup, /Suertes históricas/);
+  assert.doesNotMatch(markup, /Seleccione una suerte/);
+});
+
+test("origen, navegación canónica y exportación mantienen la suerte explorada", () => {
+  const api = productionGeoApi();
+  const lot = historico.lotCompact.find((row) => String(row[0]) === "99325");
+  const context = api.historicalContext({ entityType: "lote", code: "LOTE::99325", codLote: "99325", name: lot[9] });
+  assert.equal(context.originLotId, "99325");
+  assert.equal(context.selectedLotId, "99325");
+  assert.match(enhancements, /geoActiveContext\.selectedLotId = selected/);
+  assert.match(enhancements, /window\.renderEntity\(`LOTE::\$\{selected\}`,[\s\S]*preserveDrilldown: true/);
+  assert.match(enhancements, /window\.selectCronoSuerteSuggestion\(farmCode, record\.suerte\)/);
+  assert.match(enhancements, /closeCasurGeoDialog\(\);[\s\S]*requestAnimationFrame/);
+  assert.equal(api.exportFilename({ source: "cronologico", farmCode: "993", name: "Pansaco" }, "lot", "99325"), "CASUR_Mapa_Cronologico_99325.png");
+  assert.equal(api.exportFilename({ source: "historico", farmCode: "759", name: "Jesús María" }, "lot", "75907"), "CASUR_Mapa_Historico_75907.png");
+  assert.equal(api.exportFilename({ source: "cronologico", farmCode: "993", name: "Pansaco" }, "farm", ""), "CASUR_Mapa_Finca_993_Pansaco.png");
+});
+
+test("la exportación GEO crea un mapa temporal sin volver a cargar GeoJSON", () => {
+  assert.match(enhancements, /createMap\(mapNode,[\s\S]*controller\.setLots\(geoFeatures/);
+  assert.match(enhancements, /useCORS: true/);
+  assert.match(enhancements, /allowTaint: false/);
+  assert.match(enhancements, /canvas\.toDataURL\("image\/png"\)/);
+  assert.match(enhancements, /geoInlineExportTiles/);
+  assert.match(enhancements, /geoRasterizeExportMap/);
+  assert.match(enhancements, /getBoundingClientRect\(\)/);
+  assert.match(enhancements, /fetch\(source, \{ mode: "cors", cache: "force-cache" \}\)/);
+  assert.match(enhancements, /El mapa base falló durante la captura/);
+  assert.match(enhancements, /geoExportAttribution/);
+  assert.doesNotMatch(enhancements, /getLotGeometr(?:y|ies)\([^)]*export/i);
 });
 
 test("finca y suerte toleran geometrías faltantes sin aproximar otra suerte", () => {

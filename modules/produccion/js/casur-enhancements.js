@@ -576,6 +576,8 @@
   let geoRequest = 0;
   let geoActiveContext = null;
   let geoFeatures = [];
+  let geoExportBusy = false;
+  let geoHtml2CanvasPromise = null;
 
   function geoLotId(value) {
     return text(value).toUpperCase();
@@ -651,6 +653,7 @@
       farmCode,
       name: text(producer?.name || entity.name || entity.label || farmCode),
       selectedLotId,
+      originLotId: selectedLotId,
       currentRows,
       currentIds,
       lotIds: [...new Set([...(currentIds.length ? currentIds : fallbackIds), selectedLotId].filter(Boolean))],
@@ -673,6 +676,7 @@
       farmCode: text(producer.code),
       name: text(producer.name || producer.code),
       selectedLotId,
+      originLotId: selectedLotId,
       currentRows,
       currentIds,
       lotIds: [...new Set(currentIds)],
@@ -712,33 +716,472 @@
     return Promise.resolve();
   }
 
-  function renderGeoOperationalCard(lotId = geoMapController?.getSelectedLotId?.() || geoActiveContext?.selectedLotId || "") {
-    const card = $("casurGeoCard");
-    if (!card) return;
+  function geoSeasonLabel(value) {
+    const number = finite(value);
+    if (number === null) return "N/D";
+    if (number >= 2000 && number < 2100) {
+      const year = number % 100;
+      return `${String(year - 1).padStart(2, "0")}/${String(year).padStart(2, "0")}`;
+    }
+    const raw = String(number);
+    return raw.length === 4 ? `${raw.slice(0, 2)}/${raw.slice(2)}` : raw;
+  }
+
+  function geoMetric(value, suffix = "") {
+    return finite(value) === null ? "N/D" : `${nf.format(Number(value))}${suffix}`;
+  }
+
+  function geoCount(value) {
+    return finite(value) === null ? "N/D" : nf0.format(Number(value));
+  }
+
+  function geoHistoricalCardModel(context, lotId = "", lots = historyLots()) {
+    const required = ["normalizeHistoricalRows", "filterHistoricalRows", "aggregateHistoricalRows", "groupHistoricalBySeason", "buildHistoricalAgronomicKpis"];
+    if (!historicalEngine || required.some((name) => typeof historicalEngine[name] !== "function")) return null;
+    const selectedLotId = geoLotId(lotId);
+    const rows = historicalEngine.normalizeHistoricalRows(lots);
+    const scope = selectedLotId ? { lotId: selectedLotId } : { farmCode: text(context?.farmCode) };
+    const scopeRows = historicalEngine.filterHistoricalRows(rows, scope);
+    const seasons = historicalEngine.groupHistoricalBySeason(scopeRows);
+    const latestSeason = seasons.length ? seasons[seasons.length - 1].zafra : null;
+    const latestRows = latestSeason === null ? [] : historicalEngine.filterHistoricalRows(scopeRows, null, [latestSeason]);
+    return {
+      entityType: selectedLotId ? "lote" : "finca",
+      selectedLotId,
+      farmCode: text(context?.farmCode),
+      farmName: text(context?.name || scopeRows[0]?.farmName || context?.farmCode),
+      latestSeason,
+      latest: historicalEngine.aggregateHistoricalRows(latestRows),
+      allHistory: historicalEngine.aggregateHistoricalRows(scopeRows),
+      historicalKpis: historicalEngine.buildHistoricalAgronomicKpis(scopeRows, seasons.map((season) => season.zafra)),
+      hasData: scopeRows.length > 0,
+    };
+  }
+
+  function geoFieldsMarkup(fields) {
+    return `<dl>${fields.map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("")}</dl>`;
+  }
+
+  function geoCoordinatesMarkup(selected, interactive = true) {
+    if (!selected) return "";
+    const anchor = geoAnchor(geoFeatureForLot(selected));
+    if (!anchor) return '<p class="casur-geo-card-note">Coordenadas no disponibles.</p>';
+    const coordinates = `${anchor[1].toFixed(6)}, ${anchor[0].toFixed(6)}`;
+    return `<div class="casur-geo-coordinates"><span><b>Coordenada de referencia</b>${esc(coordinates)}</span>${interactive ? `<button type="button" data-geo-copy="${esc(coordinates)}" aria-label="Copiar coordenadas de la suerte ${esc(selected)}">Copiar</button><a href="https://www.google.com/maps?q=${encodeURIComponent(coordinates)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir coordenadas de la suerte ${esc(selected)} en Google Maps">Google Maps ↗</a>` : ""}</div>`;
+  }
+
+  function geoDetailActionMarkup(context, selected, enabled, interactive = true) {
+    if (!interactive || !selected || !enabled) return "";
+    const label = context?.source === "historico" ? "Ver histórico" : "Ver ficha";
+    return `<div class="casur-geo-card-actions"><button type="button" data-geo-view-detail="${esc(selected)}" aria-label="${esc(label)} de la suerte ${esc(selected)}">${esc(label)} ›</button></div>`;
+  }
+
+  function geoChronologicalCardMarkup(context, lotId = "", interactive = true) {
     const selected = geoLotId(lotId);
     if (!selected) {
-      card.innerHTML = `<div class="casur-geo-card-empty"><b>Contexto de finca</b><span>Seleccione una suerte en el mapa para ver su ficha operativa.</span></div>`;
-      return;
+      const producer = geoCronoProducer(context?.farmCode);
+      const rows = context?.currentRows || [];
+      const estimate = estimateSummary(rows);
+      const area = finite(producer?.area) ?? rows.reduce((sum, row) => sum + (finite(row?.area) || 0), 0);
+      const fields = [
+        ["Área actual", geoMetric(area, " ha")],
+        ["TCH 25/26", geoMetric(finite(producer?.tch) ?? weighted(rows, "tch"))],
+        ["Est. 26/27", geoMetric(estimate.tchEst2627)],
+        ["Suertes actuales", geoCount(rows.length)],
+        ["Destino dom.", dominant(rows, "destino") || "N/D"],
+      ];
+      return `<div class="casur-geo-card-head"><div><span>Cronológico vigente</span><strong>Finca ${esc(context?.farmCode || "N/D")}</strong></div><em>${esc(context?.name || "")}</em></div>${geoFieldsMarkup(fields)}<p class="casur-geo-card-note">Seleccione una suerte para consultar su ficha operativa actual.</p>`;
     }
-    const record = geoRecordForLot(geoActiveContext, selected);
+    const record = geoRecordForLot(context, selected);
     const feature = geoFeatureForLot(selected);
-    const anchor = geoAnchor(feature);
-    const coordinates = anchor ? `${anchor[1].toFixed(6)}, ${anchor[0].toFixed(6)}` : "";
     const fields = record ? [
-      ["Área", fmt(record.area, " ha")],
-      ["Edad", fmt(record.edadExcel, " meses")],
-      ["Corte", text(record.corte) || "—"],
-      ["TCH 25/26", fmt(record.tch)],
-      ["Est. 26/27", fmt(record.tchEst2627)],
-      ["Variedad", text(record.variedad) || "—"],
-      ["Riego", text(record.tipoRiego) || "—"],
-      ["N.º riegos", finite(record.numeroRiegos) === null ? "—" : nf0.format(Number(record.numeroRiegos))],
-      ["Estado", text(record.estado) || "—"],
+      ["Área", geoMetric(record.area, " ha")],
+      ["Edad", geoMetric(record.edadExcel, " meses")],
+      ["Corte", text(record.corte) || "N/D"],
+      ["TCH 25/26", geoMetric(record.tch)],
+      ["Est. 26/27", geoMetric(record.tchEst2627)],
+      ["Variedad", text(record.variedad) || "N/D"],
+      ["Riego", text(record.tipoRiego) || "N/D"],
+      ["N.º riegos", geoCount(record.numeroRiegos)],
+      ["Destino", text(record.destino) || "N/D"],
     ] : [];
-    card.innerHTML = `
+    return `
       <div class="casur-geo-card-head"><div><span>Suerte seleccionada</span><strong>${esc(selected)}</strong></div>${record ? "" : '<em>Sin registro cronológico actual</em>'}</div>
-      ${record ? `<dl>${fields.map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("")}</dl>` : `<p class="casur-geo-card-note">${feature ? "El polígono pertenece a la referencia histórica, pero esta suerte no figura en el Cronológico vigente." : "Esta suerte no figura en el Cronológico vigente y no tiene polígono en la referencia geográfica actual."}</p>`}
-      ${anchor ? `<div class="casur-geo-coordinates"><span><b>Coordenada de referencia</b>${esc(coordinates)}</span><button type="button" data-geo-copy="${esc(coordinates)}" aria-label="Copiar coordenadas de la suerte ${esc(selected)}">Copiar</button><a href="https://www.google.com/maps?q=${encodeURIComponent(coordinates)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir coordenadas de la suerte ${esc(selected)} en Google Maps">Google Maps ↗</a></div>` : '<p class="casur-geo-card-note">Coordenadas no disponibles.</p>'}`;
+      ${record ? geoFieldsMarkup(fields) : `<p class="casur-geo-card-note">${feature ? "El polígono pertenece a la referencia histórica, pero esta suerte no figura en el Cronológico vigente." : "Esta suerte no figura en el Cronológico vigente y no tiene polígono en la referencia geográfica actual."}</p>`}
+      ${geoCoordinatesMarkup(selected, interactive)}
+      ${geoDetailActionMarkup(context, selected, Boolean(record), interactive)}`;
+  }
+
+  function geoHistoricalCardMarkup(context, lotId = "", interactive = true) {
+    const selected = geoLotId(lotId);
+    const model = geoHistoricalCardModel(context, selected);
+    if (!model) return '<div class="casur-geo-card-empty"><b>Histórico no disponible</b><span>El motor histórico no está disponible en esta sesión.</span></div>';
+    const latest = model.latest;
+    const all = model.allHistory;
+    const kpis = model.historicalKpis;
+    const fields = selected ? [
+      ["Última zafra", geoSeasonLabel(model.latestSeason)],
+      ["Área últ. zafra", model.hasData ? geoMetric(latest.area, " ha") : "N/D"],
+      ["TCH últ. zafra", model.hasData ? geoMetric(latest.tch) : "N/D"],
+      ["TCH hist. pond.", model.hasData ? geoMetric(all.tch) : "N/D"],
+      ["KATM hist. pond.", model.hasData ? geoMetric(all.katm) : "N/D"],
+      ["Edad hist. pond.", model.hasData ? geoMetric(all.edad, " meses") : "N/D"],
+      ["Zafras", model.hasData ? geoCount(kpis.seasonCount) : "N/D"],
+      ["Cambio TCH", model.hasData ? geoMetric(kpis.tchChange) : "N/D"],
+      ["CV TCH", model.hasData ? geoMetric(kpis.tchCv, " %") : "N/D"],
+    ] : [
+      ["Última zafra", geoSeasonLabel(model.latestSeason)],
+      ["Área última zafra", model.hasData ? geoMetric(latest.area, " ha") : "N/D"],
+      ["Ton última zafra", model.hasData ? geoMetric(latest.ton, " t") : "N/D"],
+      ["TCH última zafra", model.hasData ? geoMetric(latest.tch) : "N/D"],
+      ["TCH hist. pond.", model.hasData ? geoMetric(all.tch) : "N/D"],
+      ["KATM hist. pond.", model.hasData ? geoMetric(all.katm) : "N/D"],
+      ["Edad hist. pond.", model.hasData ? geoMetric(all.edad, " meses") : "N/D"],
+      ["Zafras", model.hasData ? geoCount(kpis.seasonCount) : "N/D"],
+      ["Suertes históricas", model.hasData ? geoCount(kpis.lotCount) : "N/D"],
+      ["Cambio TCH", model.hasData ? geoMetric(kpis.tchChange) : "N/D"],
+      ["CV TCH", model.hasData ? geoMetric(kpis.tchCv, " %") : "N/D"],
+    ];
+    const title = selected ? `Suerte ${selected}` : `Finca ${model.farmCode} · Histórico`;
+    const eyebrow = selected ? "Histórico productivo" : "Resumen histórico ejecutivo";
+    return `<div class="casur-geo-card-head"><div><span>${esc(eyebrow)}</span><strong>${esc(title)}</strong></div>${selected ? "" : `<em>${esc(model.farmName)}</em>`}</div>${geoFieldsMarkup(fields)}${model.hasData ? "" : '<p class="casur-geo-card-note">No existen filas históricas válidas para esta entidad.</p>'}${geoCoordinatesMarkup(selected, interactive)}${geoDetailActionMarkup(context, selected, model.hasData, interactive)}`;
+  }
+
+  function geoCardMarkup(context, lotId = "", interactive = true) {
+    return context?.source === "historico"
+      ? geoHistoricalCardMarkup(context, lotId, interactive)
+      : geoChronologicalCardMarkup(context, lotId, interactive);
+  }
+
+  function renderGeoInformationCard(lotId = geoMapController?.getSelectedLotId?.() || geoActiveContext?.selectedLotId || "") {
+    const card = $("casurGeoCard");
+    if (!card || !geoActiveContext) return;
+    const selected = geoLotId(lotId);
+    geoActiveContext.selectedLotId = selected;
+    card.innerHTML = geoCardMarkup(geoActiveContext, selected, true);
+  }
+
+  function geoNextFrames() {
+    return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }
+
+  function geoDelay(milliseconds) {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+  }
+
+  function geoLoadHtml2Canvas() {
+    if (!geoHtml2CanvasPromise) {
+      const url = new URL("../riego/assets/html2canvas.esm-BfxBtG_O.js", document.baseURI).href;
+      geoHtml2CanvasPromise = import(url).then((module) => {
+        if (typeof module.default !== "function") throw new Error("Exportador PNG local no disponible");
+        return module.default;
+      });
+    }
+    return geoHtml2CanvasPromise;
+  }
+
+  function geoTileRequirements(baseKey) {
+    if (baseKey === "hybrid") return ["World_Imagery", "World_Transportation"];
+    if (baseKey === "satellite") return ["World_Imagery"];
+    if (baseKey === "osm") return ["openstreetmap"];
+    return [];
+  }
+
+  async function geoWaitForExportTiles(mapNode, baseKey, timeout = 8000) {
+    const required = geoTileRequirements(baseKey);
+    if (!required.length) return;
+    const deadline = Date.now() + timeout;
+    let stableTileCount = 0;
+    let previousTileCount = -1;
+    while (Date.now() < deadline) {
+      const allTiles = [...mapNode.querySelectorAll(".leaflet-tile-pane img.leaflet-tile")];
+      const tiles = allTiles.filter((image) => image.complete && image.naturalWidth > 0);
+      stableTileCount = allTiles.length === previousTileCount ? stableTileCount + 1 : 0;
+      previousTileCount = allTiles.length;
+      const complete = allTiles.length > 0 && tiles.length === allTiles.length
+        && !mapNode.querySelector(".leaflet-tile-loading");
+      if (complete && stableTileCount >= 2
+        && required.every((part) => tiles.some((image) => text(image.currentSrc || image.src).includes(part)))) return;
+      await geoDelay(120);
+    }
+    throw new Error("El mapa base no terminó de cargar; no se generó una imagen incompleta.");
+  }
+
+  function geoBlobDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error("No fue posible preparar una tesela para exportación."));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function geoInlineExportTiles(mapNode, baseKey) {
+    const required = geoTileRequirements(baseKey);
+    if (!required.length) return;
+    const tiles = [...mapNode.querySelectorAll(".leaflet-tile-pane img.leaflet-tile")]
+      .filter((image) => image.complete && image.naturalWidth > 0);
+    const sources = tiles.map((image) => text(image.currentSrc || image.src));
+    if (!required.every((part) => sources.some((source) => source.includes(part)))) {
+      throw new Error("Faltan teselas del mapa base para generar el PNG.");
+    }
+    await Promise.all(tiles.map(async (image, index) => {
+      const source = sources[index];
+      const response = await fetch(source, { mode: "cors", cache: "force-cache" });
+      if (!response.ok) throw new Error(`No fue posible preparar una tesela del mapa base (${response.status}).`);
+      image.removeAttribute("crossorigin");
+      image.src = await geoBlobDataUrl(await response.blob());
+      if (typeof image.decode === "function") await image.decode();
+    }));
+  }
+
+  async function geoRasterizeExportMap(html2canvas, mapNode) {
+    const width = mapNode.clientWidth || 1088;
+    const height = mapNode.clientHeight || 720;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#e7ece7";
+    context.fillRect(0, 0, width, height);
+    const mapBounds = mapNode.getBoundingClientRect();
+    const tiles = [...mapNode.querySelectorAll(".leaflet-tile-pane img.leaflet-tile")];
+    tiles.forEach((image) => {
+      const bounds = image.getBoundingClientRect();
+      const x = bounds.left - mapBounds.left;
+      const y = bounds.top - mapBounds.top;
+      if (x >= width || y >= height || x + bounds.width <= 0 || y + bounds.height <= 0) return;
+      context.drawImage(image, x, y, bounds.width, bounds.height);
+    });
+
+    const tilePane = mapNode.querySelector(".leaflet-tile-pane");
+    const previousVisibility = tilePane?.style.visibility || "";
+    const previousBackground = mapNode.style.background;
+    if (tilePane) tilePane.style.visibility = "hidden";
+    mapNode.style.background = "transparent";
+    try {
+      const overlay = await html2canvas(mapNode, {
+        scale: 1,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        backgroundColor: null,
+        imageTimeout: 10000,
+        ignoreElements: (element) => Boolean(element.closest?.(".leaflet-control-container") || element.classList?.contains("casur-geo-offline-notice")),
+      });
+      context.drawImage(overlay, 0, 0);
+      return canvas;
+    } finally {
+      if (tilePane) tilePane.style.visibility = previousVisibility;
+      mapNode.style.background = previousBackground;
+    }
+  }
+
+  function geoCanvasHasContent(canvas) {
+    if (!canvas || canvas.width < 20 || canvas.height < 20) return false;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    const colors = new Set();
+    const step = Math.max(4, Math.floor((canvas.width * canvas.height) / 1400) * 4);
+    for (let index = 0; index < pixels.length && colors.size < 8; index += step) {
+      if (pixels[index + 3] < 16) continue;
+      colors.add(`${pixels[index] >> 4}:${pixels[index + 1] >> 4}:${pixels[index + 2] >> 4}`);
+    }
+    return colors.size >= 3;
+  }
+
+  function geoExportAttribution(baseKey) {
+    if (baseKey === "hybrid") return "Tiles © Esri · Referencia vial © Esri · Geometría agrícola CASUR";
+    if (baseKey === "satellite") return "Tiles © Esri · Geometría agrícola CASUR";
+    if (baseKey === "osm") return "© OpenStreetMap contributors · Geometría agrícola CASUR";
+    return "Geometría agrícola CASUR · Sin mapa base";
+  }
+
+  function geoSafeFilenamePart(value) {
+    return text(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "CASUR";
+  }
+
+  function geoExportFilename(context, mode, selected) {
+    if (mode === "farm") {
+      return `CASUR_Mapa_Finca_${geoSafeFilenamePart(context.farmCode)}_${geoSafeFilenamePart(context.name)}.png`;
+    }
+    const source = context.source === "historico" ? "Historico" : "Cronologico";
+    return `CASUR_Mapa_${source}_${geoSafeFilenamePart(selected)}.png`;
+  }
+
+  async function geoCaptureExportMap(html2canvas, context, mode, selected) {
+    const createMap = window.createCasurMap;
+    if (typeof createMap !== "function" || !geoFeatures.length) throw new Error("No hay geometría cargada para exportar.");
+    const activeBase = geoMapController?.getActiveBase?.() || "hybrid";
+    const host = document.createElement("div");
+    host.className = "casur-geo-export-map-host";
+    const mapNode = document.createElement("div");
+    mapNode.className = "casur-geo-map casur-geo-export-map";
+    host.appendChild(mapNode);
+    document.body.appendChild(host);
+    let controller = null;
+    try {
+      controller = await Promise.resolve(createMap(mapNode, {
+        initialBase: activeBase,
+        autoFit: false,
+        layersCollapsed: true,
+        mapOptions: { zoomControl: false, attributionControl: false },
+      }));
+      const mapSelection = mode === "lot" ? selected : "";
+      await Promise.resolve(controller.setLots(geoFeatures, mapSelection));
+      await Promise.resolve(mode === "lot" ? controller.fitToLot(selected) : controller.fitToData());
+      await geoNextFrames();
+      await geoWaitForExportTiles(mapNode, activeBase);
+      if (activeBase !== "blank" && controller.getActiveBase?.() !== activeBase) {
+        throw new Error("El mapa base falló durante la captura; no se descargó una lámina incompleta.");
+      }
+      await geoInlineExportTiles(mapNode, activeBase);
+      const canvas = await geoRasterizeExportMap(html2canvas, mapNode);
+      canvas.toDataURL("image/png");
+      if (!geoCanvasHasContent(canvas)) throw new Error("La captura del mapa no contiene información visual suficiente.");
+      return { canvas, baseKey: activeBase };
+    } finally {
+      try { controller?.destroy?.(); } catch (error) {}
+      host.remove();
+    }
+  }
+
+  async function geoBuildExportSheet(html2canvas, context, mode, selected, mapCapture) {
+    const host = document.createElement("div");
+    host.className = "casur-geo-export-sheet-host";
+    const sheet = document.createElement("section");
+    sheet.className = "casur-geo-export-sheet";
+    const sourceTitle = context.source === "historico" ? "Mapa Histórico · CASUR" : "Mapa Cronológico · CASUR";
+    const subject = mode === "lot"
+      ? `Suerte ${selected} · Finca ${context.name || context.farmCode}`
+      : `Finca ${context.farmCode} · ${context.name || context.farmCode}`;
+    const generated = new Date().toLocaleString("es-NI", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    sheet.innerHTML = `
+      <header class="casur-geo-export-head"><div><span>Departamento de Negocios de Caña</span><h1>${esc(sourceTitle)}</h1><p>${esc(subject)}</p></div><strong>CASUR</strong></header>
+      <div class="casur-geo-export-body"><figure><img alt="${esc(subject)}"><figcaption>${esc(geoExportAttribution(mapCapture.baseKey))}</figcaption></figure><aside class="casur-geo-card casur-geo-export-card">${geoCardMarkup(context, mode === "lot" ? selected : "", false)}</aside></div>
+      <footer><span>Generado ${esc(generated)}</span><span>Lámina ejecutiva · ${esc(mapCapture.baseKey === "blank" ? "Sin fondo" : mapCapture.baseKey === "hybrid" ? "Híbrido" : mapCapture.baseKey === "satellite" ? "Satélite" : "Mapa claro")}</span></footer>`;
+    const image = sheet.querySelector("img");
+    image.src = mapCapture.canvas.toDataURL("image/png");
+    host.appendChild(sheet);
+    document.body.appendChild(host);
+    try {
+      if (typeof image.decode === "function") await image.decode();
+      await geoNextFrames();
+      const canvas = await html2canvas(sheet, {
+        scale: 1,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        backgroundColor: "#f4f7f4",
+        width: 1600,
+        imageTimeout: 10000,
+      });
+      canvas.toDataURL("image/png");
+      if (canvas.width < 1600 || !geoCanvasHasContent(canvas)) throw new Error("La lámina ejecutiva no pudo validarse.");
+      return canvas;
+    } finally {
+      host.remove();
+    }
+  }
+
+  function geoCanvasBlob(canvas) {
+    return new Promise((resolve, reject) => canvas.toBlob((blob) => {
+      if (blob && blob.size > 1000) resolve(blob);
+      else reject(new Error("El archivo PNG generado está vacío."));
+    }, "image/png", 1));
+  }
+
+  function geoDownloadBlob(blob, filename) {
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => { URL.revokeObjectURL(link.href); link.remove(); }, 1600);
+  }
+
+  async function exportCasurGeoPng(mode = "farm", options = {}) {
+    if (geoExportBusy) throw new Error("Ya hay una exportación GEO en curso.");
+    if (!geoActiveContext || !geoMapController) throw new Error("Abra primero el visor GEO.");
+    const normalizedMode = mode === "lot" ? "lot" : "farm";
+    const selected = geoLotId(geoMapController.getSelectedLotId?.() || geoActiveContext.selectedLotId);
+    if (normalizedMode === "lot" && !selected) throw new Error("Seleccione una suerte antes de exportar PNG suerte.");
+    geoExportBusy = true;
+    try {
+      const context = { ...geoActiveContext, selectedLotId: selected };
+      const html2canvas = await geoLoadHtml2Canvas();
+      const mapCapture = await geoCaptureExportMap(html2canvas, context, normalizedMode, selected);
+      const canvas = await geoBuildExportSheet(html2canvas, context, normalizedMode, selected, mapCapture);
+      const blob = await geoCanvasBlob(canvas);
+      const filename = geoExportFilename(context, normalizedMode, selected);
+      if (options.download !== false) geoDownloadBlob(blob, filename);
+      return { blob, filename, width: canvas.width, height: canvas.height, baseKey: mapCapture.baseKey, mode: normalizedMode };
+    } finally {
+      geoExportBusy = false;
+    }
+  }
+
+  async function runGeoExport(mode, button) {
+    const farmButton = $("casurGeoPngFarm");
+    const lotButton = $("casurGeoPngLot");
+    const previous = $("casurGeoStatus")?.textContent || "";
+    if (button) button.setAttribute("aria-busy", "true");
+    if (farmButton) farmButton.disabled = true;
+    if (lotButton) lotButton.disabled = true;
+    if ($("casurGeoStatus")) $("casurGeoStatus").textContent = "Generando PNG ejecutivo…";
+    try {
+      const result = await exportCasurGeoPng(mode);
+      moduleToast(`${result.filename} descargado`);
+      if ($("casurGeoStatus")) $("casurGeoStatus").textContent = "PNG generado correctamente";
+    } catch (error) {
+      console.error("[CASUR GEO] Exportación PNG fallida:", error);
+      if ($("casurGeoStatus")) $("casurGeoStatus").textContent = `PNG no generado · ${error.message || error}`;
+      window.alert?.(`No fue posible exportar el mapa: ${error.message || error}`);
+    } finally {
+      if (button) button.removeAttribute("aria-busy");
+      if (farmButton) farmButton.disabled = !geoFeatures.length;
+      if (lotButton) lotButton.disabled = !geoMapController?.getSelectedLotId?.();
+      if ($("casurGeoStatus")?.textContent === "Generando PNG ejecutivo…") $("casurGeoStatus").textContent = previous;
+    }
+  }
+
+  function syncGeoControls() {
+    const selected = geoLotId(geoMapController?.getSelectedLotId?.() || geoActiveContext?.selectedLotId);
+    const origin = geoLotId(geoActiveContext?.originLotId);
+    const fitFarm = $("casurGeoFitFarm");
+    const fitLot = $("casurGeoFitLot");
+    const pngFarm = $("casurGeoPngFarm");
+    const pngLot = $("casurGeoPngLot");
+    if (fitFarm) fitFarm.disabled = !geoFeatures.length;
+    if (fitLot) {
+      fitLot.textContent = origin ? `Volver a ${origin}` : "Centrar seleccionada";
+      fitLot.setAttribute("aria-label", origin ? `Volver a la suerte de origen ${origin}` : "Centrar la suerte seleccionada");
+      fitLot.disabled = origin ? !geoFeatureForLot(origin) : !selected;
+    }
+    if (pngFarm) pngFarm.disabled = !geoFeatures.length || geoExportBusy;
+    if (pngLot) pngLot.disabled = !selected || geoExportBusy;
+  }
+
+  function openGeoSelectedDetail() {
+    if (!geoActiveContext || !geoMapController) return;
+    const selected = geoLotId(geoMapController.getSelectedLotId?.() || geoActiveContext.selectedLotId);
+    if (!selected) return;
+    const source = geoActiveContext.source;
+    const farmCode = geoActiveContext.farmCode;
+    const record = geoRecordForLot(geoActiveContext, selected);
+    closeCasurGeoDialog();
+    requestAnimationFrame(() => {
+      if (source === "historico") {
+        if (typeof window.renderEntity === "function") {
+          window.renderEntity(`LOTE::${selected}`, { preserveDrilldown: true, fromDrilldown: true });
+        }
+        return;
+      }
+      if (record && typeof window.selectCronoSuerteSuggestion === "function") {
+        window.selectCronoSuerteSuggestion(farmCode, record.suerte);
+      }
+    });
   }
 
   function ensureGeoDialog() {
@@ -759,7 +1202,7 @@
           </div>
           <footer class="casur-geo-foot">
             <p id="casurGeoStatus" role="status" aria-live="polite"></p>
-            <div class="casur-geo-foot-actions"><button type="button" class="casur-geo-control" id="casurGeoFitFarm" disabled>Finca completa</button><button type="button" class="casur-geo-control" id="casurGeoFitLot" disabled>Centrar suerte</button><button type="button" class="casur-geo-control is-primary" data-geo-close>Volver a la ficha</button></div>
+            <div class="casur-geo-foot-actions"><button type="button" class="casur-geo-control" id="casurGeoFitFarm" disabled>Finca completa</button><button type="button" class="casur-geo-control" id="casurGeoFitLot" disabled>Centrar seleccionada</button><button type="button" class="casur-geo-control" id="casurGeoPngFarm" disabled>PNG finca</button><button type="button" class="casur-geo-control" id="casurGeoPngLot" disabled>PNG suerte</button><button type="button" class="casur-geo-control is-primary" data-geo-close>Volver a la ficha</button></div>
           </footer>
         </section>
       </div>`);
@@ -771,13 +1214,25 @@
     $("casurGeoFitLot").addEventListener("click", () => {
       try {
         const selected = geoMapController?.getSelectedLotId?.();
-        if (selected) geoMapController.fitToLot?.(selected);
+        const origin = geoLotId(geoActiveContext?.originLotId);
+        if (origin) {
+          if (geoMapController?.selectLot?.(origin, { fit: true })) {
+            geoActiveContext.selectedLotId = origin;
+            renderGeoInformationCard(origin);
+            syncGeoControls();
+          }
+        } else if (selected) geoMapController.fitToLot?.(selected);
       } catch (error) {}
     });
+    $("casurGeoPngFarm").addEventListener("click", (event) => runGeoExport("farm", event.currentTarget));
+    $("casurGeoPngLot").addEventListener("click", (event) => runGeoExport("lot", event.currentTarget));
     layer.addEventListener("click", (event) => {
       const copy = event.target.closest?.("[data-geo-copy]");
-      if (!copy) return;
-      geoCopyCoordinates(copy.dataset.geoCopy).then(() => moduleToast("Coordenadas copiadas")).catch(() => moduleToast("No fue posible copiar las coordenadas"));
+      if (copy) {
+        geoCopyCoordinates(copy.dataset.geoCopy).then(() => moduleToast("Coordenadas copiadas")).catch(() => moduleToast("No fue posible copiar las coordenadas"));
+        return;
+      }
+      if (event.target.closest?.("[data-geo-view-detail]")) openGeoSelectedDetail();
     });
     layer.addEventListener("keydown", (event) => {
       if (event.key === "Escape") { event.preventDefault(); closeCasurGeoDialog(); return; }
@@ -823,10 +1278,11 @@
   function resetGeoDialog(context, total) {
     const isLot = context?.entityType === "lote";
     const lotId = context?.selectedLotId || "";
-    $("casurGeoTitle").textContent = isLot ? `Suerte ${lotId} · ${context.name}` : `Mapa de finca · ${context?.name || context?.farmCode}`;
+    const source = context?.source === "historico" ? "histórico" : "cronológico";
+    $("casurGeoTitle").textContent = isLot ? `Mapa ${source} · Suerte ${lotId}` : `Mapa ${source} · Finca ${context?.farmCode || ""}`;
     $("casurGeoSummary").textContent = isLot
-      ? "Contexto completo de la finca; selección resaltada y ficha del Cronológico vigente."
-      : `${total} suertes del contexto operativo vigente.`;
+      ? `Contexto completo de ${context.name}; selección de origen resaltada.`
+      : `Preparando ${total} suertes del contexto espacial.`;
     $("casurGeoStatus").textContent = "Cargando geometría publicada…";
     $("casurGeoLoading").hidden = false;
     $("casurGeoEmpty").hidden = true;
@@ -834,8 +1290,10 @@
     $("casurGeoMap").hidden = true;
     $("casurGeoFitFarm").disabled = true;
     $("casurGeoFitLot").disabled = true;
+    $("casurGeoPngFarm").disabled = true;
+    $("casurGeoPngLot").disabled = true;
     $("casurGeoBody").setAttribute("aria-busy", "true");
-    renderGeoOperationalCard(lotId);
+    renderGeoInformationCard(lotId);
     $("casurGeoCard").hidden = true;
   }
 
@@ -855,10 +1313,14 @@
     const request = ++geoRequest;
     const layer = ensureGeoDialog();
     destroyGeoMap();
-    geoActiveContext = context;
+    geoActiveContext = {
+      ...context,
+      selectedLotId: geoLotId(context.selectedLotId),
+      originLotId: geoLotId(context.originLotId || context.selectedLotId),
+    };
     geoReturnFocus = trigger || document.activeElement;
-    const lotIds = context.lotIds;
-    resetGeoDialog(context, lotIds.length);
+    const lotIds = geoActiveContext.lotIds;
+    resetGeoDialog(geoActiveContext, lotIds.length);
     layer.hidden = false;
     document.body.classList.add("casur-geo-open");
     requestAnimationFrame(() => $("casurGeoTitle")?.focus({ preventScroll: true }));
@@ -874,7 +1336,6 @@
         return;
       }
 
-      const isLot = context.entityType === "lote";
       const features = await geo.getLotGeometries(lotIds);
       if (request !== geoRequest || layer.hidden) return;
       if (!features.length) {
@@ -892,31 +1353,34 @@
         autoFit: false,
         onSelectLot(feature) {
           const selected = geoLotId(feature?.properties?.lotId);
-          renderGeoOperationalCard(selected);
-          $("casurGeoFitLot").disabled = !selected;
+          geoActiveContext.selectedLotId = selected;
+          renderGeoInformationCard(selected);
+          syncGeoControls();
         },
       }));
       if (!geoMapController || request !== geoRequest || layer.hidden) {
         destroyGeoMap();
         return;
       }
-      await Promise.resolve(geoMapController.setLots(features, context.selectedLotId));
+      await Promise.resolve(geoMapController.setLots(features, geoActiveContext.selectedLotId));
       await Promise.resolve(geoMapController.fitToData());
-      renderGeoOperationalCard(context.selectedLotId);
+      geoActiveContext.selectedLotId = geoMapController.getSelectedLotId?.() || "";
+      renderGeoInformationCard(geoActiveContext.selectedLotId);
       $("casurGeoCard").hidden = false;
       const featureIds = new Set(features.map((feature) => geoLotId(feature?.properties?.lotId)));
-      const availableCurrent = context.currentIds.filter((lotId) => featureIds.has(lotId)).length;
-      const currentSuffix = context.currentIds.length
-        ? `${availableCurrent} de ${context.currentIds.length} suertes actuales con polígono`
+      const availableCurrent = geoActiveContext.currentIds.filter((lotId) => featureIds.has(lotId)).length;
+      const spatialSummary = geoActiveContext.currentIds.length
+        ? `${availableCurrent} de ${geoActiveContext.currentIds.length} suertes actuales con polígono`
         : `${features.length} de ${lotIds.length} suertes históricas con polígono`;
-      const selectedHasGeometry = !context.selectedLotId || featureIds.has(context.selectedLotId);
-      const selectedIsCurrent = !context.selectedLotId || Boolean(geoRecordForLot(context, context.selectedLotId));
-      $("casurGeoSummary").textContent = `${context.currentIds.length || lotIds.length} suertes en contexto · ${currentSuffix}.${selectedIsCurrent ? "" : " Selección sin registro cronológico actual."}`;
+      const historicalModel = geoActiveContext.source === "historico" ? geoHistoricalCardModel(geoActiveContext) : null;
+      const historicalSuffix = historicalModel?.hasData ? ` · ${geoCount(historicalModel.historicalKpis.seasonCount)} zafras históricas` : "";
+      const selectedHasGeometry = !geoActiveContext.originLotId || featureIds.has(geoActiveContext.originLotId);
+      const missing = Math.max(0, (geoActiveContext.currentIds.length || lotIds.length) - (geoActiveContext.currentIds.length ? availableCurrent : features.length));
+      $("casurGeoSummary").textContent = `${spatialSummary}${historicalSuffix}`;
       $("casurGeoStatus").textContent = selectedHasGeometry
-        ? currentSuffix
-        : `${currentSuffix} · La suerte ${context.selectedLotId} no tiene polígono disponible`;
-      $("casurGeoFitFarm").disabled = false;
-      $("casurGeoFitLot").disabled = !geoMapController.getSelectedLotId?.();
+        ? (missing ? `${missing} ${missing === 1 ? "suerte sin polígono" : "suertes sin polígono"}` : "Cobertura espacial completa")
+        : `La suerte ${geoActiveContext.originLotId} no tiene polígono disponible`;
+      syncGeoControls();
       $("casurGeoBody").setAttribute("aria-busy", "false");
     } catch (error) {
       if (request !== geoRequest || layer.hidden) return;
@@ -970,6 +1434,11 @@
     currentLotIds: geoCurrentLotIds,
     historicalContext: geoHistoricalContext,
     cronoContext: geoCronoContext,
+    historicalCardModel: geoHistoricalCardModel,
+    chronologicalCardMarkup: geoChronologicalCardMarkup,
+    historicalCardMarkup: geoHistoricalCardMarkup,
+    exportFilename: geoExportFilename,
+    exportPng: exportCasurGeoPng,
     enhance: enhanceHistoricalGeoView,
     open: openCasurGeoDialog,
     close: closeCasurGeoDialog,

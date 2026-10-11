@@ -35,7 +35,7 @@ function fakeElement() {
 }
 
 function fakeLeaflet() {
-  const records = { tiles: [], geo: [], controls: [], markers: [] };
+  const records = { tiles: [], geo: [], controls: [], indicators: [], markers: [] };
   class Bounds {
     constructor(valid = true) { this.valid = valid; this.extended = 0; }
     isValid() { return this.valid; }
@@ -80,6 +80,19 @@ function fakeLeaflet() {
     off(name) { this.events.delete(name); return this; }
     remove() { this.removed = true; this.layers.clear(); }
   }
+  const control = function control(options) {
+    const record = { options, node: null, removed: false };
+    records.indicators.push(record);
+    return {
+      onAdd: null,
+      addTo(map) { record.node = this.onAdd?.(map) || null; return this; },
+      remove() { record.removed = true; },
+    };
+  };
+  control.layers = function layers(baseLayers, overlays, options) {
+    records.controls.push({ baseLayers, overlays, options });
+    return { addTo: () => {} };
+  };
   const L = {
     map(element, options) { records.map = new FakeMap(element, options); return records.map; },
     tileLayer(url, options) {
@@ -108,10 +121,12 @@ function fakeLeaflet() {
       records.markers.push(marker);
       return marker;
     },
-    control: {
-      layers(baseLayers, overlays, options) {
-        records.controls.push({ baseLayers, overlays, options });
-        return { addTo: () => {} };
+    control,
+    DomUtil: {
+      create() {
+        const node = fakeElement();
+        node.textContent = "";
+        return node;
       },
     },
   };
@@ -124,14 +139,19 @@ test("createCasurMap monta híbrido, vecinos azules y selección amarilla sin re
   const selections = [];
   const viewer = createCasurMap(element, { leaflet: L, onSelectLot: (feature) => selections.push(feature.properties.lotId) });
 
-  assert.deepEqual(Object.keys(viewer), ["selectLot", "getSelectedLotId", "fitToLot", "fitToData", "setLot", "setLots", "destroy"]);
+  assert.deepEqual(Object.keys(viewer), ["selectLot", "getSelectedLotId", "getActiveBase", "fitToLot", "fitToData", "setLot", "setLots", "destroy"]);
   assert.equal(element.attributes.get("role"), "region");
   assert.equal(element.attributes.get("aria-label"), "Mapa agrícola CASUR");
   assert.equal(records.tiles.length, 4);
   assert.match(records.tiles[0].payload, /openstreetmap/);
   assert.match(records.tiles[1].payload, /arcgisonline/);
   assert.match(records.tiles[3].payload, /World_Transportation/);
+  records.tiles.forEach((tile) => assert.equal(tile.options.crossOrigin, "anonymous"));
   assert.deepEqual(Object.keys(records.controls[0].baseLayers), ["Híbrido", "Satélite", "Mapa claro", "Sin mapa base"]);
+  assert.equal(records.controls[0].options.position, "topleft");
+  assert.equal(records.indicators[0].options.position, "topleft");
+  assert.equal(records.indicators[0].node.textContent, "Base · Híbrido");
+  assert.equal(viewer.getActiveBase(), "hybrid");
   const hybrid = records.controls[0].baseLayers["Híbrido"];
   assert.equal(records.map.hasLayer(hybrid), true, "Híbrido continúa como mapa base default");
   assert.deepEqual(hybrid.children, [records.tiles[2], records.tiles[3]], "Híbrido usa solo World Imagery + World Transportation");
@@ -170,10 +190,31 @@ test("createCasurMap monta híbrido, vecinos azules y selección amarilla sin re
   assert.equal(records.map.fitCalls.length, 3, "Centrar suerte conserva una acción independiente");
 
   viewer.destroy();
+  assert.equal(records.indicators[0].removed, true);
   assert.equal(records.map.removed, true);
   assert.equal(element.attributes.has("role"), false);
   assert.equal(element.classList.contains("casur-geo-map"), false);
   assert.doesNotThrow(() => viewer.destroy(), "destroy es idempotente");
+});
+
+test("el indicador sigue el selector de base y los cambios programáticos", () => {
+  const element = fakeElement();
+  const { L, records } = fakeLeaflet();
+  const changes = [];
+  const viewer = createCasurMap(element, { leaflet: L, onBaseChange: (base) => changes.push(base) });
+  const bases = records.controls[0].baseLayers;
+
+  records.map.events.get("baselayerchange")({ layer: bases["Satélite"] });
+  assert.equal(viewer.getActiveBase(), "satellite");
+  assert.equal(records.indicators[0].node.textContent, "Base · Satélite");
+  records.map.events.get("baselayerchange")({ layer: bases["Mapa claro"] });
+  assert.equal(viewer.getActiveBase(), "osm");
+  assert.equal(records.indicators[0].node.textContent, "Base · Mapa claro");
+  records.map.events.get("baselayerchange")({ layer: bases["Sin mapa base"] });
+  assert.equal(viewer.getActiveBase(), "blank");
+  assert.equal(records.indicators[0].node.textContent, "Base · Sin fondo");
+  assert.deepEqual(changes.map((change) => change.label), ["Híbrido", "Satélite", "Mapa claro", "Sin fondo"]);
+  viewer.destroy();
 });
 
 test("setLot tolera ausencia de geometría sin inventar un polígono", () => {
@@ -215,4 +256,5 @@ test("CSS mantiene fondo offline neutro y controles táctiles", () => {
   assert.match(css, /min-width:\s*44px/);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /\.casur-geo-offline-notice/);
+  assert.match(css, /\.casur-geo-base-indicator/);
 });

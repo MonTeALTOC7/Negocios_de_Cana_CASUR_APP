@@ -101,6 +101,14 @@ descargando solo los faltantes. Las llamadas concurrentes comparten una preparac
 responde `GEO_WARM_RESULT` al puerto o cliente solicitante. La tolerancia del precache del shell
 permanece independiente.
 
+`casur_master_geo_meta` conserva un puntero `active` a la última generación completa. Cada nueva
+versión descarga sus cinco archivos en su propia caché de staging; `activate` preserva generaciones
+GEO anteriores. Solo después de verificar 5/5 se escribe el puntero activo y se podan las demás
+generaciones. Mientras una nueva versión esté incompleta, fetch resuelve exclusivamente la caché
+activa anterior. No consulta otra generación ni la red para completar un recurso aislado, evitando
+mezclas entre manifest y zonas. Si falta el puntero, una migración defensiva solo puede activar una
+caché que contenga los cinco recursos.
+
 La geometría tiene caché y estrategia propias. No se mezcla con `DATA_CACHE`, las generaciones
 SIAGRI ni `PROD_LKG_CACHE`; la estrategia LKG de Producción permanece intacta.
 
@@ -122,3 +130,16 @@ commitea; solo se versionan los derivados mínimos y auditables. Toda actualizac
 auditoría, crosswalk, build doble, hashes, pruebas automáticas y QA online/offline.
 La versión `manifest.dataVersion` y `GEO_DATA_VERSION` en `sw.js` deben actualizarse juntas;
 una prueba automática exige que coincidan.
+
+## Diagnóstico MutationObserver de cierre GEO-1
+
+Se compararon en Google Chrome 154 headless, con Service Workers bloqueados y perfiles aislados,
+la base `668618b712ba3dc8cd66ce196ac97738694bc1b9` y el HEAD GEO-1. Ambos recorridos ejecutaron App,
+Producción, Histórico, finca 759 y suerte 75907; HEAD además abrió y cerró el mapa (la base aún no
+contiene GEO-1). Se capturaron `console.error`, `pageerror` y CDP `Runtime.exceptionThrown`.
+
+Los tres canales quedaron vacíos en ambos casos: no hubo excepción, stack, URL, archivo, línea ni
+columna. La llamada inline a `MutationObserver.observe(document.body, ...)` es idéntica entre base
+y HEAD. El mensaje observado previamente solo en el navegador instrumentado de QA no es
+reproducible en Chrome limpio y no se atribuye al código GEO-1; por ello no se ocultó ni se alteró
+ningún observador.

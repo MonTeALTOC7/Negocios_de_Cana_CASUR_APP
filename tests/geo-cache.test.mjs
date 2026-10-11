@@ -7,7 +7,7 @@ import vm from 'node:vm';
 const source = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(readFileSync(new URL('../shared/geo/data/manifest.json', import.meta.url)));
 
-function harness({ storage = new Map(), fail = new Set(), appVersion = '1.2.0' } = {}) {
+function harness({ storage = new Map(), fail = new Set(), appVersion = '1.2.0', geoVersion = manifest.dataVersion } = {}) {
   const handlers = {};
   const downloads = [];
   const key = (url) => new URL(typeof url === 'string' ? url : url.url, 'https://casur.test/').href;
@@ -20,8 +20,9 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.2.0' }
         async add(url) {
           downloads.push(url);
           if (fail.has(url)) throw new Error('network unavailable');
-          entries.set(key(url), new Response('{}'));
+          entries.set(key(url), new Response(JSON.stringify({ generation: geoVersion, url })));
         },
+        async put(url, response) { entries.set(key(url), response.clone()); },
       };
     },
     async keys() { return [...storage.keys()]; },
@@ -37,7 +38,10 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.2.0' }
       skipWaiting() {}, clients: { async claim() {} },
     },
   });
-  vm.runInContext(source.replace("const APP_VERSION = '1.2.0';", `const APP_VERSION = '${appVersion}';`), context);
+  const executable = source
+    .replace("const APP_VERSION = '1.2.0';", `const APP_VERSION = '${appVersion}';`)
+    .replace("const GEO_DATA_VERSION = '2026-07-24-maestro-26-27';", `const GEO_DATA_VERSION = '${geoVersion}';`);
+  vm.runInContext(executable, context);
   const value = (expression) => vm.runInContext(expression, context);
   async function dispatch(type, extra = {}) {
     let promise;
@@ -113,6 +117,45 @@ test('actualizar solo el shell conserva GEO durante activate y no lo redescarga'
     respondWith(promise) { response = promise; },
   });
   assert.equal((await response).status, 200);
+});
+
+test('upgrade GEO conserva A completa mientras B está incompleta y promueve B solo al completar 5/5', async () => {
+  const storage = new Map();
+  const generationA = harness({ storage, geoVersion: '2026-07-24-maestro-26-27' });
+  assert.equal((await generationA.message()).status, 'complete');
+  const cacheA = generationA.value('GEO_CACHE');
+  assert.equal((await generationA.value('readGeoActive()')).dataVersion, '2026-07-24-maestro-26-27');
+
+  const missingUrl = './shared/geo/data/zona-3-norte.geojson';
+  const generationB = harness({ storage, geoVersion: '2027-01-15-maestro-27-28', fail: new Set([missingUrl]) });
+  const incomplete = await generationB.message();
+  assert.equal(incomplete.status, 'incomplete');
+  assert.equal(incomplete.activeVersion, '2026-07-24-maestro-26-27');
+  assert.deepEqual(Array.from(incomplete.missing), [missingUrl]);
+  await generationB.dispatch('activate');
+  assert.ok(storage.has(cacheA), 'activate conserva A mientras B está incompleta');
+
+  async function geoFetch(path) {
+    let response;
+    generationB.handlers.fetch({
+      request: { method: 'GET', url: 'https://casur.test/shared/geo/data/' + path },
+      respondWith(promise) { response = promise; },
+    });
+    return JSON.parse(await (await response).text());
+  }
+  assert.equal((await geoFetch('manifest.json')).generation, '2026-07-24-maestro-26-27');
+  assert.equal((await geoFetch('zona-3-norte.geojson')).generation, '2026-07-24-maestro-26-27');
+  assert.equal(storage.get(generationB.value('GEO_CACHE')).size, 4, 'B permanece en staging parcial');
+
+  generationB.fail.clear();
+  const complete = await generationB.message();
+  assert.equal(complete.status, 'complete');
+  assert.equal(complete.activeVersion, '2027-01-15-maestro-27-28');
+  assert.equal(generationB.downloads.at(-1), missingUrl, 'reintenta únicamente el faltante');
+  assert.equal(generationB.downloads.length, 6);
+  assert.equal((await geoFetch('manifest.json')).generation, '2027-01-15-maestro-27-28');
+  assert.equal((await geoFetch('zona-3-norte.geojson')).generation, '2027-01-15-maestro-27-28');
+  assert.ok(!storage.has(cacheA), 'A se poda solo después de promover B completa');
 });
 
 test('preparaciones concurrentes comparten trabajo y un error de storage permite reintento', async () => {

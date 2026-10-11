@@ -14,7 +14,10 @@ const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;
 const GEO_DATA_VERSION = '2026-07-24-maestro-26-27';
-const GEO_CACHE   = MASTER_PREFIX + 'geo_' + GEO_DATA_VERSION;
+const GEO_CACHE_PREFIX = MASTER_PREFIX + 'geo_';
+const GEO_CACHE   = GEO_CACHE_PREFIX + GEO_DATA_VERSION;
+const GEO_META_CACHE = MASTER_PREFIX + 'geo_meta';
+const GEO_ACTIVE_KEY = 'https://casur-geo.internal/active';
 /* [Hotfix 4.4.2] Caché "Last Known Good" de datos de Producción. A propósito
    SIN sufijo de APP_VERSION: debe sobrevivir a publicaciones de código y a
    cierres/reaperturas de la PWA (Cache Storage es persistente en disco). */
@@ -22,7 +25,7 @@ const PROD_LKG_CACHE = MASTER_PREFIX + 'prod_lkg';
 const PROD_DATA_RE = /\/modules\/produccion\/data\/(version|cronologico|historico)\.(json|js)$/;
 
 /* Cachés que este SW puede administrar/borrar. Nunca fuera de aquí. */
-const OWNED = new Set([SHELL_CACHE, DATA_CACHE, GEO_CACHE, PROD_LKG_CACHE]);
+const OWNED = new Set([SHELL_CACHE, DATA_CACHE, GEO_CACHE, GEO_META_CACHE, PROD_LKG_CACHE]);
 
 /* Geometría operativa publicada: dataset independiente de datos SIAGRI/LKG. */
 const GEO_ASSETS = [
@@ -95,7 +98,9 @@ self.addEventListener('activate', (event) => {
     await Promise.all(
       keys
         // SOLO cachés maestras viejas. Jamás cachés de módulos.
-        .filter((k) => k.startsWith(MASTER_PREFIX) && !OWNED.has(k))
+        // Las generaciones GEO se conservan hasta que una nueva generación
+        // completa se promueve y las poda explícitamente.
+        .filter((k) => k.startsWith(MASTER_PREFIX) && !OWNED.has(k) && !k.startsWith(GEO_CACHE_PREFIX))
         .map((k) => caches.delete(k))
     );
     await self.clients.claim();
@@ -149,7 +154,7 @@ self.addEventListener('fetch', (event) => {
   }
   // 3b) Geometría web mínima: caché propia, nunca mezclada con LKG ni datos agronómicos.
   if (url.pathname.includes('/shared/geo/data/')) {
-    event.respondWith(cacheFirst(req, GEO_CACHE));
+    event.respondWith(geoCacheFirst(req));
     return;
   }
   //    Resto de datasets oficiales (incluye /master/data/,
@@ -216,6 +221,60 @@ async function networkFirst(req, cacheName, fallbackUrl) {
 }
 
 let geoWarmInFlight = null;
+async function geoGenerationComplete(cacheName) {
+  const cache = await caches.open(cacheName);
+  const available = await Promise.all(GEO_ASSETS.map((url) => cache.match(url)));
+  return available.every(Boolean);
+}
+
+async function readGeoActive() {
+  try {
+    const meta = await caches.open(GEO_META_CACHE);
+    const response = await meta.match(GEO_ACTIVE_KEY);
+    if (!response) return null;
+    const value = await response.clone().json();
+    if (!value?.cacheName?.startsWith(GEO_CACHE_PREFIX) || !value.dataVersion) return null;
+    return value;
+  } catch { return null; }
+}
+
+async function writeGeoActive(dataVersion, cacheName) {
+  const meta = await caches.open(GEO_META_CACHE);
+  await meta.put(GEO_ACTIVE_KEY, new Response(JSON.stringify({ dataVersion, cacheName }), {
+    headers: { 'Content-Type': 'application/json' },
+  }));
+}
+
+async function resolveGeoActive() {
+  const active = await readGeoActive();
+  if (active) return active;
+  // Migración defensiva: una caché completa creada antes del puntero se
+  // convierte en activa sin descargarla otra vez. Nunca elige una parcial.
+  const completeCandidates = (await caches.keys())
+    .filter((name) => name.startsWith(GEO_CACHE_PREFIX) && name !== GEO_META_CACHE)
+    .sort().reverse();
+  const candidates = [GEO_CACHE, ...completeCandidates.filter((name) => name !== GEO_CACHE)];
+  for (const cacheName of candidates) {
+    if (!(await geoGenerationComplete(cacheName))) continue;
+    const dataVersion = cacheName.slice(GEO_CACHE_PREFIX.length);
+    await writeGeoActive(dataVersion, cacheName);
+    return { dataVersion, cacheName };
+  }
+  return null;
+}
+
+async function pruneInactiveGeoCaches(activeCacheName) {
+  const keys = await caches.keys();
+  await Promise.all(keys
+    .filter((name) => name.startsWith(GEO_CACHE_PREFIX) && name !== GEO_META_CACHE && name !== activeCacheName)
+    .map((name) => caches.delete(name)));
+}
+
+async function promoteGeoGeneration() {
+  await writeGeoActive(GEO_DATA_VERSION, GEO_CACHE);
+  await pruneInactiveGeoCaches(GEO_CACHE);
+}
+
 function warmGeoCache() {
   if (geoWarmInFlight) return geoWarmInFlight;
   geoWarmInFlight = (async () => {
@@ -227,14 +286,32 @@ function warmGeoCache() {
       }));
       const available = await Promise.all(GEO_ASSETS.map((url) => cache.match(url)));
       const missing = GEO_ASSETS.filter((url, index) => !available[index]);
-      if (missing.length) console.warn('[SW] generación GEO incompleta:', missing);
-      return { status: missing.length ? 'incomplete' : 'complete', dataVersion: GEO_DATA_VERSION, missing };
+      if (missing.length) {
+        console.warn('[SW] generación GEO incompleta:', missing);
+        const active = await resolveGeoActive();
+        return { status: 'incomplete', dataVersion: GEO_DATA_VERSION, activeVersion: active?.dataVersion || null, missing };
+      }
+      await promoteGeoGeneration();
+      return { status: 'complete', dataVersion: GEO_DATA_VERSION, activeVersion: GEO_DATA_VERSION, missing: [] };
     } catch (error) {
       console.warn('[SW] error preparando GEO:', error);
       return { status: 'error', dataVersion: GEO_DATA_VERSION, missing: [...GEO_ASSETS] };
     }
   })().finally(() => { geoWarmInFlight = null; });
   return geoWarmInFlight;
+}
+
+async function geoCacheFirst(req) {
+  // Evita que un fetch capture el puntero anterior justo cuando la promoción
+  // lo cambia y poda esa caché. Después del warm verá A completa o B completa.
+  if (geoWarmInFlight) await geoWarmInFlight;
+  const active = await resolveGeoActive();
+  if (!active) return new Response('Generación GEO completa no disponible.', { status: 503 });
+  const cache = await caches.open(active.cacheName);
+  const cached = await cache.match(req);
+  // Una generación activa se sirve como unidad: jamás buscar el recurso en
+  // otra generación ni en red, porque produciría un híbrido manifest/zonas.
+  return cached || new Response('Recurso ausente en generación GEO activa.', { status: 503 });
 }
 
 async function cacheFirst(req, cacheName) {

@@ -145,7 +145,7 @@ body.casur-geo-open{overflow:hidden}
 .casur-geo-empty{color:#526276}
 .casur-geo-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 15px;border-top:1px solid #dbe7df;background:#fff}
 .casur-geo-foot p{margin:0;color:#526276;font-size:10.5px;font-weight:900}
-.casur-geo-foot-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.casur-geo-foot-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.casur-geo-foot-actions .casur-geo-control{padding-inline:10px;white-space:nowrap}
 
 @media(max-width:719px){
   .casur-geo-layer{align-items:end;padding:0}
@@ -156,6 +156,6 @@ body.casur-geo-open{overflow:hidden}
   .casur-geo-map{min-height:280px}
   .casur-geo-card{top:auto;right:8px;bottom:8px;width:calc(100% - 16px);max-height:34dvh;border-radius:16px;padding:10px}.casur-geo-card dl{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.casur-geo-card dl>div{padding:5px}.casur-geo-card-head{margin-bottom:6px}.casur-geo-card-head strong{font-size:17px}.casur-geo-coordinates{margin-top:6px;padding-top:6px}
   .casur-geo-foot{align-items:stretch;flex-direction:column;padding:9px 10px calc(9px + env(safe-area-inset-bottom))}
-  .casur-geo-foot-actions{display:grid;grid-template-columns:1fr 1fr}.casur-geo-control{width:100%}
+  .casur-geo-foot-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.casur-geo-control{width:100%;padding-inline:6px}
 }
 @media print{.casur-geo-layer,.casur-geo-action{display:none!important}}

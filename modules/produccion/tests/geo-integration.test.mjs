@@ -87,7 +87,9 @@ test("la suerte 75907 conserva identidad canónica y área de la App", () => {
   assert.equal(feature?.properties?.anchor?.length, 2);
   assert.match(enhancements, /geoRecordForLot/);
   assert.match(enhancements, /"TCH 25\/26"/);
-  assert.match(enhancements, /"TCH 26\/27"/);
+  assert.match(enhancements, /"Est\. 26\/27"/);
+  assert.match(enhancements, /<b>Coordenada de referencia<\/b>/);
+  assert.doesNotMatch(enhancements, /<b>Anchor<\/b>/);
 });
 
 test("Cronológico es la fuente primaria del contexto de finca 759 y 993", () => {
@@ -112,12 +114,19 @@ test("el modal es accesible, responsive y restaura el foco", () => {
   assert.match(enhancements, /target\.focus\(\{ preventScroll: true \}\)/);
   assert.match(enhancements, /fitToData/);
   assert.match(enhancements, /fitToLot/);
+  assert.match(enhancements, /id="casurGeoFitFarm" disabled>Finca completa<\/button>/);
+  assert.match(enhancements, /id="casurGeoFitLot" disabled>Centrar suerte<\/button>/);
+  assert.match(enhancements, /\$\("casurGeoFitFarm"\)\.addEventListener\("click"[\s\S]+?fitToData/);
+  assert.match(enhancements, /\$\("casurGeoFitLot"\)\.addEventListener\("click"[\s\S]+?fitToLot/);
+  assert.match(enhancements, /\$\("casurGeoFitLot"\)\.disabled = !selected/);
+  assert.doesNotMatch(enhancements, /id="casurGeoFit" disabled/);
   assert.match(enhancements, /target="_blank" rel="noopener noreferrer"/);
   assert.match(enhancements, /data-geo-copy/);
   assert.match(enhancements, /Volver a la ficha/);
   assert.match(styles, /@media\(max-width:719px\)/);
   assert.match(styles, /height:100dvh/);
   assert.match(styles, /min-height:44px/);
+  assert.match(styles, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(styles, /\.casur-geo-dialog>\.casur-geo-head[^}]*background:[^;]+!important/);
   assert.match(styles, /\.casur-geo-layer,.casur-geo-action\{display:none!important\}/);
 });

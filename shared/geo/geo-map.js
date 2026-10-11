@@ -3,7 +3,6 @@ import { normalizeGeoLotId } from "./geo-data.js";
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 const ESRI_IMAGERY_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 const ESRI_TRANSPORT_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}";
-const ESRI_LABELS_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}";
 
 function resolveContainer(container) {
   if (typeof container === "string") {
@@ -78,8 +77,7 @@ export function createCasurMap(container, options = {}) {
   const satellite = L.tileLayer(ESRI_IMAGERY_URL, { ...tileOptions, attribution: "Tiles &copy; Esri" });
   const hybridImagery = L.tileLayer(ESRI_IMAGERY_URL, { ...tileOptions, attribution: "Tiles &copy; Esri" });
   const hybridTransport = L.tileLayer(ESRI_TRANSPORT_URL, { ...tileOptions, attribution: "Referencia &copy; Esri" });
-  const hybridLabels = L.tileLayer(ESRI_LABELS_URL, { ...tileOptions, attribution: "Referencia &copy; Esri" });
-  const hybrid = L.layerGroup([hybridImagery, hybridTransport, hybridLabels]);
+  const hybrid = L.layerGroup([hybridImagery, hybridTransport]);
   const blank = L.layerGroup();
   const bases = { hybrid, satellite, osm, blank };
   const namedBases = { "Híbrido": hybrid, "Satélite": satellite, "Mapa claro": osm, "Sin mapa base": blank };
@@ -94,7 +92,7 @@ export function createCasurMap(container, options = {}) {
   let selectedLotId = "";
   let lotsLayer = null;
   let anchorLayer = null;
-  let tileErrorCount = 0;
+  const tileErrorCounts = { hybrid: 0, satellite: 0, osm: 0 };
   let resizeObserver = null;
   const layersByLot = new Map();
 
@@ -129,22 +127,35 @@ export function createCasurMap(container, options = {}) {
 
   function onOffline() { activateBase("blank", false); }
   function onOnline() {
-    tileErrorCount = 0;
+    Object.keys(tileErrorCounts).forEach((key) => { tileErrorCounts[key] = 0; });
     if (options.restoreOnlineBase !== false && currentBase === "blank") activateBase(preferredOnlineBase, false);
   }
-  function onTileError() {
-    tileErrorCount += 1;
-    if (tileErrorCount >= (options.tileErrorThreshold || 4) && currentBase !== "blank") activateBase("blank", false);
+  function onPrimaryTileError(baseKey) {
+    if (currentBase !== baseKey) return;
+    tileErrorCounts[baseKey] += 1;
+    if (tileErrorCounts[baseKey] >= (options.tileErrorThreshold || 4)) activateBase("blank", false);
   }
+  function onOsmTileError() { onPrimaryTileError("osm"); }
+  function onSatelliteTileError() { onPrimaryTileError("satellite"); }
+  function onHybridImageryTileError() { onPrimaryTileError("hybrid"); }
+  function onHybridTransportTileError() { /* Las capas de referencia no controlan el fallback del mapa base. */ }
   function onBaseLayerChange(event) {
     const next = Object.entries(bases).find(([, layer]) => event?.layer === layer)?.[0] || "blank";
     currentBase = next;
-    if (next !== "blank") preferredOnlineBase = next;
+    if (next !== "blank") {
+      preferredOnlineBase = next;
+      tileErrorCounts[next] = 0;
+    }
     updateOfflineUi(next === "blank");
   }
 
-  const onlineTiles = [osm, satellite, hybridImagery, hybridTransport, hybridLabels];
-  onlineTiles.forEach((layer) => layer.on?.("tileerror", onTileError));
+  const tileErrorHandlers = [
+    [osm, onOsmTileError],
+    [satellite, onSatelliteTileError],
+    [hybridImagery, onHybridImageryTileError],
+    [hybridTransport, onHybridTransportTileError],
+  ];
+  tileErrorHandlers.forEach(([layer, handler]) => layer.on?.("tileerror", handler));
   map.on?.("baselayerchange", onBaseLayerChange);
   if (typeof window !== "undefined") {
     window.addEventListener("offline", onOffline);
@@ -311,7 +322,7 @@ export function createCasurMap(container, options = {}) {
     }
     resizeObserver?.disconnect?.();
     resizeObserver = null;
-    onlineTiles.forEach((layer) => layer.off?.("tileerror", onTileError));
+    tileErrorHandlers.forEach(([layer, handler]) => layer.off?.("tileerror", handler));
     map.off?.("baselayerchange", onBaseLayerChange);
     map.remove?.();
     offlineNotice?.remove?.();

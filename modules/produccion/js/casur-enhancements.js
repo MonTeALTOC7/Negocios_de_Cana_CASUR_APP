@@ -729,7 +729,7 @@
       ["Edad", fmt(record.edadExcel, " meses")],
       ["Corte", text(record.corte) || "—"],
       ["TCH 25/26", fmt(record.tch)],
-      ["TCH 26/27", fmt(record.tchEst2627)],
+      ["Est. 26/27", fmt(record.tchEst2627)],
       ["Variedad", text(record.variedad) || "—"],
       ["Riego", text(record.tipoRiego) || "—"],
       ["N.º riegos", finite(record.numeroRiegos) === null ? "—" : nf0.format(Number(record.numeroRiegos))],
@@ -738,7 +738,7 @@
     card.innerHTML = `
       <div class="casur-geo-card-head"><div><span>Suerte seleccionada</span><strong>${esc(selected)}</strong></div>${record ? "" : '<em>Sin registro cronológico actual</em>'}</div>
       ${record ? `<dl>${fields.map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("")}</dl>` : `<p class="casur-geo-card-note">${feature ? "El polígono pertenece a la referencia histórica, pero esta suerte no figura en el Cronológico vigente." : "Esta suerte no figura en el Cronológico vigente y no tiene polígono en la referencia geográfica actual."}</p>`}
-      ${anchor ? `<div class="casur-geo-coordinates"><span><b>Anchor</b>${esc(coordinates)}</span><button type="button" data-geo-copy="${esc(coordinates)}" aria-label="Copiar coordenadas de la suerte ${esc(selected)}">Copiar</button><a href="https://www.google.com/maps?q=${encodeURIComponent(coordinates)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir coordenadas de la suerte ${esc(selected)} en Google Maps">Google Maps ↗</a></div>` : '<p class="casur-geo-card-note">Coordenadas no disponibles.</p>'}`;
+      ${anchor ? `<div class="casur-geo-coordinates"><span><b>Coordenada de referencia</b>${esc(coordinates)}</span><button type="button" data-geo-copy="${esc(coordinates)}" aria-label="Copiar coordenadas de la suerte ${esc(selected)}">Copiar</button><a href="https://www.google.com/maps?q=${encodeURIComponent(coordinates)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir coordenadas de la suerte ${esc(selected)} en Google Maps">Google Maps ↗</a></div>` : '<p class="casur-geo-card-note">Coordenadas no disponibles.</p>'}`;
   }
 
   function ensureGeoDialog() {
@@ -759,17 +759,19 @@
           </div>
           <footer class="casur-geo-foot">
             <p id="casurGeoStatus" role="status" aria-live="polite"></p>
-            <div class="casur-geo-foot-actions"><button type="button" class="casur-geo-control" id="casurGeoFit" disabled>Centrar polígono</button><button type="button" class="casur-geo-control is-primary" data-geo-close>Volver a la ficha</button></div>
+            <div class="casur-geo-foot-actions"><button type="button" class="casur-geo-control" id="casurGeoFitFarm" disabled>Finca completa</button><button type="button" class="casur-geo-control" id="casurGeoFitLot" disabled>Centrar suerte</button><button type="button" class="casur-geo-control is-primary" data-geo-close>Volver a la ficha</button></div>
           </footer>
         </section>
       </div>`);
     const layer = $("casurGeoLayer");
     layer.querySelectorAll("[data-geo-close]").forEach((button) => button.addEventListener("click", closeCasurGeoDialog));
-    $("casurGeoFit").addEventListener("click", () => {
+    $("casurGeoFitFarm").addEventListener("click", () => {
+      try { geoMapController?.fitToData?.(); } catch (error) {}
+    });
+    $("casurGeoFitLot").addEventListener("click", () => {
       try {
         const selected = geoMapController?.getSelectedLotId?.();
         if (selected) geoMapController.fitToLot?.(selected);
-        else geoMapController?.fitToData?.();
       } catch (error) {}
     });
     layer.addEventListener("click", (event) => {
@@ -830,8 +832,8 @@
     $("casurGeoEmpty").hidden = true;
     $("casurGeoEmpty").textContent = "";
     $("casurGeoMap").hidden = true;
-    $("casurGeoFit").disabled = true;
-    $("casurGeoFit").textContent = isLot ? "Centrar selección" : "Ver finca completa";
+    $("casurGeoFitFarm").disabled = true;
+    $("casurGeoFitLot").disabled = true;
     $("casurGeoBody").setAttribute("aria-busy", "true");
     renderGeoOperationalCard(lotId);
     $("casurGeoCard").hidden = true;
@@ -891,7 +893,7 @@
         onSelectLot(feature) {
           const selected = geoLotId(feature?.properties?.lotId);
           renderGeoOperationalCard(selected);
-          $("casurGeoFit").textContent = "Centrar selección";
+          $("casurGeoFitLot").disabled = !selected;
         },
       }));
       if (!geoMapController || request !== geoRequest || layer.hidden) {
@@ -913,7 +915,8 @@
       $("casurGeoStatus").textContent = selectedHasGeometry
         ? currentSuffix
         : `${currentSuffix} · La suerte ${context.selectedLotId} no tiene polígono disponible`;
-      $("casurGeoFit").disabled = false;
+      $("casurGeoFitFarm").disabled = false;
+      $("casurGeoFitLot").disabled = !geoMapController.getSelectedLotId?.();
       $("casurGeoBody").setAttribute("aria-busy", "false");
     } catch (error) {
       if (request !== geoRequest || layer.hidden) return;

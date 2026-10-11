@@ -127,16 +127,22 @@ test("createCasurMap monta híbrido, vecinos azules y selección amarilla sin re
   assert.deepEqual(Object.keys(viewer), ["selectLot", "getSelectedLotId", "fitToLot", "fitToData", "setLot", "setLots", "destroy"]);
   assert.equal(element.attributes.get("role"), "region");
   assert.equal(element.attributes.get("aria-label"), "Mapa agrícola CASUR");
-  assert.equal(records.tiles.length, 5);
+  assert.equal(records.tiles.length, 4);
   assert.match(records.tiles[0].payload, /openstreetmap/);
   assert.match(records.tiles[1].payload, /arcgisonline/);
   assert.match(records.tiles[3].payload, /World_Transportation/);
   assert.deepEqual(Object.keys(records.controls[0].baseLayers), ["Híbrido", "Satélite", "Mapa claro", "Sin mapa base"]);
-  records.tiles[1].events.get("tileerror")();
-  records.tiles[1].events.get("tileerror")();
-  records.tiles[1].events.get("tileerror")();
-  records.tiles[1].events.get("tileerror")();
-  assert.equal(element.classList.contains("casur-geo-map--offline"), true, "errores de tiles conservan polígonos y activan fondo neutro");
+  const hybrid = records.controls[0].baseLayers["Híbrido"];
+  assert.equal(records.map.hasLayer(hybrid), true, "Híbrido continúa como mapa base default");
+  assert.deepEqual(hybrid.children, [records.tiles[2], records.tiles[3]], "Híbrido usa solo World Imagery + World Transportation");
+  assert.equal(records.tiles.some((tile) => /World_Boundaries_and_Places/.test(tile.payload)), false);
+  for (let count = 0; count < 6; count += 1) records.tiles[3].events.get("tileerror")();
+  for (let count = 0; count < 6; count += 1) records.tiles[1].events.get("tileerror")();
+  assert.equal(element.classList.contains("casur-geo-map--offline"), false, "Transportation e imagery inactiva no apagan Híbrido");
+  for (let count = 0; count < 3; count += 1) records.tiles[2].events.get("tileerror")();
+  assert.equal(element.classList.contains("casur-geo-map--offline"), false, "el base principal conserva el umbral existente");
+  records.tiles[2].events.get("tileerror")();
+  assert.equal(element.classList.contains("casur-geo-map--offline"), true, "el fallo real de World Imagery conserva el fallback neutro");
 
   viewer.setLots([polygon("75907"), polygon("75908", 0.03), polygon("75909", 0.06)], "75907");
   const lots = records.geo[0];
@@ -157,8 +163,11 @@ test("createCasurMap monta híbrido, vecinos azules y selección amarilla sin re
   assert.equal(viewer.getSelectedLotId(), "75907");
   assert.equal(records.geo.length, 1, "A→B→C→A no reconstruye la capa GeoJSON");
   assert.equal(records.map.fitCalls.length, 1, "seleccionar no cambia el encuadre");
-  assert.equal(viewer.fitToLot(), true);
+  assert.equal(viewer.fitToData(), true, "Finca completa sigue disponible después de A→B→C");
+  assert.equal(viewer.getSelectedLotId(), "75907", "Finca completa no cambia selectedLotId");
   assert.equal(records.map.fitCalls.length, 2);
+  assert.equal(viewer.fitToLot(), true);
+  assert.equal(records.map.fitCalls.length, 3, "Centrar suerte conserva una acción independiente");
 
   viewer.destroy();
   assert.equal(records.map.removed, true);
@@ -177,6 +186,27 @@ test("setLot tolera ausencia de geometría sin inventar un polígono", () => {
   assert.equal(records.geo.length, 1, "una única capa interactiva");
   assert.equal(viewer.getSelectedLotId(), "25605A");
   viewer.destroy();
+});
+
+test("cada mapa base principal aísla sus propios errores de tiles", () => {
+  [
+    { initialBase: "satellite", activeTile: 1 },
+    { initialBase: "osm", activeTile: 0 },
+  ].forEach(({ initialBase, activeTile }) => {
+    const element = fakeElement();
+    const { L, records } = fakeLeaflet();
+    const viewer = createCasurMap(element, { leaflet: L, initialBase, tileErrorThreshold: 2 });
+
+    records.tiles[3].events.get("tileerror")();
+    records.tiles[2].events.get("tileerror")();
+    assert.equal(element.classList.contains("casur-geo-map--offline"), false, `${initialBase}: overlays y bases inactivas se ignoran`);
+    records.tiles[activeTile].events.get("tileerror")();
+    assert.equal(element.classList.contains("casur-geo-map--offline"), false, `${initialBase}: respeta el umbral`);
+    records.tiles[activeTile].events.get("tileerror")();
+    assert.equal(element.classList.contains("casur-geo-map--offline"), true, `${initialBase}: su propio fallo activa blank`);
+
+    viewer.destroy();
+  });
 });
 
 test("CSS mantiene fondo offline neutro y controles táctiles", () => {

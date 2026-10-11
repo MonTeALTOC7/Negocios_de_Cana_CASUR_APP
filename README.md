@@ -8,9 +8,9 @@ Se publica en **GitHub Pages** (sin servidor Node) con `index.html` en la raíz,
 **instalable** en Android, Windows y navegadores compatibles, y funciona **offline** en la
 medida en que cada módulo lo soporte.
 
-> Estado actual: **v1.0.0 — Fase 1 (Shell)**. Los módulos se muestran como marcadores de
-> posición y se integrarán uno a uno en las fases siguientes, conservando su comportamiento y
-> sus datos existentes. Ver `docs/ARCHITECTURE.md`.
+> Estado actual: **v1.1.0 — App Maestra con módulos operativos integrados**. Incluye navegación
+> rápida con checkpoint seguro y acceso contextual opcional desde TCH a la ficha existente de una
+> suerte en Maestro. Ver `docs/ARCHITECTURE.md`.
 
 ---
 
@@ -77,7 +77,8 @@ del repositorio `Negocios_de_Cana_CASUR`, activar GitHub Pages, y quedará en
 
 ## Actualizar la versión
 
-- App Maestra: cambiar `APP_VERSION` en `core/versions/versions.js` **y** en `sw.js`.
+- App Maestra: mantener sincronizados `APP_VERSION` en `core/versions/versions.js`, `sw.js` y el
+  fallback visible de `index.html`; el test de consistencia valida los tres valores.
 - Módulos: cada uno tiene su versión en `core/versions/versions.js` (independiente).
 - Al desplegar una versión nueva del SW, la app avisa "Nueva versión disponible" y el usuario
   decide cuándo actualizar (sin recargas que descarten trabajo).

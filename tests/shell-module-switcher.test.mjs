@@ -225,3 +225,35 @@ test("cambios históricos repetidos conservan la ruta solicitada más reciente",
   assert.match(protect, /getLatestRoute: router\.current/);
   assert.match(protect, /if \(historyNavigationPending\) return/);
 });
+
+test("getActiveContext es opcional y solo un lote TCH válido habilita el atajo", () => {
+  const reader = sourceBetween("function getActiveLotContext", "function withModuleContextTimeout");
+  const renderer = sourceBetween("const renderSwitcherModules", "const openSwitcher");
+  assert.match(reader, /moduleId !== 'tch'/);
+  assert.match(reader, /typeof bridge\.getActiveContext !== 'function'/);
+  assert.match(reader, /normalizeLotContext\(context\)/);
+  assert.match(renderer, /target\.moduleId === 'produccion' \? activeContext : null/);
+  assert.match(renderer, /data-switch-context-lot/);
+  assert.match(renderer, /↳ Ver Suerte \$\{contextualLot\.lotId\}/);
+});
+
+test("la acción principal de Maestro no transfiere contexto y la secundaria sí", () => {
+  const handler = sourceBetween("switcher.addEventListener('click'", "host.addEventListener('keydown'");
+  assert.match(handler, /event\.target\.closest\('\[data-switch-context-lot\]'\)/);
+  assert.match(handler, /navigateFromActiveModule\('\/modulo\/produccion', 'module-context', \{/);
+  assert.match(handler, /navigateFromActiveModule\('\/modulo\/' \+ targetId, 'module-switch'\)/);
+  assert.doesNotMatch(handler, /data-switch-module[^]*pendingModuleContext/);
+});
+
+test("el contexto espera checkpoint, se consume una vez tras load y no destruye Producción al fallar", () => {
+  const navigate = sourceBetween("async function navigateFromActiveModule", "async function reloadActiveModule");
+  const consume = sourceBetween("async function consumePendingModuleContext", "async function checkpointActiveModule");
+  const moduleView = sourceBetween("function viewModule(id)", "async function viewCentroMaestro");
+  assert.match(navigate, /await checkpointActiveModule\(reason\)[^]*pendingModuleContext = moduleContext[^]*router\.go\(path\)/);
+  assert.match(consume, /const pending = pendingModuleContext;[^]*pendingModuleContext = null/);
+  assert.match(consume, /withModuleContextTimeout\(bridge\.openContext\(pending\.context\)\)/);
+  assert.match(consume, /toast\(MODULE_CONTEXT_ERROR\)/);
+  assert.doesNotMatch(consume, /router\.|viewModule|remove\(\)/);
+  assert.match(moduleView, /frame\.addEventListener\('load'[^]*consumePendingModuleContext\(frame, id\)/);
+  assert.equal((moduleView.match(/<iframe/g) || []).length, 1);
+});

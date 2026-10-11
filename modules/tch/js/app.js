@@ -225,9 +225,32 @@ async function flushBiometryDraft() {
   }
 }
 
+function lotModuleContext(lot) {
+  if (!lot?.id) return null;
+  return {
+    kind: "lot",
+    lotId: String(lot.id),
+    farmCode: String(lot.farmCode || ""),
+    lot: String(lot.lot || ""),
+    producer: String(lot.producer || ""),
+  };
+}
+
+function getActiveModuleContext() {
+  if (["biometry", "weighing"].includes(state.route)) return lotModuleContext(state.selectedLot);
+  if (state.route === "visits" && state.visitView === "new") return lotModuleContext(state.selectedLot);
+  if (state.route === "analytics" && state.consultationLotId) {
+    return lotModuleContext(state.master.find((lot) => lot.id === state.consultationLotId));
+  }
+  return null;
+}
+
 window.CASUR_MODULE_BRIDGE = Object.freeze({
   protocolVersion: 1,
   moduleId: "tch",
+  getActiveContext() {
+    return getActiveModuleContext();
+  },
   async checkpoint({ reason } = {}) {
     void reason;
     return flushBiometryDraft();

@@ -149,8 +149,7 @@ test("createCasurMap monta híbrido, vecinos azules y selección amarilla sin re
   records.tiles.forEach((tile) => assert.equal(tile.options.crossOrigin, "anonymous"));
   assert.deepEqual(Object.keys(records.controls[0].baseLayers), ["Híbrido", "Satélite", "Mapa claro", "Sin mapa base"]);
   assert.equal(records.controls[0].options.position, "topleft");
-  assert.equal(records.indicators[0].options.position, "topleft");
-  assert.equal(records.indicators[0].node.textContent, "Base · Híbrido");
+  assert.equal(records.indicators.length, 0, "el selector Leaflet evita un indicador de base redundante");
   assert.equal(viewer.getActiveBase(), "hybrid");
   const hybrid = records.controls[0].baseLayers["Híbrido"];
   assert.equal(records.map.hasLayer(hybrid), true, "Híbrido continúa como mapa base default");
@@ -190,14 +189,13 @@ test("createCasurMap monta híbrido, vecinos azules y selección amarilla sin re
   assert.equal(records.map.fitCalls.length, 3, "Centrar suerte conserva una acción independiente");
 
   viewer.destroy();
-  assert.equal(records.indicators[0].removed, true);
   assert.equal(records.map.removed, true);
   assert.equal(element.attributes.has("role"), false);
   assert.equal(element.classList.contains("casur-geo-map"), false);
   assert.doesNotThrow(() => viewer.destroy(), "destroy es idempotente");
 });
 
-test("el indicador sigue el selector de base y los cambios programáticos", () => {
+test("el cambio de base sigue notificándose sin duplicar el selector en el mapa", () => {
   const element = fakeElement();
   const { L, records } = fakeLeaflet();
   const changes = [];
@@ -206,13 +204,10 @@ test("el indicador sigue el selector de base y los cambios programáticos", () =
 
   records.map.events.get("baselayerchange")({ layer: bases["Satélite"] });
   assert.equal(viewer.getActiveBase(), "satellite");
-  assert.equal(records.indicators[0].node.textContent, "Base · Satélite");
   records.map.events.get("baselayerchange")({ layer: bases["Mapa claro"] });
   assert.equal(viewer.getActiveBase(), "osm");
-  assert.equal(records.indicators[0].node.textContent, "Base · Mapa claro");
   records.map.events.get("baselayerchange")({ layer: bases["Sin mapa base"] });
   assert.equal(viewer.getActiveBase(), "blank");
-  assert.equal(records.indicators[0].node.textContent, "Base · Sin fondo");
   assert.deepEqual(changes.map((change) => change.label), ["Híbrido", "Satélite", "Mapa claro", "Sin fondo"]);
   viewer.destroy();
 });
@@ -256,5 +251,5 @@ test("CSS mantiene fondo offline neutro y controles táctiles", () => {
   assert.match(css, /min-width:\s*44px/);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /\.casur-geo-offline-notice/);
-  assert.match(css, /\.casur-geo-base-indicator/);
+  assert.doesNotMatch(css, /\.casur-geo-base-indicator/);
 });

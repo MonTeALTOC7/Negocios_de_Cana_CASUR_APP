@@ -134,12 +134,21 @@ test("el modal es accesible, responsive y restaura el foco", () => {
   assert.doesNotMatch(enhancements, /id="casurGeoFit" disabled/);
   assert.match(enhancements, /target="_blank" rel="noopener noreferrer"/);
   assert.match(enhancements, /data-geo-copy/);
+  assert.match(enhancements, /data-geo-card-toggle aria-controls="casurGeoCardExpanded"/);
+  assert.match(enhancements, /aria-expanded", String\(!geoCardCollapsed\)/);
+  assert.match(enhancements, /Expandir información del mapa/);
+  assert.match(enhancements, /window\.matchMedia\?\.\("\(max-width: 719px\)"\)/);
+  assert.match(enhancements, /class="casur-geo-icon-action"[^>]+title="Copiar coordenada"/);
+  assert.match(enhancements, /title="Abrir en Google Maps"/);
+  assert.doesNotMatch(enhancements, />Google Maps ↗</);
   assert.match(enhancements, /Volver a la ficha/);
   assert.match(styles, /@media\(max-width:719px\)/);
   assert.match(styles, /height:100dvh/);
   assert.match(styles, /min-height:44px/);
   assert.match(styles, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(styles, /\.casur-geo-export-sheet[^}]*width:1600px/);
+  assert.match(styles, /\.casur-geo-card\[data-collapsed="true"\]/);
+  assert.match(styles, /\.casur-geo-card-summary/);
   assert.match(styles, /\.casur-geo-dialog>\.casur-geo-head[^}]*background:[^;]+!important/);
   assert.match(styles, /\.casur-geo-layer,.casur-geo-action\{display:none!important\}/);
 });
@@ -234,7 +243,12 @@ test("origen, navegación canónica y exportación mantienen la suerte explorada
 
 test("la exportación GEO crea un mapa temporal sin volver a cargar GeoJSON", () => {
   assert.match(enhancements, /createMap\(mapNode,[\s\S]*controller\.setLots\(geoFeatures/);
+  assert.match(enhancements, /fitPadding: \[56, 56\]/);
+  assert.match(enhancements, /maxFitZoom: 17/);
   assert.match(enhancements, /useCORS: true/);
+  assert.match(enhancements, /scrollX: 0,\s*scrollY: 0/);
+  assert.match(enhancements, /const priorScroll = \{ x: window\.scrollX \|\| 0, y: window\.scrollY \|\| 0 \}/);
+  assert.match(enhancements, /window\.scrollTo\(0, 0\)[\s\S]*window\.scrollTo\(priorScroll\.x, priorScroll\.y\)/);
   assert.match(enhancements, /allowTaint: false/);
   assert.match(enhancements, /canvas\.toDataURL\("image\/png"\)/);
   assert.match(enhancements, /geoInlineExportTiles/);
@@ -243,6 +257,12 @@ test("la exportación GEO crea un mapa temporal sin volver a cargar GeoJSON", ()
   assert.match(enhancements, /fetch\(source, \{ mode: "cors", cache: "force-cache" \}\)/);
   assert.match(enhancements, /El mapa base falló durante la captura/);
   assert.match(enhancements, /geoExportAttribution/);
+  assert.match(enhancements, /casur-geo-export-sheet--\$\{context\.source === "historico"/);
+  assert.match(enhancements, /Referencia agrícola CASUR/);
+  assert.doesNotMatch(enhancements, /Lámina ejecutiva ·/);
+  assert.match(styles, /\.casur-geo-export-map-host\{width:1536px;height:748px\}/);
+  assert.match(styles, /\.casur-geo-export-body\{display:grid;grid-template:minmax\(0,1fr\)\/minmax\(0,1fr\);min-height:0\}/);
+  assert.match(styles, /\.casur-geo-export-sheet \.casur-geo-card\{position:static;[^}]*grid-area:1\/1;[^}]*width:330px/);
   assert.doesNotMatch(enhancements, /getLotGeometr(?:y|ies)\([^)]*export/i);
 });
 

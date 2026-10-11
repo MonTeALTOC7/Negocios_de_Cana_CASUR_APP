@@ -33,19 +33,6 @@
   min-height: 44px;
 }
 
-.casur-geo-base-indicator {
-  width: max-content;
-  max-width: min(190px, calc(100vw - 32px));
-  border: 1px solid rgba(23, 61, 41, 0.16);
-  border-radius: 999px;
-  background: rgba(250, 252, 249, 0.94);
-  box-shadow: 0 5px 16px rgba(17, 48, 29, 0.16);
-  color: #244b32;
-  font: 800 11px/1.2 system-ui, sans-serif;
-  padding: 7px 10px;
-  pointer-events: none;
-}
-
 .casur-geo-map .leaflet-control-attribution {
   background: rgba(255, 255, 255, 0.84);
   color: #31483b;

@@ -99,25 +99,6 @@ export function createCasurMap(container, options = {}) {
   const tileErrorCounts = { hybrid: 0, satellite: 0, osm: 0 };
   let resizeObserver = null;
   const layersByLot = new Map();
-  let baseIndicatorNode = null;
-  let baseIndicatorControl = null;
-
-  if (typeof L.control === "function") {
-    baseIndicatorControl = L.control({ position: options.baseIndicatorPosition || "topleft" });
-    baseIndicatorControl.onAdd = () => {
-      const node = L.DomUtil?.create?.("div", "casur-geo-base-indicator")
-        || (typeof document !== "undefined" ? document.createElement("div") : null);
-      if (!node) return null;
-      node.classList?.add?.("casur-geo-base-indicator");
-      node.setAttribute?.("role", "status");
-      node.setAttribute?.("aria-live", "polite");
-      node.setAttribute?.("aria-label", "Mapa base activo");
-      baseIndicatorNode = node;
-      return node;
-    };
-    baseIndicatorControl.addTo?.(map);
-  }
-
   const offlineNotice = typeof document !== "undefined" ? document.createElement("div") : null;
   if (offlineNotice) {
     offlineNotice.className = "casur-geo-offline-notice";
@@ -139,7 +120,6 @@ export function createCasurMap(container, options = {}) {
 
   function updateBaseIndicator() {
     const label = baseLabels[currentBase] || baseLabels.blank;
-    if (baseIndicatorNode) baseIndicatorNode.textContent = `Base · ${label}`;
     options.onBaseChange?.({ key: currentBase || "blank", label });
   }
 
@@ -358,9 +338,6 @@ export function createCasurMap(container, options = {}) {
     resizeObserver = null;
     tileErrorHandlers.forEach(([layer, handler]) => layer.off?.("tileerror", handler));
     map.off?.("baselayerchange", onBaseLayerChange);
-    baseIndicatorControl?.remove?.();
-    baseIndicatorControl = null;
-    baseIndicatorNode = null;
     map.remove?.();
     offlineNotice?.remove?.();
     element.classList?.remove("casur-geo-map", "casur-geo-map--offline");

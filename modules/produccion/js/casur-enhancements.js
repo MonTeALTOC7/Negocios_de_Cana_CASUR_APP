@@ -736,6 +736,22 @@
     return finite(value) === null ? "N/D" : nf0.format(Number(value));
   }
 
+  function geoSuerteLabel(context, lotId) {
+    const normalized = geoLotId(lotId);
+    if (!normalized) return "N/D";
+    const current = geoRecordForLot(context, normalized);
+    const historical = historyLots().find((row) => geoLotId(row?.[0]) === normalized);
+    const explicit = text(current?.suerte || historical?.[10]).replace(/^suerte\s+/i, "");
+    if (explicit) return explicit;
+    const farmCode = text(context?.farmCode);
+    return farmCode && normalized.startsWith(farmCode) ? normalized.slice(farmCode.length) || normalized : normalized;
+  }
+
+  function geoHistoricalLotSubject(context, lotId) {
+    const normalized = geoLotId(lotId);
+    return `Suerte ${geoSuerteLabel(context, normalized)} · Cod. ${normalized || "N/D"}`;
+  }
+
   function geoHistoricalCardModel(context, lotId = "", lots = historyLots()) {
     const required = ["normalizeHistoricalRows", "filterHistoricalRows", "aggregateHistoricalRows", "groupHistoricalBySeason", "buildHistoricalAgronomicKpis"];
     if (!historicalEngine || required.some((name) => typeof historicalEngine[name] !== "function")) return null;
@@ -820,8 +836,7 @@
     return `
       <div class="casur-geo-card-head"><div><span>Suerte seleccionada</span><strong>${esc(selected)}</strong></div>${record ? "" : '<em>Sin registro cronológico actual</em>'}</div>
       ${record ? geoFieldsMarkup(fields) : `<p class="casur-geo-card-note">${feature ? "El polígono pertenece a la referencia histórica, pero esta suerte no figura en el Cronológico vigente." : "Esta suerte no figura en el Cronológico vigente y no tiene polígono en la referencia geográfica actual."}</p>`}
-      ${geoCoordinatesMarkup(selected, interactive)}
-      ${geoDetailActionMarkup(context, selected, Boolean(record), interactive)}`;
+      ${geoCoordinatesMarkup(selected, interactive)}`;
   }
 
   function geoHistoricalCardMarkup(context, lotId = "", interactive = true) {
@@ -835,6 +850,7 @@
       ["Última zafra", geoSeasonLabel(model.latestSeason)],
       ["Área últ. zafra", model.hasData ? geoMetric(latest.area, " ha") : "N/D"],
       ["TCH últ. zafra", model.hasData ? geoMetric(latest.tch) : "N/D"],
+      ["KATM últ. zafra", model.hasData ? geoMetric(latest.katm) : "N/D"],
       ["TCH hist. pond.", model.hasData ? geoMetric(all.tch) : "N/D"],
       ["KATM hist. pond.", model.hasData ? geoMetric(all.katm) : "N/D"],
       ["Edad hist. pond.", model.hasData ? geoMetric(all.edad, " meses") : "N/D"],
@@ -854,9 +870,9 @@
       ["Cambio TCH", model.hasData ? geoMetric(kpis.tchChange) : "N/D"],
       ["CV TCH", model.hasData ? geoMetric(kpis.tchCv, " %") : "N/D"],
     ];
-    const title = selected ? `Suerte ${selected}` : `Finca ${model.farmCode} · Histórico`;
-    const eyebrow = selected ? "Histórico productivo" : "Resumen histórico ejecutivo";
-    return `<div class="casur-geo-card-head"><div><span>${esc(eyebrow)}</span><strong>${esc(title)}</strong></div>${selected ? "" : `<em>${esc(model.farmName)}</em>`}</div>${geoFieldsMarkup(fields)}${model.hasData ? "" : '<p class="casur-geo-card-note">No existen filas históricas válidas para esta entidad.</p>'}${geoCoordinatesMarkup(selected, interactive)}${geoDetailActionMarkup(context, selected, model.hasData, interactive)}`;
+    const title = selected ? `Cod. Suerte ${selected}` : `Finca ${model.farmCode} · Histórico`;
+    const eyebrow = selected ? "Resumen por zafras" : "Resumen histórico ejecutivo";
+    return `<div class="casur-geo-card-head"><div><span>${esc(eyebrow)}</span><strong>${esc(title)}</strong></div>${selected ? "" : `<em>${esc(model.farmName)}</em>`}</div>${geoFieldsMarkup(fields)}${model.hasData ? "" : '<p class="casur-geo-card-note">No existen filas históricas válidas para esta entidad.</p>'}${geoCoordinatesMarkup(selected, interactive)}`;
   }
 
   function geoCardMarkup(context, lotId = "", interactive = true) {
@@ -867,8 +883,10 @@
 
   function geoCardSummaryMarkup(context, lotId = "") {
     const selected = geoLotId(lotId);
-    let eyebrow = context?.source === "historico" ? "Histórico productivo" : "Cronológico vigente";
-    let title = selected ? `Suerte ${selected}` : `Finca ${context?.farmCode || "N/D"}`;
+    let eyebrow = context?.source === "historico" ? "Histórico por zafras" : "Cronológico vigente";
+    let title = selected
+      ? (context?.source === "historico" ? `Cod. Suerte ${selected}` : `Suerte ${selected}`)
+      : `Finca ${context?.farmCode || "N/D"}`;
     let metrics = [];
     if (context?.source === "historico") {
       const model = geoHistoricalCardModel(context, selected);
@@ -1117,7 +1135,9 @@
     sheet.className = `casur-geo-export-sheet casur-geo-export-sheet--${context.source === "historico" ? "historico" : "cronologico"} casur-geo-export-sheet--${mode}`;
     const sourceTitle = context.source === "historico" ? "Mapa Histórico · CASUR" : "Mapa Cronológico · CASUR";
     const subject = mode === "lot"
-      ? `Suerte ${selected} · Finca ${context.name || context.farmCode}`
+      ? (context.source === "historico"
+        ? `${context.name || `Finca ${context.farmCode}`} · ${geoHistoricalLotSubject(context, selected)}`
+        : `Suerte ${selected} · Finca ${context.name || context.farmCode}`)
       : `Finca ${context.farmCode} · ${context.name || context.farmCode}`;
     const generated = new Date().toLocaleString("es-NI", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
     sheet.innerHTML = `
@@ -1355,10 +1375,13 @@
     const isLot = context?.entityType === "lote";
     const lotId = context?.selectedLotId || "";
     const source = context?.source === "historico" ? "histórico" : "cronológico";
-    $("casurGeoTitle").textContent = isLot ? `Mapa ${source} · Suerte ${lotId}` : `Mapa ${source} · Finca ${context?.farmCode || ""}`;
-    $("casurGeoSummary").textContent = isLot
-      ? `Contexto completo de ${context.name}; selección de origen resaltada.`
-      : `Preparando ${total} suertes del contexto espacial.`;
+    const historicalLot = isLot && context?.source === "historico";
+    $("casurGeoTitle").textContent = historicalLot
+      ? `Mapa histórico · ${context.name || `Finca ${context?.farmCode || ""}`}`
+      : (isLot ? `Mapa ${source} · Suerte ${lotId}` : `Mapa ${source} · Finca ${context?.farmCode || ""}`);
+    $("casurGeoSummary").textContent = historicalLot
+      ? geoHistoricalLotSubject(context, lotId)
+      : (isLot ? `Contexto completo de ${context.name}; selección de origen resaltada.` : `Preparando ${total} suertes del contexto espacial.`);
     $("casurGeoStatus").textContent = "Cargando geometría publicada…";
     $("casurGeoLoading").hidden = false;
     $("casurGeoEmpty").hidden = true;
@@ -1446,14 +1469,19 @@
       $("casurGeoCard").hidden = false;
       const featureIds = new Set(features.map((feature) => geoLotId(feature?.properties?.lotId)));
       const availableCurrent = geoActiveContext.currentIds.filter((lotId) => featureIds.has(lotId)).length;
-      const spatialSummary = geoActiveContext.currentIds.length
-        ? `${availableCurrent} de ${geoActiveContext.currentIds.length} suertes actuales con polígono`
-        : `${features.length} de ${lotIds.length} suertes históricas con polígono`;
+      const spatialSummary = geoActiveContext.source === "historico"
+        ? `${features.length} de ${lotIds.length} geometrías del contexto`
+        : (geoActiveContext.currentIds.length
+          ? `${availableCurrent} de ${geoActiveContext.currentIds.length} suertes actuales con polígono`
+          : `${features.length} de ${lotIds.length} suertes históricas con polígono`);
       const historicalModel = geoActiveContext.source === "historico" ? geoHistoricalCardModel(geoActiveContext) : null;
       const historicalSuffix = historicalModel?.hasData ? ` · ${geoCount(historicalModel.historicalKpis.seasonCount)} zafras históricas` : "";
       const selectedHasGeometry = !geoActiveContext.originLotId || featureIds.has(geoActiveContext.originLotId);
       const missing = Math.max(0, (geoActiveContext.currentIds.length || lotIds.length) - (geoActiveContext.currentIds.length ? availableCurrent : features.length));
-      $("casurGeoSummary").textContent = `${spatialSummary}${historicalSuffix}`;
+      const historicalLotSubject = geoActiveContext.source === "historico" && geoActiveContext.entityType === "lote"
+        ? geoHistoricalLotSubject(geoActiveContext, geoActiveContext.originLotId)
+        : "";
+      $("casurGeoSummary").textContent = [historicalLotSubject, `${spatialSummary}${historicalSuffix}`].filter(Boolean).join(" · ");
       $("casurGeoStatus").textContent = selectedHasGeometry
         ? (missing ? `${missing} ${missing === 1 ? "suerte sin polígono" : "suertes sin polígono"}` : "Cobertura espacial completa")
         : `La suerte ${geoActiveContext.originLotId} no tiene polígono disponible`;

@@ -164,11 +164,13 @@ test("Cronológico conserva fuente operativa y sustituye Estado por Destino", ()
     currentRows: producer.details,
   };
   const markup = api.chronologicalCardMarkup(context, "99325", false);
+  const interactiveMarkup = api.chronologicalCardMarkup(context, "99325", true);
   ["Área", "Edad", "Corte", "TCH 25/26", "Est. 26/27", "Variedad", "Riego", "N.º riegos", "Destino"]
     .forEach((label) => assert.match(markup, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));
   assert.match(markup, /Semilla/);
   assert.doesNotMatch(markup, />Estado</);
   assert.doesNotMatch(markup, /data-geo-view-detail/, "la lámina exportada no contiene acciones");
+  assert.doesNotMatch(interactiveMarkup, /data-geo-view-detail/, "la tarjeta cronológica usa solo la navegación inferior");
 });
 
 test("Histórico usa todas las zafras del motor y nunca currentRows cronológico", () => {
@@ -192,6 +194,7 @@ test("Histórico usa todas las zafras del motor y nunca currentRows cronológico
   assert.equal(model.latestSeason, seasons.at(-1).zafra);
   assert.equal(model.latest.area, expectedLatest.area);
   assert.equal(model.latest.tch, expectedLatest.tch);
+  assert.equal(model.latest.katm, expectedLatest.katm);
   assert.equal(model.allHistory.tch, expectedAll.tch);
   assert.equal(model.allHistory.katm, expectedAll.katm);
   assert.equal(model.allHistory.edad, expectedAll.edad);
@@ -202,10 +205,14 @@ test("Histórico usa todas las zafras del motor y nunca currentRows cronológico
     [model.latestSeason, model.latest.area, model.latest.tch, model.allHistory.tch, model.allHistory.katm, model.allHistory.edad, model.historicalKpis.seasonCount, model.historicalKpis.tchChange, model.historicalKpis.tchCv],
     [2526, 19.78, 56.24, 72.05, 110.66, 11.74, 10, -7.17, 27.96],
   );
+  assert.deepEqual([model.latest.katm, model.allHistory.katm], [81.24, 110.66]);
 
   const markup = api.historicalCardMarkup(poisonedContext, "75907", false);
-  ["Última zafra", "Área últ. zafra", "TCH últ. zafra", "TCH hist. pond.", "KATM hist. pond.", "Edad hist. pond.", "Zafras", "Cambio TCH", "CV TCH"]
+  ["Última zafra", "Área últ. zafra", "TCH últ. zafra", "KATM últ. zafra", "TCH hist. pond.", "KATM hist. pond.", "Edad hist. pond.", "Zafras", "Cambio TCH", "CV TCH"]
     .forEach((label) => assert.match(markup, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));
+  assert.match(markup, /Cod\. Suerte 75907/);
+  assert.match(markup, /Resumen por zafras/);
+  assert.doesNotMatch(markup, /data-geo-view-detail/, "la tarjeta histórica no duplica la navegación inferior");
   ["Corte", "Destino", "Est. 26/27", "N.º riegos", "9999", "inventado"]
     .forEach((label) => assert.doesNotMatch(markup, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i")));
 });
@@ -230,8 +237,15 @@ test("origen, navegación canónica y exportación mantienen la suerte explorada
   const api = productionGeoApi();
   const lot = historico.lotCompact.find((row) => String(row[0]) === "99325");
   const context = api.historicalContext({ entityType: "lote", code: "LOTE::99325", codLote: "99325", name: lot[9] });
+  const model = api.historicalCardModel(context, "99325", historico.lotCompact);
+  const cardMarkup = api.historicalCardMarkup(context, "99325", false);
   assert.equal(context.originLotId, "99325");
   assert.equal(context.selectedLotId, "99325");
+  assert.deepEqual([model.latest.katm, model.allHistory.katm], [112.83, 107.87]);
+  assert.match(cardMarkup, /KATM últ\. zafra[\s\S]*112\.83/);
+  assert.match(cardMarkup, /KATM hist\. pond\.[\s\S]*107\.87/);
+  assert.match(cardMarkup, /Cod\. Suerte 99325/);
+  assert.doesNotMatch(cardMarkup, /data-geo-view-detail/);
   assert.match(enhancements, /geoActiveContext\.selectedLotId = selected/);
   assert.match(enhancements, /window\.renderEntity\(`LOTE::\$\{selected\}`,[\s\S]*preserveDrilldown: true/);
   assert.match(enhancements, /window\.selectCronoSuerteSuggestion\(farmCode, record\.suerte\)/);
@@ -239,6 +253,10 @@ test("origen, navegación canónica y exportación mantienen la suerte explorada
   assert.equal(api.exportFilename({ source: "cronologico", farmCode: "993", name: "Pansaco" }, "lot", "99325"), "CASUR_Mapa_Cronologico_99325.png");
   assert.equal(api.exportFilename({ source: "historico", farmCode: "759", name: "Jesús María" }, "lot", "75907"), "CASUR_Mapa_Historico_75907.png");
   assert.equal(api.exportFilename({ source: "cronologico", farmCode: "993", name: "Pansaco" }, "farm", ""), "CASUR_Mapa_Finca_993_Pansaco.png");
+  assert.match(enhancements, /Mapa histórico · \$\{context\.name/);
+  assert.match(enhancements, /Suerte \$\{geoSuerteLabel\(context, normalized\)\} · Cod\. \$\{normalized/);
+  assert.match(enhancements, /context\.name \|\| `Finca \$\{context\.farmCode\}`\} · \$\{geoHistoricalLotSubject/);
+  assert.match(enhancements, /geoActiveContext\.source === "historico"\s*\? `\$\{features\.length\} de \$\{lotIds\.length\} geometrías del contexto`/);
 });
 
 test("la exportación GEO crea un mapa temporal sin volver a cargar GeoJSON", () => {

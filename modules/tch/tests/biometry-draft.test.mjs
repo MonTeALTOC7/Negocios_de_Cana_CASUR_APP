@@ -300,3 +300,18 @@ test("IndexedDB continúa en v3 y el borrador usa settings", () => {
   assert.match(draftSource, /repository\.put\("settings"/);
   assert.doesNotMatch(draftSource, /repository\.put\("biometries"/);
 });
+
+test("el bridge TCH expone contexto solo para una suerte realmente visible", () => {
+  const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+  const resolver = sourceBetween(app, "function lotModuleContext", "window.CASUR_MODULE_BRIDGE");
+  const bridge = sourceBetween(app, "window.CASUR_MODULE_BRIDGE", "function scheduleBiometryDraftSave");
+  assert.match(bridge, /protocolVersion: 1/);
+  assert.match(bridge, /moduleId: "tch"/);
+  assert.match(bridge, /getActiveContext\(\)[^]*getActiveModuleContext\(\)/);
+  assert.match(resolver, /\["biometry", "weighing"\]\.includes\(state\.route\)/);
+  assert.match(resolver, /state\.route === "visits" && state\.visitView === "new"/);
+  assert.match(resolver, /state\.route === "analytics" && state\.consultationLotId/);
+  assert.match(resolver, /state\.master\.find\(\(lot\) => lot\.id === state\.consultationLotId\)/);
+  assert.match(resolver, /return null;/);
+  assert.doesNotMatch(resolver, /biometryDraft|masterQuery|consultationQuery|latestBiometry/);
+});

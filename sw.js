@@ -9,7 +9,7 @@
    neutralizados dentro de la Maestra: aquí no se registran.
    ============================================================ */
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;
@@ -31,6 +31,7 @@ const SHELL_ASSETS = [
   './manifest.webmanifest',
   './app.js',
   './core/navigation/router.js',
+  './core/navigation/module-checkpoint.js',
   './core/module-registry/registry.js',
   './core/permissions/gate.js',
   './core/sync/status.js',

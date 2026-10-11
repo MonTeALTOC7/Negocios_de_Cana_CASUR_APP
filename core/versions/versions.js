@@ -5,7 +5,7 @@
    número de un módulo aquí no afecta a los demás.
    ============================================================ */
 
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.1.0';
 export const APP_CHANNEL = 'GitHub Pages';
 
 /* Versiones detectadas en la auditoría (Fase 0). En fase 1 son

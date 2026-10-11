@@ -23,16 +23,74 @@ const app = $('#app');
 const viewEl = $('#view');
 const navEl = $('#nav');
 const MODULE_CHECKPOINT_ERROR = 'No se pudo proteger el trabajo pendiente. El cambio de módulo fue cancelado.';
+const MODULE_CONTEXT_ERROR = 'No se pudo abrir la suerte solicitada.';
+const MODULE_CONTEXT_TIMEOUT_MS = 2000;
 let moduleNavigationPending = false;
 let approvedModuleRoute = '';
 let currentRenderedRoute = '';
 let pendingHistoryRoute = null;
 let historyNavigationPending = false;
+let pendingModuleContext = null;
 
-const runActiveModuleCheckpoint = createModuleCheckpointRunner(() => {
+function activeModuleBridge() {
   const frame = $('#mFrame');
-  return frame?.contentWindow?.CASUR_MODULE_BRIDGE;
-});
+  try { return frame?.contentWindow?.CASUR_MODULE_BRIDGE; }
+  catch { return null; }
+}
+
+const runActiveModuleCheckpoint = createModuleCheckpointRunner(activeModuleBridge);
+
+function normalizeLotContext(context) {
+  if (!context || context.kind !== 'lot') return null;
+  const lotId = String(context.lotId || '').trim();
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(lotId)) return null;
+  return {
+    kind: 'lot',
+    lotId,
+    farmCode: String(context.farmCode || ''),
+    lot: String(context.lot || ''),
+    producer: String(context.producer || ''),
+  };
+}
+
+function getActiveLotContext(moduleId) {
+  if (moduleId !== 'tch') return null;
+  try {
+    const bridge = activeModuleBridge();
+    if (bridge?.protocolVersion !== 1 || bridge.moduleId !== 'tch' || typeof bridge.getActiveContext !== 'function') return null;
+    const context = bridge.getActiveContext();
+    if (context && typeof context.then === 'function') return null;
+    return normalizeLotContext(context);
+  } catch {
+    return null;
+  }
+}
+
+function withModuleContextTimeout(promise) {
+  let timer;
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise((resolve) => { timer = setTimeout(() => resolve({ ok: false, status: 'timeout' }), MODULE_CONTEXT_TIMEOUT_MS); }),
+  ]).finally(() => clearTimeout(timer));
+}
+
+async function consumePendingModuleContext(frame, moduleId) {
+  const pending = pendingModuleContext;
+  if (!pending) return;
+  pendingModuleContext = null;
+  if (pending.targetModuleId !== moduleId) return;
+  try {
+    const bridge = frame?.contentWindow?.CASUR_MODULE_BRIDGE;
+    if (bridge?.protocolVersion !== 1 || bridge.moduleId !== moduleId || typeof bridge.openContext !== 'function') {
+      toast(MODULE_CONTEXT_ERROR);
+      return;
+    }
+    const result = await withModuleContextTimeout(bridge.openContext(pending.context));
+    if (!result?.ok) toast(MODULE_CONTEXT_ERROR);
+  } catch {
+    toast(MODULE_CONTEXT_ERROR);
+  }
+}
 
 async function checkpointActiveModule(reason) {
   const frame = $('#mFrame');
@@ -40,7 +98,7 @@ async function checkpointActiveModule(reason) {
   return runActiveModuleCheckpoint(reason);
 }
 
-async function navigateFromActiveModule(path, reason) {
+async function navigateFromActiveModule(path, reason, moduleContext = null) {
   if (moduleNavigationPending) return false;
   moduleNavigationPending = true;
   try {
@@ -49,6 +107,7 @@ async function navigateFromActiveModule(path, reason) {
       toast(MODULE_CHECKPOINT_ERROR);
       return false;
     }
+    pendingModuleContext = moduleContext;
     approvedModuleRoute = path;
     router.go(path);
     return true;
@@ -409,6 +468,8 @@ function viewModule(id) {
   // Ocultamos header/nav del shell mientras un módulo ocupa toda la pantalla.
   document.body.classList.add('in-module');
   viewEl.innerHTML = '';
+  const frame = $('#mFrame', host);
+  frame.addEventListener('load', () => { void consumePendingModuleContext(frame, id); }, { once: true });
   viewEl.appendChild(host);
 
   $('#mBack', host).addEventListener('click', () => { void navigateFromActiveModule('/', 'back-home'); });
@@ -427,26 +488,31 @@ function viewModule(id) {
     if (returnFocus) trigger.focus();
   };
 
-  const renderSwitcherModules = () => {
+  const renderSwitcherModules = (activeContext = null) => {
     list.innerHTML = '';
     registry.homeModules().forEach((target) => {
       const current = target.moduleId === id;
+      const contextualLot = target.moduleId === 'produccion' ? activeContext : null;
       const connectivity = target.requiresOnline
         ? `<small class="module-switcher__status ${status.isOnline() ? '' : 'is-offline'}">${status.isOnline() ? 'Requiere conexión' : 'Sin conexión'}</small>`
         : '';
-      const option = el(`<button class="module-switcher__option ${current ? 'is-current' : ''}"
-          type="button" role="menuitem" data-switch-module="${target.moduleId}"
-          style="--accent:${target.accent}" ${current ? 'aria-current="page"' : ''}>
-          <span class="module-switcher__logo"><img src="${logoFor(target.moduleId)}" alt="" width="38" height="38"></span>
-          <span class="module-switcher__copy"><strong>${target.name}</strong>${connectivity}</span>
-          <span class="module-switcher__mark" aria-hidden="true">${current ? '✓' : '›'}</span>
-        </button>`);
-      list.appendChild(option);
+      const entry = el(`<div class="module-switcher__entry" role="none" style="--accent:${target.accent}">
+          <button class="module-switcher__option ${current ? 'is-current' : ''}"
+            type="button" role="menuitem" data-switch-module="${target.moduleId}"
+            ${current ? 'aria-current="page"' : ''}>
+            <span class="module-switcher__logo"><img src="${logoFor(target.moduleId)}" alt="" width="38" height="38"></span>
+            <span class="module-switcher__copy"><strong>${target.name}</strong>${connectivity}</span>
+            <span class="module-switcher__mark" aria-hidden="true">${current ? '✓' : '›'}</span>
+          </button>
+          ${contextualLot ? `<button class="module-switcher__context" type="button" role="menuitem"
+            data-switch-context-lot="${contextualLot.lotId}" aria-label="Ver Suerte ${contextualLot.lotId} en Maestro de Suertes">↳ Ver Suerte ${contextualLot.lotId}</button>` : ''}
+        </div>`);
+      list.appendChild(entry);
     });
   };
 
   const openSwitcher = () => {
-    renderSwitcherModules();
+    renderSwitcherModules(getActiveLotContext(id));
     switcher.hidden = false;
     trigger.setAttribute('aria-expanded', 'true');
     document.body.classList.add('module-switcher-open');
@@ -456,6 +522,16 @@ function viewModule(id) {
   trigger.addEventListener('click', () => switcher.hidden ? openSwitcher() : closeSwitcher());
   switcher.addEventListener('click', (event) => {
     if (event.target.closest('[data-switch-close]')) { closeSwitcher(); return; }
+    const contextual = event.target.closest('[data-switch-context-lot]');
+    if (contextual) {
+      const context = getActiveLotContext(id);
+      if (!context || context.lotId !== contextual.dataset.switchContextLot) { closeSwitcher(); return; }
+      closeSwitcher({ returnFocus: false });
+      void navigateFromActiveModule('/modulo/produccion', 'module-context', {
+        targetModuleId: 'produccion', context: { ...context },
+      });
+      return;
+    }
     const option = event.target.closest('[data-switch-module]');
     if (!option) return;
     const targetId = option.dataset.switchModule;

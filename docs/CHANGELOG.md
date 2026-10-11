@@ -2,6 +2,18 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.1.0] — 2026-10-10 · versionado y atajo contextual TCH → Maestro
+- La versión visible y técnica de la App Maestra queda sincronizada en `versions.js`, `sw.js` e
+  `index.html`; el Service Worker usa `casur_master_shell_v1.1.0` y `casur_master_data_v1.1.0`.
+- `core/navigation/module-checkpoint.js` forma parte explícita del precache mínimo del shell.
+- TCH expone de forma segura la identidad de la suerte que la interfaz está mostrando y el
+  selector ofrece, solo entonces, la acción opcional `Ver Suerte <lotId>` en Maestro.
+- La acción contextual espera el checkpoint aprobado, abre Producción y consume una sola vez el
+  contexto en memoria después de cargar el iframe; la acción principal de Maestro sigue abriendo
+  el módulo normalmente.
+- Producción reutiliza la ficha canónica `LOTE::lotId` y `renderEntity`, sin duplicar cálculos ni
+  modificar el motor histórico, datos o persistencia.
+
 ## [Sin publicar] — Sprint 3A · cambiador rápido de módulos
 - La barra superior de un módulo permite abrir un selector construido exclusivamente desde `registry.homeModules()`.
 - En móvil se presenta como bottom sheet con safe-area; desde tablet, como popover compacto anclado a la barra.

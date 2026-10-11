@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const testRoot = path.dirname(fileURLToPath(import.meta.url));
 const index = fs.readFileSync(path.join(testRoot, "../index.html"), "utf8");
+const enhancements = fs.readFileSync(path.join(testRoot, "../js/casur-enhancements.js"), "utf8");
 await import("../js/historical-engine.js");
 
 const {
@@ -518,4 +519,17 @@ test("ninguna función del motor muta lotCompact ni las filas normalizadas", () 
   updateHistoricalDrilldownState({ farmCode: "100", selectedZafra: 2122, selectedLotId: null }, { type: "openLot", lotId: "10001" });
   assert.deepEqual(input, inputSnapshot);
   assert.deepEqual(rows, rowsSnapshot);
+});
+
+test("Producción expone bridge v1 y abre lotes con la ficha canónica existente", () => {
+  assert.match(enhancements, /window\.CASUR_MODULE_BRIDGE = Object\.freeze\(\{/);
+  assert.match(enhancements, /protocolVersion: 1/);
+  assert.match(enhancements, /moduleId: "produccion"/);
+  assert.match(enhancements, /async checkpoint\(\) \{ return \{ ok: true, status: "noop" \}; \}/);
+  assert.match(enhancements, /context\.kind !== "lot"/);
+  assert.match(enhancements, /window\.lotByCode\(code\)/);
+  assert.match(enhancements, /window\.renderEntity\(code\)/);
+  assert.match(enhancements, /status: "lot-not-found"/);
+  assert.match(enhancements, /status: "opened"/);
+  assert.match(enhancements, /const code = `LOTE::\$\{lotId\}`/);
 });

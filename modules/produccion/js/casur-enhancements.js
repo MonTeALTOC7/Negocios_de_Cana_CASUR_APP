@@ -645,6 +645,26 @@
   window.CASUR_GENERATE_GITHUB_DATA_PACKAGE = downloadDataUpdate;
   window.CASUR_BUILD_CRONO_DATA = buildCronoData;
 
+  function openModuleContext(context) {
+    if (!context || context.kind !== "lot") return { ok: false, status: "invalid-context" };
+    const lotId = text(context.lotId);
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(lotId)) return { ok: false, status: "invalid-context" };
+    const code = `LOTE::${lotId}`;
+    if (typeof window.lotByCode !== "function" || !window.lotByCode(code)) {
+      return { ok: false, status: "lot-not-found" };
+    }
+    if (typeof window.renderEntity !== "function") return { ok: false, status: "unavailable" };
+    window.renderEntity(code);
+    return { ok: true, status: "opened" };
+  }
+
+  window.CASUR_MODULE_BRIDGE = Object.freeze({
+    protocolVersion: 1,
+    moduleId: "produccion",
+    async checkpoint() { return { ok: true, status: "noop" }; },
+    openContext: openModuleContext,
+  });
+
   window.addEventListener("load", () => {
     releaseStrip(); installCronoObserver(); initAdmin(); ensureLockDialog();
     const ACTIVE_KEY = "casur_produccion_active_version";

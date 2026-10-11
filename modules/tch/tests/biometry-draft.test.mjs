@@ -269,6 +269,21 @@ test("la integración usa debounce y flush de ciclo de vida", () => {
   assert.doesNotMatch(app, /beforeunload[^\n]*flushBiometryDraft/);
 });
 
+test("expone bridge v1 y su checkpoint espera el flush del borrador", () => {
+  const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+  const bridge = sourceBetween(app, "window.CASUR_MODULE_BRIDGE", "function scheduleBiometryDraftSave");
+  assert.match(bridge, /Object\.freeze/);
+  assert.match(bridge, /protocolVersion: 1/);
+  assert.match(bridge, /moduleId: "tch"/);
+  assert.match(bridge, /async checkpoint\(\{ reason \} = \{\}\)/);
+  assert.match(bridge, /return flushBiometryDraft\(\)/);
+  const flush = sourceBetween(app, "async function flushBiometryDraft", "window.CASUR_MODULE_BRIDGE");
+  assert.match(flush, /if \(!state\.biometryDirty\) return \{ ok: true, status: "noop" \}/);
+  assert.match(flush, /await persistBiometryDraft\(repository, draft\)/);
+  assert.match(flush, /status: "saved", updatedAt: draft\.updatedAt/);
+  assert.match(flush, /status: "error"/);
+});
+
 test("todas las entradas para nueva biometría pasan por el guard central", () => {
   const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
   assert.match(app, /requestNewBiometry\(\{ type: "new" \}\)/);

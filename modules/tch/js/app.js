@@ -12,8 +12,8 @@ import { downloadBlob, downloadWorkbook } from "./excel.js";
 import { createResultImageBlob } from "./result-image.js";
 import { persistBiometryCheckpoint } from "./biometry-session.js";
 import {
-  createBiometryDraft, discardBiometryDraft, inspectBiometryDraft,
-  loadBiometryDraft, persistBiometryDraft,
+  biometrySampleHasData, countCapturedBiometryPoints, createBiometryDraft,
+  discardBiometryDraft, inspectBiometryDraft, loadBiometryDraft, persistBiometryDraft,
 } from "./biometry-draft.js";
 import {
   createVisitsPackageBlob, createVisitsWorkbookBlob, prepareVisitPhoto,
@@ -367,11 +367,7 @@ function invalidateValidation() {
 }
 
 function sampleHasData(sample) {
-  return [
-    sample.stalkCount, sample.directStalksPerMeter, sample.heightM, sample.diameterMm,
-    sample.lengthCm, sample.diameterCm, sample.weighedStalkCount, sample.weighedTotalKg,
-    sample.latitude, sample.notes,
-  ].some((value) => value !== "" && value !== null && value !== undefined);
+  return biometrySampleHasData(sample);
 }
 
 function newSample(index, sampleLengthM = 5) {
@@ -506,7 +502,8 @@ async function loadState() {
   resetVisit();
   const draftInspection = inspectBiometryDraft(loaded[7], state.master);
   state.biometryDraft = draftInspection.draft;
-  if (draftInspection.status === "valid") restoreBiometryDraft(draftInspection);
+  state.biometryDraftIssue = "";
+  state.biometryDraftStatus = draftInspection.status === "empty" ? "idle" : "protected";
   if (draftInspection.status === "lot-missing") {
     state.biometryDraftIssue = "La suerte de esta biometría pendiente ya no existe en el Maestro General.";
     state.biometryDraftStatus = "protected";
@@ -577,7 +574,8 @@ function renderHome() {
 function renderBiometryDraftCard() {
   const inspection = pendingDraftInspection();
   if (inspection.status === "empty") return "";
-  const sampleCount = inspection.draft?.biometry?.samples?.length || 0;
+  const sampleCount = countCapturedBiometryPoints(inspection.draft?.biometry?.samples);
+  const sampleLabel = `${sampleCount} ${sampleCount === 1 ? "punto capturado" : "puntos capturados"}`;
   const updated = inspection.draft?.updatedAt
     ? new Date(inspection.draft.updatedAt).toLocaleTimeString("es-NI", { hour: "2-digit", minute: "2-digit" })
     : "sin hora registrada";
@@ -586,7 +584,7 @@ function renderBiometryDraftCard() {
     <div class="actions"><button class="btn btn-light" id="discardBiometryDraft">Descartar</button></div>
   </section>`;
   return `<section class="pending-biometry-card">
-    <div><small>BIOMETRÍA PENDIENTE</small><strong>${escapeHtml(inspection.lot.producer)} · Suerte ${escapeHtml(inspection.lot.lot)}</strong><p>${sampleCount} punto(s) · último respaldo ${escapeHtml(updated)}</p></div>
+    <div><small>BIOMETRÍA PENDIENTE</small><strong>${escapeHtml(inspection.lot.producer)} · Suerte ${escapeHtml(inspection.lot.lot)}</strong><p>${sampleLabel} · último respaldo ${escapeHtml(updated)}</p></div>
     <div class="actions"><button class="btn btn-green" id="continueBiometryDraft">Continuar</button><button class="btn btn-light" id="discardBiometryDraft">Descartar</button></div>
   </section>`;
 }

@@ -7,6 +7,12 @@ const BIOMETRY_FIELDS = [
   "activeSampleId", "validation",
 ];
 
+const BIOMETRY_SAMPLE_DATA_FIELDS = [
+  "stalkCount", "directStalksPerMeter", "heightM", "diameterMm",
+  "lengthCm", "diameterCm", "weighedStalkCount", "weighedTotalKg",
+  "latitude", "notes",
+];
+
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
@@ -15,6 +21,15 @@ function draftBiometry(biometry) {
   return Object.fromEntries(BIOMETRY_FIELDS
     .filter((field) => Object.hasOwn(biometry || {}, field))
     .map((field) => [field, clone(biometry[field])]));
+}
+
+export function biometrySampleHasData(sample = {}) {
+  return BIOMETRY_SAMPLE_DATA_FIELDS
+    .some((field) => sample[field] !== "" && sample[field] !== null && sample[field] !== undefined);
+}
+
+export function countCapturedBiometryPoints(samples = []) {
+  return Array.isArray(samples) ? samples.filter(biometrySampleHasData).length : 0;
 }
 
 export function createBiometryDraft({

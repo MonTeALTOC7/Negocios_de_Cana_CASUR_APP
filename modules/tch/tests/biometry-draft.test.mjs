@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import {
   BIOMETRY_DRAFT_KEY,
   BIOMETRY_DRAFT_VERSION,
+  countCapturedBiometryPoints,
   createBiometryDraft,
   discardBiometryDraft,
   inspectBiometryDraft,
@@ -32,6 +33,10 @@ function fakeRepository() {
     async put(store, value) { writes.push({ operation: "put", store, value }); rows.set(`${store}:${value.key || value.id}`, value); },
     async delete(store, key) { writes.push({ operation: "delete", store, key }); rows.delete(`${store}:${key}`); },
   };
+}
+
+function sourceBetween(source, start, end) {
+  return source.slice(source.indexOf(start), source.indexOf(end, source.indexOf(start)));
 }
 
 test("no crea borrador vacío ni por seleccionar una suerte sin cambios", () => {
@@ -203,6 +208,57 @@ test("dos sesiones legítimas pueden conservar contextos independientes", () => 
   const second = createBiometryDraft({ lotId: "759", activeBiometryId: "bio-2", biometry: biometry({ date: "2026-10-09" }), dirty: true, updatedAt: "T2" });
   assert.notEqual(first.activeBiometryId, second.activeBiometryId);
   assert.notEqual(first.updatedAt, second.updatedAt);
+});
+
+test("la tarjeta ignora puntos vacíos al contar capturas", () => {
+  assert.equal(countCapturedBiometryPoints([
+    { id: "p01", pointCode: "P01", stalkCount: "", latitude: null, notes: "" },
+    { id: "p02", pointCode: "P02" },
+  ]), 0);
+});
+
+test("la tarjeta cuenta únicamente puntos con datos reales", () => {
+  assert.equal(countCapturedBiometryPoints([
+    { id: "p01", stalkCount: "" },
+    { id: "p02", stalkCount: 0 },
+    { id: "p03", latitude: 11.2 },
+    { id: "p04", notes: "observación" },
+  ]), 3);
+});
+
+test("cargar un borrador válido no restaura la suerte ni la sesión global", () => {
+  const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+  const loadState = sourceBetween(app, "async function loadState()", "function go(route)");
+  assert.match(loadState, /resetBiometry\(\);[^]*resetWeighing\(\);[^]*resetVisit\(\);/);
+  assert.match(loadState, /state\.biometryDraftStatus = draftInspection\.status === "empty" \? "idle" : "protected"/);
+  assert.doesNotMatch(loadState, /restoreBiometryDraft\(/);
+});
+
+test("Visitas inicia sin una suerte heredada del borrador", () => {
+  const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+  const resetVisit = sourceBetween(app, "function resetVisit()", "async function loadState()");
+  const go = sourceBetween(app, "function go(route)", "function latestByLot(records)");
+  assert.match(resetVisit, /state\.selectedLot = null/);
+  assert.doesNotMatch(go, /restoreBiometryDraft\(/);
+});
+
+test("navegar por otros módulos conserva protegido el borrador", () => {
+  const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+  const go = sourceBetween(app, "function go(route)", "function latestByLot(records)");
+  assert.doesNotMatch(go, /clearBiometryDraft|discardBiometryDraft/);
+});
+
+test("Continuar recupera el borrador mediante la entrada explícita", () => {
+  const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+  assert.match(app, /button\.id === "continueBiometryDraft" \|\| button\.id === "continuePendingBiometry"[^]*openBiometryRoute\(\)/);
+});
+
+test("entrar a Biometría restaura el borrador y sus IDs", () => {
+  const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+  const openRoute = sourceBetween(app, "function openBiometryRoute()", 'app.addEventListener("click"');
+  assert.match(openRoute, /restoreBiometryDraft\(inspection\)/);
+  assert.match(app, /state\.activeBiometryId = inspection\.draft\.activeBiometryId/);
+  assert.match(app, /state\.editingBiometryId = inspection\.draft\.editingBiometryId/);
 });
 
 test("la integración usa debounce y flush de ciclo de vida", () => {

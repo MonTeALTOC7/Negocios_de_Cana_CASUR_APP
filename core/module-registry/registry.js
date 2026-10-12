@@ -34,7 +34,7 @@ const BASE_MODULES = [
     storageNamespaces: ['cache:casur-suertes-vf54-*'], privacy: 'public' },
 
   { moduleId: 'tch', name: 'Estimador TCH', desc: 'Estimación TCH, biometría, visitas y fotografías',
-    version: '2.7.2', route: 'modules/tch/index.html', icon: 'tch',
+    version: '2.8.0', route: 'modules/tch/index.html', icon: 'tch',
     accent: 'var(--accent-tch)', enabled: true, visible: true, order: 2,
     requiresOnline: false, usesSupabase: false,
     storageNamespaces: ['idb:casur-estimador-tch'], privacy: 'public' },

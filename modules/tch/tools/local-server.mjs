@@ -32,5 +32,5 @@ http.createServer((req, res) => {
     });
   });
 }).listen(PORT, HOST, () => {
-  console.log(`Estimador TCH CASUR v2.7.2 disponible en http://${HOST}:${PORT}/`);
+  console.log(`Estimador TCH CASUR v2.8.0 disponible en http://${HOST}:${PORT}/`);
 });

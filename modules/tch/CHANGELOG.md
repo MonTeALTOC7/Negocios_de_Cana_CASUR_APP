@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2.8.0 — 2026-10-11
+
+- La medición biométrica muestra coordenadas GPS copiables por punto y permite abrir un mapa
+  reutilizando geometrías y el visor compartidos de CASUR.
+- El visor distingue la suerte seleccionada, sus suertes vecinas y los puntos GPS P01/P02…;
+  centrar puntos, seleccionar un marcador y volver al punto correspondiente.
+- El mapa de una biometría guardada se abre aislado de la sesión actual y permite retomar ese
+  punto en su formulario de edición. Offline usa los datos disponibles en la caché GEO existente.
+- Sin cambios de fórmula TCH, IndexedDB v3, borrador `draft:biometry:v1`, datasets o geometrías.
+
 ## Próxima versión
 
 - La captura de biometría mantiene un borrador automático local, con debounce de 500 ms y

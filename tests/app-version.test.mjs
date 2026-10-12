@@ -30,7 +30,7 @@ test("Maestro de Suertes muestra VF54.8 de forma consistente sin alterar otros m
   assert.match(productionVersion, /^VF54\.8 CASUR/m);
   assert.equal(productionPackage.version, "54.8.0");
   assert.match(index, /id="appVersion">v1\.2\.0</);
-  assert.match(versions, /tch: '2\.7\.2'/);
+  assert.match(versions, /tch: '2\.8\.0'/);
 });
 
 test("la geometría y Leaflet local forman parte del offline automático", () => {

@@ -10,6 +10,10 @@ import {
 } from "./tch-engine.js";
 import { downloadBlob, downloadWorkbook } from "./excel.js";
 import { createResultImageBlob } from "./result-image.js";
+import { captureSampleGps } from "./biometry-gps.js";
+import { createBiometryPointLayer } from "./biometry-map.js";
+import { getLotGeometries } from "../../../shared/geo/geo-data.js";
+import { createCasurMap } from "../../../shared/geo/geo-map.js";
 import { persistBiometryCheckpoint } from "./biometry-session.js";
 import {
   biometrySampleHasData, countCapturedBiometryPoints, createBiometryDraft,
@@ -72,11 +76,16 @@ const state = {
   embeddedMasterError: "",
   masterSync: { status: "idle", message: "", checkedAt: "" },
   storageEstimate: null,
+  biometryMapReturnSampleId: "",
 };
 
 const photoPreviewCache = new WeakMap();
 let biometryDraftTimer = null;
 let pendingBiometryRequest = null;
+let activeBiometryMap = null;
+let activeBiometryMapInstance = null;
+let activeBiometryPointLayer = null;
+let activeBiometryMapRecordId = "";
 
 function photoPreview(photo) {
   if (photo?.dataUrl) return photo.dataUrl;
@@ -172,8 +181,84 @@ function openModal(html) {
 }
 
 function closeModal() {
+  activeBiometryPointLayer?.destroy();
+  activeBiometryPointLayer = null;
+  activeBiometryMapInstance = null;
+  activeBiometryMapRecordId = "";
+  activeBiometryMap?.destroy();
+  activeBiometryMap = null;
   modal.hidden = true;
   modalContent.innerHTML = "";
+}
+
+function coordinateText(sample) {
+  if (sample?.latitude === null || sample?.latitude === undefined || sample.latitude === ""
+      || sample?.longitude === null || sample?.longitude === undefined || sample.longitude === ""
+      || !Number.isFinite(Number(sample.latitude)) || !Number.isFinite(Number(sample.longitude))) return "";
+  return `${Number(sample.latitude).toFixed(6)}, ${Number(sample.longitude).toFixed(6)}`;
+}
+
+function focusBiometryMapPoint(sampleId) {
+  const savedRecordId = activeBiometryMapRecordId;
+  closeModal();
+  if (savedRecordId) {
+    state.biometryMapReturnSampleId = sampleId;
+    requestNewBiometry({ type: "edit", recordId: savedRecordId });
+  } else {
+    state.biometry.activeSampleId = sampleId;
+    render();
+    document.querySelector(`[data-sample-id="${CSS.escape(sampleId)}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
+
+async function openBiometryMap(record = null) {
+  const lotId = record?.lotId || state.selectedLot?.id;
+  if (!lotId) return notify("Seleccioná una suerte antes de abrir el mapa.");
+  const samples = record?.samples || state.biometry?.samples || [];
+  const points = samples.filter((sample) => coordinateText(sample));
+  const isSaved = Boolean(record);
+  openModal(`<section class="biometry-map-dialog"><header><div><small>${isSaved ? "BIOMETRÍA GUARDADA" : "BIOMETRÍA ACTUAL"}</small><h2>Mapa de puntos · Suerte ${escapeHtml(record?.lot || state.selectedLot?.lot || lotId)}</h2><p>${escapeHtml(lotId)} · ${points.length} punto(s) con coordenadas</p></div><button class="icon-btn" type="button" data-close-modal aria-label="Cerrar mapa">×</button></header><div class="biometry-map-actions"><button class="btn btn-light" type="button" id="centerBiometryLot">Centrar suerte</button><button class="btn btn-light" type="button" id="centerBiometryPoints" ${points.length ? "" : "disabled"}>Centrar todos los puntos</button></div><div id="biometryMap" class="biometry-map-canvas" role="region" aria-label="Mapa de suerte y puntos biométricos"></div><p class="help">Los puntos guardados pertenecen a esta biometría${isSaved ? " guardada" : " en curso"}; no se mezclan con otros registros.</p></section>`);
+  const mapNode = document.querySelector("#biometryMap");
+  try {
+    const candidates = [lotId, ...state.master.filter((lot) => lot.id !== lotId && (record?.farmCode || state.selectedLot?.farmCode) && lot.farmCode === (record?.farmCode || state.selectedLot?.farmCode)).slice(0, 39).map((lot) => lot.id)];
+    const features = await getLotGeometries(candidates);
+    if (!mapNode?.isConnected) return;
+    const leaflet = new Proxy(globalThis.L, {
+      get(target, property) {
+        if (property === "map") return (...args) => {
+          activeBiometryMapInstance = Reflect.get(target, property, target).apply(target, args);
+          return activeBiometryMapInstance;
+        };
+        const value = Reflect.get(target, property, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    activeBiometryMap = createCasurMap(mapNode, { leaflet, ariaLabel: `Mapa de puntos biométricos de la suerte ${lotId}`, layersCollapsed: true });
+    activeBiometryMap.setLots(features, lotId);
+    activeBiometryMapRecordId = record?.id || "";
+    activeBiometryPointLayer = createBiometryPointLayer({
+      leaflet, map: activeBiometryMapInstance, points,
+      activeSampleId: isSaved ? "" : state.biometry?.activeSampleId,
+      onFocus: (sample) => focusBiometryMapPoint(sample.id),
+    });
+    if (features.length) activeBiometryMap.fitToLot(lotId);
+    else notify("Geometría no disponible sin conexión. Los puntos GPS guardados se mantienen.");
+  } catch (error) {
+    if (mapNode?.isConnected) mapNode.innerHTML = `<p class="info-note">No fue posible cargar la geometría de esta suerte: ${escapeHtml(error?.message || "error desconocido")}. Las coordenadas guardadas no se modificaron.</p>`;
+  }
+}
+
+function captureGps(target, onSuccess = null) {
+  if (!navigator.geolocation) return notify("Este dispositivo no permite capturar GPS.");
+  notify("Obteniendo ubicación GPS…");
+  captureSampleGps(target).then(() => {
+    onSuccess?.();
+    render();
+    notify(target.gpsAccuracyM > 30 ? `GPS capturado con precisión baja: ±${Math.round(target.gpsAccuracyM)} m.` : "GPS capturado correctamente.");
+  }).catch((error) => {
+    const message = error?.code === 1 ? "Permiso GPS denegado. Revisá los permisos del navegador." : error?.code === 2 ? "Ubicación GPS no disponible. Las coordenadas previas se conservaron." : "Se agotó el tiempo para obtener GPS. Las coordenadas previas se conservaron.";
+    notify(message);
+  });
 }
 
 function currentBiometryDraft(updatedAt = new Date().toISOString()) {
@@ -781,7 +866,8 @@ function sampleCard(sample, index, spacing) {
         </div>` : ""}
       </section>
       <div class="point-tools">
-        <button class="gps-button ${sample.latitude ? "captured" : ""}" data-gps-sample="${sample.id}">${sample.latitude ? `✓ GPS capturado · ±${formatNumber(sample.gpsAccuracyM, 0)} m` : "⌖ CAPTURAR GPS"}</button>
+        <button class="gps-button ${sample.latitude !== null && sample.latitude !== undefined ? "captured" : ""}" data-gps-sample="${sample.id}">${sample.latitude !== null && sample.latitude !== undefined ? `✓ GPS capturado · ±${formatNumber(sample.gpsAccuracyM, 0)} m` : "⌖ CAPTURAR GPS"}</button>
+        <div class="sample-gps-details">${coordinateText(sample) ? `<span><b>Coordenada:</b> ${escapeHtml(coordinateText(sample))} · ±${formatNumber(sample.gpsAccuracyM, 0)} m</span><button type="button" class="btn btn-light" data-copy-sample-gps="${escapeHtml(sample.id)}">Copiar coordenada</button><button type="button" class="btn btn-light" data-show-sample-map="${escapeHtml(sample.id)}">Ver mapa</button>` : `<span>Sin coordenada capturada</span><button type="button" class="btn btn-light" disabled>Copiar coordenada</button>`}</div>
         ${field("Observación del punto", `<input data-sample-field="notes" data-sample="${sample.id}" value="${escapeHtml(sample.notes)}" placeholder="Acame, sequía, daño, espacio…">`)}
       </div>
     </div>
@@ -823,6 +909,7 @@ function renderMeasureStage() {
           <div class="point-nav-head"><b>${summary.count} de ${b.samples.length} punto(s) completos</b><small>Deslizá horizontalmente para cambiar de punto.</small></div>
           ${pointTabs()}
         </div>
+        <div class="biometry-map-launch"><button class="btn btn-blue" type="button" id="openCurrentBiometryMap">⌖ Mapa de puntos</button><small>Polígono de la suerte y puntos GPS capturados</small></div>
         <div id="activeSample">${sampleCard(active, index, b.rowSpacingM)}</div>
         ${summary.count > 0 && summary.count < 3 ? `<div class="warning compact-warning"><b>Muestreo corto:</b> podés finalizar y guardar, pero con ${summary.count} punto(s) la representatividad es menor. La app no te obliga a completar un número fijo.</div>` : ""}
         <div class="field-actions">
@@ -922,9 +1009,10 @@ function editBiometry(record) {
     sampleLengthM: record.sampleLengthM || 5, targetAgeMonths: record.targetAgeMonths || 10,
     adjustmentPct: record.adjustmentPct ?? 5, adjustmentReason: record.adjustmentReason || "Criterio técnico",
     notes: record.notes || "", search: `${lot.id} · ${lot.producer} · Suerte ${lot.lot}`,
-    phase: "measure", samples, activeSampleId: samples[0].id,
+    phase: "measure", samples, activeSampleId: samples.some((sample) => sample.id === state.biometryMapReturnSampleId) ? state.biometryMapReturnSampleId : samples[0].id,
     validation: record.validation || { validated: Boolean(record.validated), validatedAt: record.validatedAt || "", validatedBy: record.validatedBy || "" },
   };
+  state.biometryMapReturnSampleId = "";
   state.route = "biometry";
   render();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1414,7 +1502,7 @@ function renderHistory() {
       return `<article class="record"><div class="record-head"><div><h3>${escapeHtml(record.producer)} · Suerte ${escapeHtml(record.lot)}</h3><p>${escapeHtml(record.kind)} · ${escapeHtml(formatDateShort(record.date))} · ${escapeHtml(record.technician)}</p></div><span class="code-pill">${escapeHtml(record.lotId)}</span></div>
         <div class="record-meta">${escapeHtml(record.zone || "")}${record.tenureLabel ? ` · ${escapeHtml(record.tenureLabel)}` : ""}${record.validated ? " · ✓ Validado" : ""}</div>
         <div class="record-metrics"><div><span>${isBio ? "TCHe actual" : "TCH pesaje"}</span><strong>${formatNumber(record.secondary, 1)}</strong></div><div><span>${isBio ? "TCH proyectado" : "Edad"}</span><strong>${isBio ? formatNumber(record.result, 1) : `${formatNumber(record.ageMonths, 1)} m`}</strong></div><div><span>${isBio && record.weightTch ? "Contraste peso" : "Área"}</span><strong>${isBio && record.weightTch ? formatNumber(record.weightTch, 1) : `${formatNumber(record.area, 2)} ha`}</strong></div></div>
-        <div class="record-actions">${isBio ? `<button class="btn btn-blue" data-edit-biometry="${escapeHtml(record.id)}">Editar biometría</button>` : ""}<button class="btn btn-light" data-real-harvest="${escapeHtml(record.lotId)}">Registrar TCH real</button><button class="btn btn-danger" data-delete-record="${escapeHtml(record.id)}" data-record-kind="${isBio ? "biometries" : "weighings"}">Eliminar</button></div>
+        <div class="record-actions">${isBio ? `<button class="btn btn-blue" data-edit-biometry="${escapeHtml(record.id)}">Editar biometría</button>${(record.samples || []).some((sample) => coordinateText(sample)) ? `<button class="btn btn-light" data-biometry-map="${escapeHtml(record.id)}">Mapa de puntos guardados</button>` : ""}` : ""}<button class="btn btn-light" data-real-harvest="${escapeHtml(record.lotId)}">Registrar TCH real</button><button class="btn btn-danger" data-delete-record="${escapeHtml(record.id)}" data-record-kind="${isBio ? "biometries" : "weighings"}">Eliminar</button></div>
       </article>`;
     }).join("")}</section>` : emptyState("▤", "Sin registros", "Todavía no hay evaluaciones que coincidan con el filtro.")}`;
 }
@@ -1512,22 +1600,6 @@ function render() {
     master: renderMaster,
   };
   app.innerHTML = (views[state.route] || renderHome)();
-}
-
-async function captureGps(target, onSuccess = null) {
-  if (!navigator.geolocation) return notify("Este dispositivo no permite capturar GPS.");
-  notify("Obteniendo ubicación GPS…");
-  navigator.geolocation.getCurrentPosition((position) => {
-    Object.assign(target, {
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-      gpsAccuracyM: position.coords.accuracy,
-      capturedAt: new Date().toISOString(),
-    });
-    onSuccess?.();
-    render();
-    notify(position.coords.accuracy > 30 ? `GPS capturado con precisión baja: ±${Math.round(position.coords.accuracy)} m.` : "GPS capturado correctamente.");
-  }, () => notify("No se pudo capturar GPS. Revisá el permiso del navegador."), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
 }
 
 function selectLot(id, context) {
@@ -1653,6 +1725,45 @@ document.addEventListener("click", async (event) => {
   if (button.dataset.editBiometry) {
     const record = state.biometries.find((item) => item.id === button.dataset.editBiometry);
     if (record) requestNewBiometry({ type: "edit", recordId: record.id });
+    return;
+  }
+  if (button.dataset.biometryMap) {
+    const record = state.biometries.find((item) => item.id === button.dataset.biometryMap);
+    if (record) openBiometryMap(record);
+    return;
+  }
+  if (button.id === "openCurrentBiometryMap") {
+    openBiometryMap();
+    return;
+  }
+  if (button.dataset.showSampleMap) {
+    const sample = state.biometry.samples.find((item) => item.id === button.dataset.showSampleMap);
+    if (sample) state.biometry.activeSampleId = sample.id;
+    openBiometryMap();
+    return;
+  }
+  if (button.dataset.copySampleGps) {
+    const sample = state.biometry.samples.find((item) => item.id === button.dataset.copySampleGps);
+    const text = coordinateText(sample);
+    if (!text) return notify("Este punto todavía no tiene coordenadas.");
+    try {
+      await navigator.clipboard.writeText(text);
+      notify(`${sample.pointCode}: coordenada copiada.`);
+    } catch {
+      notify("No se pudo copiar. Revisá el permiso de portapapeles del navegador.");
+    }
+    return;
+  }
+  if (button.id === "centerBiometryLot") {
+    if (!activeBiometryMap?.fitToLot()) notify("No hay geometría cargada para centrar la suerte.");
+    return;
+  }
+  if (button.id === "centerBiometryPoints") {
+    if (!activeBiometryPointLayer?.fit()) notify("No hay puntos GPS para centrar.");
+    return;
+  }
+  if (button.dataset.focusBiometryPoint) {
+    focusBiometryMapPoint(button.dataset.focusBiometryPoint);
     return;
   }
   if (button.id === "cancelBiometryEdit") {

@@ -1,8 +1,15 @@
-# Estimador TCH CASUR — v2.7.2
+# Estimador TCH CASUR — v2.8.0
 
 PWA estática para GitHub Pages orientada a trabajo de campo de Negocios de Caña CASUR.
 
-## Mejoras principales v2.7.2
+## Novedades v2.8.0
+
+- Mapa de contexto para biometrías con la suerte seleccionada y puntos vecinos, usando el motor y las geometrías compartidas de GEO.
+- Marcadores P01, P02, etc. con acceso al punto correspondiente en biometrías actuales y guardadas.
+- Coordenadas GPS por punto visibles y copiables, con precisión y hora de captura; los datos previos se conservan si la captura falla.
+- La captura GPS y los mapas funcionan sin alterar fórmulas, datasets ni el esquema IndexedDB.
+
+## Mejoras incorporadas hasta v2.7.2
 
 - Antes de seleccionar el Excel de estimados, el usuario debe declarar obligatoriamente su fecha efectiva.
 - Si la fecha declarada contradice la fecha detectada en el encabezado o nombre del archivo, la aplicación bloquea la actualización.

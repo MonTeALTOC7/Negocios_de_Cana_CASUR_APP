@@ -13,7 +13,7 @@ export const APP_CHANNEL = 'GitHub Pages';
    confirmarán/leerán de su propio version.json cuando exista. */
 export const MODULE_VERSIONS = {
   produccion: 'VF54.8',
-  tch: '2.7.2',
+  tch: '2.8.0',
   riego: 'v6',
   insumos: '1.0',
   inventario: '1.4.0',

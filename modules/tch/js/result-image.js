@@ -346,7 +346,7 @@ export async function createResultImageBlob({ lot, biometry, summary, logoUrl = 
   ctx.font = "700 16px Arial, sans-serif";
   ctx.fillText(`Técnico: ${biometry.technician || "Sin registrar"}`, 48, 1395);
   ctx.textAlign = "right";
-  ctx.fillText("Estimador TCH CASUR v2.7.2 · PNG generado en el teléfono", 1032, 1395);
+  ctx.fillText("Estimador TCH CASUR v2.8.0 · PNG generado en el teléfono", 1032, 1395);
   ctx.textAlign = "left";
   ctx.fillStyle = "#0b7f3a";
   ctx.fillRect(42, 1419, 620, 9);

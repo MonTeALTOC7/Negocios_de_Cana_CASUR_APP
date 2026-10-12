@@ -1,0 +1,104 @@
+.casur-geo-map {
+  position: relative;
+  width: 100%;
+  min-height: 320px;
+  height: 100%;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(25, 73, 46, 0.08), rgba(244, 197, 66, 0.07)),
+    #e7ece7;
+  color: #173829;
+  isolation: isolate;
+}
+
+.casur-geo-map:focus-visible {
+  outline: 3px solid #f4c542;
+  outline-offset: -3px;
+}
+
+.casur-geo-map--offline .leaflet-tile-pane {
+  opacity: 0;
+}
+
+.casur-geo-map .leaflet-control-layers,
+.casur-geo-map .leaflet-control-zoom {
+  border: 0;
+  border-radius: 12px;
+  box-shadow: 0 7px 22px rgba(18, 54, 34, 0.2);
+}
+
+.casur-geo-map .leaflet-control-layers-toggle,
+.casur-geo-map .leaflet-control-zoom a {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.casur-geo-map .leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.84);
+  color: #31483b;
+  font-size: 10px;
+}
+
+.casur-geo-label {
+  border: 1px solid rgba(22, 68, 42, 0.25);
+  border-radius: 999px;
+  background: rgba(249, 252, 249, 0.9);
+  box-shadow: 0 2px 8px rgba(15, 45, 28, 0.2);
+  color: #173d29;
+  font: 700 11px/1.2 system-ui, sans-serif;
+  padding: 3px 7px;
+  pointer-events: none;
+}
+
+.casur-geo-label::before {
+  display: none;
+}
+
+.casur-geo-label--selected {
+  border-color: #9c7610;
+  background: #fff7cf;
+  color: #443200;
+  font-weight: 850;
+}
+
+.casur-geo-offline-notice {
+  position: absolute;
+  z-index: 1000;
+  right: 12px;
+  bottom: 24px;
+  max-width: min(280px, calc(100% - 24px));
+  border: 1px solid rgba(35, 78, 50, 0.2);
+  border-radius: 999px;
+  background: rgba(250, 252, 249, 0.94);
+  box-shadow: 0 5px 16px rgba(17, 48, 29, 0.16);
+  color: #244b32;
+  font: 700 12px/1.3 system-ui, sans-serif;
+  padding: 8px 12px;
+  pointer-events: none;
+}
+
+.casur-geo-offline-notice[hidden] {
+  display: none;
+}
+
+@media (max-width: 719px) {
+  .casur-geo-map {
+    min-height: 360px;
+  }
+
+  .casur-geo-map .leaflet-control-layers-expanded {
+    max-width: calc(100vw - 32px);
+    font-size: 14px;
+  }
+
+  .casur-geo-offline-notice {
+    right: 10px;
+    bottom: 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .casur-geo-map * {
+    scroll-behavior: auto !important;
+  }
+}

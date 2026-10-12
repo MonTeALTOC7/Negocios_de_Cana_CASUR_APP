@@ -601,7 +601,7 @@ async function viewCentroMaestro() {
         </div>
         <p class="panel__note" style="margin-top:8px; opacity:.8">El paquete de datos (cronologico/historico/version)
         lo genera el propio Centro Maestro de Producción (botón «Paquete solo datos para GitHub»), ya con los datos
-        aplicados. Versión de <em>datos</em> ≠ versión de <em>código</em> (VF54.6).</p>
+        aplicados. Versión de <em>datos</em> ≠ versión de <em>código</em> (VF54.8).</p>
       </section>
 
       <section class="card" id="pinCard"></section>
@@ -1053,6 +1053,9 @@ function route(r) {
 /* ---------------- Service Worker ---------------- */
 function registerSW() {
   if (!('serviceWorker' in navigator)) return;
+  const warmGeo = () => navigator.serviceWorker.ready
+    .then((reg) => reg.active?.postMessage({ type: 'WARM_GEO' }))
+    .catch((error) => console.warn('Geometría offline pendiente:', error));
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js', { scope: './' }).then((reg) => {
       /* [Hotfix 4.4.3] Activar automáticamente el SW nuevo (incluye el gate
@@ -1069,7 +1072,10 @@ function registerSW() {
           }
         });
       });
+      void warmGeo();
     }).catch((e) => console.warn('SW no registrado:', e));
+
+    window.addEventListener('online', warmGeo);
 
     /* Recarga del shell UNA sola vez al cambiar de controlador (guard evita bucles). */
     let refreshing = false;

@@ -797,11 +797,23 @@
     return `<div class="casur-geo-coordinates"><span><b>Coordenada de referencia</b>${esc(coordinates)}</span>${interactive ? `<div class="casur-geo-inline-actions"><button class="casur-geo-icon-action" type="button" data-geo-copy="${esc(coordinates)}" aria-label="Copiar coordenadas de la suerte ${esc(selected)}" title="Copiar coordenada">${geoIcon("copy")}</button><a class="casur-geo-icon-action" href="https://www.google.com/maps?q=${encodeURIComponent(coordinates)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir coordenadas de la suerte ${esc(selected)} en Google Maps" title="Abrir en Google Maps">${geoIcon("map")}</a></div>` : ""}</div>`;
   }
 
-  function geoDetailActionMarkup(context, selected, enabled, interactive = true) {
-    if (!interactive || !selected || !enabled) return "";
-    const label = context?.source === "historico" ? "Ver histórico" : "Ver ficha";
-    const shortLabel = context?.source === "historico" ? "Histórico" : "Ficha";
-    return `<div class="casur-geo-card-actions"><button type="button" data-geo-view-detail="${esc(selected)}" aria-label="${esc(label)} de la suerte ${esc(selected)}">${geoIcon("detail")}<span>${esc(shortLabel)}</span></button></div>`;
+  function geoSelectedDetailMode(context, lotId) {
+    const selected = geoLotId(lotId);
+    if (!context || !selected) return "";
+    if (context.source === "historico") {
+      const model = geoHistoricalCardModel(context, selected);
+      return model?.hasData && typeof window.renderEntity === "function" ? "historico" : "";
+    }
+    const record = geoRecordForLot(context, selected);
+    return record && typeof window.selectCronoSuerteSuggestion === "function" ? "cronologico" : "";
+  }
+
+  function geoSelectedDetailLabel(context, lotId) {
+    const selected = geoLotId(lotId);
+    const mode = geoSelectedDetailMode(context, selected);
+    if (mode === "historico") return `Ver histórico ${selected}`;
+    if (mode === "cronologico") return `Ver ficha ${selected}`;
+    return "Volver a la ficha";
   }
 
   function geoChronologicalCardMarkup(context, lotId = "", interactive = true) {
@@ -1250,29 +1262,37 @@
       fitLot.setAttribute("aria-label", origin ? `Volver a la suerte de origen ${origin}` : "Centrar la suerte seleccionada");
       fitLot.disabled = origin ? !geoFeatureForLot(origin) : !selected;
     }
+    const primaryNav = $("casurGeoPrimaryNav");
+    if (primaryNav) {
+      const label = geoSelectedDetailLabel(geoActiveContext, selected);
+      primaryNav.textContent = label;
+      primaryNav.setAttribute("aria-label", label);
+    }
     if (pngFarm) pngFarm.disabled = !geoFeatures.length || geoExportBusy;
     if (pngLot) pngLot.disabled = !selected || geoExportBusy;
   }
 
   function openGeoSelectedDetail() {
-    if (!geoActiveContext || !geoMapController) return;
+    if (!geoActiveContext || !geoMapController) return false;
     const selected = geoLotId(geoMapController.getSelectedLotId?.() || geoActiveContext.selectedLotId);
-    if (!selected) return;
+    const mode = geoSelectedDetailMode(geoActiveContext, selected);
+    if (!mode) return false;
     const source = geoActiveContext.source;
     const farmCode = geoActiveContext.farmCode;
     const record = geoRecordForLot(geoActiveContext, selected);
     closeCasurGeoDialog();
     requestAnimationFrame(() => {
-      if (source === "historico") {
+      if (mode === "historico" && source === "historico") {
         if (typeof window.renderEntity === "function") {
           window.renderEntity(`LOTE::${selected}`, { preserveDrilldown: true, fromDrilldown: true });
         }
         return;
       }
-      if (record && typeof window.selectCronoSuerteSuggestion === "function") {
+      if (mode === "cronologico" && record && typeof window.selectCronoSuerteSuggestion === "function") {
         window.selectCronoSuerteSuggestion(farmCode, record.suerte);
       }
     });
+    return true;
   }
 
   function ensureGeoDialog() {
@@ -1293,12 +1313,15 @@
           </div>
           <footer class="casur-geo-foot">
             <p id="casurGeoStatus" role="status" aria-live="polite"></p>
-            <div class="casur-geo-foot-actions"><button type="button" class="casur-geo-control" id="casurGeoFitFarm" disabled>Finca completa</button><button type="button" class="casur-geo-control" id="casurGeoFitLot" disabled>Centrar seleccionada</button><button type="button" class="casur-geo-control" id="casurGeoPngFarm" disabled>PNG finca</button><button type="button" class="casur-geo-control" id="casurGeoPngLot" disabled>PNG suerte</button><button type="button" class="casur-geo-control is-primary" data-geo-close>Volver a la ficha</button></div>
+            <div class="casur-geo-foot-actions"><button type="button" class="casur-geo-control" id="casurGeoFitFarm" disabled>Finca completa</button><button type="button" class="casur-geo-control" id="casurGeoFitLot" disabled>Centrar seleccionada</button><button type="button" class="casur-geo-control" id="casurGeoPngFarm" disabled>PNG finca</button><button type="button" class="casur-geo-control" id="casurGeoPngLot" disabled>PNG suerte</button><button type="button" class="casur-geo-control is-primary" id="casurGeoPrimaryNav">Volver a la ficha</button></div>
           </footer>
         </section>
       </div>`);
     const layer = $("casurGeoLayer");
     layer.querySelectorAll("[data-geo-close]").forEach((button) => button.addEventListener("click", closeCasurGeoDialog));
+    $("casurGeoPrimaryNav").addEventListener("click", () => {
+      if (!openGeoSelectedDetail()) closeCasurGeoDialog();
+    });
     $("casurGeoFitFarm").addEventListener("click", () => {
       try { geoMapController?.fitToData?.(); } catch (error) {}
     });
@@ -1328,7 +1351,6 @@
         geoCopyCoordinates(copy.dataset.geoCopy).then(() => moduleToast("Coordenadas copiadas")).catch(() => moduleToast("No fue posible copiar las coordenadas"));
         return;
       }
-      if (event.target.closest?.("[data-geo-view-detail]")) openGeoSelectedDetail();
     });
     layer.addEventListener("keydown", (event) => {
       if (event.key === "Escape") { event.preventDefault(); closeCasurGeoDialog(); return; }
@@ -1540,6 +1562,7 @@
     historicalContext: geoHistoricalContext,
     cronoContext: geoCronoContext,
     historicalCardModel: geoHistoricalCardModel,
+    selectedDetailLabel: geoSelectedDetailLabel,
     chronologicalCardMarkup: geoChronologicalCardMarkup,
     historicalCardMarkup: geoHistoricalCardMarkup,
     exportFilename: geoExportFilename,

@@ -24,6 +24,8 @@ function productionGeoApi() {
     CASUR_HISTORICAL_ENGINE: historicalEngine,
     APP_DATA: historico,
     CRONO_DATA: crono,
+    renderEntity() {},
+    selectCronoSuerteSuggestion() {},
     addEventListener() {},
   };
   window.window = window;
@@ -128,6 +130,11 @@ test("el modal es accesible, responsive y restaura el foco", () => {
   assert.match(enhancements, /id="casurGeoFitLot" disabled>Centrar seleccionada<\/button>/);
   assert.match(enhancements, /id="casurGeoPngFarm" disabled>PNG finca<\/button>/);
   assert.match(enhancements, /id="casurGeoPngLot" disabled>PNG suerte<\/button>/);
+  assert.match(enhancements, /id="casurGeoPrimaryNav">Volver a la ficha<\/button>/);
+  assert.match(enhancements, /primaryNav\.textContent = label/);
+  assert.match(enhancements, /if \(!openGeoSelectedDetail\(\)\) closeCasurGeoDialog\(\)/);
+  assert.doesNotMatch(enhancements, /data-geo-view-detail/);
+  assert.equal((enhancements.match(/id="casurGeoPrimaryNav"/g) || []).length, 1);
   assert.match(enhancements, /\$\("casurGeoFitFarm"\)\.addEventListener\("click"[\s\S]+?fitToData/);
   assert.match(enhancements, /\$\("casurGeoFitLot"\)\.addEventListener\("click"[\s\S]+?selectLot\?\.\(origin, \{ fit: true \}\)[\s\S]+?fitToLot/);
   assert.match(enhancements, /fitLot\.textContent = origin \? `Volver a \$\{origin\}` : "Centrar seleccionada"/);
@@ -171,6 +178,40 @@ test("Cronológico conserva fuente operativa y sustituye Estado por Destino", ()
   assert.doesNotMatch(markup, />Estado</);
   assert.doesNotMatch(markup, /data-geo-view-detail/, "la lámina exportada no contiene acciones");
   assert.doesNotMatch(interactiveMarkup, /data-geo-view-detail/, "la tarjeta cronológica usa solo la navegación inferior");
+});
+
+test("la navegación inferior usa la suerte seleccionada y respeta la fuente", () => {
+  const api = productionGeoApi();
+  const producer = crono.producers.find((item) => String(item.code) === "993");
+  const chronological = {
+    source: "cronologico",
+    entityType: "finca",
+    farmCode: "993",
+    name: producer.name,
+    currentRows: producer.details,
+  };
+  const lot75907 = historico.lotCompact.find((row) => String(row[0]) === "75907");
+  const historical = api.historicalContext({
+    entityType: "finca",
+    code: "759",
+    name: "Jesús María",
+  });
+
+  assert.equal(api.selectedDetailLabel(chronological, ""), "Volver a la ficha");
+  assert.equal(api.selectedDetailLabel(chronological, "99323"), "Ver ficha 99323");
+  assert.equal(api.selectedDetailLabel(chronological, "99325"), "Ver ficha 99325");
+  assert.equal(api.selectedDetailLabel(chronological, "75907"), "Volver a la ficha");
+  assert.equal(api.selectedDetailLabel(historical, "75907"), "Ver histórico 75907");
+  assert.equal(api.selectedDetailLabel(historical, "99323"), "Ver histórico 99323");
+  assert.equal(api.selectedDetailLabel(historical, "99999"), "Volver a la ficha");
+  assert.ok(lot75907, "75907 existe en el histórico real usado por la prueba");
+
+  const navigation = enhancements.match(/function openGeoSelectedDetail\(\) \{([\s\S]*?)function ensureGeoDialog\(\)/);
+  assert.ok(navigation);
+  assert.match(navigation[1], /geoMapController\.getSelectedLotId/);
+  assert.doesNotMatch(navigation[1], /originLotId/);
+  assert.match(navigation[1], /window\.renderEntity\(`LOTE::\$\{selected\}`/);
+  assert.match(navigation[1], /window\.selectCronoSuerteSuggestion\(farmCode, record\.suerte\)/);
 });
 
 test("Histórico usa todas las zafras del motor y nunca currentRows cronológico", () => {

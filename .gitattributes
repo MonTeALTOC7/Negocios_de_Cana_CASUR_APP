@@ -1,0 +1,2 @@
+shared/geo/data/*.json text eol=lf
+shared/geo/data/*.geojson text eol=lf

@@ -10,7 +10,7 @@ import {
 } from "./tch-engine.js";
 import { downloadBlob, downloadWorkbook } from "./excel.js";
 import { createResultImageBlob } from "./result-image.js";
-import { captureSampleGps } from "./biometry-gps.js";
+import { captureSampleGps, createBiometryGpsCoordinator } from "./biometry-gps.js";
 import { createBiometryPointLayer } from "./biometry-map.js";
 import { getLotGeometries } from "../../../shared/geo/geo-data.js";
 import { createCasurMap } from "../../../shared/geo/geo-map.js";
@@ -86,6 +86,7 @@ let activeBiometryMap = null;
 let activeBiometryMapInstance = null;
 let activeBiometryPointLayer = null;
 let activeBiometryMapRecordId = "";
+const captureBiometryPoint = createBiometryGpsCoordinator();
 
 function photoPreview(photo) {
   if (photo?.dataUrl) return photo.dataUrl;
@@ -198,6 +199,11 @@ function coordinateText(sample) {
   return `${Number(sample.latitude).toFixed(6)}, ${Number(sample.longitude).toFixed(6)}`;
 }
 
+function capturedGpsTime(sample) {
+  const date = new Date(sample?.capturedAt || "");
+  return Number.isFinite(date.getTime()) ? date.toLocaleString("es-NI", { dateStyle: "short", timeStyle: "short" }) : "Sin hora registrada";
+}
+
 function focusBiometryMapPoint(sampleId) {
   const savedRecordId = activeBiometryMapRecordId;
   closeModal();
@@ -217,11 +223,12 @@ async function openBiometryMap(record = null) {
   const samples = record?.samples || state.biometry?.samples || [];
   const points = samples.filter((sample) => coordinateText(sample));
   const isSaved = Boolean(record);
-  openModal(`<section class="biometry-map-dialog"><header><div><small>${isSaved ? "BIOMETRÍA GUARDADA" : "BIOMETRÍA ACTUAL"}</small><h2>Mapa de puntos · Suerte ${escapeHtml(record?.lot || state.selectedLot?.lot || lotId)}</h2><p>${escapeHtml(lotId)} · ${points.length} punto(s) con coordenadas</p></div><button class="icon-btn" type="button" data-close-modal aria-label="Cerrar mapa">×</button></header><div class="biometry-map-actions"><button class="btn btn-light" type="button" id="centerBiometryLot">Centrar suerte</button><button class="btn btn-light" type="button" id="centerBiometryPoints" ${points.length ? "" : "disabled"}>Centrar todos los puntos</button></div><div id="biometryMap" class="biometry-map-canvas" role="region" aria-label="Mapa de suerte y puntos biométricos"></div><p class="help">Los puntos guardados pertenecen a esta biometría${isSaved ? " guardada" : " en curso"}; no se mezclan con otros registros.</p></section>`);
+  openModal(`<section class="biometry-map-dialog"><header><div><small>${isSaved ? "BIOMETRÍA GUARDADA" : "BIOMETRÍA ACTUAL"}</small><h2>Mapa de puntos · Suerte ${escapeHtml(record?.lot || state.selectedLot?.lot || lotId)}</h2><p>${escapeHtml(lotId)} · ${points.length} punto(s) con coordenadas</p></div><button class="icon-btn" type="button" data-close-modal aria-label="Cerrar mapa">×</button></header><div class="biometry-map-actions"><button class="btn btn-light" type="button" id="centerBiometryLot">Centrar suerte</button><button class="btn btn-light" type="button" id="centerBiometryPoints" ${points.length ? "" : "disabled"}>Centrar todos los puntos</button></div><p id="biometryGeometryNotice" class="help" role="status" hidden></p><div id="biometryMap" class="biometry-map-canvas" role="region" aria-label="Mapa de suerte y puntos biométricos"></div><p class="help">Los puntos guardados pertenecen a esta biometría${isSaved ? " guardada" : " en curso"}; no se mezclan con otros registros.</p></section>`);
   const mapNode = document.querySelector("#biometryMap");
   try {
     const candidates = [lotId, ...state.master.filter((lot) => lot.id !== lotId && (record?.farmCode || state.selectedLot?.farmCode) && lot.farmCode === (record?.farmCode || state.selectedLot?.farmCode)).slice(0, 39).map((lot) => lot.id)];
-    const features = await getLotGeometries(candidates);
+    let features = [];
+    try { features = await getLotGeometries(candidates); } catch { /* Los puntos GPS siguen disponibles sin GEO. */ }
     if (!mapNode?.isConnected) return;
     const leaflet = new Proxy(globalThis.L, {
       get(target, property) {
@@ -241,8 +248,12 @@ async function openBiometryMap(record = null) {
       activeSampleId: isSaved ? "" : state.biometry?.activeSampleId,
       onFocus: (sample) => focusBiometryMapPoint(sample.id),
     });
-    if (features.length) activeBiometryMap.fitToLot(lotId);
-    else notify("Geometría no disponible sin conexión. Los puntos GPS guardados se mantienen.");
+    if (activeBiometryMap.fitToLot(lotId)) return;
+    document.querySelector("#centerBiometryLot").disabled = true;
+    const notice = document.querySelector("#biometryGeometryNotice");
+    notice.textContent = "Geometría de la suerte no disponible. Los puntos GPS siguen visibles.";
+    notice.hidden = false;
+    activeBiometryPointLayer.fit();
   } catch (error) {
     if (mapNode?.isConnected) mapNode.innerHTML = `<p class="info-note">No fue posible cargar la geometría de esta suerte: ${escapeHtml(error?.message || "error desconocido")}. Las coordenadas guardadas no se modificaron.</p>`;
   }
@@ -259,6 +270,46 @@ function captureGps(target, onSuccess = null) {
     const message = error?.code === 1 ? "Permiso GPS denegado. Revisá los permisos del navegador." : error?.code === 2 ? "Ubicación GPS no disponible. Las coordenadas previas se conservaron." : "Se agotó el tiempo para obtener GPS. Las coordenadas previas se conservaron.";
     notify(message);
   });
+}
+
+async function captureBiometryGps(sample, { automatic = false } = {}) {
+  const session = state.biometry;
+  const lotId = state.selectedLot?.id;
+  if (!session || !lotId || !sample) return;
+  if (!navigator.geolocation) {
+    if (!automatic) notify("Este dispositivo no permite capturar GPS.");
+    return;
+  }
+  if (automatic && navigator.permissions?.query) {
+    try {
+      const permission = await navigator.permissions.query({ name: "geolocation" });
+      if (permission.state === "denied") return;
+    } catch { /* El navegador puede no admitir esta consulta; geolocation decidirá. */ }
+    if (state.biometry !== session || state.selectedLot?.id !== lotId) return;
+  }
+  if (!automatic) notify("Obteniendo ubicación GPS…");
+  try {
+    const result = await captureBiometryPoint(sample, {
+      automatic,
+      isCurrent: () => state.biometry === session && state.selectedLot?.id === lotId && session.samples.includes(sample),
+    });
+    if (result.status !== "captured") return;
+    markBiometryDirty();
+    render();
+    notify(sample.gpsAccuracyM > 30 ? `GPS capturado con precisión baja: ±${Math.round(sample.gpsAccuracyM)} m.` : "GPS capturado correctamente.");
+  } catch (error) {
+    if (state.biometry !== session || state.selectedLot?.id !== lotId) return;
+    const message = error?.code === 1 ? "Permiso GPS denegado. Podés seguir midiendo y usar el botón manual cuando esté disponible."
+      : error?.code === 2 ? "Ubicación GPS no disponible. Las coordenadas previas se conservaron."
+        : "Se agotó el tiempo para obtener GPS. Las coordenadas previas se conservaron.";
+    notify(message);
+  }
+}
+
+function captureActivePointAutomatically() {
+  if (!state.biometry?.autoGpsEnabled || !state.selectedLot) return;
+  const sample = state.biometry.samples.find((item) => item.id === state.biometry.activeSampleId);
+  if (sample) void captureBiometryGps(sample, { automatic: true });
 }
 
 function currentBiometryDraft(updatedAt = new Date().toISOString()) {
@@ -425,6 +476,16 @@ async function fetchPublishedMaster() {
 }
 
 async function syncPublishedMaster({ force = false, userInitiated = false } = {}) {
+  if (navigator.onLine === false) {
+    state.masterSync = {
+      status: state.master.length ? "current" : "error",
+      message: state.master.length ? "Sin conexión: se conserva el Maestro General de este dispositivo." : "Sin conexión y sin Maestro General local.",
+      checkedAt: state.masterSync.checkedAt,
+    };
+    if (userInitiated) notify(state.masterSync.message);
+    if (state.route === "master") render();
+    return;
+  }
   state.masterSync = { status: "checking", message: "Buscando una actualización publicada…", checkedAt: state.masterSync.checkedAt };
   if (userInitiated && state.route === "master") render();
   try {
@@ -529,6 +590,7 @@ function resetBiometry() {
     adjustmentReason: "Déficit hídrico / pérdidas esperadas",
     notes: "",
     search: "",
+    autoGpsEnabled: false,
     phase: "measure",
     samples: [first],
     activeSampleId: first.id,
@@ -867,7 +929,7 @@ function sampleCard(sample, index, spacing) {
       </section>
       <div class="point-tools">
         <button class="gps-button ${sample.latitude !== null && sample.latitude !== undefined ? "captured" : ""}" data-gps-sample="${sample.id}">${sample.latitude !== null && sample.latitude !== undefined ? `✓ GPS capturado · ±${formatNumber(sample.gpsAccuracyM, 0)} m` : "⌖ CAPTURAR GPS"}</button>
-        <div class="sample-gps-details">${coordinateText(sample) ? `<span><b>Coordenada:</b> ${escapeHtml(coordinateText(sample))} · ±${formatNumber(sample.gpsAccuracyM, 0)} m</span><button type="button" class="btn btn-light" data-copy-sample-gps="${escapeHtml(sample.id)}">Copiar coordenada</button><button type="button" class="btn btn-light" data-show-sample-map="${escapeHtml(sample.id)}">Ver mapa</button>` : `<span>Sin coordenada capturada</span><button type="button" class="btn btn-light" disabled>Copiar coordenada</button>`}</div>
+        <div class="sample-gps-details">${coordinateText(sample) ? `<div class="gps-reading"><label for="gpsCoordinate_${escapeHtml(sample.id)}">Coordenada</label><input id="gpsCoordinate_${escapeHtml(sample.id)}" class="gps-coordinate" readonly value="${escapeHtml(coordinateText(sample))}" aria-label="Coordenada de ${escapeHtml(sample.pointCode)}; texto seleccionable"><span><b>Precisión:</b> ±${formatNumber(sample.gpsAccuracyM, 0)} m</span><span><b>Capturado:</b> ${escapeHtml(capturedGpsTime(sample))}</span></div><button type="button" class="btn btn-light" data-copy-sample-gps="${escapeHtml(sample.id)}">Copiar coordenada</button><button type="button" class="btn btn-light" data-show-sample-map="${escapeHtml(sample.id)}">Ver mapa</button>` : `<span>Sin coordenada capturada</span><button type="button" class="btn btn-light" disabled>Copiar coordenada</button>`}</div>
         ${field("Observación del punto", `<input data-sample-field="notes" data-sample="${sample.id}" value="${escapeHtml(sample.notes)}" placeholder="Acame, sequía, daño, espacio…">`)}
       </div>
     </div>
@@ -905,6 +967,7 @@ function renderMeasureStage() {
           ${field("Distancia entre surcos", `<select id="bioSpacingPreset">${ROW_SPACING_PRESETS.map((spacing) => `<option value="${spacing}" ${Math.abs(finiteNumber(b.rowSpacingM) - spacing) < 0.001 ? "selected" : ""}>${spacing.toFixed(2)} m</option>`).join("")}<option value="other" ${!ROW_SPACING_PRESETS.some((spacing) => Math.abs(finiteNumber(b.rowSpacingM) - spacing) < 0.001) ? "selected" : ""}>${!ROW_SPACING_PRESETS.some((spacing) => Math.abs(finiteNumber(b.rowSpacingM) - spacing) < 0.001) ? `Otro · ${formatNumber(b.rowSpacingM, 2)} m` : "Otro / editar…"}</option></select>`, "Opciones habituales: 1.50, 1.65, 1.75, 1.80 y 2.20 m. 1.40 m queda únicamente bajo Otro.")}
           ${field("Longitud común del tramo", `<select id="bioLengthPreset">${SAMPLE_LENGTH_PRESETS.map((length) => `<option value="${length}" ${Math.abs(finiteNumber(b.sampleLengthM) - length) < 0.001 ? "selected" : ""}>${formatNumber(length, 0)} m</option>`).join("")}<option value="other" ${!SAMPLE_LENGTH_PRESETS.some((length) => Math.abs(finiteNumber(b.sampleLengthM) - length) < 0.001) ? "selected" : ""}>${!SAMPLE_LENGTH_PRESETS.some((length) => Math.abs(finiteNumber(b.sampleLengthM) - length) < 0.001) ? `Otro · ${formatNumber(b.sampleLengthM, 1)} m` : "Otro / editar…"}</option></select>`, "Usos rápidos: 3, 5 y 10 m. Al cambiarlo, POB y el texto del punto se actualizan inmediatamente.")}
         </div>
+        <label class="auto-gps-option"><input type="checkbox" id="autoBiometryGps" ${b.autoGpsEnabled ? "checked" : ""}><span><b>Captura GPS automática</b><small>Un intento al comenzar cada punto; la medición continúa si el GPS falla.</small></span></label>
         <div class="point-nav-block">
           <div class="point-nav-head"><b>${summary.count} de ${b.samples.length} punto(s) completos</b><small>Deslizá horizontalmente para cambiar de punto.</small></div>
           ${pointTabs()}
@@ -1009,6 +1072,7 @@ function editBiometry(record) {
     sampleLengthM: record.sampleLengthM || 5, targetAgeMonths: record.targetAgeMonths || 10,
     adjustmentPct: record.adjustmentPct ?? 5, adjustmentReason: record.adjustmentReason || "Criterio técnico",
     notes: record.notes || "", search: `${lot.id} · ${lot.producer} · Suerte ${lot.lot}`,
+    autoGpsEnabled: Boolean(record.autoGpsEnabled),
     phase: "measure", samples, activeSampleId: samples.some((sample) => sample.id === state.biometryMapReturnSampleId) ? state.biometryMapReturnSampleId : samples[0].id,
     validation: record.validation || { validated: Boolean(record.validated), validatedAt: record.validatedAt || "", validatedBy: record.validatedBy || "" },
   };
@@ -1358,6 +1422,7 @@ async function saveBiometry(download = false) {
     rowSpacingM: finiteNumber(b.rowSpacingM),
     sampleLengthM: finiteNumber(b.sampleLengthM),
     validation: { ...b.validation },
+    autoGpsEnabled: Boolean(b.autoGpsEnabled),
     validated: Boolean(b.validation?.validated),
     validatedAt: b.validation?.validatedAt || "",
     validatedBy: b.validation?.validatedBy || "",
@@ -1636,6 +1701,7 @@ function selectLot(id, context) {
     state.consultationQuery = `${lot.id} · ${lot.producer} · Suerte ${lot.lot}`;
   }
   render();
+  if (context === "biometry") captureActivePointAutomatically();
 }
 
 function startBiometryForVisit() {
@@ -1650,6 +1716,7 @@ function addSampleAndOpen() {
   invalidateValidation();
   markBiometryDirty();
   render();
+  captureActivePointAutomatically();
 }
 
 function beginBiometryRequest(request = { type: "new" }) {
@@ -1750,7 +1817,8 @@ document.addEventListener("click", async (event) => {
       await navigator.clipboard.writeText(text);
       notify(`${sample.pointCode}: coordenada copiada.`);
     } catch {
-      notify("No se pudo copiar. Revisá el permiso de portapapeles del navegador.");
+      document.querySelector(`#gpsCoordinate_${CSS.escape(sample.id)}`)?.select();
+      notify("No se pudo copiar. La coordenada quedó seleccionada para copiarla manualmente.");
     }
     return;
   }
@@ -2018,7 +2086,7 @@ document.addEventListener("click", async (event) => {
 
   if (button.dataset.gpsSample) {
     const sample = state.biometry.samples.find((s) => s.id === button.dataset.gpsSample);
-    if (sample) captureGps(sample, markBiometryDirty);
+    if (sample) void captureBiometryGps(sample);
   }
 
   if (button.dataset.revisitPoint) {
@@ -2384,6 +2452,13 @@ document.addEventListener("input", (event) => {
 
 document.addEventListener("change", (event) => {
   const input = event.target;
+
+  if (input.id === "autoBiometryGps") {
+    state.biometry.autoGpsEnabled = input.checked;
+    markBiometryDirty();
+    if (input.checked) captureActivePointAutomatically();
+    return;
+  }
 
   if (input.dataset.selectVisit) {
     if (input.checked) state.selectedVisitIds.add(input.dataset.selectVisit);

@@ -7,6 +7,8 @@ PWA estática para GitHub Pages orientada a trabajo de campo de Negocios de Cañ
 - Mapa de contexto para biometrías con la suerte seleccionada y puntos vecinos, usando el motor y las geometrías compartidas de GEO.
 - Marcadores P01, P02, etc. con acceso al punto correspondiente en biometrías actuales y guardadas.
 - Coordenadas GPS por punto visibles y copiables, con precisión y hora de captura; los datos previos se conservan si la captura falla.
+- Captura GPS automática optativa por punto, con un intento inicial y posibilidad de recaptura manual.
+- Los marcadores siguen visibles y se encuadran aunque GEO no pueda cargar la geometría; el texto de la coordenada se puede seleccionar si el portapapeles falla.
 - La captura GPS y los mapas funcionan sin alterar fórmulas, datasets ni el esquema IndexedDB.
 
 ## Mejoras incorporadas hasta v2.7.2

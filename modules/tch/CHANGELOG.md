@@ -8,6 +8,10 @@
   centrar puntos, seleccionar un marcador y volver al punto correspondiente.
 - El mapa de una biometría guardada se abre aislado de la sesión actual y permite retomar ese
   punto en su formulario de edición. Offline usa los datos disponibles en la caché GEO existente.
+- La captura GPS automática optativa registra cada punto una sola vez al comenzar, conserva su
+  ubicación ante fallos y permite recaptura manual. Se muestran precisión y fecha/hora de captura.
+- Si la geometría no carga, el visor mantiene los marcadores y encuadra los puntos válidos; el
+  maestro local evita solicitudes de actualización mientras el dispositivo está sin conexión.
 - Sin cambios de fórmula TCH, IndexedDB v3, borrador `draft:biometry:v1`, datasets o geometrías.
 
 ## Próxima versión

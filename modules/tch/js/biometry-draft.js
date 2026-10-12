@@ -4,7 +4,7 @@ export const BIOMETRY_DRAFT_VERSION = 1;
 const BIOMETRY_FIELDS = [
   "date", "technician", "rowSpacingM", "sampleLengthM", "targetAgeMonths",
   "adjustmentPct", "adjustmentReason", "notes", "search", "phase", "samples",
-  "activeSampleId", "validation",
+  "activeSampleId", "validation", "autoGpsEnabled",
 ];
 
 const BIOMETRY_SAMPLE_DATA_FIELDS = [

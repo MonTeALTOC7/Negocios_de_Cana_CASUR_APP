@@ -7,7 +7,7 @@ import vm from 'node:vm';
 const source = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(readFileSync(new URL('../shared/geo/data/manifest.json', import.meta.url)));
 
-function harness({ storage = new Map(), fail = new Set(), appVersion = '1.2.0', geoVersion = manifest.dataVersion } = {}) {
+function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.0', geoVersion = manifest.dataVersion } = {}) {
   const handlers = {};
   const downloads = [];
   const key = (url) => new URL(typeof url === 'string' ? url : url.url, 'https://casur.test/').href;
@@ -39,7 +39,7 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.2.0', 
     },
   });
   const executable = source
-    .replace("const APP_VERSION = '1.2.0';", `const APP_VERSION = '${appVersion}';`)
+    .replace("const APP_VERSION = '1.3.0';", `const APP_VERSION = '${appVersion}';`)
     .replace("const GEO_DATA_VERSION = '2026-07-24-maestro-26-27-r2';", `const GEO_DATA_VERSION = '${geoVersion}';`);
   vm.runInContext(executable, context);
   const value = (expression) => vm.runInContext(expression, context);
@@ -58,7 +58,7 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.2.0', 
 
 test('GEO_DATA_VERSION coincide con el manifest y no depende de APP_VERSION', () => {
   const current = harness();
-  const next = harness({ appVersion: '1.2.1' });
+  const next = harness({ appVersion: '1.3.1' });
   assert.equal(current.value('GEO_DATA_VERSION'), manifest.dataVersion);
   assert.equal(current.value('GEO_CACHE'), 'casur_master_geo_2026-07-24-maestro-26-27-r2');
   assert.equal(current.value('GEO_CACHE'), next.value('GEO_CACHE'));

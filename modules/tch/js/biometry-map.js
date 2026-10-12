@@ -25,9 +25,9 @@ export function createBiometryPointLayer({ leaflet, map, points = [], activeSamp
     });
     marker.bindTooltip?.(String(point.pointCode || "Punto"), {
       permanent: true, direction: "top",
-      className: active ? "tch-point-label tch-point-label--active" : "tch-point-label",
+      className: active ? "casur-geo-point-label casur-geo-point-label--active" : "casur-geo-point-label",
     });
-    marker.bindPopup?.(`<strong>${escapeHtml(point.pointCode || "Punto")}</strong><br>${latitude.toFixed(6)}, ${longitude.toFixed(6)}<br>Precisión ±${Number(point.gpsAccuracyM || 0).toFixed(0)} m<br><button type="button" class="btn btn-blue" data-focus-biometry-point="${escapeHtml(point.id)}">Abrir punto</button>`);
+    marker.bindPopup?.(`<strong>${escapeHtml(point.pointCode || "Punto")}</strong><br>${latitude.toFixed(6)}, ${longitude.toFixed(6)}<br>Precisión ±${Number(point.gpsAccuracyM || 0).toFixed(0)} m${point.notes ? `<br>${escapeHtml(point.notes)}` : ""}<br><button type="button" class="btn btn-blue" data-focus-biometry-point="${escapeHtml(point.id)}">Abrir punto</button>`);
     marker.on?.("popupopen", (event) => {
       event.popup.getElement()?.querySelector("[data-focus-biometry-point]")?.addEventListener("click", (clickEvent) => {
         clickEvent.preventDefault();

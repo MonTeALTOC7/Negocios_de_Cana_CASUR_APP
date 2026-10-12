@@ -175,6 +175,11 @@ test("conserva GPS y hora de captura del punto", () => {
   assert.equal(draft.biometry.samples[0].longitude, -85.7);
 });
 
+test("el borrador conserva la opción GPS automática de la sesión", () => {
+  const draft = createBiometryDraft({ lotId: "759", biometry: biometry({ autoGpsEnabled: true }), dirty: true });
+  assert.equal(draft.biometry.autoGpsEnabled, true);
+});
+
 test("conserva notas generales y por punto", () => {
   const source = biometry({ notes: "general", samples: [{ id: "p01", notes: "punto" }], activeSampleId: "p01" });
   const draft = createBiometryDraft({ lotId: "759", biometry: source, dirty: true });

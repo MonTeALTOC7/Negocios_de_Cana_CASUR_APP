@@ -2,6 +2,12 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.3.0] / TCH [2.8.0] — 2026-10-11 · GEO-2A
+- TCH presenta el polígono de la suerte, sus vecinas y los puntos GPS P01–Pxx en un mapa reutilizado de GEO.
+- Cada punto muestra coordenada seleccionable/copiable, precisión y hora de captura. La captura automática es optativa y se intenta una sola vez al comenzar cada punto.
+- Si GEO no está disponible, el mapa conserva los marcadores y encuadra sus coordenadas. El borrador y los registros guardados conservan el GPS por punto.
+- El shell y su caché pasan a v1.3.0; Maestro de Suertes permanece VF54.8 y la generación GEO r2 no cambia.
+
 ## [1.2.0] / Producción [VF54.8] — 2026-10-11 · GEO-1 integrado
 - El Shape oficial `Maestro_26_27_2472026_QGIS_SHP.zip` se transforma mediante un pipeline
   reproducible en GeoJSON mínimo por zona, unido exclusivamente por `CodSuerte`/`lotId`.

@@ -30,6 +30,9 @@
 .point-nav-block{margin:14px 0 10px}
 .point-nav-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .point-nav-head b{font-size:11px;color:var(--dark)}
+.biometry-map-icon{width:40px;height:40px;min-width:40px;border:1px solid #aac9bc;border-radius:11px;background:#eff7f1;color:#125a3f;font-size:22px;cursor:pointer}.biometry-map-icon:focus-visible{outline:3px solid #238d65;outline-offset:2px}
+@media(max-width:520px){.point-nav-head{flex-direction:row;flex-wrap:wrap}.point-nav-head small{order:3;flex-basis:100%}}
+.biometry-map-actions .btn{min-height:34px;padding:6px 12px;font-size:11px}
 .point-nav-head small{font-size:9.5px;color:var(--muted)}
 .point-tabs{display:flex;gap:7px;overflow-x:auto;padding:4px 2px 9px;overscroll-behavior-inline:contain;scrollbar-width:thin}
 .point-tab{flex:0 0 auto;min-width:68px;min-height:42px;border-radius:13px;border:1px solid #cdded2;background:#fff;color:#476052;font-weight:950;padding:7px 10px;box-shadow:0 4px 10px rgba(15,45,28,.06)}

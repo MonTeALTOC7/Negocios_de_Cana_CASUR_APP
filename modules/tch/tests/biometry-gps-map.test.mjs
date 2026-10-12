@@ -4,12 +4,35 @@ import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import { captureSampleGps, createBiometryGpsCoordinator } from "../js/biometry-gps.js";
 import { createBiometryPointLayer } from "../js/biometry-map.js";
+import { validateBiometryGpsPosition } from "../js/biometry-geo-validation.js";
 
 const appSource = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
 const gpsFunctionSource = appSource.slice(
   appSource.indexOf("async function captureBiometryGps("),
   appSource.indexOf("\nfunction captureActivePointAutomatically()"),
 );
+
+test("GPS exterior no altera biometría ni coordenada anterior; recaptura interior sí se acepta", async () => {
+  const sample = { id: "p01", stalkCount: 15, heightM: 2.4, diameterMm: 22,
+    latitude: 0.005, longitude: 0.005, gpsAccuracyM: 5, capturedAt: "anterior" };
+  const prior = structuredClone(sample);
+  const polygon = { geometry: { type: "Polygon", coordinates: [
+    [[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]],
+  ] } };
+  const geolocation = { getCurrentPosition(success) { geolocation.complete = success; } };
+  const capture = createBiometryGpsCoordinator();
+  const options = { geolocation, validateReading: (reading) => validateBiometryGpsPosition(reading, polygon) };
+  const outside = capture(sample, options);
+  geolocation.complete({ coords: { latitude: 0.02, longitude: 0.02, accuracy: 5 } });
+  assert.equal((await outside).status, "outside");
+  assert.deepEqual(sample, prior);
+  const inside = capture(sample, options);
+  geolocation.complete({ coords: { latitude: 0.006, longitude: 0.006, accuracy: 5 } });
+  assert.equal((await inside).status, "captured");
+  assert.equal(sample.stalkCount, 15);
+  assert.equal(sample.heightM, 2.4);
+  assert.equal(sample.latitude, 0.006);
+});
 
 for (const [contextChange, abandon] of [
   ["otro punto activo", ({ session }) => { session.activeSampleId = "p02"; }],

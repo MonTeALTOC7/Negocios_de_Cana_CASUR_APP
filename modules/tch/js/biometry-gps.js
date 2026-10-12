@@ -25,7 +25,7 @@ export function captureSampleGps(target, { geolocation = globalThis.navigator?.g
 export function createBiometryGpsCoordinator() {
   const attempted = new WeakSet();
   const pending = new WeakSet();
-  return async function capture(target, { automatic = false, isCurrent = () => true, geolocation = globalThis.navigator?.geolocation, now = () => new Date() } = {}) {
+  return async function capture(target, { automatic = false, isCurrent = () => true, validateReading = null, geolocation = globalThis.navigator?.geolocation, now = () => new Date() } = {}) {
     if (!target || typeof target !== "object") throw new TypeError("Se requiere un punto biométrico");
     if (pending.has(target)) return { status: "pending" };
     if (automatic && (attempted.has(target) || target.latitude != null && target.longitude != null)) return { status: "skipped" };
@@ -34,6 +34,9 @@ export function createBiometryGpsCoordinator() {
     try {
       const reading = await captureSampleGps({}, { geolocation, now });
       if (!isCurrent(target)) return { status: "stale" };
+      const validation = validateReading ? await validateReading(reading) : { status: "inside" };
+      if (!isCurrent(target)) return { status: "stale" };
+      if (validation.status !== "inside") return { status: validation.status, reason: validation.reason };
       Object.assign(target, reading);
       return { status: "captured", target };
     } finally {

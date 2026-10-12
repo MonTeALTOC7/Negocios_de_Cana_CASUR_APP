@@ -180,6 +180,14 @@ test("el borrador conserva la opción GPS automática de la sesión", () => {
   assert.equal(draft.biometry.autoGpsEnabled, true);
 });
 
+test("el borrador conserva el bloqueo de suerte y el intento GPS automático del punto", () => {
+  const draft = createBiometryDraft({ lotId: "759", biometry: biometry({
+    lotLocked: true, samples: [{ id: "p01", stalkCount: "", gpsAutoAttempted: true }], activeSampleId: "p01",
+  }), dirty: true });
+  assert.equal(draft.biometry.lotLocked, true);
+  assert.equal(draft.biometry.samples[0].gpsAutoAttempted, true);
+});
+
 test("conserva notas generales y por punto", () => {
   const source = biometry({ notes: "general", samples: [{ id: "p01", notes: "punto" }], activeSampleId: "p01" });
   const draft = createBiometryDraft({ lotId: "759", biometry: source, dirty: true });

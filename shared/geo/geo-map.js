@@ -212,7 +212,7 @@ export function createCasurMap(container, options = {}) {
   function updateAnchor() {
     removeLayer(anchorLayer);
     anchorLayer = null;
-    if (!selectedLotId || typeof L.circleMarker !== "function") return;
+    if (options.showAnchor === false || !selectedLotId || typeof L.circleMarker !== "function") return;
     const feature = visibleFeatures.find((item) => featureLotId(item) === selectedLotId);
     const anchor = featureAnchor(feature);
     if (!anchor) return;
@@ -257,7 +257,7 @@ export function createCasurMap(container, options = {}) {
     layer.feature = feature;
     layersByLot.set(lotId, layer);
     bindLabel(feature, layer);
-    layer.on?.("click", () => selectLot(lotId));
+    if (options.interactiveSelection !== false) layer.on?.("click", () => selectLot(lotId));
   }
 
   function clearLotsLayer() {

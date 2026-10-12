@@ -224,6 +224,24 @@ test("setLot tolera ausencia de geometría sin inventar un polígono", () => {
   viewer.destroy();
 });
 
+test("visor biométrico conserva suerte amarilla y centrado sin anchor ni selección por clic", () => {
+  const { L, records } = fakeLeaflet();
+  const viewer = createCasurMap(fakeElement(), {
+    leaflet: L, showAnchor: false, interactiveSelection: false,
+  });
+  viewer.setLots([polygon("99325")], "99325");
+  assert.equal(records.geo.length, 1);
+  assert.equal(records.geo[0].children.length, 1, "solo existe el polígono de la suerte muestreada");
+  assert.equal(records.geo[0].children[0].style.color, "#ffca28");
+  assert.equal(viewer.getSelectedLotId(), "99325");
+  assert.equal(records.markers.length, 0, "el anchor no aparece como punto biométrico");
+  assert.equal(records.geo[0].children[0].events.has("click"), false);
+  assert.equal(viewer.fitToLot(), true, "Suerte centra la selección activa");
+  assert.equal(records.map.fitCalls.length, 2);
+  assert.equal(records.markers.length, 0, "el clic no puede crear un anchor tardío");
+  viewer.destroy();
+});
+
 test("cada mapa base principal aísla sus propios errores de tiles", () => {
   [
     { initialBase: "satellite", activeTile: 1 },

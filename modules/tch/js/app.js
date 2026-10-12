@@ -240,9 +240,11 @@ async function openBiometryMap(record = null) {
         return typeof value === "function" ? value.bind(target) : value;
       },
     });
-    activeBiometryMap = createCasurMap(mapNode, { leaflet, ariaLabel: `Mapa de puntos biométricos de la suerte ${lotId}`, layersCollapsed: true });
-    // Sin selección en el visor: no añadir el anchor GEO que puede confundirse con un punto biométrico.
-    activeBiometryMap.setLots(feature ? [feature] : []);
+    activeBiometryMap = createCasurMap(mapNode, {
+      leaflet, ariaLabel: `Mapa de puntos biométricos de la suerte ${lotId}`,
+      layersCollapsed: true, showAnchor: false, interactiveSelection: false,
+    });
+    activeBiometryMap.setLots(feature ? [feature] : [], lotId);
     activeBiometryMapRecordId = record?.id || "";
     activeBiometryPointLayer = createBiometryPointLayer({
       leaflet, map: activeBiometryMapInstance, points,

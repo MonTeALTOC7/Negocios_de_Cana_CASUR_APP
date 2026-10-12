@@ -3,8 +3,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const versions = readFileSync(new URL("../core/versions/versions.js", import.meta.url), "utf8");
+const registry = readFileSync(new URL("../core/module-registry/registry.js", import.meta.url), "utf8");
 const serviceWorker = readFileSync(new URL("../sw.js", import.meta.url), "utf8");
 const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const productionVersion = readFileSync(new URL("../modules/produccion/VERSION.txt", import.meta.url), "utf8");
+const productionPackage = JSON.parse(readFileSync(new URL("../modules/produccion/package.json", import.meta.url), "utf8"));
 
 function captured(source, pattern, label) {
   const value = source.match(pattern)?.[1];
@@ -18,6 +21,16 @@ test("la versión 1.2.0 coincide en la fuente canónica, el SW y el fallback HTM
   const fallback = captured(index, /id="appVersion">v([^<]+)</, "versión fallback de index.html");
   assert.equal(canonical, "1.2.0");
   assert.deepEqual([canonical, sw, fallback], ["1.2.0", "1.2.0", "1.2.0"]);
+});
+
+test("Maestro de Suertes muestra VF54.8 de forma consistente sin alterar otros módulos", () => {
+  assert.match(versions, /produccion: 'VF54\.8'/);
+  assert.match(versions, /integrado · VF54\.8 \(código\)/);
+  assert.match(registry, /name: 'Maestro de Suertes'[\s\S]*?version: 'VF54\.8'/);
+  assert.match(productionVersion, /^VF54\.8 CASUR/m);
+  assert.equal(productionPackage.version, "54.8.0");
+  assert.match(index, /id="appVersion">v1\.2\.0</);
+  assert.match(versions, /tch: '2\.7\.2'/);
 });
 
 test("la geometría y Leaflet local forman parte del offline automático", () => {

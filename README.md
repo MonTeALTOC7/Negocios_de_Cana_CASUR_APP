@@ -18,12 +18,12 @@ medida en que cada módulo lo soporte.
 
 | Módulo | Descripción | Estado |
 |---|---|---|
-| Maestro de Suertes | Cronológico, Histórico y mapa agrícola de suertes CASUR (VF54.7) | **Integrado VF54.7** · datos vía Adaptador SIAGRI · geometría de solo lectura |
+| Maestro de Suertes | Cronológico, Histórico y mapa agrícola de suertes CASUR (VF54.8) | **Integrado VF54.8** · datos vía Adaptador SIAGRI · geometría de solo lectura |
 
 > **⚠️ `modules/produccion/data/` es contenido VERSIONADO de forma independiente del código.**
 > `cronologico.json/js`, `historico.json/js` y `version.json/js` cambian con cada publicación de
 > datos (Administrador SIAGRI → "Paquete solo datos para GitHub"), a un ritmo distinto del código
-> de la app (VF54.7). **Al publicar un ZIP nuevo de la App Maestra (código), NO reemplaces
+> de la app (VF54.8). **Al publicar un ZIP nuevo de la App Maestra (código), NO reemplaces
 > `modules/produccion/data/` con una copia antigua** empaquetada por error — eso provocaría un
 > downgrade de datos. Desde el **Hotfix 4.4.3**, el propio Service Worker raíz (`sw.js`)
 > resuelve una **generación completa y coherente** de los 6 archivos (versión+cronológico+

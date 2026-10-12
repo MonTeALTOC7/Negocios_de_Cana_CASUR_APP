@@ -187,7 +187,7 @@ export function buildSummary(records, previousReportRows) {
   };
 }
 
-/* Nueva versión de DATOS (≠ versión de código VF54.7). */
+/* Nueva versión de DATOS (≠ versión de código VF54.8). */
 export function nextDataVersion(sourceName) {
   const d = new Date();
   const stamp = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;

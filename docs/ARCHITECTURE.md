@@ -108,7 +108,7 @@ Config declarativa; la UI del home se genera desde aquí (no hardcodeada):
 ```js
 // core/module-registry/registry.js
 export const MODULES = [
-  { moduleId:'produccion', name:'Producción', version:'VF54.7',
+  { moduleId:'produccion', name:'Producción', version:'VF54.8',
     route:'modules/produccion/index.html', icon:'produccion',
     enabled:true, visible:true, order:1, requiresOnline:false, usesSupabase:false,
     storageNamespaces:['cache:casur-suertes-vf54-*'], privacy:'public' },
@@ -366,5 +366,5 @@ GitHub Pages  →  otros dispositivos detectan data/version.json → descargan d
 Principios: reutilizar el builder de Producción (no reimplementar reglas); NO confundir
 `cronologico_master.json` (esquema del Convertidor) con `data/cronologico.json` (esquema
 agregado de Producción: producers/options/lists/groups/global); NO destruir histórico;
-versión de **datos** ≠ versión de **código** (VF54.7); no aplicar cambios grandes en silencio;
+versión de **datos** ≠ versión de **código** (VF54.8); no aplicar cambios grandes en silencio;
 no publicar datasets corruptos (validaciones críticas bloquean).

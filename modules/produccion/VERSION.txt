@@ -1,2 +1,2 @@
-VF54.7 CASUR · MAPA AGRÍCOLA AUTOMÁTICO · 11-oct-2026
+VF54.8 CASUR · GEO-1 · 11-oct-2026
 El módulo técnico se abre desde una tarjeta protegida en el Panel Ejecutivo, permanece oculto hasta desbloquearse y desaparece de las exportaciones operativas.

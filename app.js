@@ -601,7 +601,7 @@ async function viewCentroMaestro() {
         </div>
         <p class="panel__note" style="margin-top:8px; opacity:.8">El paquete de datos (cronologico/historico/version)
         lo genera el propio Centro Maestro de Producción (botón «Paquete solo datos para GitHub»), ya con los datos
-        aplicados. Versión de <em>datos</em> ≠ versión de <em>código</em> (VF54.7).</p>
+        aplicados. Versión de <em>datos</em> ≠ versión de <em>código</em> (VF54.8).</p>
       </section>
 
       <section class="card" id="pinCard"></section>

@@ -21,7 +21,7 @@ Shape oficial EPSG:4326
   → GitHub Pages
   → Service Worker raíz / caché geográfica automática
   → shared/geo (datos + visor)
-  → Maestro de Suertes VF54.7
+  → Maestro de Suertes VF54.8
   → futuro consumidor TCH (GEO-2)
 ```
 

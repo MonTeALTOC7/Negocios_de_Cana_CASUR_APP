@@ -2,11 +2,16 @@
 
 Formato: [versión] — fecha · resumen.
 
-## [1.2.0] — 2026-10-11 · mapa agrícola automático en Maestro de Suertes
+## [1.2.0] / Producción [VF54.8] — 2026-10-11 · GEO-1 integrado
 - El Shape oficial `Maestro_26_27_2472026_QGIS_SHP.zip` se transforma mediante un pipeline
   reproducible en GeoJSON mínimo por zona, unido exclusivamente por `CodSuerte`/`lotId`.
-- La App Maestra incorpora un motor geográfico y visor Leaflet 1.9.4 locales y reutilizables;
-  Producción VF54.7 ofrece `Mapa de finca` y `Ver polígono` sin alterar datos ni cálculos.
+- Producción incorpora mapas automáticos en Cronológico e Histórico, con geometrías exactas
+  por `CodSuerte`, contexto completo de finca, selección de suertes y coordenadas.
+- El visor ofrece mapa híbrido, tarjetas cronológicas operativas y tarjetas históricas con KPI
+  ponderados; conserva KATM de última zafra e histórico, panel contraíble y navegación contextual.
+- Se puede exportar PNG de finca y suerte. GEO funciona offline y persiste generaciones GEO
+  completas de forma independiente a los datos productivos.
+- La App Maestra mantiene versión visible v1.2.0 y Maestro de Suertes VF54.8 en Centro Maestro.
 - El Service Worker prepara automáticamente manifest y cuatro zonas en una caché geográfica
   independiente de datos SIAGRI y de `PROD_LKG_CACHE`; offline conserva polígonos y controles.
 - Se documentan trazabilidad, cobertura, reparación `make_valid`, límites de responsabilidad y

@@ -1,7 +1,52 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import { captureSampleGps, createBiometryGpsCoordinator } from "../js/biometry-gps.js";
 import { createBiometryPointLayer } from "../js/biometry-map.js";
+
+const appSource = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+const gpsFunctionSource = appSource.slice(
+  appSource.indexOf("async function captureBiometryGps("),
+  appSource.indexOf("\nfunction captureActivePointAutomatically()"),
+);
+
+for (const [contextChange, abandon] of [
+  ["otro punto activo", ({ session }) => { session.activeSampleId = "p02"; }],
+  ["salida de Biometría", ({ state }) => { state.route = "home"; }],
+  ["otra sesión", ({ state }) => { state.biometry = { ...state.biometry }; }],
+  ["otra suerte", ({ state }) => { state.selectedLot = { id: "99326" }; }],
+  ["punto eliminado", ({ session }) => { session.samples.shift(); }],
+]) {
+  test(`GPS tardío de P01 se descarta tras ${contextChange}`, async () => {
+    const p01 = { id: "p01", latitude: 10, longitude: -84, gpsAccuracyM: 8, capturedAt: "original" };
+    const p02 = { id: "p02", latitude: null, longitude: null };
+    const session = { activeSampleId: "p01", samples: [p01, p02] };
+    const state = { biometry: session, selectedLot: { id: "99325" }, route: "biometry" };
+    const before = structuredClone(p01);
+    let finishGps;
+    let dirtyCalls = 0;
+    let renderCalls = 0;
+    const geolocation = { getCurrentPosition(success) { finishGps = success; } };
+    const coordinator = createBiometryGpsCoordinator();
+    const captureBiometryGps = runInNewContext(`${gpsFunctionSource}\ncaptureBiometryGps`, {
+      state, navigator: { geolocation },
+      captureBiometryPoint: (sample, options) => coordinator(sample, { ...options, geolocation }),
+      markBiometryDirty: () => { dirtyCalls += 1; },
+      render: () => { renderCalls += 1; },
+      notify: () => {},
+    });
+    const pending = captureBiometryGps(p01);
+    assert.equal(typeof finishGps, "function");
+    abandon({ state, session });
+    finishGps({ coords: { latitude: 11, longitude: -85, accuracy: 3 } });
+    await pending;
+    assert.deepEqual(p01, before);
+    assert.equal(p02.latitude, null);
+    assert.equal(dirtyCalls, 0);
+    assert.equal(renderCalls, 0);
+  });
+}
 
 test("captura GPS sintético persiste coordenadas, precisión y hora en el mismo punto", async () => {
   const target = { id: "p01", pointCode: "P01", latitude: null, longitude: null, notes: "conservada" };

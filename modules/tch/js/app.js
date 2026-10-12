@@ -276,6 +276,12 @@ async function captureBiometryGps(sample, { automatic = false } = {}) {
   const session = state.biometry;
   const lotId = state.selectedLot?.id;
   if (!session || !lotId || !sample) return;
+  const isCurrent = () => state.biometry === session
+    && state.selectedLot?.id === lotId
+    && state.route === "biometry"
+    && session.activeSampleId === sample.id
+    && session.samples.includes(sample);
+  if (!isCurrent()) return;
   if (!navigator.geolocation) {
     if (!automatic) notify("Este dispositivo no permite capturar GPS.");
     return;
@@ -285,20 +291,20 @@ async function captureBiometryGps(sample, { automatic = false } = {}) {
       const permission = await navigator.permissions.query({ name: "geolocation" });
       if (permission.state === "denied") return;
     } catch { /* El navegador puede no admitir esta consulta; geolocation decidirá. */ }
-    if (state.biometry !== session || state.selectedLot?.id !== lotId) return;
+    if (!isCurrent()) return;
   }
   if (!automatic) notify("Obteniendo ubicación GPS…");
   try {
     const result = await captureBiometryPoint(sample, {
       automatic,
-      isCurrent: () => state.biometry === session && state.selectedLot?.id === lotId && session.samples.includes(sample),
+      isCurrent,
     });
     if (result.status !== "captured") return;
     markBiometryDirty();
     render();
     notify(sample.gpsAccuracyM > 30 ? `GPS capturado con precisión baja: ±${Math.round(sample.gpsAccuracyM)} m.` : "GPS capturado correctamente.");
   } catch (error) {
-    if (state.biometry !== session || state.selectedLot?.id !== lotId) return;
+    if (!isCurrent()) return;
     const message = error?.code === 1 ? "Permiso GPS denegado. Podés seguir midiendo y usar el botón manual cuando esté disponible."
       : error?.code === 2 ? "Ubicación GPS no disponible. Las coordenadas previas se conservaron."
         : "Se agotó el tiempo para obtener GPS. Las coordenadas previas se conservaron.";

@@ -36,7 +36,7 @@ export function createBiometryGpsCoordinator() {
       if (!isCurrent(target)) return { status: "stale" };
       const validation = validateReading ? await validateReading(reading) : { status: "inside" };
       if (!isCurrent(target)) return { status: "stale" };
-      if (validation.status !== "inside") return { status: validation.status, reason: validation.reason };
+      if (validation.status !== "inside") return { status: validation.status, reason: validation.reason, reading };
       Object.assign(target, reading);
       return { status: "captured", target };
     } finally {

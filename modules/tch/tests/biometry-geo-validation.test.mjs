@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { MAX_BIOMETRY_GPS_ACCURACY_M, gpsRequiredBiometrySamples, hasPersistedBiometryGpsEvidence, needsFreshBiometryGpsCapture, pendingBiometryGpsPoints, validateBiometryGpsPosition } from "../js/biometry-geo-validation.js";
+import { MAX_BIOMETRY_GPS_ACCURACY_M, classifyBiometryPoint, gpsRequiredBiometrySamples, hasPersistedBiometryGpsEvidence, needsFreshBiometryGpsCapture, pendingBiometryGpsPoints, validateBiometryGpsPosition } from "../js/biometry-geo-validation.js";
 
 const collection = JSON.parse(readFileSync(new URL("../../../shared/geo/data/zona-5-productores.geojson", import.meta.url), "utf8"));
 const lot = collection.features.find((feature) => feature.properties.lotId === "99325");
@@ -30,6 +30,25 @@ test("Polygon con hueco y MultiPolygon con fragmentos no validan solamente por b
   assert.equal(validateBiometryGpsPosition(reading(0.005, 0.005), polygon).status, "outside");
   assert.equal(validateBiometryGpsPosition(reading(0.025, 0.025), multi).status, "inside");
   assert.equal(validateBiometryGpsPosition(reading(0.015, 0.015), multi).status, "outside");
+});
+
+test("clasificación presenta interior, exterior, borde, incertidumbre, huecos, fragmentos y ausencia GEO sin validar históricos", () => {
+  const outer = [[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]];
+  const hole = [[0.004, 0.004], [0.006, 0.004], [0.006, 0.006], [0.004, 0.006], [0.004, 0.004]];
+  const fragment = [[0.02, 0.02], [0.03, 0.02], [0.03, 0.03], [0.02, 0.03], [0.02, 0.02]];
+  const feature = { geometry: { type: "MultiPolygon", coordinates: [[outer, hole], [fragment]] } };
+  const point = (longitude, latitude, gpsAccuracyM = 5) => ({ pointCode: "P01", longitude, latitude, gpsAccuracyM, capturedAt: "2026-10-13T10:00:00.000Z" });
+  assert.equal(classifyBiometryPoint({}, feature, "lot").status, "no-gps");
+  assert.equal(classifyBiometryPoint({ ...point(0.002, 0.002), gpsValidatedLotId: "lot" }, feature, "lot", { trustedGps: true }).status, "inside");
+  assert.equal(classifyBiometryPoint({ ...point(0.025, 0.025), gpsValidatedLotId: "lot" }, feature, "lot", { trustedGps: true }).status, "inside");
+  assert.equal(classifyBiometryPoint(point(0.005, 0.005), feature, "lot").status, "outside", "el hueco no pertenece a la suerte");
+  assert.equal(classifyBiometryPoint(point(0.015, 0.015), feature, "lot").status, "outside");
+  assert.match(classifyBiometryPoint(point(0, 0.005), feature, "lot").label, /borde/);
+  assert.match(classifyBiometryPoint(point(0.002, 0.002, 25), feature, "lot").label, /precisión/);
+  assert.equal(classifyBiometryPoint(point(0.002, 0.002), feature, "lot").status, "review", "interior sin evidencia no es validado retroactivamente");
+  assert.match(classifyBiometryPoint(point(0.02, 0.02), null, "lot").label, /geometría no disponible/);
+  assert.equal(classifyBiometryPoint({ ...point(0.002, 0.002), gpsValidatedLotId: "lot" }, null, "lot", { trustedGps: true }).status, "inside", "la evidencia anterior sobrevive offline");
+  assert.equal(classifyBiometryPoint({ gpsRejectedReading: point(0.015, 0.015) }, feature, "lot").status, "outside");
 });
 
 test("solo los puntos calculados con GPS oficial dentro pueden superar el guardado", () => {

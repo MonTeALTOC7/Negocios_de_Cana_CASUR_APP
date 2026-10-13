@@ -16,6 +16,13 @@
 
 ## Próxima versión
 
+- GEO-2B presenta el estado espacial por punto (Dentro, Fuera, Revisar o Sin GPS) en
+  formulario y mapa, con leyenda textual, precisión y hora de captura. Reutiliza la
+  validación oficial de Polygon/MultiPolygon y conserva las lecturas rechazadas separadas
+  del GPS aceptado en el borrador, sin promover coordenadas históricas sin evidencia.
+- El visor encuadra la suerte y las lecturas exteriores conjuntamente; sin GEO informa
+  que no hay verificación espacial y conserva la edición offline con GPS ya validado.
+
 - La captura de biometría mantiene un borrador automático local, con debounce de 500 ms y
   flush al ocultar o abandonar la página. El borrador usa la clave independiente
   `draft:biometry:v1` del store `settings`, sin crear registros oficiales.

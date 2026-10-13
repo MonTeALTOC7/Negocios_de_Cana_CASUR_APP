@@ -25,6 +25,7 @@ test("GPS exterior no altera biometría ni coordenada anterior; recaptura interi
   const outside = capture(sample, options);
   geolocation.complete({ coords: { latitude: 0.02, longitude: 0.02, accuracy: 5 } });
   assert.equal((await outside).status, "outside");
+  assert.equal((await Promise.resolve(outside)).reading.longitude, 0.02);
   assert.deepEqual(sample, prior);
   const inside = capture(sample, options);
   geolocation.complete({ coords: { latitude: 0.006, longitude: 0.006, accuracy: 5 } });
@@ -176,17 +177,18 @@ test("marcadores biométricos aíslan coordenadas por puntos, exponen ficha y pe
   const layer = createBiometryPointLayer({
     leaflet, map: fakeMap,
     points: [
-      { id: "p01", pointCode: "P01", latitude: 11, longitude: -85, gpsAccuracyM: 8 },
-      { id: "p02", pointCode: "P02", latitude: 11.1, longitude: -85.1, gpsAccuracyM: 12 },
+      { id: "p01", pointCode: "P01", latitude: 11, longitude: -85, gpsAccuracyM: 8, spatialStatus: "inside", spatialLabel: "Dentro · GPS validado" },
+      { id: "p02", pointCode: "P02", latitude: 11.1, longitude: -85.1, gpsAccuracyM: 12, spatialStatus: "outside", spatialLabel: "Fuera de la suerte" },
       { id: "p03", pointCode: "P03", latitude: null, longitude: null },
     ],
     activeSampleId: "p02", onFocus: (point) => focus.push(point.id),
   });
   assert.equal(layer.count, 2);
-  assert.equal(created[0].tooltip.text, "P01");
-  assert.equal(created[0].tooltip.config.className, "casur-geo-point-label");
+  assert.match(created[0].tooltip.text, /P01 · Dentro/);
+  assert.match(created[0].tooltip.config.className, /casur-geo-point-label--inside/);
   assert.match(created[1].tooltip.config.className, /casur-geo-point-label--active/);
-  assert.equal(created[1].options.fillColor, "#e53935");
+  assert.equal(created[1].options.fillColor, "#bc3030");
+  assert.match(created[1].tooltip.text, /P02 · Fuera/);
   assert.match(created[1].popup, /11\.100000, -85\.100000/);
   assert.match(created[1].popup, /±12 m/);
   let clickHandler;
@@ -195,6 +197,8 @@ test("marcadores biométricos aíslan coordenadas por puntos, exponen ficha y pe
   assert.deepEqual(focus, ["p02"]);
   assert.equal(layer.fit(), true);
   assert.deepEqual(fitted[0].bounds.coordinates, [[11, -85], [11.1, -85.1]]);
+  assert.equal(layer.fit({ padding: [45, 28] }, [[10.9, -85.2]]), true);
+  assert.deepEqual(fitted[1].bounds.coordinates, [[11, -85], [11.1, -85.1], [10.9, -85.2]], "encuadra polígono y lecturas exteriores sin inventar puntos");
   layer.destroy();
   assert.ok(created.every((marker) => marker.removed));
   assert.equal(layer.fit(), false);

@@ -66,6 +66,31 @@ export function validateBiometryGpsPosition(reading, feature) {
   return { status: inside ? "inside" : "outside", distanceToBoundaryM };
 }
 
+/** Presentation-only status: a spatially interior legacy coordinate is not validated evidence. */
+export function classifyBiometryPoint(sample, feature, lotId, { trustedGps = false } = {}) {
+  const accepted = sample?.latitude != null && sample.latitude !== ""
+    && sample?.longitude != null && sample.longitude !== "";
+  const reading = accepted ? sample : sample?.gpsRejectedReading;
+  if (!reading) return { status: "no-gps", label: "Sin GPS", reading: null };
+  const spatial = validateBiometryGpsPosition(reading, feature);
+  if (spatial.reason === "geometry-unavailable") {
+    if (accepted && sample.gpsValidatedLotId === lotId && trustedGps) {
+      return { status: "inside", label: "Dentro · validado antes; GEO no disponible ahora", reason: spatial.reason, reading };
+    }
+    return { status: "review", label: "Revisar · geometría no disponible", reason: spatial.reason, reading };
+  }
+  if (spatial.status === "outside") return { status: "outside", label: "Fuera de la suerte", reading };
+  if (spatial.status === "confirm") {
+    const detail = spatial.reason === "accuracy" ? "precisión GPS"
+      : spatial.reason === "boundary" ? "cerca del borde" : "lectura inválida";
+    return { status: "review", label: `Revisar · ${detail}`, reason: spatial.reason, reading };
+  }
+  if (accepted && sample.gpsValidatedLotId === lotId && trustedGps) {
+    return { status: "inside", label: "Dentro · GPS validado", reading };
+  }
+  return { status: "review", label: "Revisar · sin evidencia de validación", reason: "unverified", reading };
+}
+
 /** Receives only points included in the biometric calculation; never mutates measurements. */
 export function pendingBiometryGpsPoints(completedSamples, feature) {
   return completedSamples.filter((sample) => validateBiometryGpsPosition(sample, feature).status !== "inside");

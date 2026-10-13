@@ -65,3 +65,8 @@ export function validateBiometryGpsPosition(reading, feature) {
   }
   return { status: inside ? "inside" : "outside", distanceToBoundaryM };
 }
+
+/** Receives only points included in the biometric calculation; never mutates measurements. */
+export function pendingBiometryGpsPoints(completedSamples, feature) {
+  return completedSamples.filter((sample) => validateBiometryGpsPosition(sample, feature).status !== "inside");
+}

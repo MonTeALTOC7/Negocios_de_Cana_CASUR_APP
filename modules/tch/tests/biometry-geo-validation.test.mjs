@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { MAX_BIOMETRY_GPS_ACCURACY_M, validateBiometryGpsPosition } from "../js/biometry-geo-validation.js";
+import { MAX_BIOMETRY_GPS_ACCURACY_M, pendingBiometryGpsPoints, validateBiometryGpsPosition } from "../js/biometry-geo-validation.js";
 
 const collection = JSON.parse(readFileSync(new URL("../../../shared/geo/data/zona-5-productores.geojson", import.meta.url), "utf8"));
 const lot = collection.features.find((feature) => feature.properties.lotId === "99325");
@@ -30,4 +30,15 @@ test("Polygon con hueco y MultiPolygon con fragmentos no validan solamente por b
   assert.equal(validateBiometryGpsPosition(reading(0.005, 0.005), polygon).status, "outside");
   assert.equal(validateBiometryGpsPosition(reading(0.025, 0.025), multi).status, "inside");
   assert.equal(validateBiometryGpsPosition(reading(0.015, 0.015), multi).status, "outside");
+});
+
+test("solo los puntos calculados con GPS oficial dentro pueden superar el guardado", () => {
+  const [longitude, latitude] = lot.properties.anchor;
+  const p01 = { pointCode: "P01", ...reading(longitude, latitude) };
+  const p02 = { pointCode: "P02", ...reading(lot.bbox[2] + 0.01, latitude) };
+  const p03 = { pointCode: "P03", latitude: null, longitude: null, gpsAccuracyM: null };
+  assert.deepEqual(pendingBiometryGpsPoints([p01, p02, p03], lot), [p02, p03]);
+  assert.deepEqual(pendingBiometryGpsPoints([p01], lot), []);
+  assert.deepEqual(pendingBiometryGpsPoints([p01], null), [p01]);
+  assert.equal(p02.latitude, latitude, "rechazar GPS no altera mediciones ni lecturas previas");
 });

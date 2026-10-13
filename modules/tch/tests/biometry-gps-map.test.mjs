@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import { captureSampleGps, createBiometryGpsCoordinator } from "../js/biometry-gps.js";
 import { createBiometryPointLayer } from "../js/biometry-map.js";
-import { validateBiometryGpsPosition } from "../js/biometry-geo-validation.js";
+import { hasCurrentBiometryGpsEvidence, stampBiometryGpsValidation, validateBiometryGpsPosition } from "../js/biometry-geo-validation.js";
 
 const appSource = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
 const gpsFunctionSource = appSource.slice(
@@ -33,6 +33,53 @@ test("GPS exterior no altera biometría ni coordenada anterior; recaptura interi
   assert.equal(sample.stalkCount, 15);
   assert.equal(sample.heightM, 2.4);
   assert.equal(sample.latitude, 0.006);
+});
+
+test("recapturas rechazadas se separan del GPS aceptado y conservan motivo, mediciones y reintento", async () => {
+  const sample = { id: "p01", pointCode: "P01", stalkCount: 20, heightM: 2.5, diameterMm: 25 };
+  const session = { activeSampleId: "p01", samples: [sample] };
+  const state = { biometry: session, selectedLot: { id: "lot" }, route: "biometry", editingBiometryId: "" };
+  const polygon = { properties: { lotId: "lot" }, geometry: { type: "Polygon", coordinates: [
+    [[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]],
+  ] } };
+  let position = { latitude: 0.005, longitude: 0.005, accuracy: 5 };
+  const geolocation = { getCurrentPosition(success) { success({ coords: position }); } };
+  const coordinator = createBiometryGpsCoordinator();
+  const captureBiometryGps = runInNewContext(`${gpsFunctionSource}\ncaptureBiometryGps`, {
+    state, navigator: { geolocation }, getLotGeometry: async () => polygon, validateBiometryGpsPosition,
+    captureBiometryPoint: (target, options) => coordinator(target, { ...options, geolocation }),
+    coordinateText: point => point?.latitude != null && point?.longitude != null ? `${point.latitude}, ${point.longitude}` : "",
+    stampBiometryGpsValidation, markBiometryDirty() {}, render() {}, notify() {},
+  });
+  await captureBiometryGps(sample);
+  const accepted = Object.fromEntries(["latitude", "longitude", "gpsAccuracyM", "capturedAt"].map((key) => [key, sample[key]]));
+  assert.equal(hasCurrentBiometryGpsEvidence(sample, "lot"), true);
+  position = { latitude: 0.02, longitude: 0.02, accuracy: 5 };
+  await captureBiometryGps(sample);
+  assert.deepEqual(Object.fromEntries(Object.keys(accepted).map((key) => [key, sample[key]])), accepted);
+  assert.equal(sample.gpsRejectedReading.longitude, 0.02);
+  assert.equal(sample.gpsRejectedReason, "outside");
+  assert.equal(hasCurrentBiometryGpsEvidence(sample, "lot"), true);
+  position = { latitude: 0.005, longitude: 0.005, accuracy: 30 };
+  await captureBiometryGps(sample);
+  assert.equal(sample.gpsRejectedReason, "accuracy");
+  assert.equal(sample.gpsRejectedReading.gpsAccuracyM, 30);
+  assert.equal(sample.stalkCount, 20);
+  assert.equal(sample.heightM, 2.5);
+  assert.equal(sample.diameterMm, 25);
+  assert.equal(hasCurrentBiometryGpsEvidence(sample, "lot"), true);
+  const p02 = { id: "p02", pointCode: "P02", stalkCount: 18 };
+  session.samples.push(p02);
+  session.activeSampleId = "p02";
+  position = { latitude: 0.02, longitude: 0.02, accuracy: 5 };
+  await captureBiometryGps(p02);
+  assert.equal(p02.latitude, undefined);
+  assert.equal(p02.gpsRejectedReason, "outside");
+  assert.equal(hasCurrentBiometryGpsEvidence(p02, "lot"), false);
+  position = { latitude: 0.006, longitude: 0.006, accuracy: 5 };
+  await captureBiometryGps(p02);
+  assert.equal(p02.gpsRejectedReading, undefined);
+  assert.equal(hasCurrentBiometryGpsEvidence(p02, "lot"), true);
 });
 
 for (const [contextChange, abandon] of [

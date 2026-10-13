@@ -119,28 +119,54 @@ function sameGpsReading(current, previous) {
   return ["latitude", "longitude", "gpsAccuracyM", "capturedAt"].every((field) => current[field] === previous[field]);
 }
 
+function completeGpsReading(reading) {
+  const latitude = Number(reading?.latitude);
+  const longitude = Number(reading?.longitude);
+  const accuracyM = Number(reading?.gpsAccuracyM);
+  return reading?.latitude != null && reading.latitude !== ""
+    && reading?.longitude != null && reading.longitude !== ""
+    && Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
+    && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180
+    && Number.isFinite(accuracyM) && accuracyM > 0 && accuracyM <= MAX_BIOMETRY_GPS_ACCURACY_M
+    && typeof reading.capturedAt === "string" && Number.isFinite(Date.parse(reading.capturedAt));
+}
+
+/** Records the exact reading only after an official polygon check accepted it. */
+export function stampBiometryGpsValidation(sample, lotId) {
+  if (!completeGpsReading(sample) || !lotId) return false;
+  sample.gpsValidatedReading = Object.fromEntries(
+    ["latitude", "longitude", "gpsAccuracyM", "capturedAt"].map((field) => [field, sample[field]]),
+  );
+  sample.gpsValidatedReading.lotId = lotId;
+  return true;
+}
+
+export function hasCurrentBiometryGpsEvidence(sample, lotId) {
+  return sample?.gpsValidatedLotId === lotId && sample?.gpsValidatedReading?.lotId === lotId
+    && completeGpsReading(sample) && sameGpsReading(sample, sample.gpsValidatedReading);
+}
+
 /** A saved lot-specific validation is reusable only while the original GPS reading remains byte-for-byte intact. */
 export function hasPersistedBiometryGpsEvidence(session, lotId, previousRecord, sample) {
   if (!previousRecord || previousRecord.lotId !== lotId) return false;
   const previous = previousSampleFor(session, previousRecord, sample);
   if (!previous || previous.gpsValidatedLotId !== lotId || sample.gpsValidatedLotId !== lotId) return false;
   if (!sameGpsReading(sample, previous)) return false;
-  const latitude = Number(previous.latitude);
-  const longitude = Number(previous.longitude);
-  const accuracyM = Number(previous.gpsAccuracyM);
-  return previous.latitude != null && previous.longitude != null
-    && Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
-    && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180
-    && Number.isFinite(accuracyM) && accuracyM > 0 && accuracyM <= MAX_BIOMETRY_GPS_ACCURACY_M
-    && typeof previous.capturedAt === "string" && Number.isFinite(Date.parse(previous.capturedAt));
+  return completeGpsReading(previous);
+}
+
+export function hasTrustedBiometryGpsEvidence(session, lotId, previousRecord, sample) {
+  return hasCurrentBiometryGpsEvidence(sample, lotId)
+    || hasPersistedBiometryGpsEvidence(session, lotId, previousRecord, sample);
 }
 
 /** An unchanged historical reading without trusted saved evidence cannot be promoted by a later geometry check. */
 export function needsFreshBiometryGpsCapture(session, lotId, previousRecord, sample) {
-  if (sample.gpsValidatedLotId !== lotId) return true;
+  if (hasTrustedBiometryGpsEvidence(session, lotId, previousRecord, sample)) return false;
   const previous = previousSampleFor(session, previousRecord, sample);
-  return Boolean(previous && sameGpsReading(sample, previous)
-    && !hasPersistedBiometryGpsEvidence(session, lotId, previousRecord, sample));
+  if (previousRecord) return true;
+  // Pre-GEO-2B drafts without a reading stamp must still pass a fresh polygon check.
+  return sample.gpsValidatedLotId !== lotId || !completeGpsReading(sample);
 }
 
 /** Legacy observations may be edited without retroactively requiring GPS; new or changed calculations may not. */

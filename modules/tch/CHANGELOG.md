@@ -22,6 +22,9 @@
   del GPS aceptado en el borrador, sin promover coordenadas históricas sin evidencia.
 - El visor encuadra la suerte y las lecturas exteriores conjuntamente; sin GEO informa
   que no hay verificación espacial y conserva la edición offline con GPS ya validado.
+- La confianza visual y el guardado se apoyan en la lectura efectivamente validada o en
+  evidencia persistida intacta; un marcador incompleto o una coordenada alterada no bastan.
+  Una recaptura rechazada se muestra aparte, sin sustituir el GPS aceptado.
 
 - La captura de biometría mantiene un borrador automático local, con debounce de 500 ms y
   flush al ocultar o abandonar la página. El borrador usa la clave independiente

@@ -12,7 +12,7 @@ import { downloadBlob, downloadWorkbook } from "./excel.js";
 import { createResultImageBlob } from "./result-image.js";
 import { captureSampleGps, createBiometryGpsCoordinator } from "./biometry-gps.js";
 import { createBiometryPointLayer } from "./biometry-map.js";
-import { gpsRequiredBiometrySamples, pendingBiometryGpsPoints, validateBiometryGpsPosition } from "./biometry-geo-validation.js";
+import { gpsRequiredBiometrySamples, hasPersistedBiometryGpsEvidence, needsFreshBiometryGpsCapture, pendingBiometryGpsPoints, validateBiometryGpsPosition } from "./biometry-geo-validation.js";
 import { getLotGeometry } from "../../../shared/geo/geo-data.js";
 import { createCasurMap } from "../../../shared/geo/geo-map.js";
 import { persistBiometryCheckpoint } from "./biometry-session.js";
@@ -279,6 +279,7 @@ async function captureBiometryGps(sample, { automatic = false } = {}) {
   const session = state.biometry;
   const lotId = state.selectedLot?.id;
   if (!session || !lotId || !sample) return;
+  if (automatic && state.editingBiometryId) return;
   const isCurrent = () => state.biometry === session
     && state.selectedLot?.id === lotId
     && state.route === "biometry"
@@ -593,13 +594,16 @@ async function checkBiometryGps() {
   const previousRecord = state.editingBiometryId
     ? state.biometries.find((record) => record.id === state.editingBiometryId) : null;
   const required = gpsRequiredBiometrySamples(session, lotId, previousRecord, completedBiometrySamples(session));
-  if (!required.length) return { status: "valid", pending: [] };
+  const needsGeo = required.filter((sample) => !hasPersistedBiometryGpsEvidence(session, lotId, previousRecord, sample));
+  if (!needsGeo.length) return { status: "valid", pending: [] };
   let feature = null;
   try { if (lotId) feature = await getLotGeometry(lotId); } catch { /* Una referencia GEO ausente no valida puntos. */ }
   if (state.route !== "biometry" || state.biometry !== session || state.selectedLot?.id !== lotId) return { status: "stale" };
   if (feature?.properties?.lotId !== lotId) return { status: "geometry-unavailable" };
-  const pending = pendingBiometryGpsPoints(required, feature);
-  for (const sample of required) {
+  const invalidPositions = pendingBiometryGpsPoints(needsGeo, feature);
+  const pending = needsGeo.filter((sample) => needsFreshBiometryGpsCapture(session, lotId, previousRecord, sample)
+    || invalidPositions.includes(sample));
+  for (const sample of needsGeo) {
     if (pending.includes(sample)) delete sample.gpsValidatedLotId;
     else sample.gpsValidatedLotId = lotId;
   }

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { MAX_BIOMETRY_GPS_ACCURACY_M, gpsRequiredBiometrySamples, pendingBiometryGpsPoints, validateBiometryGpsPosition } from "../js/biometry-geo-validation.js";
+import { MAX_BIOMETRY_GPS_ACCURACY_M, gpsRequiredBiometrySamples, hasPersistedBiometryGpsEvidence, needsFreshBiometryGpsCapture, pendingBiometryGpsPoints, validateBiometryGpsPosition } from "../js/biometry-geo-validation.js";
 
 const collection = JSON.parse(readFileSync(new URL("../../../shared/geo/data/zona-5-productores.geojson", import.meta.url), "utf8"));
 const lot = collection.features.find((feature) => feature.properties.lotId === "99325");
@@ -85,4 +85,57 @@ test("medición histórica modificada o P02 nuevo vuelve a exigir GPS solo en lo
   assert.deepEqual(pendingBiometryGpsPoints([newPoint], lot), [newPoint]);
   const recalculated = { ...oldRecord, rowSpacingM: 1.8, samples: [{ ...p01 }] };
   assert.deepEqual(gpsRequiredBiometrySamples(recalculated, "99325", oldRecord, recalculated.samples), recalculated.samples);
+});
+
+test("edición posterior reutiliza GPS validado persistido sin cambiar lectura ni exigir GEO", () => {
+  const [longitude, latitude] = lot.properties.anchor;
+  const gps = { ...reading(longitude, latitude), capturedAt: "2026-10-10T09:30:00.000Z", gpsValidatedLotId: "99325" };
+  const original = { id: "p01", pointCode: "P01", stalkCount: 20, heightM: 2.5, diameterMm: 25, ...gps };
+  const saved = { lotId: "99325", date: "2026-10-10", rowSpacingM: 1.65, sampleLengthM: 3,
+    targetAgeMonths: 10, adjustmentPct: 5, samples: [original] };
+  const corrected = { ...saved, samples: [{ ...original, stalkCount: 21, heightM: 2.6, diameterMm: 26 }] };
+  const required = gpsRequiredBiometrySamples(corrected, "99325", saved, corrected.samples);
+  assert.deepEqual(required, corrected.samples);
+  assert.equal(hasPersistedBiometryGpsEvidence(corrected, "99325", saved, corrected.samples[0]), true);
+  assert.equal(needsFreshBiometryGpsCapture(corrected, "99325", saved, corrected.samples[0]), false);
+  assert.deepEqual(required.filter((sample) => !hasPersistedBiometryGpsEvidence(corrected, "99325", saved, sample)), [],
+    "la edición offline no necesita descargar geometría ni recapturar GPS");
+  assert.deepEqual(Object.fromEntries(["latitude", "longitude", "gpsAccuracyM", "capturedAt"].map((field) => [field, corrected.samples[0][field]])), {
+    latitude: gps.latitude, longitude: gps.longitude, gpsAccuracyM: gps.gpsAccuracyM, capturedAt: gps.capturedAt,
+  });
+});
+
+test("evidencia GPS anterior no cubre lectura alterada, otra suerte, punto nuevo ni coordenada histórica sin validar", () => {
+  const [longitude, latitude] = lot.properties.anchor;
+  const savedPoint = { id: "p01", pointCode: "P01", stalkCount: 20, heightM: 2.5, diameterMm: 25,
+    ...reading(longitude, latitude), capturedAt: "2026-10-10T09:30:00.000Z", gpsValidatedLotId: "99325" };
+  const saved = { lotId: "99325", date: "2026-10-10", rowSpacingM: 1.65, sampleLengthM: 3,
+    targetAgeMonths: 10, adjustmentPct: 5, samples: [savedPoint] };
+  const newPoint = { id: "p02", pointCode: "P02", stalkCount: 18, heightM: 2.4, diameterMm: 23 };
+  const session = { ...saved, samples: [{ ...savedPoint, stalkCount: 21 }, newPoint] };
+  assert.equal(hasPersistedBiometryGpsEvidence(session, "99325", saved, session.samples[1]), false);
+  for (const changed of [{ latitude: latitude + 0.001 }, { longitude: longitude + 0.001 },
+    { gpsAccuracyM: 6 }, { capturedAt: "2026-10-10T10:00:00.000Z" }, { gpsValidatedLotId: "75907" }]) {
+    const altered = { ...session, samples: [{ ...session.samples[0], ...changed }, newPoint] };
+    assert.equal(hasPersistedBiometryGpsEvidence(altered, "99325", saved, altered.samples[0]), false);
+  }
+  assert.equal(hasPersistedBiometryGpsEvidence(session, "75907", saved, session.samples[0]), false);
+  const unverified = { ...saved, samples: [{ ...savedPoint, gpsValidatedLotId: undefined }] };
+  assert.equal(hasPersistedBiometryGpsEvidence(session, "99325", unverified, session.samples[0]), false);
+  assert.equal(hasPersistedBiometryGpsEvidence(session, "99325", { ...saved, samples: [{ ...savedPoint, capturedAt: "" }] }, session.samples[0]), false);
+});
+
+test("una coordenada histórica interior sin evidencia no se valida retroactivamente", () => {
+  const [longitude, latitude] = lot.properties.anchor;
+  const oldPoint = { id: "p01", pointCode: "P01", stalkCount: 20, heightM: 2.5, diameterMm: 25,
+    ...reading(longitude, latitude), capturedAt: "2025-05-01T09:30:00.000Z" };
+  const saved = { lotId: "99325", samples: [oldPoint] };
+  const edited = { samples: [{ ...oldPoint, stalkCount: 21 }] };
+  assert.equal(validateBiometryGpsPosition(edited.samples[0], lot).status, "inside");
+  assert.equal(hasPersistedBiometryGpsEvidence(edited, "99325", saved, edited.samples[0]), false);
+  assert.equal(needsFreshBiometryGpsCapture(edited, "99325", saved, edited.samples[0]), true);
+  const recaptured = { ...edited, samples: [{ ...edited.samples[0], capturedAt: "2026-10-12T09:30:00.000Z", gpsValidatedLotId: "99325" }] };
+  assert.equal(needsFreshBiometryGpsCapture(recaptured, "99325", saved, recaptured.samples[0]), false);
+  const newPoint = { id: "p02", pointCode: "P02", ...reading(longitude, latitude) };
+  assert.equal(needsFreshBiometryGpsCapture({ samples: [newPoint] }, "99325", null, newPoint), true);
 });

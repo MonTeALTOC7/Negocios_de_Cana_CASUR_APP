@@ -83,6 +83,41 @@ function sameMeasurement(current, previous) {
     && CALCULATION_FIELDS.every((field) => Number(current[field] || 0) === Number(previous[field] || 0));
 }
 
+function previousSampleFor(session, previousRecord, sample) {
+  const previousSamples = previousRecord?.samples || [];
+  const index = session.samples.indexOf(sample);
+  return previousSamples.find((item) => item.id && item.id === sample.id)
+    || (!previousSamples[index]?.id && previousSamples[index]?.pointCode === sample.pointCode ? previousSamples[index] : null);
+}
+
+function sameGpsReading(current, previous) {
+  return ["latitude", "longitude", "gpsAccuracyM", "capturedAt"].every((field) => current[field] === previous[field]);
+}
+
+/** A saved lot-specific validation is reusable only while the original GPS reading remains byte-for-byte intact. */
+export function hasPersistedBiometryGpsEvidence(session, lotId, previousRecord, sample) {
+  if (!previousRecord || previousRecord.lotId !== lotId) return false;
+  const previous = previousSampleFor(session, previousRecord, sample);
+  if (!previous || previous.gpsValidatedLotId !== lotId || sample.gpsValidatedLotId !== lotId) return false;
+  if (!sameGpsReading(sample, previous)) return false;
+  const latitude = Number(previous.latitude);
+  const longitude = Number(previous.longitude);
+  const accuracyM = Number(previous.gpsAccuracyM);
+  return previous.latitude != null && previous.longitude != null
+    && Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
+    && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180
+    && Number.isFinite(accuracyM) && accuracyM > 0 && accuracyM <= MAX_BIOMETRY_GPS_ACCURACY_M
+    && typeof previous.capturedAt === "string" && Number.isFinite(Date.parse(previous.capturedAt));
+}
+
+/** An unchanged historical reading without trusted saved evidence cannot be promoted by a later geometry check. */
+export function needsFreshBiometryGpsCapture(session, lotId, previousRecord, sample) {
+  if (sample.gpsValidatedLotId !== lotId) return true;
+  const previous = previousSampleFor(session, previousRecord, sample);
+  return Boolean(previous && sameGpsReading(sample, previous)
+    && !hasPersistedBiometryGpsEvidence(session, lotId, previousRecord, sample));
+}
+
 /** Legacy observations may be edited without retroactively requiring GPS; new or changed calculations may not. */
 export function gpsRequiredBiometrySamples(session, lotId, previousRecord, completedSamples) {
   if (!previousRecord || previousRecord.lotId !== lotId) return completedSamples;
@@ -93,9 +128,7 @@ export function gpsRequiredBiometrySamples(session, lotId, previousRecord, compl
   const structureChanged = session.samples.length !== previousSamples.length;
   if (calculationChanged || (structureChanged && session.samples.length < previousSamples.length)) return completedSamples;
   return completedSamples.filter((sample) => {
-    const index = session.samples.indexOf(sample);
-    const previous = previousSamples.find((item) => item.id && item.id === sample.id)
-      || (!previousSamples[index]?.id && previousSamples[index]?.pointCode === sample.pointCode ? previousSamples[index] : null);
+    const previous = previousSampleFor(session, previousRecord, sample);
     return !previous || !sameMeasurement(sample, previous);
   });
 }

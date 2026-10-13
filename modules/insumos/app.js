@@ -10,6 +10,7 @@ const DB_STORE = 'kv';
 
 const STATE = {
   meta:null, events:[], products:[], maestro:[], validaciones:{},
+  centralComparison:{status:'missing'},
   eventsById:{}, prodsByEvent:{},
   scope:'productores',          // 'productores' | 'todas' | 'zona'
   scopeZone:'5',
@@ -67,6 +68,16 @@ async function loadData(){
 
   STATE.reviews=(await idbGet('reviews'))||{};
   STATE.overrides=(await idbGet('overrides'))||{maestro:{}};
+}
+
+/* Lectura exclusiva: la comparación no toca STATE.maestro ni el bootstrap. */
+async function refreshCentralComparison(){
+  try{
+    const {loadCentralMaestroComparison}=await import('./maestro-central-bridge.mjs');
+    STATE.centralComparison=await loadCentralMaestroComparison(STATE.maestro);
+  }catch{
+    STATE.centralComparison={status:'unavailable'};
+  }
 }
 
 /* ─── Helpers ─── */
@@ -816,6 +827,29 @@ async function repairMaestro(key,area,reviewKey){
 /* ═══════════════════════════════════════════════════════════
    ADMIN
    ═══════════════════════════════════════════════════════════ */
+function renderCentralComparison(){
+  const d=STATE.centralComparison||{status:"missing"};
+  let html='<div class="panel-h"><h3><span class="emo">🔗</span> Conciliación Maestro Central</h3></div>'
+    +'<div class="note info">Comparación de solo lectura. No cambia KPI, áreas físicas, validaciones ni datos SIAGRI de Insumos.</div>';
+  if(d.status!=="ready"){
+    const msg=d.status==="missing"?"Sin Maestro Central local. Publicalo desde Centro Maestro para comparar."
+      :d.status==="invalid"?"Maestro Central sin estructura válida: no se aplicó ningún cambio."
+      :"No se pudo consultar Maestro Central. Insumos conserva sus datos propios.";
+    html+='<div class="note">'+esc(msg)+'</div>';
+  }else{
+    const data=[
+      ["Versión Central",d.version],["Suertes coincidentes",d.matched],["Sin correspondencia Central",d.missing],
+      ["Solo en Maestro Central",d.onlyCentral],["Diferencias de área (>0.01 ha)",d.areaDiff],
+      ["Diferencias de nombre",d.nameDiff],["Sin área comparable",d.uncomparable],
+      ["Llaves ambiguas",d.ambiguous]
+    ];
+    html+='<div class="info-list">'+data.map(([k,v])=>'<div class="ir"><span class="l">'+esc(k)+'</span><span class="v">'+esc(v)+'</span></div>').join('')+'</div>';
+    const rows=(d.examples||[]).map(x=>'<div class="ir"><span class="l">'+esc(x.key)+'</span><span class="v" style="white-space:normal;max-width:70%;text-align:right">'
+      +esc(x.kind)+': '+esc(x.old??"")+(x.new!=null?' → '+esc(x.new):'')+'</span></div>').join('');
+    if(rows)html+='<details style="margin-top:8px"><summary>Ver primeras diferencias (máximo 12)</summary><div class="info-list">'+rows+'</div></details>';
+  }
+  return html+'<button type="button" class="btn-primary" data-refresh-central style="padding:8px 12px;width:auto;margin-top:8px">Actualizar lectura</button>';
+}
 function renderAdmin(){
   if(!STATE.admin){
     return `${secHead('admin','var(--grad-navy)','Administración','Acceso restringido')}
@@ -834,7 +868,7 @@ function renderAdmin(){
   const nFecha=(v.eventos_fecha_alerta||[]).length;
   const m=STATE.meta||{};
   return `${secHead('admin','var(--grad-navy)','Administración',scopeLabel())}
-
+    ${renderCentralComparison()}
     <div class="panel-h"><h3><span class="emo">🔎</span> Validaciones de datos</h3></div>
     <div class="val-item warn" data-drill="alertas-global"><div class="vi-ic">🗂️</div>
       <div class="vi-txt"><b>${nSinM} suertes sin Maestro</b><span>${esc((v.suertes_sin_maestro||[]).slice(0,10).join(', '))}${nSinM>10?'…':''}</span></div><div class="vi-arrow">›</div></div>
@@ -1109,6 +1143,7 @@ function render(){
 /* Un solo listener de click en document — nunca se pierde al re-renderizar */
 document.addEventListener('click',e=>{
   const t=e.target;
+  if(t.closest('[data-refresh-central]')){if(STATE.admin)void refreshCentralComparison().then(()=>render());return}
   const nav=t.closest('[data-nav]');
   if(nav){STATE.section=nav.dataset.nav;STATE.expanded.clear();closeDrawer();render();window.scrollTo({top:0,behavior:'smooth'});return}
   const sc=t.closest('[data-scope]');
@@ -1252,6 +1287,7 @@ async function applyPending(){
   STATE.events.forEach(e=>STATE.eventsById[e.event_id]=e);
   STATE.products.forEach(p=>{(STATE.prodsByEvent[p.event_id]=STATE.prodsByEvent[p.event_id]||[]).push(p)});
   STATE.pending=null;_siagriFile=null;_maestroFile=null;
+  await refreshCentralComparison();
   $('#syncTxt').textContent='v'+(d.meta.version||1);
   render();toast('Datos actualizados ✓','ok');
 }
@@ -1269,6 +1305,7 @@ function downloadBootstrap(){
 async function init(){
   try{
     await loadData();
+    await refreshCentralComparison();
     $('#syncTxt').textContent='v'+(STATE.meta.version||1);
     render();
     setTimeout(()=>$('#loader').classList.add('hide'),300);

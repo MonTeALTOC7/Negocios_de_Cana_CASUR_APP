@@ -70,3 +70,32 @@ export function validateBiometryGpsPosition(reading, feature) {
 export function pendingBiometryGpsPoints(completedSamples, feature) {
   return completedSamples.filter((sample) => validateBiometryGpsPosition(sample, feature).status !== "inside");
 }
+
+const CALCULATION_FIELDS = ["stalkCount", "directStalksPerMeter", "heightM", "diameterMm", "lengthCm", "diameterCm", "weighedStalkCount", "weighedTotalKg"];
+const SESSION_CALCULATION_FIELDS = ["date", "rowSpacingM", "sampleLengthM", "targetAgeMonths", "adjustmentPct"];
+
+function sameMeasurement(current, previous) {
+  const currentMode = current.countMode || (Number(current.directStalksPerMeter) > 0 ? "direct" : "count");
+  const previousMode = previous.countMode || (Number(previous.directStalksPerMeter) > 0 ? "direct" : "count");
+  const currentWeighing = Boolean(current.weighingEnabled || current.weighedStalkCount || current.weighedTotalKg);
+  const previousWeighing = Boolean(previous.weighingEnabled || previous.weighedStalkCount || previous.weighedTotalKg);
+  return currentMode === previousMode && currentWeighing === previousWeighing
+    && CALCULATION_FIELDS.every((field) => Number(current[field] || 0) === Number(previous[field] || 0));
+}
+
+/** Legacy observations may be edited without retroactively requiring GPS; new or changed calculations may not. */
+export function gpsRequiredBiometrySamples(session, lotId, previousRecord, completedSamples) {
+  if (!previousRecord || previousRecord.lotId !== lotId) return completedSamples;
+  const calculationChanged = SESSION_CALCULATION_FIELDS.some((field) => field === "date"
+    ? String(session[field] || "") !== String(previousRecord[field] || "")
+    : Number(session[field] || 0) !== Number(previousRecord[field] || 0));
+  const previousSamples = previousRecord.samples || [];
+  const structureChanged = session.samples.length !== previousSamples.length;
+  if (calculationChanged || (structureChanged && session.samples.length < previousSamples.length)) return completedSamples;
+  return completedSamples.filter((sample) => {
+    const index = session.samples.indexOf(sample);
+    const previous = previousSamples.find((item) => item.id && item.id === sample.id)
+      || (!previousSamples[index]?.id && previousSamples[index]?.pointCode === sample.pointCode ? previousSamples[index] : null);
+    return !previous || !sameMeasurement(sample, previous);
+  });
+}

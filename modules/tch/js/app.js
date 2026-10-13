@@ -12,7 +12,7 @@ import { downloadBlob, downloadWorkbook } from "./excel.js";
 import { createResultImageBlob } from "./result-image.js";
 import { captureSampleGps, createBiometryGpsCoordinator } from "./biometry-gps.js";
 import { createBiometryPointLayer } from "./biometry-map.js";
-import { pendingBiometryGpsPoints, validateBiometryGpsPosition } from "./biometry-geo-validation.js";
+import { gpsRequiredBiometrySamples, pendingBiometryGpsPoints, validateBiometryGpsPosition } from "./biometry-geo-validation.js";
 import { getLotGeometry } from "../../../shared/geo/geo-data.js";
 import { createCasurMap } from "../../../shared/geo/geo-map.js";
 import { persistBiometryCheckpoint } from "./biometry-session.js";
@@ -590,13 +590,16 @@ function completedBiometrySamples(b = state.biometry) {
 async function checkBiometryGps() {
   const session = state.biometry;
   const lotId = state.selectedLot?.id;
+  const previousRecord = state.editingBiometryId
+    ? state.biometries.find((record) => record.id === state.editingBiometryId) : null;
+  const required = gpsRequiredBiometrySamples(session, lotId, previousRecord, completedBiometrySamples(session));
+  if (!required.length) return { status: "valid", pending: [] };
   let feature = null;
   try { if (lotId) feature = await getLotGeometry(lotId); } catch { /* Una referencia GEO ausente no valida puntos. */ }
   if (state.route !== "biometry" || state.biometry !== session || state.selectedLot?.id !== lotId) return { status: "stale" };
   if (feature?.properties?.lotId !== lotId) return { status: "geometry-unavailable" };
-  const completed = completedBiometrySamples(session);
-  const pending = pendingBiometryGpsPoints(completed, feature);
-  for (const sample of completed) {
+  const pending = pendingBiometryGpsPoints(required, feature);
+  for (const sample of required) {
     if (pending.includes(sample)) delete sample.gpsValidatedLotId;
     else sample.gpsValidatedLotId = lotId;
   }
@@ -2511,7 +2514,7 @@ document.addEventListener("input", (event) => {
       sample[input.dataset.sampleField] = input.value;
       if (["stalkCount", "directStalksPerMeter", "heightM", "diameterMm"].includes(input.dataset.sampleField)
           && Number(input.value) > 0) state.biometry.lotLocked = true;
-      invalidateValidation();
+      if (input.dataset.sampleField !== "notes") invalidateValidation();
       markBiometryDirty();
       updateActivePointResult();
       if (["stalkCount", "directStalksPerMeter", "heightM", "diameterMm"].includes(input.dataset.sampleField)
@@ -2528,7 +2531,7 @@ document.addEventListener("input", (event) => {
   const bioMap = { bioTechnician: "technician", adjustmentPct: "adjustmentPct", bioNotes: "notes" };
   if (bioMap[input.id]) {
     state.biometry[bioMap[input.id]] = input.type === "number" ? finiteNumber(input.value) : input.value;
-    if (input.id !== "bioTechnician") invalidateValidation();
+    if (input.id === "adjustmentPct") invalidateValidation();
     markBiometryDirty();
     if (state.biometry.phase === "measure") updateActivePointResult();
   }
@@ -2645,7 +2648,7 @@ document.addEventListener("change", (event) => {
     }
   }
 
-  if (input.id === "adjustmentPct" || input.id === "bioNotes") {
+  if (input.id === "adjustmentPct") {
     invalidateValidation();
     markBiometryDirty();
     render();
@@ -2653,7 +2656,6 @@ document.addEventListener("change", (event) => {
 
   if (input.id === "adjustmentReason") {
     state.biometry.adjustmentReason = input.value;
-    invalidateValidation();
     markBiometryDirty();
     render();
   }

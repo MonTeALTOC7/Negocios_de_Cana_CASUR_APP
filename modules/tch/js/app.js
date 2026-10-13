@@ -12,6 +12,7 @@ import { downloadBlob, downloadWorkbook } from "./excel.js";
 import { createResultImageBlob } from "./result-image.js";
 import { captureSampleGps, createBiometryGpsCoordinator } from "./biometry-gps.js";
 import { createBiometryPointLayer } from "./biometry-map.js";
+import { createTchQaLot, isTchGpsQaMode, QA_TCH_LOT_ID, validTchQaGpsReading, validateTchQaGpsReading } from "./biometry-qa.js";
 import { gpsRequiredBiometrySamples, hasPersistedBiometryGpsEvidence, needsFreshBiometryGpsCapture, pendingBiometryGpsPoints, validateBiometryGpsPosition } from "./biometry-geo-validation.js";
 import { getLotGeometry } from "../../../shared/geo/geo-data.js";
 import { createCasurMap } from "../../../shared/geo/geo-map.js";
@@ -37,6 +38,9 @@ const visitCameraFile = document.querySelector("#visitCameraFile");
 const visitGalleryFile = document.querySelector("#visitGalleryFile");
 const pwaInstallNotice = document.querySelector("#pwaInstallNotice");
 const MASTER_PASSWORD_HASH = "6315700c5446173c02844f5fcc514d3b52e8da0ad4b31f6126049d2d8709ad34";
+
+const QA_MODE = isTchGpsQaMode(globalThis.location?.search || "");
+const QA_LOT = createTchQaLot();
 
 const state = {
   route: "home",
@@ -308,6 +312,7 @@ async function captureBiometryGps(sample, { automatic = false } = {}) {
       automatic,
       isCurrent,
       validateReading: async (reading) => {
+        if (QA_MODE && lotId === QA_TCH_LOT_ID) return validateTchQaGpsReading(reading);
         let feature = null;
         try { feature = await getLotGeometry(lotId); } catch { /* GEO no disponible: no se valida una lectura nueva. */ }
         if (feature?.properties?.lotId !== lotId) feature = null;
@@ -329,7 +334,9 @@ async function captureBiometryGps(sample, { automatic = false } = {}) {
     sample.gpsIssue = "";
     markBiometryDirty();
     render();
-    notify("Coordenada aceptada dentro de la suerte seleccionada.");
+    notify(QA_MODE && lotId === QA_TCH_LOT_ID
+      ? "GPS real capturado para prueba: ubicación libre, sin validación espacial CASUR."
+      : "Coordenada aceptada dentro de la suerte seleccionada.");
   } catch (error) {
     if (!isCurrent()) return;
     const message = error?.code === 1 ? "Permiso GPS denegado. Podés seguir midiendo y usar el botón manual cuando esté disponible."
@@ -511,6 +518,11 @@ async function fetchPublishedMaster() {
 }
 
 async function syncPublishedMaster({ force = false, userInitiated = false } = {}) {
+  if (QA_MODE) {
+    state.master = [QA_LOT];
+    if (userInitiated) notify("Modo QA: el Maestro oficial no se carga ni modifica.");
+    return;
+  }
   if (navigator.onLine === false) {
     state.masterSync = {
       status: state.master.length ? "current" : "error",
@@ -594,6 +606,15 @@ async function checkBiometryGps() {
   const previousRecord = state.editingBiometryId
     ? state.biometries.find((record) => record.id === state.editingBiometryId) : null;
   const required = gpsRequiredBiometrySamples(session, lotId, previousRecord, completedBiometrySamples(session));
+  if (QA_MODE && lotId === QA_TCH_LOT_ID) {
+    if (state.route !== "biometry" || state.biometry !== session || state.selectedLot?.id !== lotId) return { status: "stale" };
+    const pending = required.filter((sample) => !validTchQaGpsReading(sample));
+    for (const sample of required) {
+      if (pending.includes(sample)) delete sample.gpsValidatedLotId;
+      else sample.gpsValidatedLotId = lotId;
+    }
+    return { status: pending.length ? "pending" : "valid", pending };
+  }
   const needsGeo = required.filter((sample) => !hasPersistedBiometryGpsEvidence(session, lotId, previousRecord, sample));
   if (!needsGeo.length) return { status: "valid", pending: [] };
   let feature = null;
@@ -612,6 +633,10 @@ async function checkBiometryGps() {
 
 function reportBiometryGpsGate(result) {
   if (result.status === "stale") return;
+  if (QA_MODE && state.selectedLot?.id === QA_TCH_LOT_ID) {
+    notify(`${result.pending?.map((sample) => sample.pointCode).join(", ") || "Punto"}: para la prueba capturá GPS real con coordenadas y hora válidas.`);
+    return;
+  }
   notify(result.status === "geometry-unavailable"
     ? "No está disponible el polígono oficial de esta suerte. Conservá el borrador y reintentá cuando GEO esté disponible."
     : `${result.pending.map((sample) => sample.pointCode).join(", ")}: pendiente de ubicación válida dentro de la suerte. Capturá GPS nuevamente antes de validar o guardar.`);
@@ -750,8 +775,13 @@ async function loadState() {
     masterPendingPublish: false,
     ...(loaded[6]?.value || {}),
   };
-  await syncPublishedMaster({ force: !state.master.length });
-  if (!state.master.length) state.embeddedMasterError = state.masterSync.message || "No se pudo abrir el maestro integrado.";
+  if (QA_MODE) {
+    state.master = [QA_LOT];
+    state.masterSync = { status: "current", message: "Modo QA aislado. No se utilizó el Maestro oficial.", checkedAt: "" };
+  } else {
+    await syncPublishedMaster({ force: !state.master.length });
+    if (!state.master.length) state.embeddedMasterError = state.masterSync.message || "No se pudo abrir el maestro integrado.";
+  }
   resetBiometry();
   resetWeighing();
   resetVisit();
@@ -766,6 +796,12 @@ async function loadState() {
   if (["invalid", "unsupported"].includes(draftInspection.status)) {
     state.biometryDraftIssue = "Hay un borrador protegido que esta versión no puede recuperar.";
     state.biometryDraftStatus = "protected";
+  }
+  if (QA_MODE) {
+    state.selectedLot = QA_LOT;
+    state.biometry.search = `${QA_LOT.id} · ${QA_LOT.producer} · Suerte ${QA_LOT.lot}`;
+    state.biometry.rowSpacingM = QA_LOT.rowSpacingM;
+    state.route = "biometry";
   }
   await refreshStorageEstimate();
 }
@@ -875,7 +911,7 @@ function selectedLotPanel(lot, date) {
   if (!lot) return "";
   const age = ageFromLot(lot, date);
   return `<section class="active-lot ${lot.zone === "5-Productores" ? "producer-lot" : ""}">
-    <div class="active-lot-title"><div><small>${lot.zone === "5-Productores" ? "⭐ PRODUCTORES · PRIORIDAD" : "MAESTRO GENERAL CASUR"}</small><h3>${escapeHtml(lot.producer)} · Suerte ${escapeHtml(lot.lot)}</h3></div><span class="code-pill inverse">${escapeHtml(lot.id)}</span></div>
+    <div class="active-lot-title"><div><small>${QA_MODE && lot.id === QA_TCH_LOT_ID ? "🧪 PRUEBA SIN POLÍGONO · NO OFICIAL" : lot.zone === "5-Productores" ? "⭐ PRODUCTORES · PRIORIDAD" : "MAESTRO GENERAL CASUR"}</small><h3>${escapeHtml(lot.producer)} · Suerte ${escapeHtml(lot.lot)}</h3></div><span class="code-pill inverse">${escapeHtml(lot.id)}</span></div>
     <p>${escapeHtml(lot.zone || "Sin zona")} · ${escapeHtml(lot.tenureLabel || lot.tenureCode || "Sin tenencia")} · ${escapeHtml(lot.irrigation || "Sin riego definido")}</p>
     <div class="lot-facts">
       <div class="lot-fact fact-area"><span>Área</span><strong>${formatNumber(lot.area, 2)} ha</strong></div>
@@ -947,6 +983,11 @@ function pointStatus(sample) {
 }
 
 function biometryGpsStatusText(sample) {
+  if (QA_MODE && state.selectedLot?.id === QA_TCH_LOT_ID) {
+    return validTchQaGpsReading(sample) && sample.gpsValidatedLotId === QA_TCH_LOT_ID
+      ? "🧪 GPS de prueba · sin validación espacial CASUR."
+      : "🧪 Punto de prueba: capturá GPS real desde cualquier ubicación.";
+  }
   if (coordinateText(sample) && sample.gpsValidatedLotId === state.selectedLot?.id) return "Ubicación válida dentro de la suerte.";
   if (sample.gpsIssue === "outside") return "Pendiente de ubicación válida · coordenada fuera de la suerte. Reintentá GPS.";
   if (sample.gpsIssue === "geometry") return "Pendiente de ubicación válida · geometría oficial no disponible.";
@@ -1509,6 +1550,7 @@ async function saveBiometry(download = false) {
     rowSpacingM: finiteNumber(b.rowSpacingM),
     sampleLengthM: finiteNumber(b.sampleLengthM),
     validation: { ...b.validation },
+    qaOnly: QA_MODE && lot.id === QA_TCH_LOT_ID,
     autoGpsEnabled: Boolean(b.autoGpsEnabled),
     validated: Boolean(b.validation?.validated),
     validatedAt: b.validation?.validatedAt || "",
@@ -1751,7 +1793,7 @@ function render() {
     export: renderExport,
     master: renderMaster,
   };
-  app.innerHTML = (views[state.route] || renderHome)();
+  app.innerHTML = `${QA_MODE ? '<div class="warning" role="status"><b>🧪 HACIENDA 000 · SUERTE 00 — MODO PRUEBA.</b> Podés capturar GPS desde cualquier lugar. Sin validación de polígono; datos separados del sistema real y sin valor agronómico oficial.</div>' : ""}${(views[state.route] || renderHome)()}`;
 }
 
 function selectLot(id, context) {

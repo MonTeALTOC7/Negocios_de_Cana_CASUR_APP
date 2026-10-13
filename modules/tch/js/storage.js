@@ -1,4 +1,6 @@
-const DB_NAME = "casur-estimador-tch";
+const DB_NAME = new URLSearchParams(globalThis.location?.search || "").get("qa") === "tch-gps-000"
+  ? "casur-estimador-tch-qa-000"
+  : "casur-estimador-tch";
 const DB_VERSION = 3;
 
 function blobDataUrl(blob) {

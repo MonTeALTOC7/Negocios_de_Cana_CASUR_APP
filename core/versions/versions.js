@@ -5,7 +5,7 @@
    número de un módulo aquí no afecta a los demás.
    ============================================================ */
 
-export const APP_VERSION = '1.2.0';
+export const APP_VERSION = '1.3.0';
 export const APP_CHANNEL = 'GitHub Pages';
 
 /* Versiones detectadas en la auditoría (Fase 0). En fase 1 son
@@ -13,7 +13,7 @@ export const APP_CHANNEL = 'GitHub Pages';
    confirmarán/leerán de su propio version.json cuando exista. */
 export const MODULE_VERSIONS = {
   produccion: 'VF54.8',
-  tch: '2.7.2',
+  tch: '2.8.0',
   riego: 'v6',
   insumos: '1.0',
   inventario: '1.4.0',

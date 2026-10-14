@@ -12,13 +12,15 @@
   <link rel="icon" href="./assets/icons/tch-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./assets/icons/tch-icon-192.png">
   <link rel="stylesheet" href="./css/casur.css">
+  <link rel="stylesheet" href="../../shared/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="../../shared/geo/geo.css">
 </head>
 <body>
   <div class="topline"></div>
   <header class="app-header">
     <button class="brand" data-route="home" aria-label="Ir al inicio">
       <span class="logo-plate"><img src="./assets/logo_casur.png" alt="CASUR"></span>
-      <span><small>NEGOCIOS DE CAÑA</small><strong>Estimador TCH</strong><em>Biometría y evidencia de campo</em></span>
+    <span><small>NEGOCIOS DE CAÑA</small><strong>Estimador TCH</strong><em>v2.8.0 · Biometría y evidencia de campo</em></span>
     </button>
     <span class="connection" id="connectionBadge">● En línea</span>
   </header>
@@ -41,6 +43,7 @@
   <input id="visitCameraFile" type="file" accept="image/*" capture="environment" hidden>
   <input id="visitGalleryFile" type="file" accept="image/*" multiple hidden>
   <script src="./vendor/xlsx.bundle.js"></script>
+  <script src="../../shared/vendor/leaflet/leaflet.js"></script>
   <script type="module" src="./js/app.js"></script>
 </body>
 </html>

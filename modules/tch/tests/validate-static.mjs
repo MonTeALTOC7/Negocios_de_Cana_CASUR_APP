@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const required = [
   "index.html", "version.json", "css/casur.css",
-  "js/app.js", "js/biometry-session.js", "js/tch-engine.js", "js/storage.js", "js/master.js", "js/excel.js", "js/visit-evidence.js",
+  "js/app.js", "js/biometry-session.js", "js/biometry-gps.js", "js/biometry-map.js", "js/tch-engine.js", "js/storage.js", "js/master.js", "js/excel.js", "js/visit-evidence.js",
   "js/result-image.js", "data/suertes.json", "data/productores.json", "vendor/xlsx.bundle.js",
   "assets/logo_casur.png", "assets/cana-azucar-real.png",
   "assets/icons/tch-icon-192.png", "assets/icons/tch-icon-512.png",
@@ -14,14 +14,20 @@ const required = [
 required.forEach((file) => assert.ok(fs.existsSync(path.join(root, file)), `Falta ${file}`));
 
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+assert.match(html, /v2\.8\.0/, "La versión TCH debe estar visible dentro del módulo");
 assert.match(html, /Manifest propio DESACTIVADO/, "El módulo debe usar la PWA única de la App Maestra");
 assert.match(html, /type="module" src="\.\/js\/app\.js"/);
+assert.match(html, /\.\.\/\.\.\/shared\/vendor\/leaflet\/leaflet\.css/);
+assert.match(html, /\.\.\/\.\.\/shared\/geo\/geo\.css/);
+assert.match(html, /\.\.\/\.\.\/shared\/vendor\/leaflet\/leaflet\.js/);
 assert.doesNotMatch(html, /data-route="weighing"/, "Pesaje separado no debe ser navegación principal");
 assert.match(html, /data-route="visits"/, "Visitas debe ser navegación principal");
 assert.match(html, /visitCameraFile/);
 assert.match(html, /estimateFile/);
 
 const source = fs.readFileSync(path.join(root, "js/app.js"), "utf8");
+assert.equal(JSON.parse(fs.readFileSync(path.join(root, "version.json"), "utf8")).version, "2.8.0");
+assert.equal(JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version, "2.8.0");
 assert.doesNotMatch(source, /chatgpt-auth|openai\/hosting|api\.openai/i);
 assert.match(source, /MASTER_PASSWORD_HASH/);
 assert.match(source, /syncPublishedMaster/);
@@ -63,6 +69,13 @@ assert.match(source, /visitBiometryId/, "La visita debe permitir elegir una biom
 assert.match(source, /data-edit-biometry/, "Las biometrías guardadas deben poder reabrirse y editarse");
 assert.match(source, /activeBiometryId/, "La biometría activa debe conservar una identidad de sesión");
 assert.match(source, /persistBiometryCheckpoint/, "Guardar debe actualizar el checkpoint activo sin duplicarlo");
+assert.match(source, /createCasurMap/, "El visor TCH debe reutilizar el mapa compartido CASUR");
+const biometryMapSource = fs.readFileSync(path.join(root, "js/biometry-map.js"), "utf8");
+assert.match(biometryMapSource, /circleMarker/, "El mapa TCH debe marcar los puntos GPS sobre el visor compartido");
+assert.match(biometryMapSource, /data-focus-biometry-point/, "Al tocar un marcador se debe poder volver al formulario del punto");
+assert.match(source, /captureSampleGps/, "La captura GPS debe mantener la semántica por punto");
+assert.match(source, /data-copy-sample-gps/, "Las coordenadas de cada punto deben poder copiarse");
+assert.match(source, /data-biometry-map/, "El historial debe abrir el mapa de esa biometría guardada");
 assert.match(source, /data-new-biometry/, "Una nueva biometría debe comenzar mediante una acción explícita");
 assert.match(source, /Cronológico de suertes/, "Análisis debe convertirse en consulta cronológica");
 assert.match(source, /Filtros y exportación/, "La exportación debe quedar contraída en un desplegable");
@@ -109,4 +122,4 @@ const producers = JSON.parse(fs.readFileSync(path.join(root, "data/productores.j
 assert.equal(producers.length, 262, "productores.json se conserva como compatibilidad de Zona 5");
 assert.ok(producers.every((row) => row.zona === "5-Productores"));
 
-console.log("Estructura estática PWA v2.7.2 validada.");
+console.log("Estructura estática PWA v2.8.0 validada.");

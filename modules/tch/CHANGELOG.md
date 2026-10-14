@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2.8.0 — 2026-10-11
+
+- La medición biométrica muestra coordenadas GPS copiables por punto y permite abrir un mapa
+  reutilizando geometrías y el visor compartidos de CASUR.
+- El visor distingue la suerte seleccionada, sus suertes vecinas y los puntos GPS P01/P02…;
+  centrar puntos, seleccionar un marcador y volver al punto correspondiente.
+- El mapa de una biometría guardada se abre aislado de la sesión actual y permite retomar ese
+  punto en su formulario de edición. Offline usa los datos disponibles en la caché GEO existente.
+- La captura GPS automática optativa registra cada punto una sola vez al comenzar, conserva su
+  ubicación ante fallos y permite recaptura manual. Se muestran precisión y fecha/hora de captura.
+- Si la geometría no carga, el visor mantiene los marcadores y encuadra los puntos válidos; el
+  maestro local evita solicitudes de actualización mientras el dispositivo está sin conexión.
+- GEO-2B presenta Dentro, Fuera, Revisar y Sin GPS en formulario y mapa, con precisión, hora y
+  leyenda textual. Las lecturas rechazadas quedan separadas del GPS aceptado y nunca validan
+  retrospectivamente una coordenada histórica sin evidencia confiable.
+- La edición posterior conserva el GPS validado de cada punto, incluso fuera de la suerte o sin
+  conexión, mientras la lectura original permanezca intacta; la recaptura sigue siendo manual.
+- Sin cambios de fórmula TCH, IndexedDB v3, borrador `draft:biometry:v1`, datasets o geometrías.
+
 ## Próxima versión
 
 - La captura de biometría mantiene un borrador automático local, con debounce de 500 ms y

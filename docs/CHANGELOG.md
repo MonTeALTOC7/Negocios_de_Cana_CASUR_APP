@@ -2,6 +2,11 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.3.1] — 2026-10-13 · actualización de caché GEO/Producción
+- La App Maestra renueva el shell para distribuir los cambios de identificación de Suerte/CodSuerte en Producción y la etiqueta contextual del visor GEO.
+- El visor GEO compartido permanece incluido en el shell offline; GEO r2, la caché LKG de Producción e IndexedDB conservan su almacenamiento independiente.
+- Maestro de Suertes permanece VF54.8, TCH permanece 2.8.0 y los datasets oficiales no cambian.
+
 ## [1.3.0] / TCH [2.8.0] — 2026-10-11 · GEO-2A + GEO-2B
 - TCH presenta el polígono de la suerte, sus vecinas y los puntos GPS P01–Pxx en un mapa reutilizado de GEO.
 - Cada punto muestra coordenada seleccionable/copiable, precisión y hora de captura. La captura automática es optativa y se intenta una sola vez al comenzar cada punto.

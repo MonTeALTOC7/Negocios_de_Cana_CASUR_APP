@@ -160,6 +160,12 @@ test("el modal es accesible, responsive y restaura el foco", () => {
   assert.match(styles, /\.casur-geo-layer,.casur-geo-action\{display:none!important\}/);
 });
 
+test("la exportación PNG evita ejecutar toggles de la página clonada y restaura sus handlers", () => {
+  assert.match(enhancements, /const toggleHandlers = \[\.\.\.document\.querySelectorAll\("details\[ontoggle\]"\)\]/);
+  assert.match(enhancements, /toggleHandlers\.forEach\(\(\[details\]\) => details\.removeAttribute\("ontoggle"\)\)/);
+  assert.match(enhancements, /finally \{\s*toggleHandlers\.forEach\(\(\[details, handler\]\) => details\.setAttribute\("ontoggle", handler\)\)/);
+});
+
 test("Cronológico conserva fuente operativa y sustituye Estado por Destino", () => {
   const api = productionGeoApi();
   const producer = crono.producers.find((item) => String(item.code) === "993");
@@ -172,12 +178,37 @@ test("Cronológico conserva fuente operativa y sustituye Estado por Destino", ()
   };
   const markup = api.chronologicalCardMarkup(context, "99325", false);
   const interactiveMarkup = api.chronologicalCardMarkup(context, "99325", true);
-  ["Área", "Edad", "Corte", "TCH 25/26", "Est. 26/27", "Variedad", "Riego", "N.º riegos", "Destino"]
+  ["Área", "Edad", "N.º corte", "Fecha último corte", "Distancia surcos", "TCH 25/26", "Est. 26/27", "Variedad", "Riego / secano", "N.º riegos", "Destino"]
     .forEach((label) => assert.match(markup, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));
   assert.match(markup, /Semilla/);
   assert.doesNotMatch(markup, />Estado</);
   assert.doesNotMatch(markup, /data-geo-view-detail/, "la lámina exportada no contiene acciones");
-  assert.doesNotMatch(interactiveMarkup, /data-geo-view-detail/, "la tarjeta cronológica usa solo la navegación inferior");
+  assert.match(interactiveMarkup, /data-geo-open-selected="99325"/, "la ficha resumida abre la ficha canónica seleccionada");
+});
+
+test("mapa cronológico 24201 identifica hacienda y muestra ficha de análisis sin inventar datos", () => {
+  const api = productionGeoApi();
+  const producer = crono.producers.find((item) => String(item.code) === "242");
+  const context = { source: "cronologico", entityType: "lote", farmCode: "242", name: producer.name, currentRows: producer.details };
+  const card = api.chronologicalCardMarkup(context, "24201", true);
+  const exportCard = api.chronologicalCardMarkup(context, "24201", false);
+  assert.match(enhancements, /Mapa cronológico · Hacienda \$\{context\.name \|\| context\.farmCode \|\| "N\/D"\} · Suerte \$\{lotId\}/);
+  assert.match(card, /Ficha resumida de la suerte/);
+  assert.match(card, /Agustin Boiorge Acevedo/);
+  ["Identificación", "Estado agronómico", "Indicadores productivos", "Ubicación", "Hacienda", "Suerte", "Área", "Variedad",
+    "Edad", "Fecha base", "Fecha siembra", "Fecha último corte", "N.º corte", "Distancia surcos", "Riego / secano",
+    "Destino", "TCH 25/26", "TCH hist. pond.", "Est. 26/27", "N.º riegos"]
+    .forEach((label) => assert.match(card, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));
+  assert.match(card, /1\.65 m/);
+  assert.match(card, /31\/12\/2025/);
+  assert.match(card, /02\/06\/2017/);
+  assert.match(card, /data-geo-center-selected="24201"/);
+  assert.match(card, /data-geo-open-selected="24201"/);
+  assert.match(card, /Coordenadas no disponibles/, "sin geometría cargada no se inventa una ubicación");
+  assert.doesNotMatch(exportCard, /data-geo-center-selected|data-geo-open-selected|data-geo-copy/);
+  assert.match(card, /Est\. 26\/27[\s\S]*?N\/D/);
+  assert.match(enhancements, /geoMapController\?\.fitToLot\?\.\(geoLotId\(center\.dataset\.geoCenterSelected\)\)/);
+  assert.match(enhancements, /if \(event\.target\.closest\?\.\("\[data-geo-open-selected\]"\)\) openGeoSelectedDetail\(\)/);
 });
 
 test("la navegación inferior usa la suerte seleccionada y respeta la fuente", () => {

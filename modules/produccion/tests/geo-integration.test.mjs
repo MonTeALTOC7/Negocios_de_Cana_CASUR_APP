@@ -12,6 +12,7 @@ const enhancements = read("../js/casur-enhancements.js");
 const historicalEngineSource = read("../js/historical-engine.js");
 const styles = read("../css/casur-upgrade.css");
 const historico = JSON.parse(read("../data/historico.json"));
+const officialCrono = JSON.parse(read("../data/cronologico.json"));
 const cronoMatch = index.match(/window\.CRONO_DATA = window\.CASUR_REMOTE_CRONO\|\|(\{[^\r\n]+\});/);
 const crono = JSON.parse(cronoMatch?.[1] || "{}");
 
@@ -186,16 +187,21 @@ test("Cronológico conserva fuente operativa y sustituye Estado por Destino", ()
   assert.match(interactiveMarkup, /data-geo-open-selected="99325"/, "la ficha resumida abre la ficha canónica seleccionada");
 });
 
-test("mapa cronológico 24201 identifica hacienda y muestra ficha de análisis sin inventar datos", () => {
+test("mapa cronológico 24201 identifica la unidad SIAGRI y muestra ficha sin inventar datos", () => {
   const api = productionGeoApi();
-  const producer = crono.producers.find((item) => String(item.code) === "242");
+  const producer = officialCrono.producers.find((item) => String(item.code) === "242");
   const context = { source: "cronologico", entityType: "lote", farmCode: "242", name: producer.name, currentRows: producer.details };
   const card = api.chronologicalCardMarkup(context, "24201", true);
   const exportCard = api.chronologicalCardMarkup(context, "24201", false);
-  assert.match(enhancements, /Mapa cronológico · Hacienda \$\{context\.name \|\| context\.farmCode \|\| "N\/D"\} · Suerte \$\{lotId\}/);
+  assert.equal(officialCrono.meta.source, "SIAGRI");
+  assert.equal(producer.zone, "5-Productores");
+  assert.equal(producer.name, "Agustin Boiorge Acevedo");
+  assert.match(index, /name:\['Hacienda_Productor','Hacienda Productor','Hacienda','Productor'/);
+  assert.match(enhancements, /Mapa cronológico · Hacienda \/ productor \$\{context\.name \|\| context\.farmCode \|\| "N\/D"\} · Suerte \$\{lotId\}/);
+  assert.match(enhancements, /Finca \$\{context\.farmCode\} · Hacienda \/ productor \$\{context\.name \|\| context\.farmCode\}/);
   assert.match(card, /Ficha resumida de la suerte/);
   assert.match(card, /Agustin Boiorge Acevedo/);
-  ["Identificación", "Estado agronómico", "Indicadores productivos", "Ubicación", "Hacienda", "Suerte", "Área", "Variedad",
+  ["Identificación", "Estado agronómico", "Indicadores productivos", "Ubicación", "Hacienda / productor", "Suerte", "Área", "Variedad",
     "Edad", "Fecha base", "Fecha siembra", "Fecha último corte", "N.º corte", "Distancia surcos", "Riego / secano",
     "Destino", "TCH 25/26", "TCH hist. pond.", "Est. 26/27", "N.º riegos"]
     .forEach((label) => assert.match(card, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));
@@ -209,6 +215,8 @@ test("mapa cronológico 24201 identifica hacienda y muestra ficha de análisis s
   assert.match(card, /Est\. 26\/27[\s\S]*?N\/D/);
   assert.match(enhancements, /geoMapController\?\.fitToLot\?\.\(geoLotId\(center\.dataset\.geoCenterSelected\)\)/);
   assert.match(enhancements, /if \(event\.target\.closest\?\.\("\[data-geo-open-selected\]"\)\) openGeoSelectedDetail\(\)/);
+  assert.match(styles, /casur-geo-card--chrono-lot \.casur-geo-card-section dt\{font-size:10px/);
+  assert.match(styles, /casur-geo-card--chrono-lot \.casur-geo-card-section dd\{font-size:12\.5px/);
 });
 
 test("la navegación inferior usa la suerte seleccionada y respeta la fuente", () => {

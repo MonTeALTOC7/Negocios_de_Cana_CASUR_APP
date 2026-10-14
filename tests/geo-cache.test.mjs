@@ -6,8 +6,9 @@ import vm from 'node:vm';
 
 const source = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(readFileSync(new URL('../shared/geo/data/manifest.json', import.meta.url)));
+const productionEnhancements = readFileSync(new URL('../modules/produccion/js/casur-enhancements.js', import.meta.url), 'utf8');
 
-function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.0', geoVersion = manifest.dataVersion } = {}) {
+function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.1', geoVersion = manifest.dataVersion, indexedDB = { records: new Map() }, fetchImpl = () => { throw new Error('network unavailable'); } } = {}) {
   const handlers = {};
   const downloads = [];
   const key = (url) => new URL(typeof url === 'string' ? url : url.url, 'https://casur.test/').href;
@@ -29,8 +30,8 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.0', 
     async delete(name) { return storage.delete(name); },
   };
   const context = vm.createContext({
-    caches, Response, URL, console: { warn() {} },
-    fetch() { throw new Error('unexpected download of cached geometry'); },
+    caches, Response, URL, indexedDB, console: { warn() {} },
+    fetch: fetchImpl,
     self: {
       location: { origin: 'https://casur.test' },
       registration: { scope: 'https://casur.test/' },
@@ -39,7 +40,7 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.0', 
     },
   });
   const executable = source
-    .replace("const APP_VERSION = '1.3.0';", `const APP_VERSION = '${appVersion}';`)
+    .replace("const APP_VERSION = '1.3.1';", `const APP_VERSION = '${appVersion}';`)
     .replace("const GEO_DATA_VERSION = '2026-07-24-maestro-26-27-r2';", `const GEO_DATA_VERSION = '${geoVersion}';`);
   vm.runInContext(executable, context);
   const value = (expression) => vm.runInContext(expression, context);
@@ -53,11 +54,11 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.0', 
     await dispatch('message', { data: { type: 'WARM_GEO' }, ports: [{ postMessage(r) { result = r; } }] });
     return result;
   }
-  return { storage, downloads, fail, value, dispatch, message, handlers };
+  return { storage, downloads, fail, indexedDB, value, dispatch, message, handlers };
 }
 
 test('GEO_DATA_VERSION coincide con el manifest y no depende de APP_VERSION', () => {
-  const current = harness();
+  const current = harness({ appVersion: '1.3.0' });
   const next = harness({ appVersion: '1.3.1' });
   assert.equal(current.value('GEO_DATA_VERSION'), manifest.dataVersion);
   assert.equal(current.value('GEO_CACHE'), 'casur_master_geo_2026-07-24-maestro-26-27-r2');
@@ -102,29 +103,56 @@ test('fallo GEO y fallo individual del shell permiten instalar y reintentar desp
   assert.equal((await h.message()).status, 'complete');
 });
 
-test('actualizar v1.2.0 → v1.3.0 conserva GEO y LKG sin redescargar geometría', async () => {
-  const previous = harness({ appVersion: '1.2.0' });
+test('actualizar v1.3.0 → v1.3.1 renueva shell y conserva GEO, LKG e IndexedDB', async () => {
+  const indexedDB = { records: new Map([['biometry:original', { id: 'biometry:original', latitude: 11.5, longitude: -85.8 }]]) };
+  const network = { online: true };
+  const previous = harness({ appVersion: '1.3.0', indexedDB });
   await previous.dispatch('install');
   const oldShell = previous.value('SHELL_CACHE');
   const lkg = previous.value('PROD_LKG_CACHE');
   const lkgEntries = new Map([['https://casur.test/modules/produccion/data/version.json', new Response('lkg')]]);
   previous.storage.set(lkg, lkgEntries);
-  const next = harness({ storage: previous.storage, appVersion: '1.3.0' });
+  const next = harness({
+    storage: previous.storage,
+    appVersion: '1.3.1',
+    indexedDB,
+    fetchImpl: async () => {
+      if (!network.online) throw new Error('offline');
+      return new Response(productionEnhancements, { status: 200, headers: { 'Content-Type': 'application/javascript' } });
+    },
+  });
   await next.dispatch('install');
   await next.dispatch('activate');
   assert.ok(!next.storage.has(oldShell));
   assert.ok(next.storage.has(next.value('SHELL_CACHE')));
   assert.ok(next.storage.has(previous.value('GEO_CACHE')));
   assert.equal(next.storage.get(lkg), lkgEntries);
+  assert.strictEqual(next.indexedDB, indexedDB);
+  assert.deepEqual([...next.indexedDB.records], [['biometry:original', { id: 'biometry:original', latitude: 11.5, longitude: -85.8 }]]);
+  assert.ok(next.storage.get(next.value('SHELL_CACHE')).has('https://casur.test/shared/geo/geo-map.js'));
   assert.equal((await next.message()).status, 'complete');
   assert.equal(next.downloads.filter((url) => url.includes('/geo/data/')).length, 0);
   assert.doesNotMatch(source, /\bindexedDB\b/, 'el SW no administra los registros locales');
+  const productionAsset = 'https://casur.test/modules/produccion/js/casur-enhancements.js';
   let response;
   next.handlers.fetch({
-    request: { method: 'GET', url: 'https://casur.test/shared/geo/data/manifest.json' },
+    request: { method: 'GET', url: productionAsset },
     respondWith(promise) { response = promise; },
   });
-  assert.equal((await response).status, 200);
+  assert.equal(await (await response).text(), productionEnhancements);
+  network.online = false;
+  next.handlers.fetch({
+    request: { method: 'GET', url: productionAsset },
+    respondWith(promise) { response = promise; },
+  });
+  assert.equal(await (await response).text(), productionEnhancements, 'el asset de Producción actualizado queda disponible offline después de su primera descarga');
+  assert.deepEqual([...next.indexedDB.records], [['biometry:original', { id: 'biometry:original', latitude: 11.5, longitude: -85.8 }]]);
+  let geoResponse;
+  next.handlers.fetch({
+    request: { method: 'GET', url: 'https://casur.test/shared/geo/data/manifest.json' },
+    respondWith(promise) { geoResponse = promise; },
+  });
+  assert.equal((await geoResponse).status, 200);
 });
 
 test('upgrade GEO r1→r2 conserva r1 completa mientras r2 está incompleta y promueve solo al completar 5/5', async () => {

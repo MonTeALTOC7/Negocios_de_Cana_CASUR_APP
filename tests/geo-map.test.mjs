@@ -195,6 +195,20 @@ test("createCasurMap monta híbrido, vecinos azules y selección amarilla sin re
   assert.doesNotThrow(() => viewer.destroy(), "destroy es idempotente");
 });
 
+test("el tooltip admite etiqueta de suerte explícita y conserva CodSuerte como identidad", () => {
+  const { L, records } = fakeLeaflet();
+  const selected = polygon("24201");
+  selected.properties.suerte = "01";
+  const viewer = createCasurMap(fakeElement(), {
+    leaflet: L,
+    lotTooltipLabel: (feature, lotId) => `Suerte ${feature.properties.suerte} · CodSuerte ${lotId}`,
+  });
+  viewer.setLots([selected], "24201");
+  assert.equal(records.geo[0].children[0].tooltip.label, "Suerte 01 · CodSuerte 24201");
+  assert.equal(viewer.getSelectedLotId(), "24201");
+  viewer.destroy();
+});
+
 test("el cambio de base sigue notificándose sin duplicar el selector en el mapa", () => {
   const element = fakeElement();
   const { L, records } = fakeLeaflet();

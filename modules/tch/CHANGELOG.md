@@ -12,19 +12,14 @@
   ubicación ante fallos y permite recaptura manual. Se muestran precisión y fecha/hora de captura.
 - Si la geometría no carga, el visor mantiene los marcadores y encuadra los puntos válidos; el
   maestro local evita solicitudes de actualización mientras el dispositivo está sin conexión.
+- GEO-2B presenta Dentro, Fuera, Revisar y Sin GPS en formulario y mapa, con precisión, hora y
+  leyenda textual. Las lecturas rechazadas quedan separadas del GPS aceptado y nunca validan
+  retrospectivamente una coordenada histórica sin evidencia confiable.
+- La edición posterior conserva el GPS validado de cada punto, incluso fuera de la suerte o sin
+  conexión, mientras la lectura original permanezca intacta; la recaptura sigue siendo manual.
 - Sin cambios de fórmula TCH, IndexedDB v3, borrador `draft:biometry:v1`, datasets o geometrías.
 
 ## Próxima versión
-
-- GEO-2B presenta el estado espacial por punto (Dentro, Fuera, Revisar o Sin GPS) en
-  formulario y mapa, con leyenda textual, precisión y hora de captura. Reutiliza la
-  validación oficial de Polygon/MultiPolygon y conserva las lecturas rechazadas separadas
-  del GPS aceptado en el borrador, sin promover coordenadas históricas sin evidencia.
-- El visor encuadra la suerte y las lecturas exteriores conjuntamente; sin GEO informa
-  que no hay verificación espacial y conserva la edición offline con GPS ya validado.
-- La confianza visual y el guardado se apoyan en la lectura efectivamente validada o en
-  evidencia persistida intacta; un marcador incompleto o una coordenada alterada no bastan.
-  Una recaptura rechazada se muestra aparte, sin sustituir el GPS aceptado.
 
 - La captura de biometría mantiene un borrador automático local, con debounce de 500 ms y
   flush al ocultar o abandonar la página. El borrador usa la clave independiente

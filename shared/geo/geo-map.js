@@ -197,7 +197,10 @@ export function createCasurMap(container, options = {}) {
     const lotId = featureLotId(feature);
     const selected = lotId === selectedLotId;
     layer.unbindTooltip?.();
-    layer.bindTooltip?.(`Suerte ${lotId}`, {
+    const tooltipLabel = typeof options.lotTooltipLabel === "function"
+      ? options.lotTooltipLabel(feature, lotId)
+      : `Suerte ${lotId}`;
+    layer.bindTooltip?.(String(tooltipLabel), {
       permanent: selected || options.permanentLabels === true,
       direction: "center",
       className: selected ? "casur-geo-label casur-geo-label--selected" : "casur-geo-label",

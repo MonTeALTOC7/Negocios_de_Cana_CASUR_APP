@@ -845,7 +845,6 @@
     const history = record ? geoHistoricalCardModel(context, selected) : null;
     const name = text(context?.name) || "N/D";
     const identification = record ? [
-      ["Hacienda / productor", name],
       ["Suerte", `${geoSuerteLabel(context, selected)} · Cod. ${selected}`],
       ["Área", geoMetric(record.area, " ha")],
       ["Variedad", text(record.variedad) || "N/D"],
@@ -867,7 +866,7 @@
       ["N.º riegos", geoCount(record.numeroRiegos)],
     ] : [];
     return `
-      <div class="casur-geo-card-head"><div><span>Ficha resumida de la suerte</span><strong>Suerte ${esc(selected)}</strong><small>Hacienda / productor ${esc(name)}</small></div>${record ? "" : '<em>Sin registro cronológico actual</em>'}</div>
+      <div class="casur-geo-card-head"><div><span>Ficha resumida de la suerte</span><strong>${esc(name)}</strong><small>Suerte ${esc(geoSuerteLabel(context, selected))} · Código ${esc(selected)}</small></div>${record ? "" : '<em>Sin registro cronológico actual</em>'}</div>
       ${record ? `${geoCardSectionMarkup("Identificación", identification)}${geoCardSectionMarkup("Estado agronómico", agronomy)}${geoCardSectionMarkup("Indicadores productivos", productivity)}` : `<p class="casur-geo-card-note">${feature ? "El polígono pertenece a la referencia histórica, pero esta suerte no figura en el Cronológico vigente." : "Esta suerte no figura en el Cronológico vigente y no tiene polígono en la referencia geográfica actual."}</p>`}
       <section class="casur-geo-card-section casur-geo-card-section--location"><h3>Ubicación</h3>${geoCoordinatesMarkup(selected, interactive)}
       ${interactive && record ? `<div class="casur-geo-card-actions casur-geo-card-actions--chrono"><button type="button" data-geo-center-selected="${esc(selected)}" aria-label="Centrar suerte ${esc(selected)}">Centrar suerte</button><button type="button" data-geo-open-selected="${esc(selected)}" aria-label="Abrir ficha completa de la suerte ${esc(selected)}">Ver ficha completa ${geoIcon("detail")}</button></div>` : ""}</section>`;
@@ -969,7 +968,7 @@
     const selected = geoLotId(lotId);
     geoActiveContext.selectedLotId = selected;
     if (geoActiveContext.source === "cronologico" && geoActiveContext.entityType === "lote" && selected) {
-      $("casurGeoTitle").textContent = `Mapa cronológico · Hacienda / productor ${geoActiveContext.name || geoActiveContext.farmCode || "N/D"} · Suerte ${selected}`;
+      $("casurGeoTitle").textContent = `Mapa cronológico · ${geoActiveContext.name || (geoActiveContext.farmCode ? "Finca " + geoActiveContext.farmCode : "Sin nombre")} · Suerte ${selected}`;
     }
     card.classList.toggle("casur-geo-card--chrono-lot", geoActiveContext.source === "cronologico" && Boolean(selected));
     card.innerHTML = `<button class="casur-geo-card-toggle" type="button" data-geo-card-toggle aria-controls="casurGeoCardExpanded">${geoIcon("collapse")}</button><div class="casur-geo-card-collapsed">${geoCardSummaryMarkup(geoActiveContext, selected)}</div><div class="casur-geo-card-expanded" id="casurGeoCardExpanded">${geoCardMarkup(geoActiveContext, selected, true)}</div>`;
@@ -1175,9 +1174,9 @@
     const subject = mode === "lot"
       ? (context.source === "historico"
         ? `${context.name || `Finca ${context.farmCode}`} · ${geoHistoricalLotSubject(context, selected)}`
-        : `Suerte ${selected} · Hacienda / productor ${context.name || context.farmCode}`)
+        : `${context.name || ("Finca " + context.farmCode)} · Suerte ${selected}`)
       : (context.source === "cronologico"
-        ? `Finca ${context.farmCode} · Hacienda / productor ${context.name || context.farmCode}`
+        ? `${context.name || ("Finca " + context.farmCode)} · Código ${context.farmCode}`
         : `Finca ${context.farmCode} · ${context.name || context.farmCode}`);
     const generated = new Date().toLocaleString("es-NI", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
     sheet.innerHTML = `
@@ -1440,7 +1439,7 @@
     $("casurGeoTitle").textContent = historicalLot
       ? `Mapa histórico · ${context.name || `Finca ${context?.farmCode || ""}`}`
       : (isLot && context?.source === "cronologico"
-        ? `Mapa cronológico · Hacienda / productor ${context.name || context.farmCode || "N/D"} · Suerte ${lotId}`
+        ? `Mapa cronológico · ${context.name || (context.farmCode ? "Finca " + context.farmCode : "Sin nombre")} · Suerte ${lotId}`
         : (isLot ? `Mapa ${source} · Suerte ${lotId}` : `Mapa ${source} · Finca ${context?.farmCode || ""}`));
     $("casurGeoSummary").textContent = historicalLot
       ? geoHistoricalLotSubject(context, lotId)

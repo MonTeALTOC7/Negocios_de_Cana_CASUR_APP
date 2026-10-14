@@ -197,11 +197,15 @@ test("mapa cronológico 24201 identifica la unidad SIAGRI y muestra ficha sin in
   assert.equal(producer.zone, "5-Productores");
   assert.equal(producer.name, "Agustin Boiorge Acevedo");
   assert.match(index, /name:\['Hacienda_Productor','Hacienda Productor','Hacienda','Productor'/);
-  assert.match(enhancements, /Mapa cronológico · Hacienda \/ productor \$\{context\.name \|\| context\.farmCode \|\| "N\/D"\} · Suerte \$\{lotId\}/);
-  assert.match(enhancements, /Finca \$\{context\.farmCode\} · Hacienda \/ productor \$\{context\.name \|\| context\.farmCode\}/);
+  assert.match(enhancements, /Mapa cronológico · \$\{context\.name \|\|/);
+  assert.match(enhancements, /Código \$\{context\.farmCode\}/);
   assert.match(card, /Ficha resumida de la suerte/);
-  assert.match(card, /Agustin Boiorge Acevedo/);
-  ["Identificación", "Estado agronómico", "Indicadores productivos", "Ubicación", "Hacienda / productor", "Suerte", "Área", "Variedad",
+  assert.match(card, /<strong>Agustin Boiorge Acevedo<\/strong>/);
+  assert.match(card, /Suerte 01 · Código 24201/);
+  assert.doesNotMatch(card, /Hacienda\s*\/\s*productor/i);
+  assert.doesNotMatch(exportCard, /Hacienda\s*\/\s*productor/i);
+  assert.doesNotMatch(enhancements, /Hacienda\s*\/\s*productor/i);
+  ["Identificación", "Estado agronómico", "Indicadores productivos", "Ubicación", "Suerte", "Área", "Variedad",
     "Edad", "Fecha base", "Fecha siembra", "Fecha último corte", "N.º corte", "Distancia surcos", "Riego / secano",
     "Destino", "TCH 25/26", "TCH hist. pond.", "Est. 26/27", "N.º riegos"]
     .forEach((label) => assert.match(card, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));

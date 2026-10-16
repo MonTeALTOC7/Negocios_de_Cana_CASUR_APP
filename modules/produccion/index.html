@@ -2364,7 +2364,9 @@ function renderEntity(code,options={}){
  const context=historicalPeriodContext(e),agronomic=context.agronomicKpis;
  const fichaTitle=histFichaTitle(e),meta=histFichaMeta(e),now=new Date().toLocaleString('es-NI',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
  const changePeriod=agronomic.tchChangeFrom!=null&&agronomic.tchChangeTo!=null?zlabelJS(agronomic.tchChangeFrom)+' → '+zlabelJS(agronomic.tchChangeTo):'Se requieren 2 zafras';
+ const multipleSeasons=agronomic.seasonCount>1;
  const kpis=[
+  kpi(multipleSeasons?'Área cosechada acumulada':'Área cosechada',agronomic.area==null?'N/D':val(agronomic.area,' ha'),multipleSeasons?'Promedio '+(agronomic.areaAverage==null?'N/D':val(agronomic.areaAverage,' ha/zafra'))+' por zafra':'Zafra seleccionada',true,'historical-kpi-area'),
   kpi('TCH ponderado',val(agronomic.tch),'Toneladas ÷ área',true),
   kpi('KATM ponderado',val(agronomic.katm),'Ponderado por toneladas',false,'historical-kpi-secondary'),
   kpi('Edad ponderada',val(agronomic.edad,' meses'),'Ponderada por área válida',false,'historical-kpi-secondary'),

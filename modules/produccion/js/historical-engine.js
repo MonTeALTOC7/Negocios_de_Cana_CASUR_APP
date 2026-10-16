@@ -255,6 +255,14 @@
     const period = aggregateHistoricalRows(periodRows);
     const full = aggregateHistoricalRows(list);
     const seasons = groupHistoricalBySeason(periodRows);
+    const hasCompleteArea = periodRows.length > 0 && periodRows.every((row) => {
+      const area = finite(row?.area);
+      return area !== null && area > 0;
+    });
+    const area = hasCompleteArea ? period.area : null;
+    const areaAverage = hasCompleteArea && seasons.length > 0
+      ? round(period.area / seasons.length)
+      : null;
     const first = seasons[0] || null;
     const last = seasons[seasons.length - 1] || null;
     const canCompare = seasons.length > 1 && first?.tch !== null && last?.tch !== null;
@@ -265,6 +273,8 @@
       : null;
 
     return {
+      area,
+      areaAverage,
       tch: period.tch,
       katm: period.katm,
       edad: period.edad,

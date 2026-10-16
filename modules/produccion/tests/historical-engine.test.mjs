@@ -144,6 +144,7 @@ test("KPI agronómicos usan las ponderaciones normativas del motor", () => {
   const rows = normalizeHistoricalRows(sampleLotCompact);
   const result = buildHistoricalAgronomicKpis(rows, [2021, 2122]);
   assert.deepEqual(result, {
+    area: 35, areaAverage: 17.5,
     tch: 64.29, katm: 112.5, edad: 11.33,
     tchChange: 20, tchChangeFrom: 2021, tchChangeTo: 2122,
     tchCv: 16.67, vsHistorical: 0, seasonCount: 2, lotCount: 2,
@@ -195,10 +196,11 @@ test("Variabilidad TCH calcula CV poblacional entre zafras, no entre lotes", () 
   assert.notEqual(result.tchCv, individualCv, "no usa los TCH individuales 50, 100 y 60");
 });
 
-test("caso 759 · Últimas 5 produce los seis KPI agronómicos aprobados", () => {
+test("caso 759 · Últimas 5 conserva los KPI y agrega área cosechada del período", () => {
   const rows = filterHistoricalRows(officialRows, { farmCode: "759" });
   const selected = resolvePeriod(rows.map((row) => row.zafra), "last5");
   assert.deepEqual(buildHistoricalAgronomicKpis(rows, selected), {
+    area: 730.64, areaAverage: 146.13,
     tch: 74.36, katm: 104.25, edad: 11.53,
     tchChange: -28.18, tchChangeFrom: 2122, tchChangeTo: 2526,
     tchCv: 12.86, vsHistorical: -7.85, seasonCount: 5, lotCount: 10,
@@ -212,10 +214,62 @@ test("KPI agronómicos funcionan para una suerte y reutilizan su histórico comp
   const period = aggregateHistoricalRows(filterHistoricalRows(rows, null, selected));
   const full = aggregateHistoricalRows(rows);
   assert.equal(result.tch, period.tch);
+  assert.equal(result.area, period.area);
+  assert.equal(result.areaAverage, 19.78);
   assert.equal(result.katm, period.katm);
   assert.equal(result.edad, period.edad);
   assert.equal(result.vsHistorical, Math.round((period.tch - full.tch) * 100) / 100);
   assert.equal(result.lotCount, 1);
+});
+
+test("área de 99325 respeta todos los periodos y reconcilia la suma por zafra", () => {
+  const rows = filterHistoricalRows(officialRows, { lotId: "99325" });
+  const periods = [
+    ["Última", "latest"], ["Últimas 3", "last3"], ["Últimas 5", "last5"], ["Todas", "all"],
+    ["Personalizado", "custom", [2021, 2324, 2526]],
+  ];
+  periods.forEach(([label, mode, custom]) => {
+    const selected = resolvePeriod(rows.map((row) => row.zafra), mode, custom);
+    const periodRows = filterHistoricalRows(rows, null, selected);
+    const seasons = groupHistoricalBySeason(periodRows);
+    const sumBySeason = Math.round(seasons.reduce((sum, season) => sum + season.area, 0) * 100) / 100;
+    const result = buildHistoricalAgronomicKpis(rows, selected);
+    assert.equal(result.area, sumBySeason, `${label}: área del KPI debe conciliar con el detalle por zafra`);
+    assert.equal(result.areaAverage, Math.round((sumBySeason / seasons.length) * 100) / 100, `${label}: promedio por zafra`);
+    assert.equal(result.seasonCount, seasons.length);
+  });
+  assert.equal(buildHistoricalAgronomicKpis(rows, [2526]).area, 6.95);
+  assert.equal(buildHistoricalAgronomicKpis(rows, [2122, 2223, 2324, 2425, 2526]).area, 34.75);
+  assert.equal(buildHistoricalAgronomicKpis(rows, [1617, 1718, 1819, 1920, 2021, 2122, 2223, 2324, 2425, 2526]).area, 77.38);
+});
+
+test("área de finca 993 suma suertes por zafra y conserva el promedio secundario", () => {
+  const rows = filterHistoricalRows(officialRows, { farmCode: "993" });
+  const selected = resolvePeriod(rows.map((row) => row.zafra), "last5");
+  const result = buildHistoricalAgronomicKpis(rows, selected);
+  const bySeason = groupHistoricalBySeason(filterHistoricalRows(rows, null, selected));
+  assert.equal(result.area, 2257.75);
+  assert.equal(result.areaAverage, 451.55);
+  assert.equal(result.area, Math.round(bySeason.reduce((sum, season) => sum + season.area, 0) * 100) / 100);
+
+  const keys = officialRows.map((row) => `${row.lotId}|${row.zafra}`);
+  assert.equal(new Set(keys).size, keys.length, "los datos publicados tienen una fila consolidada por suerte y zafra");
+});
+
+test("área muestra N/D ante ausencia o incompletitud en lugar de un cero o un parcial", () => {
+  const noArea = [
+    { lotId: "A", zafra: 2021, area: null, ton: 500 },
+    { lotId: "A", zafra: 2122, area: "", ton: 600 },
+  ];
+  const partial = [
+    { lotId: "A", zafra: 2021, area: 10, ton: 500 },
+    { lotId: "B", zafra: 2021, area: null, ton: 300 },
+  ];
+  for (const rows of [noArea, partial]) {
+    const result = buildHistoricalAgronomicKpis(rows, null);
+    assert.equal(result.area, null);
+    assert.equal(result.areaAverage, null);
+  }
 });
 
 test("groupHistoricalByLot agrupa por lotId con metadatos", () => {
@@ -317,9 +371,13 @@ test("el panel interactivo queda fuera de impresión y exportación", () => {
   assert.ok(index.includes(".historical-chart-tooltip,.historical-chart-hit',chart).forEach(remove)"));
 });
 
-test("la ficha prioriza los seis KPI agronómicos y conserva conteos como contexto", () => {
+test("la ficha muestra área como KPI principal antes de los seis KPI agronómicos existentes", () => {
   assert.ok(index.includes("buildHistoricalAgronomicKpis(scopeRows,selectedZafras)"));
   assert.ok(index.includes('class="kpis historical-agronomic-kpis"'));
+  assert.ok(index.includes("multipleSeasons?'Área cosechada acumulada':'Área cosechada'"));
+  assert.ok(index.includes("agronomic.area==null?'N/D':val(agronomic.area,' ha')"));
+  assert.ok(index.includes("'Promedio '+(agronomic.areaAverage==null?'N/D':val(agronomic.areaAverage,' ha/zafra'))+' por zafra'"));
+  assert.ok(index.indexOf("kpi(multipleSeasons?'Área cosechada acumulada'") < index.indexOf("kpi('TCH ponderado'"));
   for (const label of [
     "TCH ponderado", "KATM ponderado", "Edad ponderada",
     "Cambio TCH", "Variabilidad TCH", "Vs histórico",
@@ -349,7 +407,7 @@ test("área multizafra permanece disponible en el motor y las tablas", () => {
   const result = aggregateHistoricalRows(rows);
   assert.equal(result.area, 59.34);
   assert.equal(result.zafras.length, 3);
-  assert.equal(index.includes("Área cosechada acumulada"), false);
+  assert.equal(index.includes("Área cosechada acumulada"), true);
   assert.equal(index.includes("Toneladas acumuladas"), false);
   assert.ok(index.includes("<th>Área</th><th>Ton</th>"));
 });

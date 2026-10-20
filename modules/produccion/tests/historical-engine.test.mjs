@@ -18,6 +18,9 @@ const {
   compareHistoricalRows,
   buildHistoricalChartModel,
   groupHistoricalBySeason,
+  buildCurrentDistanceIndex,
+  currentDistanceForLot,
+  weightedReferenceDistance,
   buildHistoricalAgronomicKpis,
   groupHistoricalByLot,
   buildHistoricalDrilldownModel,
@@ -25,7 +28,9 @@ const {
 } = globalThis.CASUR_HISTORICAL_ENGINE;
 
 const historico = JSON.parse(fs.readFileSync(path.join(testRoot, "../data/historico.json"), "utf8"));
+const cronologico = JSON.parse(fs.readFileSync(path.join(testRoot, "../data/cronologico.json"), "utf8"));
 const officialRows = normalizeHistoricalRows(historico.lotCompact);
+const officialDistanceIndex = buildCurrentDistanceIndex(cronologico.producers);
 const isMainRow = (row) => String(row.farmCode) !== "16" && !String(row.zona).toLowerCase().includes("0-maquila");
 const sampleLotCompact = [
   ["10001", "Lote 10001", "Norte", "V1", "Gravedad", "Propio", null, 0, "100", "Finca A", "01", [
@@ -243,7 +248,7 @@ test("área de 99325 respeta todos los periodos y reconcilia la suma por zafra",
   assert.equal(buildHistoricalAgronomicKpis(rows, [1617, 1718, 1819, 1920, 2021, 2122, 2223, 2324, 2425, 2526]).area, 77.38);
 });
 
-test("área de finca 993 suma suertes por zafra y conserva el promedio secundario", () => {
+test("área de finca 993 suma suertes por zafra y calcula el promedio principal", () => {
   const rows = filterHistoricalRows(officialRows, { farmCode: "993" });
   const selected = resolvePeriod(rows.map((row) => row.zafra), "last5");
   const result = buildHistoricalAgronomicKpis(rows, selected);
@@ -270,6 +275,95 @@ test("área muestra N/D ante ausencia o incompletitud en lugar de un cero o un p
     assert.equal(result.area, null);
     assert.equal(result.areaAverage, null);
   }
+});
+
+test("Km SIAGRI vigente distingue Suerte y CodSuerte en los tres casos oficiales", () => {
+  for (const [code, suerte, lotId, km] of [
+    ["993", "25", "99325", 7.44],
+    ["242", "01", "24201", 2.96],
+    ["211", "01", "21101", 2],
+  ]) {
+    const lot = cronologico.producers.find((producer) => String(producer.code) === code)
+      ?.details.find((row) => row.suerte === suerte);
+    assert.equal(lot?.codLote, lotId);
+    assert.equal(lot?.distancia, km);
+    assert.equal(currentDistanceForLot(officialDistanceIndex, lotId).km, km);
+    const historical = filterHistoricalRows(officialRows, { lotId });
+    assert.ok(historical.length > 0);
+    assert.equal(weightedReferenceDistance(historical, officialDistanceIndex).km, km);
+  }
+});
+
+test("finca cronológica pondera Km por área vigente de suertes con Km distintos", () => {
+  const producer = cronologico.producers.find((item) => String(item.code) === "993");
+  const rows = producer.details.map((lot) => ({ lotId: lot.codLote, area: lot.area }));
+  const result = weightedReferenceDistance(rows, officialDistanceIndex);
+  const expected = Math.round(producer.details.reduce((sum, lot) => sum + lot.distancia * lot.area, 0)
+    / producer.details.reduce((sum, lot) => sum + lot.area, 0) * 100) / 100;
+  assert.ok(new Set(producer.details.map((lot) => lot.distancia)).size > 1);
+  assert.equal(result.km, expected);
+  assert.equal(result.reason, null);
+});
+
+test("Histórico pondera Km vigente con área cosechada de zafras seleccionadas, no con área actual", () => {
+  const rows = filterHistoricalRows(officialRows, { farmCode: "993" })
+    .filter((row) => ["99325", "99323"].includes(row.lotId));
+  for (const mode of ["latest", "last3", "last5", "all", "custom"]) {
+    const periods = resolvePeriod(rows.map((row) => row.zafra), mode, mode === "custom" ? [2122, 2526] : undefined);
+    const selected = filterHistoricalRows(rows, null, periods);
+    const expected = Math.round(selected.reduce((sum, row) => sum + currentDistanceForLot(officialDistanceIndex, row.lotId).km * row.area, 0)
+      / selected.reduce((sum, row) => sum + row.area, 0) * 100) / 100;
+    assert.equal(weightedReferenceDistance(selected, officialDistanceIndex).km, expected, mode);
+  }
+});
+
+test("finca 125 de varias suertes concilia el ponderado histórico visible de Últimas 5", () => {
+  const rows = filterHistoricalRows(officialRows, { farmCode: "125" });
+  const selected = resolvePeriod(rows.map((row) => row.zafra), "last5");
+  const periodRows = filterHistoricalRows(rows, null, selected);
+  const result = weightedReferenceDistance(periodRows, officialDistanceIndex);
+  const numerator = periodRows.reduce((sum, row) => sum + currentDistanceForLot(officialDistanceIndex, row.lotId).km * row.area, 0);
+  const denominator = periodRows.reduce((sum, row) => sum + row.area, 0);
+  assert.ok(new Set(periodRows.map((row) => currentDistanceForLot(officialDistanceIndex, row.lotId).km)).size > 1);
+  assert.equal(result.km, Math.round(numerator / denominator * 100) / 100);
+  assert.equal(result.km, 5.52);
+  assert.equal(result.area, Math.round(denominator * 100) / 100);
+  assert.equal(result.reason, null);
+});
+
+test("las fichas, tablas y exportadores integrados identifican el Km como referencia vigente", () => {
+  assert.ok(index.includes("kpi('Distancia (km)'"));
+  assert.ok(index.includes("kpi('Distancia ponderada (km)'"));
+  assert.ok(index.includes("kpi(isLotFicha?'Distancia de referencia':'Distancia ref. ponderada'"));
+  assert.ok(index.includes("<th>Dist. ref. (km)</th>"));
+  assert.ok(index.includes("<th>Distancia (km)</th>"));
+  assert.ok(index.includes("Distancia ponderada con Km vigente de SIAGRI y área cosechada de esa zafra; no es una distancia histórica."));
+  assert.ok(index.includes("Km del Cronológico SIAGRI vigente; no histórico"));
+  assert.ok(index.includes("if(kind==='historico')return q('#printPanel')"));
+  assert.ok(index.includes("if(kind==='cronologico')return q('#cronoPrintPanel')"));
+});
+
+test("Km faltante, cero normalizado, correspondencia ambigua, área incompleta y fila duplicada producen N/D", () => {
+  const index = buildCurrentDistanceIndex([{ details: [
+    { codLote: "A", distancia: 4, area: 2 },
+    { codLote: "B", distancia: 0, area: 3 },
+    { codLote: "C", distancia: 8 },
+    { codLote: "C", distancia: 9 },
+  ] }]);
+  const good = { lotId: "A", zafra: 2526, area: 2 };
+  assert.equal(weightedReferenceDistance([good], index).km, 4);
+  for (const row of [
+    { lotId: "B", zafra: 2526, area: 1 },
+    { lotId: "C", zafra: 2526, area: 1 },
+    { lotId: "D", zafra: 2526, area: 1 },
+    { lotId: "A", zafra: 2526, area: null },
+  ]) {
+    const result = weightedReferenceDistance([good, row], index);
+    assert.equal(result.km, null);
+    assert.ok(result.reason);
+  }
+  assert.match(weightedReferenceDistance([good, good], index).reason, /duplicada/);
+  assert.equal(currentDistanceForLot(index, "B").km, null);
 });
 
 test("groupHistoricalByLot agrupa por lotId con metadatos", () => {
@@ -351,7 +445,7 @@ test("la UI ofrece entradas accesibles y abre la ficha canónica LOTE::lotId", (
   assert.ok(index.includes(">Ver ›</button>"));
   assert.equal(index.includes(".historical-season-table th:nth-child(-n+6)"), false);
   assert.equal(index.includes(".historical-season-table th:nth-child(n+10)"), false);
-  assert.ok(index.includes(".historical-season-table th:nth-child(10)"));
+  assert.ok(index.includes(".historical-season-table th:nth-child(11)"));
   assert.ok(index.includes(".historical-season-table th:last-child"));
   assert.ok(index.includes(">Ver ficha</button>"));
   assert.equal(index.includes("activateHistoricalChartPoint"), false);
@@ -374,10 +468,10 @@ test("el panel interactivo queda fuera de impresión y exportación", () => {
 test("la ficha muestra área como KPI principal antes de los seis KPI agronómicos existentes", () => {
   assert.ok(index.includes("buildHistoricalAgronomicKpis(scopeRows,selectedZafras)"));
   assert.ok(index.includes('class="kpis historical-agronomic-kpis"'));
-  assert.ok(index.includes("multipleSeasons?'Área cosechada acumulada':'Área cosechada'"));
-  assert.ok(index.includes("agronomic.area==null?'N/D':val(agronomic.area,' ha')"));
-  assert.ok(index.includes("'Promedio '+(agronomic.areaAverage==null?'N/D':val(agronomic.areaAverage,' ha/zafra'))+' por zafra'"));
-  assert.ok(index.indexOf("kpi(multipleSeasons?'Área cosechada acumulada'") < index.indexOf("kpi('TCH ponderado'"));
+  assert.ok(index.includes("multipleSeasons?'Área cosechada promedio':'Área cosechada'"));
+  assert.ok(index.includes("agronomic.areaAverage==null?'N/D':val(agronomic.areaAverage,' ha/zafra')"));
+  assert.ok(index.includes("'Acumulado del periodo: '+(agronomic.area==null?'N/D':val(agronomic.area,' ha-zafra')"));
+  assert.ok(index.indexOf("kpi(multipleSeasons?'Área cosechada promedio'") < index.indexOf("kpi('TCH ponderado'"));
   for (const label of [
     "TCH ponderado", "KATM ponderado", "Edad ponderada",
     "Cambio TCH", "Variabilidad TCH", "Vs histórico",
@@ -407,7 +501,7 @@ test("área multizafra permanece disponible en el motor y las tablas", () => {
   const result = aggregateHistoricalRows(rows);
   assert.equal(result.area, 59.34);
   assert.equal(result.zafras.length, 3);
-  assert.equal(index.includes("Área cosechada acumulada"), true);
+  assert.equal(index.includes("Acumulado del periodo:"), true);
   assert.equal(index.includes("Toneladas acumuladas"), false);
   assert.ok(index.includes("<th>Área</th><th>Ton</th>"));
 });

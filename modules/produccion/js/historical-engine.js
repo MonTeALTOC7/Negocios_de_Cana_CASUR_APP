@@ -243,6 +243,54 @@
       .map(([zafra, values]) => ({ zafra, ...aggregateHistoricalRows(values) }));
   }
 
+  // `distancia` is the official SIAGRI Cronológico `Km` field. Its data build
+  // maps a blank Km to 0, so 0 cannot be certified as an observed distance.
+  function buildCurrentDistanceIndex(producers) {
+    const index = new Map();
+    (Array.isArray(producers) ? producers : []).forEach((producer) => {
+      (Array.isArray(producer?.details) ? producer.details : []).forEach((lot) => {
+        const lotId = text(lot?.codLote);
+        if (!lotId) return;
+        if (index.has(lotId)) {
+          index.set(lotId, { km: null, reason: `Correspondencia ambigua: ${lotId}` });
+          return;
+        }
+        const km = finite(lot?.distancia);
+        index.set(lotId, km !== null && km > 0
+          ? { km, reason: null }
+          : { km: null, reason: `Km no acreditado: ${lotId}` });
+      });
+    });
+    return index;
+  }
+
+  function currentDistanceForLot(index, lotId) {
+    const id = text(lotId);
+    if (!id) return { km: null, reason: "CodSuerte histórico ausente" };
+    return index?.get(id) || { km: null, reason: `Sin correspondencia vigente: ${id}` };
+  }
+
+  function weightedReferenceDistance(rows, index) {
+    const list = Array.isArray(rows) ? rows : [];
+    if (!list.length) return { km: null, reason: "Sin suertes en el ámbito seleccionado", area: null };
+    const seen = new Set();
+    let numerator = 0;
+    let denominator = 0;
+    for (const row of list) {
+      const lotId = text(row?.lotId);
+      const key = `${lotId}\u0000${text(row?.zafra)}`;
+      if (seen.has(key)) return { km: null, reason: `Fila duplicada: ${lotId}`, area: null };
+      seen.add(key);
+      const area = finite(row?.area);
+      if (area === null || area <= 0) return { km: null, reason: `Área no válida: ${lotId || "N/D"}`, area: null };
+      const reference = currentDistanceForLot(index, lotId);
+      if (reference.km === null) return { km: null, reason: reference.reason, area: null };
+      numerator += reference.km * area;
+      denominator += area;
+    }
+    return { km: denominator > 0 ? round(numerator / denominator) : null, reason: null, area: round(denominator) };
+  }
+
   function buildHistoricalAgronomicKpis(rows, selectedZafras) {
     const list = Array.isArray(rows) ? rows : [];
     const availableZafras = groupHistoricalBySeason(list).map((season) => season.zafra);
@@ -363,6 +411,9 @@
     compareHistoricalRows,
     buildHistoricalChartModel,
     groupHistoricalBySeason,
+    buildCurrentDistanceIndex,
+    currentDistanceForLot,
+    weightedReferenceDistance,
     buildHistoricalAgronomicKpis,
     groupHistoricalByLot,
     buildHistoricalDrilldownModel,

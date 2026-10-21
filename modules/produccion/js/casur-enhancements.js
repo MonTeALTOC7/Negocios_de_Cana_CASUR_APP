@@ -190,9 +190,11 @@
       const summary = scope.summary || estimateSummary(scope.rows);
       const kpis = content.querySelector(".kpis");
       if (kpis && !kpis.querySelector("[data-casur-estimate]")) {
-        kpis.insertAdjacentHTML("beforeend",
-          estimateKpi("TCH estimado 26/27", fmt(summary.tchEst2627), finite(summary.tchEst2627) === null ? "Sin estimado oficial" : "Estimado oficial") +
-          estimateKpi("Ton. estimadas 26/27", fmt(summary.tonEst2627, " t"), `${nf0.format(summary.suertesEstimado2627 || 0)} suertes con estimado`));
+        const estimate = finite(summary.tchEst2627);
+        const card = estimateKpi("TCH estimado 26/27", estimate === null ? "N/D" : fmt(estimate), estimate === null ? "Sin estimado oficial" : "Estimado oficial");
+        const realTch = kpis.children[1];
+        if (realTch) realTch.insertAdjacentHTML("afterend", card);
+        else kpis.insertAdjacentHTML("beforeend", card);
       }
       const actions = content.querySelector(".ficha-actions");
       if (actions && !actions.querySelector(".casur-estimate-badge")) {

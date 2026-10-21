@@ -334,18 +334,47 @@ test("otra finca con Km distintos concilia contra todas las filas actuales", () 
 });
 
 test("las fichas, tablas y exportadores integrados identifican el Km como referencia vigente", () => {
-  assert.ok(index.includes("kpi('Distancia (km)'"));
-  assert.ok(index.includes("kpi('Distancia ponderada (km)'"));
+  assert.ok(index.includes("crono-operational-strip"));
+  assert.ok(index.includes("'Distancia ponderada'"));
   assert.ok(index.includes("kpi(isLotFicha?'Distancia de referencia':'Distancia ponderada actual'"));
   assert.ok(index.includes("<th>Dist. ref. (km)</th>"));
   assert.ok(index.includes("<th>Distancia (km)</th>"));
-  assert.ok(index.includes("Km ponderado vigente: referencia actual de Cronológico SIAGRI, calculada con área vigente"));
+  assert.ok(index.includes("Distancia de referencia actual, no histórica"));
   assert.ok(index.includes("Km pond. vigente"));
   assert.ok(index.includes("calculateCurrentFarmWeightedKm(C.producers,p?.code)"));
   assert.ok(index.includes("calculateCurrentFarmWeightedKm(window.CRONO_DATA&&window.CRONO_DATA.producers,scope.farmCode)"));
-  assert.ok(index.includes("Km del Cronológico SIAGRI vigente; no histórico"));
+  assert.ok(!index.includes("Distancia (km): campo Km oficial del Cronológico SIAGRI"));
   assert.ok(index.includes("if(kind==='historico')return q('#printPanel')"));
   assert.ok(index.includes("if(kind==='cronologico')return q('#cronoPrintPanel')"));
+});
+
+test("CAP1 destaca estimado, edad y variedad sin tarjeta principal de toneladas estimadas", () => {
+  const crono = index.slice(index.indexOf("function renderCronoScope"), index.indexOf("function runCronoSearch", index.indexOf("function renderCronoScope")));
+  assert.match(crono, /crono-primary-kpis/);
+  assert.match(crono, /crono-highlight-metrics/);
+  assert.match(crono, /crono-operational-strip/);
+  assert.match(crono, /fmt\(ageMonths\(rows\[0\]\),' meses'\)/);
+  assert.ok(!crono.includes("Ton. estimadas 26/27"));
+  assert.match(enhancements, /estimate === null \? "N\/D"/);
+  assert.ok(!enhancements.includes('estimateKpi("Ton. estimadas 26/27"'));
+  assert.match(index, /cards\.slice\(0,6\)/);
+  assert.ok(index.includes(".casur-report-crono .table-wrap table{width:100%!important;table-layout:fixed!important"));
+  assert.ok(index.includes(".casur-report-crono .table-wrap th,.casur-report-crono .table-wrap td{padding:4px 3px!important;white-space:normal!important"));
+  assert.ok(index.includes(".casur-report-crono-general .table-wrap th,.casur-report-crono-general .table-wrap td{padding:4px 5px!important"));
+  assert.ok(index.includes("pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico')"));
+});
+
+test("CAP3 coloca seis KPI agronómicos antes de variabilidad y distancia", () => {
+  const entity = index.slice(index.indexOf("function renderEntity(code,options={})"), index.indexOf("function zafraSortValueCASUR", index.indexOf("function renderEntity(code,options={})")));
+  const labels = ["Área cosechada", "TCH ponderado", "KATM ponderado", "Edad ponderada", "Cambio TCH", "Vs histórico", "Variabilidad TCH", "Distancia ponderada actual"];
+  let position = 0;
+  for (const label of labels) {
+    const next = entity.indexOf(label, position);
+    assert.ok(next >= position, `${label} respeta la jerarquía`);
+    position = next + label.length;
+  }
+  assert.match(entity, /historical-kpi-complementary/);
+  assert.match(entity, /Distancia de referencia actual/);
 });
 
 test("Km faltante, cero normalizado y correspondencia ambigua no acreditan suerte individual", () => {

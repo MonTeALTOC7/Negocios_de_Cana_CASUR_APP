@@ -1652,47 +1652,29 @@ body.crono-print-preview .print-end{display:block!important;text-align:center!im
 </style>
 <!-- CASUR_PWA_HEAD_START -->
 <style>
-/* PR #22 · Jerarquía visual: indicadores productivos primero, referencias después. */
+/* PR #22 · Recuperar la ficha individual original y la lectura del gráfico. */
 @media screen{
-  #cronoContent .single-suerte-layout{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)!important;gap:12px!important;align-items:start!important}
-  #cronoContent .single-suerte-layout .single-suerte-kpis,#cronoContent .crono-farm-overview .crono-primary-kpis{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;max-width:none!important;width:100%!important;margin:0!important}
-  #cronoContent .single-suerte-layout .single-suerte-kpis .kpi,#cronoContent .crono-farm-overview .crono-primary-kpis .kpi{min-width:0!important;min-height:94px!important;padding:11px 12px!important}
-  #cronoContent .crono-primary-kpis .kpi .label{font-size:10.5px!important;line-height:1.2!important}
-  #cronoContent .crono-primary-kpis .kpi strong{font-size:23px!important;line-height:1.12!important;overflow-wrap:anywhere}
-  #cronoContent .crono-primary-kpis .casur-estimate-kpi{border-color:#bbd7f7!important;border-left-color:#0b67c2!important;background:#f5f9ff!important}
-  #cronoContent .crono-primary-kpis .casur-estimate-kpi strong{color:#0b4f9c!important}
-  #cronoContent .crono-highlight-metrics{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;max-width:none!important;margin:8px 0 0!important}
-  #cronoContent .crono-highlight-metrics .mini{min-width:0!important;min-height:55px!important;padding:8px 11px!important}
-  #cronoContent .crono-highlight-metrics .mini strong{font-size:14px!important;line-height:1.18!important}
-  #cronoContent .crono-operational-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px}
-  #cronoContent .crono-operational-strip .mini{min-width:0;min-height:53px;padding:8px 9px;border:1px solid #e1e8e4;border-radius:11px;background:#f8faf9;box-shadow:none}
-  #cronoContent .crono-operational-strip .mini span{font-size:10px;line-height:1.2}
-  #cronoContent .crono-operational-strip .mini strong{font-size:12px;line-height:1.2;overflow-wrap:anywhere}
-  #cronoContent .crono-operational-strip .mini small{display:block;margin-top:3px;color:#8a5200;font-size:10px;line-height:1.25;font-weight:800}
-  #cronoContent .crono-trend-card-line{max-width:none!important;min-height:0!important;padding:11px 12px!important}
-  #cronoContent .crono-trend-chart,#cronoContent .crono-trend-svg{height:196px!important;min-height:196px!important}
-  #cronoContent .crono-farm-overview{margin-top:12px}
-  #printPanel .historical-agronomic-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:8px!important}
-  #printPanel .historical-agronomic-kpis .kpi{grid-column:span 2;min-width:0;min-height:82px;padding:10px 12px}
-  #printPanel .historical-agronomic-kpis .historical-kpi-complementary{grid-column:span 3;min-height:64px;background:#fafcfb}
-  #printPanel .historical-agronomic-kpis .historical-kpi-complementary strong{font-size:18px}
-  #printPanel .historical-agronomic-kpis .historical-kpi-distance{overflow:visible!important}
-  #printPanel .historical-agronomic-kpis .historical-kpi-distance:focus-within{z-index:50}
-  #printPanel .historical-agronomic-kpis .historical-kpi-distance:before{background:#64748b}
-  #printPanel .historical-kpi-help:focus:after{opacity:1;visibility:visible;transform:translate(-50%,0)}
+  #cronoContent .single-suerte-layout{grid-template-columns:minmax(310px,430px) minmax(0,760px)!important;gap:16px!important;align-items:start!important}
+  #cronoContent .single-suerte-kpis .kpi{min-height:104px!important}
+  #cronoContent .single-suerte-kpis .casur-estimate-kpi{border-left-color:#0b67c2!important;background:#f5f9ff!important}
+  #cronoContent .single-suerte-kpis .casur-estimate-kpi strong{color:#0b4f9c!important}
+  #cronoContent .crono-trend-card-line{min-height:360px!important;max-width:760px!important;overflow:visible!important}
+  #cronoContent .crono-trend-chart,#cronoContent .crono-trend-svg{height:270px!important;min-height:270px!important}
+  #cronoContent .crono-trend-chart{position:relative;overflow:visible!important}
+  #cronoContent .crono-trend-line{stroke-width:3.7}
+  #cronoContent .crono-trend-dot{stroke-width:3}
+  #cronoContent .crono-trend-point{cursor:pointer;outline:none}
+  #cronoContent .crono-trend-point:focus .crono-trend-dot{stroke:#0b4f9c;stroke-width:4}
+  #cronoContent .crono-trend-hit{fill:transparent;pointer-events:all}
+  #cronoContent .crono-trend-tooltip{position:absolute;z-index:5;max-width:180px;min-width:120px;padding:7px 9px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:#10241a;box-shadow:0 7px 18px rgba(15,23,42,.18);font-size:11px;font-weight:850;line-height:1.35;text-align:center;white-space:nowrap;transform:translate(-50%,-100%);pointer-events:none}
+  #cronoContent .crono-trend-tooltip[hidden]{display:none!important}
 }
-@media screen and (max-width:1100px){#cronoContent .single-suerte-layout{grid-template-columns:1fr!important}#cronoContent .crono-trend-card-line{width:100%!important}}
+@media screen and (max-width:900px){#cronoContent .single-suerte-layout{grid-template-columns:1fr!important}#cronoContent .crono-trend-card-line{width:100%!important;max-width:none!important}}
 @media screen and (max-width:760px){
-  #cronoContent .single-suerte-layout .single-suerte-kpis,#cronoContent .crono-farm-overview .crono-primary-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  #cronoContent .crono-primary-kpis .casur-estimate-kpi{grid-column:1/-1}
-  #cronoContent .crono-operational-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
-  #printPanel .historical-agronomic-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  #printPanel .historical-agronomic-kpis .kpi,#printPanel .historical-agronomic-kpis .historical-kpi-complementary{grid-column:span 1}
-  #printPanel .historical-kpi-distance .historical-kpi-help:after{left:auto;right:-118px;transform:translate(0,4px)}
-  #printPanel .historical-kpi-distance .historical-kpi-help:focus:after,#printPanel .historical-kpi-distance .historical-kpi-help:hover:after{transform:translate(0,0)}
+  #cronoContent .single-suerte-layout .single-suerte-kpis{max-width:none!important}
+  #cronoContent .crono-trend-card-line{min-height:290px!important}
+  #cronoContent .crono-trend-chart,#cronoContent .crono-trend-svg{height:210px!important;min-height:210px!important}
 }
-@media screen and (max-width:390px){#cronoContent .crono-primary-kpis .kpi strong{font-size:20px!important}#printPanel .historical-agronomic-kpis .kpi strong{font-size:18px}}
-@media print{#cronoPrintPanel .crono-operational-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:6px 0}#cronoPrintPanel .crono-operational-strip .mini{min-height:0;padding:6px;border:1px solid #e1e8e4;box-shadow:none}#cronoPrintPanel .crono-operational-strip .mini small{display:block;font-size:8px}}
 </style>
 <meta name="application-name" content="CASUR Suertes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2421,11 +2403,11 @@ function renderEntity(code,options={}){
    kpi(multipleSeasons?'Área cosechada promedio':'Área cosechada',multipleSeasons?(agronomic.areaAverage==null?'N/D':val(agronomic.areaAverage,' ha/zafra')):(agronomic.area==null?'N/D':val(agronomic.area,' ha')),multipleSeasons?'Acumulado del periodo: '+(agronomic.area==null?'N/D':val(agronomic.area,' ha-zafra')):'Zafra seleccionada',true,'historical-kpi-area'),
   kpi('TCH ponderado',val(agronomic.tch),'Toneladas ÷ área',true),
    kpi('KATM ponderado',val(agronomic.katm),'Ponderado por toneladas',false,'historical-kpi-secondary'),
+   kpi(isLotFicha?'Distancia de referencia':'Distancia ponderada actual',isLotFicha?(distanceDisplay.km==null?'N/D':val(distanceDisplay.km,' km')):(distanceDisplay.kmWeighted==null?'N/D':val(distanceDisplay.kmWeighted,' km')),isLotFicha?esc(distanceDisplay.reason||'Referencia actual'):currentFarmDistanceNote(distanceDisplay),false,'historical-kpi-secondary'),
   kpi('Edad ponderada',val(agronomic.edad,' meses'),'Ponderada por área válida',false,'historical-kpi-secondary'),
   kpi('Cambio TCH',historicalKpiDelta(agronomic.tchChange),changePeriod,false,'historical-kpi-delta'),
-   kpi('Vs histórico',historicalKpiDelta(agronomic.vsHistorical,' TCH'),'Histórico completo',false,'historical-kpi-delta'),
-   kpi('Variabilidad TCH',agronomic.tchCv==null?'N/D':val(agronomic.tchCv,' %'),'CV entre zafras · menor = más estable',false,'historical-kpi-neutral historical-kpi-complementary','CV = desviación estándar del TCH entre zafras ÷ promedio de TCH × 100.'),
-   kpi(isLotFicha?'Distancia de referencia':'Distancia ponderada actual',isLotFicha?(distanceDisplay.km==null?'N/D':val(distanceDisplay.km,' km')):(distanceDisplay.kmWeighted==null?'N/D':val(distanceDisplay.kmWeighted,' km')),isLotFicha?esc(distanceDisplay.reason||'Referencia actual'):currentFarmDistanceNote(distanceDisplay),false,'historical-kpi-secondary historical-kpi-complementary historical-kpi-distance','Distancia de referencia actual: Km de cada suerte vigente, ponderados por su área vigente en la finca. No es una medición de la zafra.')
+   kpi('Variabilidad TCH',agronomic.tchCv==null?'N/D':val(agronomic.tchCv,' %'),'CV entre zafras · menor = más estable',false,'historical-kpi-neutral','CV = desviación estándar del TCH entre zafras ÷ promedio de TCH × 100.'),
+   kpi('Vs histórico',historicalKpiDelta(agronomic.vsHistorical,' TCH'),'Histórico completo',false,'historical-kpi-delta')
  ].join('');
  const samePeriodDeltas=`${deltaCard('Vs CASUR',context.deltas.casur,'Mismas zafras')}${deltaCard('Vs zona',context.deltas.zona,'Mismas zafras')}${deltaCard('Vs variedad',context.deltas.variedad,'Mismas zafras')}${deltaCard('Vs riego',context.deltas.riego,'Mismas zafras')}`;
   const trend=historicalChart(context),table=isLotFicha?detailsTable(entityHistoricDetails(e)):summaryByZafraTable(entitySummaryByZafra(e,context),e),drilldownLotId=String(e.codLote||e.displayCode||e.code||'').replace(/^LOTE::/,''),drilldownNav=isLotFicha&&String(HISTORICAL_DRILLDOWN_STATE.selectedLotId||'')===drilldownLotId?historicalDrilldownBreadcrumb():'';
@@ -2893,11 +2875,11 @@ function cronoSuerteTrendChart(codLote){
     const bh=Math.max(8,baseY-p.y);
     return '<rect class="crono-trend-slimbar '+p.tt+'" x="'+(p.x-bw/2).toFixed(1)+'" y="'+(baseY-bh).toFixed(1)+'" width="'+bw+'" height="'+bh.toFixed(1)+'" rx="7"></rect>';
   }).join('');
-  const circles=points.map(p=>'<circle class="crono-trend-dot '+p.tt+'" cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="4.6"></circle>').join('');
+  const circles=points.map(p=>'<g class="crono-trend-point" tabindex="0" role="button" aria-label="Zafra '+safe(p.d.label||zlabelJS(p.d.zafra))+' · TCH '+fmt(p.tch)+'" data-zafra="'+safe(p.d.label||zlabelJS(p.d.zafra))+'" data-tch="'+fmt(p.tch)+'" onmouseenter="showCronoTrendTooltip(this)" onmouseleave="hideCronoTrendTooltip(this)" onfocus="showCronoTrendTooltip(this)" onblur="hideCronoTrendTooltip(this)" onclick="pinCronoTrendTooltip(this,event)" onkeydown="cronoTrendPointKeydown(this,event)"><circle class="crono-trend-dot '+p.tt+'" cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="4.6"></circle><circle class="crono-trend-hit" cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="16"></circle></g>').join('');
   const labels=points.map(p=>'<text class="crono-trend-label" x="'+p.x.toFixed(1)+'" y="'+(H-12)+'" text-anchor="middle">'+safe(p.d.label||zlabelJS(p.d.zafra))+'</text>').join('');
   const values=points.map(p=>'<text class="crono-trend-value" x="'+p.x.toFixed(1)+'" y="'+Math.max(11,p.y-8).toFixed(1)+'" text-anchor="middle">'+fmt(p.tch)+'</text>').join('');
   const avgLine=avg==null?'':'<line class="crono-trend-avg" x1="'+padL+'" y1="'+avgY.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+avgY.toFixed(1)+'"></line>';
-  const svg='<svg class="crono-trend-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Histórico TCH por zafra">'+
+  const svg='<svg class="crono-trend-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="group" aria-label="Histórico TCH por zafra">'+
     '<line class="crono-trend-base" x1="'+padL+'" y1="'+baseY+'" x2="'+(W-padR)+'" y2="'+baseY+'"></line>'+
     avgLine+
     bars+
@@ -2906,7 +2888,32 @@ function cronoSuerteTrendChart(codLote){
     values+
     labels+
     '</svg>';
-  return '<div class="crono-trend-card crono-trend-card-line"><div class="crono-trend-head"><div><h3>Histórico TCH por zafra</h3><small>Código '+safe(cod)+' · Últimas '+last.length+' zafras</small></div><span class="crono-trend-badge">Prom. '+fmt(avg)+' TCH</span></div><div class="crono-trend-chart">'+svg+'</div></div>';
+  return '<div class="crono-trend-card crono-trend-card-line"><div class="crono-trend-head"><div><h3>Histórico TCH por zafra</h3><small>Código '+safe(cod)+' · Últimas '+last.length+' zafras</small></div><span class="crono-trend-badge">Prom. '+fmt(avg)+' TCH</span></div><div class="crono-trend-chart">'+svg+'<div class="crono-trend-tooltip" role="status" aria-live="polite" hidden></div></div></div>';
+}
+
+function showCronoTrendTooltip(point){
+  const chart=point.closest('.crono-trend-chart'),tip=chart?.querySelector('.crono-trend-tooltip'),dot=point.querySelector('.crono-trend-dot');
+  if(!chart||!tip||!dot)return;
+  const chartRect=chart.getBoundingClientRect(),dotRect=dot.getBoundingClientRect();
+  tip.textContent='Zafra '+point.dataset.zafra+' · '+point.dataset.tch+' TCH';
+  tip.style.left=Math.min(Math.max(dotRect.left+dotRect.width/2-chartRect.left,80),Math.max(80,chartRect.width-80))+'px';
+  tip.style.top=Math.max(38,dotRect.top-chartRect.top-7)+'px';
+  tip.hidden=false;
+}
+function hideCronoTrendTooltip(point){
+  const tip=point.closest('.crono-trend-chart')?.querySelector('.crono-trend-tooltip');
+  if(tip&&tip.dataset.pinned!=='true')tip.hidden=true;
+}
+function pinCronoTrendTooltip(point,event){
+  event?.stopPropagation();
+  const tip=point.closest('.crono-trend-chart')?.querySelector('.crono-trend-tooltip');
+  if(!tip)return;
+  if(tip.dataset.pinned==='true'&&tip.dataset.point===point.dataset.zafra){tip.dataset.pinned='false';tip.hidden=true;return;}
+  showCronoTrendTooltip(point);tip.dataset.pinned='true';tip.dataset.point=point.dataset.zafra;
+}
+function cronoTrendPointKeydown(point,event){
+  if(event.key==='Enter'||event.key===' '){event.preventDefault();pinCronoTrendTooltip(point,event);}
+  else if(event.key==='Escape'){const tip=point.closest('.crono-trend-chart')?.querySelector('.crono-trend-tooltip');if(tip){tip.dataset.pinned='false';tip.hidden=true;}}
 }
 
 function renderCronoScope(code,suerte){
@@ -2924,26 +2931,18 @@ function renderCronoScope(code,suerte){
   const now=new Date().toLocaleString('es-NI',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
   const scopeName=suerte?`${p.name} · Suerte ${suerte}`:p.name;
   const individualDistance=suerte?window.CASUR_HISTORICAL_ENGINE.currentDistanceForLot(window.CASUR_HISTORICAL_ENGINE.buildCurrentDistanceIndex(C.producers),rows[0].codLote):null;
+  const singleAge=suerte?(rows[0].renovacion&&!rows[0].fSiembra?'Renovación':fmt(ageMonths(rows[0]),' meses')):fmt(pAge,' meses');
+  const distanceValue=suerte?(individualDistance.km==null?'N/D':fmt(individualDistance.km,' km')):(ssum.distance.kmWeighted==null?'N/D':fmt(ssum.distance.kmWeighted,' km'));
   const kpis=[
     kpi('Área total',fmt(ssum.area,' ha'),suerte?'Suerte seleccionada':'Suma de suertes',true),
-    kpi('TCH/Z 25-26',`<span class="tch-val ${t}">${fmt(ssum.tch)}</span>`,'')
+    kpi('TCH/Z 25-26',`<span class="tch-val ${t}">${fmt(ssum.tch)}</span>`,''),
+    kpi(suerte?'Edad':'Edad ponderada',safe(singleAge||'—'),''),
+    kpi(suerte?'Distancia (km)':'Distancia ponderada (km)',distanceValue,''),
+    kpi(suerte?'Variedad':'Variedad dominante',safe(suerte?rows[0]?.variedad||'—':ssum.variedadDom||'—'),'')
   ].join('');
-  const singleAge=suerte?(rows[0].renovacion&&!rows[0].fSiembra?'Renovación':fmt(ageMonths(rows[0]),' meses')):fmt(pAge,' meses');
-  const extras='<div class="rank-metrics crono-highlight-metrics">'+
-    mini(suerte?'Edad':'Edad ponderada',safe(singleAge||'—'))+
-    mini(suerte?'Variedad':'Variedad dominante',safe(suerte?rows[0]?.variedad||'—':ssum.variedadDom||'—'))+
-  '</div>';
-  const distanceValue=suerte?(individualDistance.km==null?'N/D':fmt(individualDistance.km,' km')):(ssum.distance.kmWeighted==null?'N/D':fmt(ssum.distance.kmWeighted,' km'));
-  const distanceNote=suerte?(individualDistance.km==null?individualDistance.reason:''):(ssum.distance.status==='partial'?`Parcial · ${fmt(ssum.distance.coveragePct)}% cobertura · ${ssum.distance.reason}`:ssum.distance.reason||'');
-  const distanceMetric=`<div class="mini crono-distance-mini"><span>${suerte?'Distancia':'Distancia ponderada'} (km)</span><strong>${distanceValue}</strong>${distanceNote?`<small>${safe(distanceNote)}</small>`:''}</div>`;
-  const operational='<div class="crono-operational-strip" aria-label="Datos operativos">'+distanceMetric+
-    mini(suerte?'Destino':'Suertes',suerte?safe(rows[0]?.destino||'—'):fmt0(ssum.suertes))+
-    mini('Riego',safe(suerte?rows[0]?.tipoRiego||'—':ssum.riegoDom||'—'))+
-    (suerte?(rows[0]?.corte&&rows[0].corte!=='—'?mini('Corte',safe(rows[0].corte)):''):mini('Destino',safe(ssum.destino||'—')))+
-  '</div>';
   const summaryBoxes=suerte?'':'<div class="crono-summary-grid"><div class="crono-box"><h3>Área por riego</h3>'+hbar(byR,8,'blue')+'</div><div class="crono-box"><h3>Área por variedad</h3>'+hbar(byV,8,'green')+'</div><div class="crono-box"><h3>Área por textura</h3>'+hbar(byT,8,'gold')+'</div><div class="crono-box"><h3>Área por Destino Cultivo</h3>'+hbar(byD,8,'green')+'</div></div>';
   const singleTrend=suerte?cronoSuerteTrendChart(suerteCode(rows[0])):'';
-  const topBlock=suerte?`<div class="single-suerte-layout"><div class="single-suerte-info"><div class="kpis single-suerte-kpis crono-primary-kpis">${kpis}</div>${extras}${operational}</div>${singleTrend}</div>`:`<div class="crono-farm-overview"><div class="kpis crono-primary-kpis">${kpis}</div>${extras}${operational}</div>${summaryBoxes}`;
+  const topBlock=suerte?`<div class="single-suerte-layout"><div class="single-suerte-info"><div class="kpis single-suerte-kpis">${kpis}</div></div>${singleTrend}</div>`:`<div class="kpis" style="margin-top:12px">${kpis}</div>${summaryBoxes}`;
   const distanceIndex=window.CASUR_HISTORICAL_ENGINE.buildCurrentDistanceIndex(C.producers);
   const detail=suerte
     ?'<div class="table-wrap"><table><thead><tr><th>Suerte</th><th>Área</th><th>TCH</th><th>Corte</th><th>Fecha corte/siembra</th><th>Tenencia</th><th>Destino Cultivo</th><th>Textura</th><th>Tipo de riego</th><th>Zona</th><th>Surco</th><th>Distancia (km)</th><th>Estado</th></tr></thead><tbody>'+rows.map(r=>{const tt=tone(r.tch);return `<tr class="${tt==='bad'?'tch-low':tt==='warn'?'tch-warn':'tch-good'}"><td><b>${safe(suerteCode(r))}</b><br><small>Suerte ${safe(r.suerte)}</small></td><td>${fmt(r.area,' ha')}</td><td><span class="tch-val ${tt}">${fmt(r.tch)}</span></td><td>${safe(r.corte||'—')}</td><td>${dateTxt(r.fBase||r.fUltCte||r.fSiembra)}</td><td>${safe(r.tenencia||ssum.tenencia||'—')}</td><td>${safe(r.destino||ssum.destino||'—')}</td><td>${safe(r.textura||'—')}</td><td><span class="crono-riego">${safe(r.tipoRiego||'—')}</span></td><td>${safe(r.zona||'—')}</td><td>${safe(r.surco||'—')}</td><td>${cronoDistanceCell(r,distanceIndex)}</td><td><span class="detail-status ${tt}">${status(r.tch)}</span></td></tr>`;}).join('')+'</tbody></table></div>'
@@ -2965,6 +2964,10 @@ function runCronoSearch(){
 }
 
 window.openCronoPanel=openCronoPanel;
+window.showCronoTrendTooltip=showCronoTrendTooltip;
+window.hideCronoTrendTooltip=hideCronoTrendTooltip;
+window.pinCronoTrendTooltip=pinCronoTrendTooltip;
+window.cronoTrendPointKeydown=cronoTrendPointKeydown;
 window.goHistoricoModule=goHistoricoModule;
 window.goZoneModule=goZoneModule;
 window.initCronoPanel=initCronoPanel;
@@ -4368,9 +4371,7 @@ var RENDER_CSS=[
 '.export-alerts .alert-chip,.export-alerts .alert-pill{position:static!important;display:inline-flex!important;align-items:center!important;min-height:0!important;margin:0!important;padding:5px 10px!important;border:1px solid #f2c98c!important;border-radius:999px!important;background:#fff8ee!important;color:#8b4e00!important;font-size:10px!important;line-height:1.1!important;font-weight:900!important;white-space:nowrap!important}',
 
 '.kpis{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;margin:0 0 10px!important}',
-'.casur-report-historico>.historical-agronomic-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}',
-'.casur-report-historico>.historical-agronomic-kpis .kpi{grid-column:span 2!important}',
-'.casur-report-historico>.historical-agronomic-kpis .historical-kpi-complementary{grid-column:span 3!important;min-height:58px!important;background:#fafcfb!important}',
+'.casur-report-historico>.historical-agronomic-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}',
 '.casur-report-historico .historical-kpi-help{display:none!important}',
 '.kpi{position:static!important;display:block!important;min-width:0!important;min-height:72px!important;height:auto!important;margin:0!important;padding:10px 12px!important;border:1px solid #cfe5d7!important;border-left:5px solid #0b7f3a!important;border-radius:14px!important;background:#fff!important;overflow:hidden!important;box-shadow:none!important}',
 '.kpi.main{background:linear-gradient(145deg,#087c39,#075f2d)!important;color:#fff!important;border-color:#087c39!important;border-left-color:#ffd13b!important}',
@@ -4586,6 +4587,7 @@ function historicalDetailTitle(node){return qa('.section-title',node).find(funct
 function cleanChart(chart){
   if(!chart)return chart;
   qa('.chart-tip-bg,.chart-tip,.mobile-trend-card,.historical-chart-tooltip,.historical-chart-hit',chart).forEach(remove);
+  qa('.crono-trend-tooltip,.crono-trend-hit',chart).forEach(remove);
   qa('.historical-chart-point.is-active',chart).forEach(function(point){point.classList.remove('is-active');point.removeAttribute('data-tooltip-pinned');});
   qa('text',chart).forEach(function(t){if(/[UÚuú]ltima/i.test(t.textContent||''))remove(t);});
   qa('rect',chart).forEach(function(r){var c=r.getAttribute('class')||'';if(/chart-tip/i.test(c))remove(r);});

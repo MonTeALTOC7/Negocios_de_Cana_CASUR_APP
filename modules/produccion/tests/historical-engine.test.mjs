@@ -348,15 +348,28 @@ test("las fichas, tablas y exportadores integrados identifican el Km como refere
   assert.ok(index.includes("if(kind==='cronologico')return q('#cronoPrintPanel')"));
 });
 
-test("CAP1 destaca estimado, edad y variedad sin tarjeta principal de toneladas estimadas", () => {
+test("CAP1 conserva seis KPI junto al gráfico TCH legible y sin tarjeta principal de toneladas estimadas", () => {
   const crono = index.slice(index.indexOf("function renderCronoScope"), index.indexOf("function runCronoSearch", index.indexOf("function renderCronoScope")));
-  assert.match(crono, /crono-primary-kpis/);
-  assert.match(crono, /crono-highlight-metrics/);
-  assert.match(crono, /crono-operational-strip/);
+  assert.match(crono, /single-suerte-layout/);
+  assert.match(crono, /single-suerte-kpis/);
+  assert.ok(!crono.includes("crono-highlight-metrics"));
+  assert.ok(!crono.includes("crono-operational-strip"));
+  const labels = ["Área total", "TCH/Z 25-26", "Edad", "Distancia (km)", "Variedad"];
+  let position = 0;
+  for (const label of labels) {
+    const next = crono.indexOf(label, position);
+    assert.ok(next >= position, `${label} conserva orden en la ficha`);
+    position = next + label.length;
+  }
   assert.match(crono, /fmt\(ageMonths\(rows\[0\]\),' meses'\)/);
   assert.ok(!crono.includes("Ton. estimadas 26/27"));
+  assert.match(enhancements, /estimateKpi\("TCH estimado 26\/27"/);
   assert.match(enhancements, /estimate === null \? "N\/D"/);
   assert.ok(!enhancements.includes('estimateKpi("Ton. estimadas 26/27"'));
+  assert.match(index, /function showCronoTrendTooltip\(point\)/);
+  assert.match(index, /function pinCronoTrendTooltip\(point,event\)/);
+  assert.match(index, /class="crono-trend-hit"/);
+  assert.match(index, /\.crono-trend-tooltip,\.crono-trend-hit/);
   assert.match(index, /cards\.slice\(0,6\)/);
   assert.ok(index.includes(".casur-report-crono .table-wrap table{width:100%!important;table-layout:fixed!important"));
   assert.ok(index.includes(".casur-report-crono .table-wrap th,.casur-report-crono .table-wrap td{padding:4px 3px!important;white-space:normal!important"));
@@ -364,17 +377,17 @@ test("CAP1 destaca estimado, edad y variedad sin tarjeta principal de toneladas 
   assert.ok(index.includes("pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico')"));
 });
 
-test("CAP3 coloca seis KPI agronómicos antes de variabilidad y distancia", () => {
+test("CAP3 recupera la jerarquía estable de ocho KPI históricos", () => {
   const entity = index.slice(index.indexOf("function renderEntity(code,options={})"), index.indexOf("function zafraSortValueCASUR", index.indexOf("function renderEntity(code,options={})")));
-  const labels = ["Área cosechada", "TCH ponderado", "KATM ponderado", "Edad ponderada", "Cambio TCH", "Vs histórico", "Variabilidad TCH", "Distancia ponderada actual"];
+  const labels = ["Área cosechada", "TCH ponderado", "KATM ponderado", "Distancia ponderada actual", "Edad ponderada", "Cambio TCH", "Variabilidad TCH", "Vs histórico"];
   let position = 0;
   for (const label of labels) {
     const next = entity.indexOf(label, position);
     assert.ok(next >= position, `${label} respeta la jerarquía`);
     position = next + label.length;
   }
-  assert.match(entity, /historical-kpi-complementary/);
-  assert.match(entity, /Distancia de referencia actual/);
+  assert.ok(!entity.includes("historical-kpi-complementary"));
+  assert.match(index, /casur-report-historico>\.historical-agronomic-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
 });
 
 test("Km faltante, cero normalizado y correspondencia ambigua no acreditan suerte individual", () => {

@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import vm from "node:vm";
 
 const testRoot = path.dirname(fileURLToPath(import.meta.url));
 const index = fs.readFileSync(path.join(testRoot, "../index.html"), "utf8");
@@ -20,7 +21,7 @@ const {
   groupHistoricalBySeason,
   buildCurrentDistanceIndex,
   currentDistanceForLot,
-  weightedReferenceDistance,
+  calculateCurrentFarmWeightedKm,
   buildHistoricalAgronomicKpis,
   groupHistoricalByLot,
   buildHistoricalDrilldownModel,
@@ -288,82 +289,120 @@ test("Km SIAGRI vigente distingue Suerte y CodSuerte en los tres casos oficiales
     assert.equal(lot?.codLote, lotId);
     assert.equal(lot?.distancia, km);
     assert.equal(currentDistanceForLot(officialDistanceIndex, lotId).km, km);
-    const historical = filterHistoricalRows(officialRows, { lotId });
-    assert.ok(historical.length > 0);
-    assert.equal(weightedReferenceDistance(historical, officialDistanceIndex).km, km);
+    assert.ok(filterHistoricalRows(officialRows, { lotId }).length > 0);
   }
 });
 
-test("finca cronológica pondera Km por área vigente de suertes con Km distintos", () => {
+test("Pansaco 993 pondera 49 suertes vigentes y 409.08 ha, independientemente del Histórico", () => {
   const producer = cronologico.producers.find((item) => String(item.code) === "993");
-  const rows = producer.details.map((lot) => ({ lotId: lot.codLote, area: lot.area }));
-  const result = weightedReferenceDistance(rows, officialDistanceIndex);
+  const result = calculateCurrentFarmWeightedKm(cronologico.producers, "993");
   const expected = Math.round(producer.details.reduce((sum, lot) => sum + lot.distancia * lot.area, 0)
     / producer.details.reduce((sum, lot) => sum + lot.area, 0) * 100) / 100;
   assert.ok(new Set(producer.details.map((lot) => lot.distancia)).size > 1);
-  assert.equal(result.km, expected);
+  assert.equal(result.kmWeighted, expected);
+  assert.equal(result.kmWeighted, 7.6);
+  assert.equal(result.areaTotal, 409.08);
+  assert.equal(result.areaCovered, 409.08);
+  assert.equal(result.coveragePct, 100);
+  assert.equal(result.lotCount, 49);
+  assert.equal(result.lotCountWithKm, 49);
+  assert.equal(result.status, "complete");
   assert.equal(result.reason, null);
+  assert.equal(currentDistanceForLot(officialDistanceIndex, "99301").km, 8.09);
+  assert.equal(currentDistanceForLot(officialDistanceIndex, "99323").km, 6.57);
+  assert.equal(currentDistanceForLot(officialDistanceIndex, "99325").km, 7.44);
+  assert.equal(currentDistanceForLot(officialDistanceIndex, "99331").km, 8.69);
 });
 
-test("Histórico pondera Km vigente con área cosechada de zafras seleccionadas, no con área actual", () => {
-  const rows = filterHistoricalRows(officialRows, { farmCode: "993" })
-    .filter((row) => ["99325", "99323"].includes(row.lotId));
+test("el ponderado vigente no cambia entre filtros históricos ni por suertes históricas desaparecidas", () => {
+  const rows = filterHistoricalRows(officialRows, { farmCode: "993" });
+  assert.ok(rows.some((row) => row.lotId === "99323A"));
+  assert.equal(currentDistanceForLot(officialDistanceIndex, "99323A").km, null);
   for (const mode of ["latest", "last3", "last5", "all", "custom"]) {
     const periods = resolvePeriod(rows.map((row) => row.zafra), mode, mode === "custom" ? [2122, 2526] : undefined);
-    const selected = filterHistoricalRows(rows, null, periods);
-    const expected = Math.round(selected.reduce((sum, row) => sum + currentDistanceForLot(officialDistanceIndex, row.lotId).km * row.area, 0)
-      / selected.reduce((sum, row) => sum + row.area, 0) * 100) / 100;
-    assert.equal(weightedReferenceDistance(selected, officialDistanceIndex).km, expected, mode);
+    assert.ok(filterHistoricalRows(rows, null, periods).length > 0);
+    assert.equal(calculateCurrentFarmWeightedKm(cronologico.producers, "993").kmWeighted, 7.6, mode);
   }
 });
 
-test("finca 125 de varias suertes concilia el ponderado histórico visible de Últimas 5", () => {
-  const rows = filterHistoricalRows(officialRows, { farmCode: "125" });
-  const selected = resolvePeriod(rows.map((row) => row.zafra), "last5");
-  const periodRows = filterHistoricalRows(rows, null, selected);
-  const result = weightedReferenceDistance(periodRows, officialDistanceIndex);
-  const numerator = periodRows.reduce((sum, row) => sum + currentDistanceForLot(officialDistanceIndex, row.lotId).km * row.area, 0);
-  const denominator = periodRows.reduce((sum, row) => sum + row.area, 0);
-  assert.ok(new Set(periodRows.map((row) => currentDistanceForLot(officialDistanceIndex, row.lotId).km)).size > 1);
-  assert.equal(result.km, Math.round(numerator / denominator * 100) / 100);
-  assert.equal(result.km, 5.52);
-  assert.equal(result.area, Math.round(denominator * 100) / 100);
-  assert.equal(result.reason, null);
+test("otra finca con Km distintos concilia contra todas las filas actuales", () => {
+  const producer = cronologico.producers.find((item) => String(item.code) === "125");
+  const expected = Math.round(producer.details.reduce((sum, lot) => sum + lot.distancia * lot.area, 0)
+    / producer.details.reduce((sum, lot) => sum + lot.area, 0) * 100) / 100;
+  assert.ok(new Set(producer.details.map((lot) => lot.distancia)).size > 1);
+  assert.equal(calculateCurrentFarmWeightedKm(cronologico.producers, "125").kmWeighted, expected);
 });
 
 test("las fichas, tablas y exportadores integrados identifican el Km como referencia vigente", () => {
   assert.ok(index.includes("kpi('Distancia (km)'"));
   assert.ok(index.includes("kpi('Distancia ponderada (km)'"));
-  assert.ok(index.includes("kpi(isLotFicha?'Distancia de referencia':'Distancia ref. ponderada'"));
+  assert.ok(index.includes("kpi(isLotFicha?'Distancia de referencia':'Distancia ponderada actual'"));
   assert.ok(index.includes("<th>Dist. ref. (km)</th>"));
   assert.ok(index.includes("<th>Distancia (km)</th>"));
-  assert.ok(index.includes("Distancia ponderada con Km vigente de SIAGRI y área cosechada de esa zafra; no es una distancia histórica."));
+  assert.ok(index.includes("Km ponderado vigente: referencia actual de Cronológico SIAGRI, calculada con área vigente"));
+  assert.ok(index.includes("Km pond. vigente"));
+  assert.ok(index.includes("calculateCurrentFarmWeightedKm(C.producers,p?.code)"));
+  assert.ok(index.includes("calculateCurrentFarmWeightedKm(window.CRONO_DATA&&window.CRONO_DATA.producers,scope.farmCode)"));
   assert.ok(index.includes("Km del Cronológico SIAGRI vigente; no histórico"));
   assert.ok(index.includes("if(kind==='historico')return q('#printPanel')"));
   assert.ok(index.includes("if(kind==='cronologico')return q('#cronoPrintPanel')"));
 });
 
-test("Km faltante, cero normalizado, correspondencia ambigua, área incompleta y fila duplicada producen N/D", () => {
+test("Km faltante, cero normalizado y correspondencia ambigua no acreditan suerte individual", () => {
   const index = buildCurrentDistanceIndex([{ details: [
     { codLote: "A", distancia: 4, area: 2 },
     { codLote: "B", distancia: 0, area: 3 },
     { codLote: "C", distancia: 8 },
     { codLote: "C", distancia: 9 },
   ] }]);
-  const good = { lotId: "A", zafra: 2526, area: 2 };
-  assert.equal(weightedReferenceDistance([good], index).km, 4);
-  for (const row of [
-    { lotId: "B", zafra: 2526, area: 1 },
-    { lotId: "C", zafra: 2526, area: 1 },
-    { lotId: "D", zafra: 2526, area: 1 },
-    { lotId: "A", zafra: 2526, area: null },
-  ]) {
-    const result = weightedReferenceDistance([good, row], index);
-    assert.equal(result.km, null);
-    assert.ok(result.reason);
-  }
-  assert.match(weightedReferenceDistance([good, good], index).reason, /duplicada/);
+  assert.equal(currentDistanceForLot(index, "A").km, 4);
   assert.equal(currentDistanceForLot(index, "B").km, null);
+  assert.match(currentDistanceForLot(index, "C").reason, /ambigua/);
+  assert.match(currentDistanceForLot(index, "D").reason, /Sin correspondencia/);
+});
+
+test("cobertura parcial informa porcentaje y excluye identidades ambiguas sin doble conteo", () => {
+  const producers = [{ code: "100", details: [
+    { codLote: "10001", area: 10, distancia: 5 },
+    { codLote: "10002", area: 30, distancia: 8 },
+    { codLote: "10003", area: 20, distancia: 6 },
+  ] }];
+  assert.equal(calculateCurrentFarmWeightedKm(producers, "100").kmWeighted, 6.83);
+  producers[0].details.push({ codLote: "10004", area: 40, distancia: 0 });
+  const partial = calculateCurrentFarmWeightedKm(producers, "100");
+  assert.equal(partial.status, "partial");
+  assert.equal(partial.kmWeighted, 6.83);
+  assert.equal(partial.areaTotal, 100);
+  assert.equal(partial.areaCovered, 60);
+  assert.equal(partial.coveragePct, 60);
+  producers[0].details.push({ codLote: "10002", area: 30, distancia: 8 }, { codLote: "10005", area: null, distancia: 9 });
+  const ambiguous = calculateCurrentFarmWeightedKm(producers, "100");
+  assert.equal(ambiguous.areaTotal, 100);
+  assert.equal(ambiguous.areaCovered, 30);
+  assert.equal(ambiguous.lotCount, 4);
+  assert.match(ambiguous.reason, /ambigua/);
+  assert.match(ambiguous.reason, /inválida/);
+  producers[0].details.push({ codLote: "10001", area: null, distancia: 5 });
+  assert.equal(calculateCurrentFarmWeightedKm(producers, "100").areaCovered, 20);
+  assert.equal(calculateCurrentFarmWeightedKm(producers, "999").status, "unavailable");
+  assert.match(calculateCurrentFarmWeightedKm([...producers, producers[0]], "100").reason, /ambigua/);
+});
+
+test("PDF no crea una página vacía por el margen blanco final del canvas", async () => {
+  const start = index.indexOf("function bytesFromBase64");
+  const end = index.indexOf("async function runAction", start);
+  assert.ok(start > 0 && end > start);
+  const pixels = new Uint8ClampedArray(10 * 50 * 4).fill(255);
+  pixels[(12 * 10 + 5) * 4] = 0; // Última fila con contenido antes del salto de página.
+  const canvas = { width: 10, height: 50, getContext: () => ({ getImageData: () => ({ data: pixels }) }) };
+  const context = vm.createContext({ canvas, atob, Blob, TextEncoder, Uint8Array, document: {
+    createElement: () => ({ width: 0, height: 0,
+      getContext: () => ({ fillRect() {}, drawImage() {} }),
+      toDataURL: () => "data:image/jpeg;base64,AA==" }),
+  } });
+  vm.runInContext(index.slice(start, end), context);
+  const pdf = vm.runInContext("pdfBlobFromCanvas(canvas,false)", context);
+  assert.match(await pdf.text(), /\/Count 1\b/);
 });
 
 test("groupHistoricalByLot agrupa por lotId con metadatos", () => {

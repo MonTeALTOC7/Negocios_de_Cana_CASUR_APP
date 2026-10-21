@@ -9,7 +9,7 @@
    neutralizados dentro de la Maestra: aquí no se registran.
    ============================================================ */
 
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.3.2';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;

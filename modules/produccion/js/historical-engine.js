@@ -270,25 +270,56 @@
     return index?.get(id) || { km: null, reason: `Sin correspondencia vigente: ${id}` };
   }
 
-  function weightedReferenceDistance(rows, index) {
-    const list = Array.isArray(rows) ? rows : [];
-    if (!list.length) return { km: null, reason: "Sin suertes en el ámbito seleccionado", area: null };
-    const seen = new Set();
-    let numerator = 0;
-    let denominator = 0;
-    for (const row of list) {
-      const lotId = text(row?.lotId);
-      const key = `${lotId}\u0000${text(row?.zafra)}`;
-      if (seen.has(key)) return { km: null, reason: `Fila duplicada: ${lotId}`, area: null };
-      seen.add(key);
-      const area = finite(row?.area);
-      if (area === null || area <= 0) return { km: null, reason: `Área no válida: ${lotId || "N/D"}`, area: null };
-      const reference = currentDistanceForLot(index, lotId);
-      if (reference.km === null) return { km: null, reason: reference.reason, area: null };
-      numerator += reference.km * area;
-      denominator += area;
+  // La referencia de finca procede solo del Cronológico vigente. Las zafras
+  // históricas nunca participan en el denominador ni en la cobertura.
+  function calculateCurrentFarmWeightedKm(producers, farmCode) {
+    const code = text(farmCode);
+    const matches = (Array.isArray(producers) ? producers : []).filter((producer) => text(producer?.code) === code);
+    const empty = { kmWeighted: null, areaTotal: 0, areaCovered: 0, coveragePct: 0,
+      lotCount: 0, lotCountWithKm: 0, status: "unavailable", reason: "Sin finca vigente en Cronológico SIAGRI" };
+    if (!code || !matches.length) return empty;
+    if (matches.length !== 1) return { ...empty, reason: `Finca vigente ambigua: ${code}` };
+    const lots = Array.isArray(matches[0].details) ? matches[0].details : [];
+    const grouped = new Map();
+    const seenIds = new Set();
+    let invalidArea = 0;
+    for (const lot of lots) {
+      const id = text(lot?.codLote);
+      const repeated = !!id && seenIds.has(id);
+      if (id) seenIds.add(id);
+      const area = finite(lot?.area);
+      if (area === null || area <= 0) {
+        invalidArea++;
+        if (grouped.has(id)) grouped.get(id).ambiguous = true;
+        continue;
+      }
+      const key = id || `__sin_id_${grouped.size}`;
+      if (!grouped.has(key)) grouped.set(key, { lot, area, ambiguous: !id || repeated });
+      else grouped.get(key).ambiguous = true;
     }
-    return { km: denominator > 0 ? round(numerator / denominator) : null, reason: null, area: round(denominator) };
+    let areaTotal = 0, areaCovered = 0, numerator = 0, lotCountWithKm = 0, ambiguous = 0, missingKm = 0;
+    for (const entry of grouped.values()) {
+      areaTotal += entry.area; // Nunca contar dos veces una identidad duplicada.
+      if (entry.ambiguous) { ambiguous++; continue; }
+      const km = finite(entry.lot.distancia);
+      if (km === null || km <= 0) { missingKm++; continue; }
+      numerator += km * entry.area;
+      areaCovered += entry.area;
+      lotCountWithKm++;
+    }
+    const incidents = [
+      ambiguous && `${ambiguous} identidad(es) ambigua(s)`,
+      missingKm && `${missingKm} Km no acreditado(s)`,
+      invalidArea && `${invalidArea} área(s) inválida(s) excluida(s)`,
+    ].filter(Boolean);
+    const coveragePct = areaTotal > 0 ? round(areaCovered / areaTotal * 100) : 0;
+    const status = areaCovered <= 0 ? "unavailable" : incidents.length || areaCovered < areaTotal ? "partial" : "complete";
+    return {
+      kmWeighted: areaCovered > 0 ? round(numerator / areaCovered) : null,
+      areaTotal: round(areaTotal), areaCovered: round(areaCovered), coveragePct,
+      lotCount: grouped.size, lotCountWithKm, status,
+      reason: incidents.length ? incidents.join(" · ") : areaTotal <= 0 ? "Sin suertes vigentes con área válida" : null,
+    };
   }
 
   function buildHistoricalAgronomicKpis(rows, selectedZafras) {
@@ -413,7 +444,7 @@
     groupHistoricalBySeason,
     buildCurrentDistanceIndex,
     currentDistanceForLot,
-    weightedReferenceDistance,
+    calculateCurrentFarmWeightedKm,
     buildHistoricalAgronomicKpis,
     groupHistoricalByLot,
     buildHistoricalDrilldownModel,

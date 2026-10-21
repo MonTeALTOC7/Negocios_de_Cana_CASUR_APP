@@ -2152,19 +2152,18 @@ function entityHistoricDetails(e){
 }
 function entitySummaryByZafra(e,context){
  if(!e)return [];
- const distanceIndex=context.distanceIndex,scopeRows=context.scopeRows;
- const distanceBySeason=new Map(HISTORICAL_ENGINE.groupHistoricalBySeason(scopeRows).map(group=>[group.zafra,HISTORICAL_ENGINE.weightedReferenceDistance(HISTORICAL_ENGINE.filterHistoricalRows(scopeRows,null,[group.zafra]),distanceIndex)]));
  return (e.trend||[]).map(r=>({
   zafra:r.zafra,label:r.label||zlabelJS(r.zafra),area:r.area,ton:r.ton,tch:r.tch,rto:r.rto,edad:r.edad,
-   suertes:r.suertes,lotes:r.suertes,variedad:e.variedad||'',zona:e.zona||'',riego:e.riego||'',tenencia:e.tenencia||'',distance:distanceBySeason.get(Number(r.zafra))
+   suertes:r.suertes,lotes:r.suertes,variedad:e.variedad||'',zona:e.zona||'',riego:e.riego||'',tenencia:e.tenencia||'',distance:context.distance
  })).sort((a,b)=>Number(a.zafra||0)-Number(b.zafra||0));
 }
-function historicalDistanceHtml(distance){return distance&&distance.km!=null?val(distance.km):`N/D${distance&&distance.reason?`<small class="historical-distance-reason">${esc(distance.reason)}</small>`:''}`;}
+function currentFarmDistanceNote(distance){return distance.status==='partial'?`Parcial · ${val(distance.coveragePct)}% del área vigente válida cubierta · ${esc(distance.reason||'Cobertura incompleta')}`:distance.status==='unavailable'?esc(distance.reason||'Sin distancia vigente acreditada'):'Ponderada por área vigente · Fuente: Cronológico SIAGRI';}
+function historicalDistanceHtml(distance){const km=distance?.kmWeighted??distance?.km;return km!=null?`${val(km)}${distance?.status==='partial'?`<small class="historical-distance-reason">Parcial · ${val(distance.coveragePct)}% cobertura</small>`:''}`:`N/D${distance&&distance.reason?`<small class="historical-distance-reason">${esc(distance.reason)}</small>`:''}`;}
 function summaryByZafraTable(rows,e){
  if(!rows||!rows.length)return '<div class="empty">Sin resumen histórico por zafra disponible.</div>';
  const vals=rows.map(r=>Number(r.tch)).filter(v=>!isNaN(v));
  const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
-  return `<div class="table-wrap historical-season-table"><table><thead><tr><th>Zafra</th><th>Área</th><th>Ton</th><th>TCH pond.</th><th>KATM pond.</th><th>Edad prom.</th><th>Dist. ref. (km)</th><th>Variedad dom.</th><th>Zona</th><th>Riego</th><th>Suertes</th><th>Estado</th><th class="no-print">Acción</th></tr></thead><tbody>${rows.map(r=>{const tch=Number(r.tch)||0; const delta=tch-avg; const tone=delta>=4?'good':(delta<=-4?'bad':'warn'); const rc=tone==='bad'?'tch-low':(tone==='warn'?'tch-warn':'tch-good'); const estado=tone==='good'?'Sobre prom. finca':(tone==='bad'?'Bajo prom. finca':'Medio'); const zafra=esc(r.label||r.zafra||''); return `<tr class="${rc}" data-zafra="${Number(r.zafra)}"><td>${zafra}</td><td>${val(r.area)}</td><td>${val0(r.ton)}</td><td><span class="tch-val ${tone}">${val(r.tch)}</span></td><td>${val(r.rto)}</td><td>${val(r.edad)}</td><td>${historicalDistanceHtml(r.distance)}</td><td>${esc(r.variedad||'—')}</td><td>${esc(r.zona||'—')}</td><td>${esc(r.riego||'—')}</td><td>${val0(r.lotes||r.suertes||0,'')}</td><td><span class="detail-status ${tone}">${estado}</span></td><td class="no-print"><button class="historical-drilldown-trigger" type="button" data-zafra="${Number(r.zafra)}" aria-label="Ver suertes de la zafra ${zafra}" onclick="openHistoricalSeason(this.dataset.zafra)">Ver ›</button></td></tr>`;}).join('')}</tbody></table></div>`;
+  return `<div class="table-wrap historical-season-table"><table><thead><tr><th>Zafra</th><th>Área</th><th>Ton</th><th>TCH pond.</th><th>KATM pond.</th><th>Edad prom.</th><th title="Referencia actual ponderada por área vigente; no corresponde a la zafra">Km pond. vigente</th><th>Variedad dom.</th><th>Zona</th><th>Riego</th><th>Suertes</th><th>Estado</th><th class="no-print">Acción</th></tr></thead><tbody>${rows.map(r=>{const tch=Number(r.tch)||0; const delta=tch-avg; const tone=delta>=4?'good':(delta<=-4?'bad':'warn'); const rc=tone==='bad'?'tch-low':(tone==='warn'?'tch-warn':'tch-good'); const estado=tone==='good'?'Sobre prom. finca':(tone==='bad'?'Bajo prom. finca':'Medio'); const zafra=esc(r.label||r.zafra||''); return `<tr class="${rc}" data-zafra="${Number(r.zafra)}"><td>${zafra}</td><td>${val(r.area)}</td><td>${val0(r.ton)}</td><td><span class="tch-val ${tone}">${val(r.tch)}</span></td><td>${val(r.rto)}</td><td>${val(r.edad)}</td><td>${historicalDistanceHtml(r.distance)}</td><td>${esc(r.variedad||'—')}</td><td>${esc(r.zona||'—')}</td><td>${esc(r.riego||'—')}</td><td>${val0(r.lotes||r.suertes||0,'')}</td><td><span class="detail-status ${tone}">${estado}</span></td><td class="no-print"><button class="historical-drilldown-trigger" type="button" data-zafra="${Number(r.zafra)}" aria-label="Ver suertes de la zafra ${zafra}" onclick="openHistoricalSeason(this.dataset.zafra)">Ver ›</button></td></tr>`;}).join('')}</tbody></table></div>`;
 }
 
 function applyHistoricalDrilldownAction(action){
@@ -2180,13 +2179,12 @@ function historicalDrilldownSummaryCard(label,value,sub){return `<div class="his
 function historicalDrilldownPanelHtml(model){
  const summary=model.summary,zafra=zlabelJS(model.selectedZafra),farm=model.farmName||model.farmCode;
   const distanceIndex=HISTORICAL_ENGINE.buildCurrentDistanceIndex(window.CRONO_DATA&&window.CRONO_DATA.producers);
-  const seasonRows=HISTORICAL_ENGINE.filterHistoricalRows(HISTORICAL_ENGINE.normalizeHistoricalRows(DATA.lotCompact||[]),{farmCode:model.farmCode},[model.selectedZafra]);
-  const seasonDistance=HISTORICAL_ENGINE.weightedReferenceDistance(seasonRows,distanceIndex);
+  const seasonDistance=HISTORICAL_ENGINE.calculateCurrentFarmWeightedKm(window.CRONO_DATA&&window.CRONO_DATA.producers,model.farmCode);
  const cards=[
   historicalDrilldownSummaryCard('TCH ponderado',val(summary.tch),'Toneladas ÷ área'),historicalDrilldownSummaryCard('KATM ponderado',val(summary.katm),'Ponderado por toneladas'),
   historicalDrilldownSummaryCard('Toneladas',val0(summary.ton,' t'),'Suma de las suertes'),historicalDrilldownSummaryCard('Área',val(summary.area,' ha'),'Cosechada en la zafra'),
    historicalDrilldownSummaryCard('Edad ponderada',val(summary.edad,' meses'),'Ponderada por área válida'),historicalDrilldownSummaryCard('Suertes',val0(summary.suertes),'lotId únicos'),
-   historicalDrilldownSummaryCard('Distancia ref. ponderada',seasonDistance.km==null?'N/D':val(seasonDistance.km,' km'),seasonDistance.reason||'Km del Cronológico vigente')
+   historicalDrilldownSummaryCard('Distancia ponderada actual',seasonDistance.kmWeighted==null?'N/D':val(seasonDistance.kmWeighted,' km'),seasonDistance.status==='partial'?`Parcial · ${val(seasonDistance.coveragePct)}% cobertura`:seasonDistance.reason||'Área vigente · Cronológico SIAGRI')
  ].join('');
  const action=lot=>`<button class="historical-lot-open" type="button" data-lot-id="${esc(lot.lotId)}" onclick="openHistoricalLot(this.dataset.lotId)">Ver ficha</button>`;
   const desktop=model.lots.map(lot=>`<tr><td>${esc(lot.suerte||'—')}</td><td><b>${esc(lot.lotId)}</b></td><td>${val(lot.area,' ha')}</td><td>${val0(lot.ton,' t')}</td><td>${val(lot.tch)}</td><td>${val(lot.katm)}</td><td>${val(lot.edad,' meses')}</td><td>${historicalDistanceHtml(HISTORICAL_ENGINE.currentDistanceForLot(distanceIndex,lot.lotId))}</td><td>${esc(lot.variedad||'—')}</td><td>${esc(lot.riego||'—')}</td><td>${action(lot)}</td></tr>`).join('');
@@ -2270,7 +2268,7 @@ function historicalPeriodContext(e){
  const selectedZafras=HISTORICAL_ENGINE.reconcilePeriodSelection(availableZafras,HISTORICAL_PERIOD_STATE.periodMode,HISTORICAL_PERIOD_STATE.selectedZafras);
  HISTORICAL_PERIOD_STATE.selectedZafras=selectedZafras.slice();
   const periodRows=HISTORICAL_ENGINE.filterHistoricalRows(scopeRows,null,selectedZafras),metric=HISTORICAL_ENGINE.aggregateHistoricalRows(periodRows),agronomicKpis=HISTORICAL_ENGINE.buildHistoricalAgronomicKpis(scopeRows,selectedZafras);
-  const distanceIndex=HISTORICAL_ENGINE.buildCurrentDistanceIndex(window.CRONO_DATA&&window.CRONO_DATA.producers),distance=HISTORICAL_ENGINE.weightedReferenceDistance(periodRows,distanceIndex);
+  const distanceIndex=HISTORICAL_ENGINE.buildCurrentDistanceIndex(window.CRONO_DATA&&window.CRONO_DATA.producers),distance=HISTORICAL_ENGINE.calculateCurrentFarmWeightedKm(window.CRONO_DATA&&window.CRONO_DATA.producers,scope.farmCode);
  const compare=benchmarkScope=>HISTORICAL_ENGINE.compareHistoricalRows(rows,scope,benchmarkScope,selectedZafras).deltaTch;
  const main=row=>historicalMainRow(row);
  const same=(field,value)=>row=>main(row)&&String(row&&row[field]||'')===String(value||'');
@@ -2378,9 +2376,9 @@ function renderEntity(code,options={}){
   const distanceDisplay=isLotFicha?HISTORICAL_ENGINE.currentDistanceForLot(context.distanceIndex,String(e.codLote||e.displayCode||e.code||'').replace(/^LOTE::/,'')):context.distance;
  const kpis=[
    kpi(multipleSeasons?'Área cosechada promedio':'Área cosechada',multipleSeasons?(agronomic.areaAverage==null?'N/D':val(agronomic.areaAverage,' ha/zafra')):(agronomic.area==null?'N/D':val(agronomic.area,' ha')),multipleSeasons?'Acumulado del periodo: '+(agronomic.area==null?'N/D':val(agronomic.area,' ha-zafra')):'Zafra seleccionada',true,'historical-kpi-area'),
-   kpi(isLotFicha?'Distancia de referencia':'Distancia ref. ponderada',distanceDisplay.km==null?'N/D':val(distanceDisplay.km,' km'),distanceDisplay.reason||'Km del Cronológico SIAGRI vigente; no histórico',false,'historical-kpi-secondary'),
   kpi('TCH ponderado',val(agronomic.tch),'Toneladas ÷ área',true),
   kpi('KATM ponderado',val(agronomic.katm),'Ponderado por toneladas',false,'historical-kpi-secondary'),
+   kpi(isLotFicha?'Distancia de referencia':'Distancia ponderada actual',isLotFicha?(distanceDisplay.km==null?'N/D':val(distanceDisplay.km,' km')):(distanceDisplay.kmWeighted==null?'N/D':val(distanceDisplay.kmWeighted,' km')),isLotFicha?esc(distanceDisplay.reason||'Km del Cronológico SIAGRI vigente; no histórico'):currentFarmDistanceNote(distanceDisplay),false,'historical-kpi-secondary'),
   kpi('Edad ponderada',val(agronomic.edad,' meses'),'Ponderada por área válida',false,'historical-kpi-secondary'),
   kpi('Cambio TCH',historicalKpiDelta(agronomic.tchChange),changePeriod,false,'historical-kpi-delta'),
   kpi('Variabilidad TCH',agronomic.tchCv==null?'N/D':val(agronomic.tchCv,' %'),'CV entre zafras · menor = más estable',false,'historical-kpi-neutral','CV = desviación estándar del TCH entre zafras ÷ promedio de TCH × 100.'),
@@ -2388,7 +2386,7 @@ function renderEntity(code,options={}){
  ].join('');
  const samePeriodDeltas=`${deltaCard('Vs CASUR',context.deltas.casur,'Mismas zafras')}${deltaCard('Vs zona',context.deltas.zona,'Mismas zafras')}${deltaCard('Vs variedad',context.deltas.variedad,'Mismas zafras')}${deltaCard('Vs riego',context.deltas.riego,'Mismas zafras')}`;
   const trend=historicalChart(context),table=isLotFicha?detailsTable(entityHistoricDetails(e)):summaryByZafraTable(entitySummaryByZafra(e,context),e),drilldownLotId=String(e.codLote||e.displayCode||e.code||'').replace(/^LOTE::/,''),drilldownNav=isLotFicha&&String(HISTORICAL_DRILLDOWN_STATE.selectedLotId||'')===drilldownLotId?historicalDrilldownBreadcrumb():'';
-  const detailTitle=isLotFicha?'Detalle del lote · histórico completo':'Resumen de finca · por zafra',detailSmall=isLotFicha?'Todas las zafras disponibles del CodLote seleccionado. Distancia: Km vigente de SIAGRI, no histórico.':'Una fila por zafra. Distancia ponderada con Km vigente de SIAGRI y área cosechada de esa zafra; no es una distancia histórica.';
+  const detailTitle=isLotFicha?'Detalle del lote · histórico completo':'Resumen de finca · por zafra',detailSmall=isLotFicha?'Todas las zafras disponibles del CodLote seleccionado. Distancia: Km vigente de SIAGRI, no histórico.':'Una fila por zafra. Km ponderado vigente: referencia actual de Cronológico SIAGRI, calculada con área vigente; no es una medición histórica.';
  $('fichaContent').innerHTML=`<section class="card ficha-card"><div id="printPanel"><div class="print-only print-header"><div><h2>Histórico de Suertes · Ficha individual</h2><p>Departamento de Negocios de Caña · CASUR</p></div><div class="print-meta"><strong>${esc(fichaTitle)}</strong><span>${esc(meta)}</span><span>Consulta: ${esc(now)}</span></div></div><div class="ficha-band no-print"><div><h2>${esc(fichaTitle)}</h2><small>${esc(meta)}</small></div><div class="ficha-actions"><span class="status-pill ${sc(e.statusClass)}">${e.score??'—'} · ${esc(e.status)}</span><button class="ficha-print-btn" onclick="printFicha()">🖨️ <span><b>Imprimir ficha</b><small>Formato carta</small></span></button></div></div>${drilldownNav}<div class="section-title ficha-screen-title no-print"><div><h2>Ficha histórica</h2><small>Código de finca/hacienda, finca CASUR o productor.</small></div></div>${alertsHtml(e.alerts)}${historicalPeriodCard(context)}<div class="section-divider no-print"></div><div class="kpis historical-agronomic-kpis" style="margin-top:12px">${kpis}</div><div class="historical-comparison-title">Comparadores TCH · mismo periodo seleccionado</div><div class="delta-grid">${samePeriodDeltas}</div><div style="margin-top:12px">${trend}</div>${isLotFicha?'':'<div id="historicalDrilldownMount" class="historical-drilldown-mount no-print export-excluded" aria-live="polite"></div>'}<div class="section-title" style="margin-top:12px"><div><h3>${detailTitle}</h3><small>${detailSmall}</small></div></div>${table}<div class="print-end print-only">Documento de consulta ejecutiva · CASUR · Negocios de Caña</div></div></section>`;
  updateState((e.isMaquila?'Maquila · ':'Histórico de Suertes · ')+fichaTitle,'Periodo '+(HISTORICAL_PERIOD_LABELS[HISTORICAL_PERIOD_STATE.periodMode]||'Última')+' · '+context.selectedZafras.map(zlabelJS).join(' · '));
  if(options.inPlace&&scrollPosition)requestAnimationFrame(()=>window.scrollTo({left:scrollPosition.x,top:scrollPosition.y,behavior:'instant'}));else nav('fichaSection');
@@ -2791,7 +2789,7 @@ function hbar(rows,limit=7,palette='green',metric='area',suffix=''){
 function summarizeCronoRows(rows,p){
   rows=rows||[];
   const distanceIndex=window.CASUR_HISTORICAL_ENGINE.buildCurrentDistanceIndex(C.producers);
-  const distance=window.CASUR_HISTORICAL_ENGINE.weightedReferenceDistance(rows.map(r=>({lotId:r.codLote,area:r.area})),distanceIndex);
+  const distance=window.CASUR_HISTORICAL_ENGINE.calculateCurrentFarmWeightedKm(C.producers,p?.code);
   let area=0,tchNum=0,den=0,bajo=0,medio=0,alto=0,riego=0,secano=0,sin=0;
   rows.forEach(r=>{
     const a=Number(r.area)||0;
@@ -2882,14 +2880,15 @@ function renderCronoScope(code,suerte){
   const byR=groupRows(rows,'tipoRiego'), byV=groupRows(rows,'variedad'), byT=groupRows(rows,'textura'), byD=groupRows(rows,'destino');
   const now=new Date().toLocaleString('es-NI',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
   const scopeName=suerte?`${p.name} · Suerte ${suerte}`:p.name;
+  const individualDistance=suerte?window.CASUR_HISTORICAL_ENGINE.currentDistanceForLot(window.CASUR_HISTORICAL_ENGINE.buildCurrentDistanceIndex(C.producers),rows[0].codLote):null;
   const kpis=(suerte?[
     kpi('Área total',fmt(ssum.area,' ha'),'Suerte seleccionada',true),
      kpi('TCH/Z 25-26',`<span class="tch-val ${t}">${fmt(ssum.tch)}</span>`,''),
-     kpi('Distancia (km)',ssum.distance.km==null?'N/D':fmt(ssum.distance.km,' km'),ssum.distance.reason||'Km oficial del Cronológico SIAGRI')
+     kpi('Distancia (km)',individualDistance.km==null?'N/D':fmt(individualDistance.km,' km'),individualDistance.reason||'Km oficial del Cronológico SIAGRI')
   ]:[
     kpi('Área total',fmt(ssum.area,' ha'),'Suma de suertes',true),
     kpi('TCH/Z 25-26',`<span class="tch-val ${t}">${fmt(ssum.tch)}</span>`,''),
-     kpi('Distancia ponderada (km)',ssum.distance.km==null?'N/D':fmt(ssum.distance.km,' km'),ssum.distance.reason||'Ponderada por área vigente de las suertes'),
+     kpi('Distancia ponderada (km)',ssum.distance.kmWeighted==null?'N/D':fmt(ssum.distance.kmWeighted,' km'),ssum.distance.status==='partial'?`Parcial · ${fmt(ssum.distance.coveragePct)}% del área vigente válida cubierta · ${ssum.distance.reason}`:ssum.distance.reason||'Promedio ponderado por área vigente · Cronológico SIAGRI'),
     kpi('Suertes',fmt0(ssum.suertes),''),
     kpi('Edad pond.',fmt(pAge,' m'),''),
     kpi('Zona',safe(ssum.zone||p.zone||'—'),'')
@@ -4635,10 +4634,19 @@ function textBytes(v){return new TextEncoder().encode(v);}
 function pdfBlobFromCanvas(canvas,forceLandscape){
   var margin=18,pageW=forceLandscape?792:612,pageH=forceLandscape?612:792;
   var contentW=pageW-margin*2,contentH=pageH-margin*2,ratio=contentW/canvas.width;
-  var sliceHeight=Math.max(1,Math.floor(contentH/ratio)),pageCount=Math.max(1,Math.ceil(canvas.height/sliceHeight));
+  // El render SVG deja margen blanco al final; no crear una página vacía por ese sobrante.
+  var effectiveHeight=canvas.height;
+  try{
+    var pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+    outer:for(var y=canvas.height-1;y>=0;y--){for(var x=0;x<canvas.width;x++){
+      var at=(y*canvas.width+x)*4;
+      if(pixels[at]<245||pixels[at+1]<245||pixels[at+2]<245){effectiveHeight=y+1;break outer;}
+    }}
+  }catch(e){} // Si el navegador restringe lectura de píxeles, conservar el paginado anterior.
+  var sliceHeight=Math.max(1,Math.floor(contentH/ratio)),pageCount=Math.max(1,Math.ceil(effectiveHeight/sliceHeight));
   var images=[];
   for(var pageIndex=0;pageIndex<pageCount;pageIndex++){
-    var sourceY=pageIndex*sliceHeight,sourceH=Math.min(sliceHeight,canvas.height-sourceY);
+    var sourceY=pageIndex*sliceHeight,sourceH=Math.min(sliceHeight,effectiveHeight-sourceY);
     var slice=document.createElement('canvas');slice.width=canvas.width;slice.height=sourceH;
     var sliceCtx=slice.getContext('2d',{alpha:false});sliceCtx.fillStyle='#fff';sliceCtx.fillRect(0,0,slice.width,slice.height);sliceCtx.drawImage(canvas,0,sourceY,canvas.width,sourceH,0,0,canvas.width,sourceH);
     images.push({bytes:bytesFromBase64(slice.toDataURL('image/jpeg',.96).split(',')[1]),width:slice.width,height:slice.height});

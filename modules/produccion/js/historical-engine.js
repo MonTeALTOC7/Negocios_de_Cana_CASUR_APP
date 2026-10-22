@@ -188,6 +188,22 @@
     };
   }
 
+  // KATM = kg de azúcar / t métrica de caña (confirmado por CASUR, 2026-10-22).
+  // Derivado equivalente, no una medición de azúcar fabricada. Sin redondeo intermedio.
+  function aggregateHistoricalTah(rows) {
+    let validArea = 0, sugarEquivalentTon = 0, validCaneTon = 0, eligibleArea = 0, validRows = 0;
+    const list = Array.isArray(rows) ? rows : [];
+    list.forEach((row) => {
+      const area = finite(row?.area), ton = finite(row?.ton), katm = finite(row?.katm);
+      if (area !== null && area > 0) eligibleArea += area;
+      if (area === null || area <= 0 || ton === null || ton < 0 || katm === null || katm < 0) return;
+      validArea += area; validCaneTon += ton; sugarEquivalentTon += ton * katm / 1000; validRows++;
+    });
+    return { tah: validArea > 0 ? sugarEquivalentTon / validArea : null,
+      sugarEquivalentTon, validArea, validCaneTon, eligibleArea, validRows,
+      excludedRows: list.length - validRows, coveragePct: eligibleArea > 0 ? validArea / eligibleArea * 100 : null };
+  }
+
   function compareHistoricalRows(rows, entityScope, benchmarkScope, period) {
     const entity = aggregateHistoricalRows(filterHistoricalRows(rows, entityScope, period));
     const benchmark = aggregateHistoricalRows(filterHistoricalRows(rows, benchmarkScope, period));
@@ -584,6 +600,7 @@
     reconcilePeriodSelection,
     filterHistoricalRows,
     aggregateHistoricalRows,
+    aggregateHistoricalTah,
     compareHistoricalRows,
     buildHistoricalChartModel,
     groupHistoricalBySeason,

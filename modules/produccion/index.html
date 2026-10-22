@@ -3503,10 +3503,17 @@ window.addEventListener('load',setupCrono);
     if(!values.length)return '<div class="empty">Sin '+label+' comparable para el período.</div>';
     const W=720,H=260,L=48,R=22,T=30,B=42,min=Math.min(...values),max=Math.max(...values),span=Math.max(max-min,1),low=min-span*.14,high=max+span*.14;
     const x=i=>seasons.length===1?W/2:L+i*(W-L-R)/(seasons.length-1),y=v=>H-B-(v-low)/(high-low)*(H-T-B);
+    // PDF only: separate labels vertically without moving the actual observations.
+    const reportLabels=seasons.map(z=>{
+      const ordered=series.filter(s=>s.points.get(z)!=null).sort((a,b)=>b.points.get(z)-a.points.get(z));
+      const positions=ordered.map(s=>y(s.points.get(z))-9);
+      for(let i=1;i<positions.length;i++)positions[i]=Math.max(positions[i],positions[i-1]+15);
+      if(positions.length&&positions.at(-1)>H-B-4){positions[positions.length-1]=H-B-4;for(let i=positions.length-2;i>=0;i--)positions[i]=Math.min(positions[i],positions[i+1]-15);}
+      return new Map(ordered.map((s,i)=>[s,positions[i]]));
+    });
     const paths=series.map(s=>{let path='',drawing=false;seasons.forEach((z,i)=>{const value=s.points.get(z);if(value==null){drawing=false;return;}path+=(drawing?' L':' M')+x(i).toFixed(1)+' '+y(value).toFixed(1);drawing=true;});return '<path d="'+path.trim()+'" fill="none" stroke="'+s.color+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'+seasons.map((z,i)=>{
       const value=s.points.get(z);if(value==null)return '';
-      const rank=series.filter(other=>other.points.get(z)!=null).sort((a,b)=>b.points.get(z)-a.points.get(z)).indexOf(s);
-      const labelY=Math.max(12,Math.min(H-B-3,y(value)+(rank%2?18:-11)));
+      const labelY=reportLabels[i].get(s);
       return '<circle cx="'+x(i).toFixed(1)+'" cy="'+y(value).toFixed(1)+'" r="5" fill="'+s.color+'" stroke="#fff" stroke-width="2"><title>'+escH(s.farm.farmCode+' · '+s.farm.farmName+' · '+zlabel(z)+' · '+f2(value)+' '+label)+'</title></circle>'+(reportMetric?'<text class="pdf-comparison-value" x="'+(x(i)+(i===0?8:0)).toFixed(1)+'" y="'+labelY.toFixed(1)+'" text-anchor="'+(i===0?'start':'middle')+'" fill="'+s.color+'" stroke="white" stroke-width="3" paint-order="stroke" font-size="11" font-weight="800">'+f2(value)+'</text>':'');
     }).join('');}).join('');
     const ticks=seasons.map((z,i)=>'<text class="labeltxt" x="'+x(i).toFixed(1)+'" y="'+(H-12)+'" text-anchor="middle">'+escH(zlabel(z))+'</text>').join('');
@@ -3587,7 +3594,7 @@ window.addEventListener('load',setupCrono);
   window.historicoMultiReportCharts=function(){
     const result=multiAnalysis(),rows=multiRows(result);
     const pair=(scope,id)=>['tch','katm'].map(metric=>historicalChart({scopeRows:scope,selectedZafras:result.selectedZafras},id+metric,metric));
-    return {result,global:pair(rows,'pdfGlobal'),comparison:['tch','katm'].map(metric=>multiComparisonChart(result,rows,metric)),farms:new Map(result.farms.map(f=>[f.farmCode,pair(multiRows(result,f.farmCode),'pdf'+f.farmCode)]))};
+    return {result,rows,global:pair(rows,'pdfGlobal'),comparison:['tch','katm'].map(metric=>multiComparisonChart(result,rows,metric)),farms:new Map(result.farms.map(f=>[f.farmCode,pair(multiRows(result,f.farmCode),'pdf'+f.farmCode)]))};
   };
   window.renderHistoricoProducerSelection=renderProducer;
   window.selectAllVisibleHistoricoRows=function(){selectVisible(true);};
@@ -4472,9 +4479,20 @@ var RENDER_CSS=[
 '.casur-report-hist-multi{font-family:Arial,"Segoe UI",Helvetica,sans-serif!important;line-height:1.25!important}',
 '.casur-report-hist-multi .hist-multi-scroll-hint{display:none!important}',
 '.casur-report-hist-multi td small{display:block!important;color:#64748b!important}',
-'.casur-report.casur-report-executive .hist-multi-report-block{margin-bottom:10px!important;padding-bottom:5px!important}',
-'.casur-report-executive .svgbox svg{height:195px!important;max-height:195px!important}',
+'.casur-report.casur-report-executive .hist-multi-report-block{margin-bottom:5px!important;padding-bottom:5px!important}',
+'.casur-report-executive .svgbox svg{height:185px!important;max-height:185px!important}',
+'.casur-report-executive .pdf-dense-comparison .svgbox svg{height:300px!important;max-height:300px!important}',
 '.casur-report-executive .svgbox{min-height:0!important}',
+'.casur-report-executive .executive-season-table table{table-layout:fixed!important;width:100%!important;min-width:0!important;font-size:12px!important}',
+'.casur-report-executive .executive-season-table th,.casur-report-executive .executive-season-table td{text-align:right!important;padding:5px 8px!important;font-size:12px!important;white-space:normal!important}',
+'.casur-report-executive .executive-season-table th:first-child,.casur-report-executive .executive-season-table td:first-child{text-align:center!important}',
+'.casur-report-executive .executive-season-table th small{display:block;font-size:9px}',
+'.casur-report-executive .pdf-period-total{background:#eef6ef!important;font-weight:800}',
+'.casur-report-executive .pdf-farm-group{margin:0 0 6px!important;padding:6px 9px!important;background:#edf5ef!important;color:#07552d!important;font-size:14px!important}',
+'.casur-report-executive.pdf-paged{padding:0!important}',
+'.casur-report-executive .pdf-page{position:relative!important;display:flow-root!important;width:960px!important;height:1260px!important;padding:20px 22px 36px!important;background:white!important;overflow:hidden!important}',
+'.casur-report-executive .pdf-unit{display:flow-root!important;margin:0!important;padding:0!important}',
+'.casur-report-executive .pdf-page-footer{position:absolute!important;bottom:9px!important;left:22px!important;right:22px!important;border-top:1px solid #dce5df!important;padding-top:4px!important;color:#64748b!important;font-size:10px!important;text-align:right!important}',
 '.casur-report *{box-sizing:border-box}',
 
 '.print-header{position:static!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(280px,44%)!important;align-items:start!important;gap:16px!important;min-height:0!important;margin:0 0 12px!important;padding:14px 16px!important;border:1px solid #c7dbd1!important;border-radius:14px!important;background:#f4f9f6!important;overflow:visible!important}',
@@ -4809,9 +4827,9 @@ function buildHistoricalMulti(node){
 function buildHistoricalExecutive(node,includeAnnexes){
   var report=window.historicoMultiReportCharts(),root=document.createElement('section');
   root.className='casur-report casur-report-hist-multi casur-report-executive';
-  var h=header(node,'Informe Ejecutivo · Histórico de Producción');
-  q('h2',h).textContent='Informe Ejecutivo · Histórico de Producción';
-  q('p',h).textContent='Selección multifinca';
+  var h=header(node,'Informe Histórico de Producción de Fincas');
+  q('h2',h).textContent='Informe Histórico de Producción de Fincas';
+  q('p',h).textContent='Departamento de Negocios de Caña · CASUR';
   q('.print-meta',h).innerHTML='<strong>Período '+esc(report.result.selectedZafras.map(zlabelJS).join(' · ')||'sin registros')+'</strong><span>Consulta: '+esc(new Date().toLocaleString('es-NI'))+'</span>';
   root.appendChild(h);
   var included=clone('.hist-multi-included',node);if(included)root.appendChild(included);
@@ -4821,30 +4839,46 @@ function buildHistoricalExecutive(node,includeAnnexes){
     if(title){var heading=document.createElement('h3');heading.textContent=title;section.appendChild(heading);}
     items.forEach(function(item){if(item)section.appendChild(item);});root.appendChild(section);return section;
   }
-  function chart(html){var holder=document.createElement('div');holder.innerHTML=html;var c=cleanChart(cleanElement(holder.firstElementChild));qa('.historical-chart-head small',c).forEach(remove);return c;}
-  function kpis(scope){
+  function chart(html){var holder=document.createElement('div');holder.innerHTML=html;var c=cleanChart(cleanElement(holder.firstElementChild));qa('.historical-chart-head small',c).forEach(remove);if(c.classList.contains('hist-multi-comparison-chart')&&report.result.farms.length>3)c.classList.add('pdf-dense-comparison');return c;}
+  var engine=window.CASUR_HISTORICAL_ENGINE,period=report.result.selectedZafras;
+  function scoped(farmCode,zafras){return engine.filterHistoricalRows(report.rows,farmCode?{farmCode:farmCode}:null,zafras||period);}
+  function num(v){return v==null?'N/D':Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function kpis(scope,farmCode){
     var cards=clone('.hist-multi-original-kpis',scope);if(!cards)return null;
-    var area=q('.historical-kpi-area',cards);if(area){cards.prepend(area);q('.label',area).textContent=report.result.selectedZafras.length===1?'Área cosechada':'Área cosechada por zafra';}
+    var area=q('.historical-kpi-area',cards);if(area){cards.prepend(area);area.classList.add('main');q('.label',area).textContent=period.length===1?'Área cosechada':'Área cosechada por zafra';}
+    var tah=engine.aggregateHistoricalTah(scoped(farmCode)),last=cards.lastElementChild;
+    q('.label',last).textContent='TAH ponderado';q('strong',last).textContent=num(tah.tah)+' t azúcar/ha';
+    q('em',last).textContent='Equivalente según KATM'+(tah.excludedRows?' · cobertura '+num(tah.coveragePct)+'%':'');
+    cards.dataset.tahAudit=JSON.stringify(tah);
     return cards;
   }
-  function table(scope,columns,labels){
-    var copy=clone('.hist-multi-results-table',scope);if(!copy)return null;
-    qa('tr',copy).forEach(function(row){var cells=Array.from(row.children);if(cells.length===1&&cells[0].colSpan>1){cells[0].colSpan=columns.length;return;}row.replaceChildren(...columns.map(function(i){return cells[i];}).filter(Boolean));});
-    qa('thead th',copy).forEach(function(th,i){th.textContent=labels[i];});return copy;
+  function seasonTable(farmCode,summary,technical){
+    var wrap=document.createElement('div');wrap.className='table-wrap hist-multi-results-table executive-season-table';
+    var audits=[];
+    function row(z,label,total){
+      var rows=scoped(farmCode,z==null?period:[z]),a=total||engine.aggregateHistoricalRows(rows),t=engine.aggregateHistoricalTah(rows);
+      var area=total?(period.length===1?total.area:total.areaAverage):(rows.length&&rows.every(r=>r.area!=null&&r.area>0)?a.area:null);
+      audits.push({zafra:z,...t});
+      return '<tr'+(total?' class="pdf-period-total"':'')+'><td>'+esc(label)+'</td><td>'+num(area)+(total&&period.length>1?'<small>media ha/zafra</small>':'')+'</td><td>'+num(rows.some(r=>r.ton!=null&&r.ton>=0)?a.ton:null)+(total?'<small>acumuladas</small>':'')+'</td><td>'+num(a.tch)+'</td><td>'+num(a.katm)+'</td><td>'+num(t.tah)+'</td>'+(technical?'<td>'+num(a.edad)+'</td>':'')+'</tr>';
+    }
+    wrap.innerHTML='<table><colgroup><col style="width:16%"><col style="width:18%"><col style="width:21%"><col style="width:14%"><col style="width:14%"><col style="width:17%"></colgroup><thead><tr><th>Zafra</th><th>Área (ha)</th><th>Toneladas</th><th>TCH</th><th>KATM</th><th>TAH<small>t azúcar/ha</small></th></tr></thead><tbody>'+period.map(z=>row(z,zlabelJS(z))).join('')+(summary?row(null,'PERÍODO',summary):'')+'</tbody></table>';
+    if(technical){q('colgroup',wrap).innerHTML='<col style="width:14%"><col style="width:16%"><col style="width:18%"><col style="width:12%"><col style="width:12%"><col style="width:14%"><col style="width:14%">';q('thead tr',wrap).insertAdjacentHTML('beforeend','<th>Edad<small>meses</small></th>');}
+    wrap.dataset.tahAudit=JSON.stringify(audits);return wrap;
   }
   var global=q('.hist-multi-global',node),comparison=q('.hist-multi-comparison',node);
   block('Consolidado global',[kpis(global),chart(report.global[0])]);
   block(null,[chart(report.global[1])]);
-  block('Resultados globales por zafra',[table(global,[0,1,2,3,4],['Zafra','Área cosechada','Toneladas','TCH pond.','KATM pond.'])]);
-  block('Resultados por finca',[table(comparison,[0,2,6,3,4],['Finca',report.result.selectedZafras.length===1?'Área cosechada':'Área por zafra','Toneladas','TCH pond.','KATM pond.'])]);
-  block('Comparación entre fincas',[chart(report.comparison[0])],true);
+  block('Resultados globales por zafra',[seasonTable()]);
+  report.result.farms.forEach(function(f,i){var title=document.createElement('h4');title.className='pdf-farm-group';title.textContent=f.farmCode+' · '+f.farmName;block(i===0?'Resultados por finca':null,[title,seasonTable(f.farmCode,f)]);});
+  block('Comparación entre fincas',[chart(report.comparison[0])]);
   block(null,[chart(report.comparison[1])]);
   if(includeAnnexes)qa('.hist-multi-farm-report',node).forEach(function(farm){
     var name=q('summary strong',farm).textContent.trim(),charts=report.farms.get(farm.dataset.farmCode);
     var selected=document.createElement('p');selected.className='hist-multi-method';selected.textContent='CodSuerte incluidos: '+farm.dataset.lotIds;
-    block('Anexo · '+name,[selected,kpis(farm),chart(charts[0])],true);
+    block('Anexo · '+name,[selected,kpis(farm,farm.dataset.farmCode),chart(charts[0])],true);
     block(null,[chart(charts[1])]);
-    qa('.hist-multi-report-block',farm).slice(1).forEach(function(part){var copy=cleanElement(part.cloneNode(true));copy.setAttribute('data-pdf-break','');root.appendChild(copy);});
+    block('Resumen por zafra',[seasonTable(farm.dataset.farmCode,null,true)]);
+    qa('.hist-multi-report-block',farm).slice(2).forEach(function(part){var copy=cleanElement(part.cloneNode(true));copy.setAttribute('data-pdf-break','');root.appendChild(copy);});
   });
   root.appendChild(footer());return root;
 }
@@ -4852,6 +4886,82 @@ function prepareClone(node,kind,variant){if(kind==='historico')return buildHisto
 
 function nextFrame(){return new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(r);});});}
 function imageFromSvg(svg){return new Promise(function(resolve,reject){var img=new Image();img.onload=function(){resolve(img);};img.onerror=function(){reject(new Error('El navegador no pudo renderizar el reporte.'));};img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);});}
+
+// Pure planner: ordered atomic units, compulsory annex starts, balanced page occupancy.
+// Height comes from the actual export DOM, not an estimated number of lines.
+function planHistoricalPdfPages(units,capacity){
+  if(!(capacity>0))throw new RangeError('Capacidad PDF inválida');
+  if(units.some(u=>!Number.isFinite(u.height)||u.height<0||u.height>capacity))throw new RangeError('Bloque PDF mayor que una página');
+  var n=units.length,dp=Array(n+1).fill(null);dp[n]={cost:0,pages:[]};
+  for(var i=n-1;i>=0;i--){var height=0;
+    for(var j=i;j<n;j++){
+      if(j>i&&units[j].newPage)break;
+      height+=units[j].height;if(height>capacity)break;
+      var waste=capacity-height,cost=capacity*capacity*4+waste*waste+dp[j+1].cost;
+      if(!dp[i]||cost<dp[i].cost)dp[i]={cost:cost,pages:[{from:i,to:j+1,height:height}].concat(dp[j+1].pages)};
+    }
+  }
+  return dp[0]?dp[0].pages:[];
+}
+
+function prepareHistoricalPdfPages(root){
+  var capacity=1204,sourceRows=qa('tbody tr',root);
+  sourceRows.forEach(function(row,i){row.dataset.pdfRowId=String(i);});
+  var source=Array.from(root.children),prefix=[],units=[];
+  // Header, selection and first KPI/chart are one unit: no orphan report heading.
+  while(source.length&&!source[0].hasAttribute('data-pdf-break'))prefix.push(source.shift());
+  if(source.length)prefix.push(source.shift());
+  var first=document.createElement('div');prefix.forEach(n=>first.appendChild(n));source.unshift(first);
+  var foot=source[source.length-1];if(foot&&foot.classList.contains('export-footer')){source.pop();source[source.length-1].appendChild(foot);}
+  root.replaceChildren();
+  function unit(node,newPage){var wrapper=document.createElement('div');wrapper.className='pdf-unit';wrapper.appendChild(node);root.appendChild(wrapper);return {node:wrapper,height:Math.ceil(wrapper.getBoundingClientRect().height)+1,newPage:newPage};}
+  source.forEach(function(node){
+    var u=unit(node,node.hasAttribute('data-pdf-new-page'));
+    if(u.height<=capacity){units.push(u);return;}
+    var body=q('tbody',node),rows=body?Array.from(body.children):[];
+    if(!rows.length)throw new Error('Un gráfico o bloque excede la página. Reduzca la selección o revise la composición.');
+    // Only tables taller than a page are split; retain group title and column headers.
+    var chunks=[],cursor=0;
+    while(cursor<rows.length){
+      var copy=node.cloneNode(true),copyBody=q('tbody',copy);copyBody.replaceChildren();
+      var part=unit(copy,u.newPage&&cursor===0),start=cursor;
+      while(cursor<rows.length){copyBody.appendChild(rows[cursor].cloneNode(true));var h=Math.ceil(part.node.getBoundingClientRect().height)+1;if(h>capacity){copyBody.lastElementChild.remove();break;}cursor++;part.height=h;}
+      if(cursor===start)throw new Error('Una fila excede la altura de página');
+      chunks.push(part);
+    }
+    // Avoid 1-2 trailing rows (including a period subtotal) by moving rows intact.
+    if(chunks.length>1){var last=chunks[chunks.length-1],prev=chunks[chunks.length-2],tail=q('tbody',last.node),lead=q('tbody',prev.node);
+      while(tail.children.length<3&&lead.children.length>3)tail.prepend(lead.lastElementChild);
+      [last,prev].forEach(p=>p.height=Math.ceil(p.node.getBoundingClientRect().height)+1);
+    }
+    u.node.remove();units.push(...chunks);
+  });
+  var plan=planHistoricalPdfPages(units,capacity),pages=[];
+  root.classList.add('pdf-paged');root.replaceChildren();
+  plan.forEach(function(p,i){var page=document.createElement('section');page.className='pdf-page';
+    units.slice(p.from,p.to).forEach(u=>page.appendChild(u.node));
+    var foot=document.createElement('div');foot.className='pdf-page-footer';foot.textContent='CASUR · Informe histórico · '+(i+1)+' / '+plan.length;page.appendChild(foot);root.appendChild(page);pages.push(page);
+  });
+  var ids=qa('tbody tr',root).map(row=>row.dataset.pdfRowId),unique=new Set(ids);
+  var audit={capacity:capacity,sourceRows:sourceRows.length,placedRows:ids.length,missingRows:sourceRows.filter(r=>!unique.has(r.dataset.pdfRowId)).length,duplicatedRows:ids.length-unique.size,
+    pages:plan.map((p,i)=>({height:p.height,fill:p.height/capacity,titles:qa('h3,h4',pages[i]).map(n=>n.textContent),rows:qa('tbody tr',pages[i]).length})),
+    tah:qa('[data-tah-audit]',root).map(n=>JSON.parse(n.dataset.tahAudit))};
+  if(audit.missingRows||audit.duplicatedRows)throw new Error('Conciliación de filas PDF fallida');
+  return {pages:pages,audit:audit};
+}
+
+async function renderHistoricalPdfPages(root){
+  var prepared=prepareHistoricalPdfPages(root),canvases=[];
+  await nextFrame();
+  for(var page of prepared.pages){
+    var markup='<section xmlns="http://www.w3.org/1999/xhtml" class="casur-report casur-report-hist-multi casur-report-executive pdf-paged"><style>'+RENDER_CSS+'</style>'+new XMLSerializer().serializeToString(page)+'</section>';
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" width="960" height="1260"><foreignObject width="100%" height="100%">'+markup+'</foreignObject></svg>';
+    var img=await imageFromSvg(svg),canvas=document.createElement('canvas');canvas.width=1920;canvas.height=2520;
+    var ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,1920,2520);ctx.drawImage(img,0,0,1920,2520);canvases.push(canvas);
+  }
+  window.CASUR_VISUAL_EXPORT.lastLayoutAudit=prepared.audit;
+  return {canvas:canvases[0],pageCanvases:canvases,width:960,height:1260,clone:root,safeBreaks:[],forcedBreaks:[],layoutAudit:prepared.audit};
+}
 
 async function renderCanvas(kind,variant){
   var node=target(kind);if(!node)throw new Error('Abra primero la ficha o el resumen que desea exportar.');
@@ -4861,6 +4971,7 @@ async function renderCanvas(kind,variant){
   var liveStyle=document.createElement('style');liveStyle.textContent=RENDER_CSS;host.appendChild(liveStyle);host.appendChild(cloneNode);document.body.appendChild(host);
   try{
     if(document.fonts&&document.fonts.ready)await document.fonts.ready;await nextFrame();
+    if(kind==='historico-multiple'&&variant)return await renderHistoricalPdfPages(cloneNode);
     var reportRect=cloneNode.getBoundingClientRect();var maxBottom=reportRect.bottom;
     var all=cloneNode.querySelectorAll('*');for(var i=0;i<all.length;i++){var r=all[i].getBoundingClientRect();if(r.height>0&&r.bottom>maxBottom)maxBottom=r.bottom;}
     var height=Math.max(300,Math.ceil(maxBottom-reportRect.top+14));
@@ -4883,11 +4994,15 @@ function bytesFromBase64(v){var bin=atob(v),out=new Uint8Array(bin.length);for(v
 function concatBytes(parts){var total=0;parts.forEach(function(p){total+=p.length;});var out=new Uint8Array(total),pos=0;parts.forEach(function(p){out.set(p,pos);pos+=p.length;});return out;}
 function textBytes(v){return new TextEncoder().encode(v);}
 
-function pdfBlobFromCanvas(canvas,forceLandscape,safeBreaks,forcedBreaks){
+function pdfBlobFromCanvas(canvas,forceLandscape,safeBreaks,forcedBreaks,pageCanvases){
   var margin=18,pageW=forceLandscape?792:612,pageH=forceLandscape?612:792;
   var contentW=pageW-margin*2,contentH=pageH-margin*2,ratio=contentW/canvas.width;
   // El render SVG deja margen blanco al final; no crear una página vacía por ese sobrante.
   var effectiveHeight=canvas.height;
+  var images=[];
+  if(Array.isArray(pageCanvases)&&pageCanvases.length){
+    images=pageCanvases.map(function(page){return {bytes:bytesFromBase64(page.toDataURL('image/jpeg',.96).split(',')[1]),width:page.width,height:page.height};});
+  }else{
   try{
     var pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
     outer:for(var y=canvas.height-1;y>=0;y--){for(var x=0;x<canvas.width;x++){
@@ -4906,13 +5021,14 @@ function pdfBlobFromCanvas(canvas,forceLandscape,safeBreaks,forcedBreaks){
     slices.push({y:source,height:end-source});source=end;
   }
   var pageCount=slices.length;
-  var images=[];
   for(var pageIndex=0;pageIndex<pageCount;pageIndex++){
     var sourceY=slices[pageIndex].y,sourceH=slices[pageIndex].height;
     var slice=document.createElement('canvas');slice.width=canvas.width;slice.height=sourceH;
     var sliceCtx=slice.getContext('2d',{alpha:false});sliceCtx.fillStyle='#fff';sliceCtx.fillRect(0,0,slice.width,slice.height);sliceCtx.drawImage(canvas,0,sourceY,canvas.width,sourceH,0,0,canvas.width,sourceH);
     images.push({bytes:bytesFromBase64(slice.toDataURL('image/jpeg',.96).split(',')[1]),width:slice.width,height:slice.height});
   }
+  }
+  var pageCount=images.length;
   var parts=[],offsets=[0],length=0;
   var push=function(p){var b=typeof p==='string'?textBytes(p):p;parts.push(b);length+=b.length;};
   var obj=function(n,body){offsets[n]=length;push(n+' 0 obj\n');if(Array.isArray(body))body.forEach(push);else push(body);push('\nendobj\n');};
@@ -4941,7 +5057,7 @@ async function runAction(kind,type,button,variant){
     toast(type==='pdf'?'Generando PDF\u2026':'Generando imagen PNG\u2026',5000);
     var result=await renderCanvas(kind,variant);var canvas=result.canvas;
     if(type==='image'){var blob=await canvasBlob(canvas,'image/png',1);downloadBlob(blob,filename(kind,node,'png'));toast('Imagen PNG descargada correctamente.');}
-    else{var blob2=pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico',result.safeBreaks,result.forcedBreaks);var name=filename(kind,node,'pdf');if(variant)name=name.replace(/\.pdf$/i,variant==='complete'?'_Completo.pdf':'_Ejecutivo.pdf');downloadBlob(blob2,name);toast('PDF paginado descargado correctamente.');}
+    else{var blob2=pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico',result.safeBreaks,result.forcedBreaks,result.pageCanvases);var name=filename(kind,node,'pdf');if(variant)name=name.replace(/\.pdf$/i,variant==='complete'?'_Completo.pdf':'_Ejecutivo.pdf');downloadBlob(blob2,name);toast('PDF paginado descargado correctamente.');}
   }catch(err){console.error(err);alert('No se pudo generar el reporte: '+(err.message||err));}
   finally{button.disabled=false;button.innerHTML=original;}
 }

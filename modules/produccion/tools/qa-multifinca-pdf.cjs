@@ -33,9 +33,9 @@ async function run() {
         const exec=api.prepareClone(node,'historico-multiple','executive'),full=api.prepareClone(node,'historico-multiple','complete');
         return {labels:[...exec.querySelectorAll('.kpi .label')].map(n=>n.textContent),values:[...exec.querySelectorAll('.kpi strong')].map(n=>n.textContent),titles:[...exec.querySelectorAll('h3')].map(n=>n.textContent),headers:[...exec.querySelectorAll('thead th')].map(n=>n.textContent),comparativeLabels:exec.querySelectorAll('.pdf-comparison-value').length,execAnnexes:exec.querySelectorAll('[data-pdf-new-page]').length,fullBreaks:full.querySelectorAll('[data-pdf-new-page]').length,fullCharts:full.querySelectorAll('.historical-chart-card').length,text:full.textContent,state:window.getHistoricoMultiAnalysis()};
       });
-      assert.deepEqual(audit.labels,['Área cosechada por zafra','TCH ponderado','KATM ponderado','Distancia ponderada actual','Edad ponderada']);
+      assert.deepEqual(audit.labels,['Área cosechada por zafra','TCH ponderado','KATM ponderado','Distancia ponderada actual','TAH ponderado']);
       for(const title of ['Histórico TCH por zafra','Histórico KATM por zafra','Resultados globales por zafra','Resultados por finca','Comparación TCH por finca','Comparación KATM por finca'])assert.ok(audit.titles.includes(title),title);
-      assert.equal(audit.comparativeLabels,12);assert.equal(audit.execAnnexes,1);assert.equal(audit.fullBreaks,3);assert.equal(audit.fullCharts,8);
+      assert.equal(audit.comparativeLabels,12);assert.equal(audit.execAnnexes,0);assert.equal(audit.fullBreaks,2);assert.equal(audit.fullCharts,8);
       assert.ok(!audit.headers.some(t=>/Edad|Km|Suertes/.test(t)));
       assert.equal(audit.state.consolidated.areaAverage,188.84);assert.equal(audit.state.consolidated.tch,48.92);assert.equal(audit.state.consolidated.katm,108.56);
       assert.match(audit.text,/98301, 98302/);assert.ok(!audit.text.includes('98303'));
@@ -47,7 +47,9 @@ async function run() {
         const pdfPath=path.join(out,`Multifinca_${variant}_${width}.pdf`);
         await file.saveAs(pdfPath);
         const pdfText=fs.readFileSync(pdfPath).toString('latin1');
-        assert.match(pdfText,variant==='complete'?/\/Count 4\b/:/\/Count 2\b/);
+        const layout=await page.evaluate(()=>window.CASUR_VISUAL_EXPORT.lastLayoutAudit);
+        assert.match(pdfText,new RegExp('/Count '+layout.pages.length+'\\b'));
+        assert.equal(layout.missingRows,0);assert.equal(layout.duplicatedRows,0);
         assert.match(await page.locator('.hist-multi-global .historical-chart-card h3').innerText(),/KATM/);
         if(width===1440){
           const rendered=await page.evaluate(async variant=>{

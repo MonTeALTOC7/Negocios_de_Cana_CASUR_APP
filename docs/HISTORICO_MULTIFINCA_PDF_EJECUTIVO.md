@@ -1,5 +1,9 @@
 # Histórico multifinca: PDF ejecutivo y completo
 
+> Registro del PR #26. La evolución de la rama hija (TAH y paginación medida)
+> se documenta en [HISTORICO_INFORME_PROFESIONAL.md](HISTORICO_INFORME_PROFESIONAL.md).
+> Los conteos de páginas y KPI de este documento son la evidencia de aquella base.
+
 ## Alcance y base
 
 - Rama hija: `codex/historico-multifinca-pdf-ejecutivo`.

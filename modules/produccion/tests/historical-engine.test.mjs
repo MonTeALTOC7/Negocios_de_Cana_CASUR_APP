@@ -570,7 +570,7 @@ test("CAP1 conserva seis KPI junto al gráfico TCH legible y sin tarjeta princip
   assert.ok(index.includes(".casur-report-crono .table-wrap table{width:100%!important;table-layout:fixed!important"));
   assert.ok(index.includes(".casur-report-crono .table-wrap th,.casur-report-crono .table-wrap td{padding:4px 3px!important;white-space:normal!important"));
   assert.ok(index.includes(".casur-report-crono-general .table-wrap th,.casur-report-crono-general .table-wrap td{padding:4px 5px!important"));
-  assert.ok(index.includes("pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico',result.safeBreaks,result.forcedBreaks)"));
+  assert.ok(index.includes("pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico',result.safeBreaks,result.forcedBreaks,result.pageCanvases)"));
 });
 
 test("CAP3 recupera la jerarquía estable de ocho KPI históricos", () => {

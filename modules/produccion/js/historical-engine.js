@@ -594,6 +594,31 @@
         status: kmArea <= 0 ? "unavailable" : farms.some((farm) => farm.currentDistance.status !== "complete") ? "partial" : "complete" } };
   }
 
+  // Presentation-only composition. Both scopes resolve the exact same identities;
+  // the validated aggregation contracts above remain unchanged.
+  function buildHistoricalDualSummary(rows, selection, catalog, mode = "latest", custom = [], producers = []) {
+    const period = buildHistoricalMultiAnalysis(rows, selection, catalog, mode, custom, producers);
+    const full = buildHistoricalMultiAnalysis(rows, selection, catalog, "all", [], producers);
+    const identities = new Set(resolveHistoricalMultiSelection(selection, catalog).map(lot => `${lot.farmCode}\u0000${lot.lotId}`));
+    const scopeRows = rows.filter(row => identities.has(`${row.farmCode}\u0000${row.lotId}`));
+    const scope = analysis => {
+      const selectedRows = filterHistoricalRows(scopeRows, null, analysis.selectedZafras);
+      return { ...analysis.consolidated, zafras: analysis.selectedZafras,
+        requestedSeasonCount: analysis.requestedCustomZafras.length || analysis.selectedZafras.length,
+        // Absence is not evidence of zero harvested area. Keep both original
+        // denominators auditable, and present the observed-season mean.
+        areaMean: analysis.consolidated.areaAverageObserved,
+        tahAudit: aggregateHistoricalTah(selectedRows) };
+    };
+    return { selection: period.selection, availableZafras: full.selectedZafras,
+      selectedZafras: period.selectedZafras, full: scope(full), period: scope(period),
+      equivalent: full.selectedZafras.length === period.selectedZafras.length && full.selectedZafras.every(z => period.selectedZafras.includes(z)),
+      currentDistance: period.currentDistance, series: period.series,
+      comparison: period.farms.map(farm => ({ farmCode: farm.farmCode, farmName: farm.farmName,
+        series: groupHistoricalBySeason(filterHistoricalRows(scopeRows, { farmCode: farm.farmCode, lotIds: farm.lotIds }, period.selectedZafras)) })),
+      analysis: period };
+  }
+
   return Object.freeze({
     normalizeHistoricalRows,
     resolvePeriod,
@@ -615,5 +640,6 @@
     updateHistoricalMultiSelection,
     resolveHistoricalMultiSelection,
     buildHistoricalMultiAnalysis,
+    buildHistoricalDualSummary,
   });
 });

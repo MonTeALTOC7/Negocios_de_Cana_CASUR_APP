@@ -55,7 +55,7 @@ async function run() {
       assert.equal(await page.locator('.hist-multi-farm-report').count(), 2);
       assert.equal(await page.locator('.hist-multi-global .historical-chart-card').count(), 1);
       assert.equal(await page.locator('.hist-multi-farm-report .historical-chart-card').count(), 2);
-      assert.equal(await page.locator('.hist-multi-comparison-chart').count(), 1);
+      assert.equal(await page.locator('.hist-multi-comparison-chart').count(), 2);
       await snapshot(page, `ultima_${width}x${height}`);
 
       await page.getByRole('button', { name: 'Últimas 3' }).click();
@@ -64,15 +64,15 @@ async function run() {
       assert.equal(three.consolidated.areaAverage, 188.84);
       assert.equal(three.consolidated.tch, 48.92);
       assert.equal(three.consolidated.katm, 108.56);
-      assert.match(await page.locator('.hist-multi-global .hist-multi-original-kpis').innerText(), /48[.,]92/);
-      assert.match(await page.locator('.hist-multi-global .hist-multi-original-kpis').innerText(), /188[.,]84/);
+      assert.match(await page.locator('.hist-multi-global .dual-period').innerText(), /48[.,]92/);
+      assert.match(await page.locator('.hist-multi-global .dual-period').innerText(), /188[.,]84/);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
       await snapshot(page, `ultimas3_${width}x${height}`);
-      await page.locator('.hist-multi-global .kpis').screenshot({path:path.join(out,`kpi_${width}x${height}.png`)});
-      await page.locator('.hist-multi-comparison-chart').screenshot({ path: path.join(out, `comparacion_${width}x${height}.png`) });
+      await page.locator('.hist-multi-global .hist-dual-summary').screenshot({path:path.join(out,`kpi_${width}x${height}.png`)});
+      await page.locator('.hist-multi-comparison-chart').first().screenshot({ path: path.join(out, `comparacion_${width}x${height}.png`) });
       await page.locator('.hist-multi-farm-report').first().screenshot({ path: path.join(out, `finca_${width}x${height}.png`) });
       await page.locator('.hist-multi-global .historical-chart-metric button').filter({ hasText: 'KATM' }).click();
-      assert.match(await page.locator('.hist-multi-comparison-chart h3').innerText(), /KATM/);
+      assert.match(await page.locator('.hist-multi-comparison-chart h3').last().innerText(), /KATM/);
       assert.equal(await page.locator('.hist-multi-global .historical-chart-point[aria-describedby="historicalMultiChartGlobal"]').count() > 0, true);
       if (width === 1440) {
         report.push(await download(page, 'historico-multiple', 'Historico_Multifinca_CASUR.pdf'));

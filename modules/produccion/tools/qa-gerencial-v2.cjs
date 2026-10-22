@@ -42,6 +42,15 @@ async function inspect(page){return page.evaluate(()=>{
   });
   const exec=api.prepareClone(api.target('historico-multiple'),'historico-multiple','executive');
   const complete=api.prepareClone(api.target('historico-multiple'),'historico-multiple','complete');
+  const presentation={selection:document.querySelector('.hist-multi-included').innerText,
+    headings:[...document.querySelectorAll('.hist-dual-summary h3')].map(n=>n.textContent),
+    compactDistance:document.querySelector('.hist-multi-global .hist-logistics').innerText,
+    pdfSelection:exec.querySelector('.hist-multi-included').textContent,
+    obsolete:/Desempeño productivo|Área cosechada media|Equivalente estimado conforme a KATM|origen cero/.test(exec.textContent),
+    headerPeriod:exec.querySelector('.print-meta').textContent.includes('Período'),
+    unitsBelow:[...document.querySelectorAll('.hist-dual-summary .dual-kpi')].every(n=>n.querySelector('span').getBoundingClientRect().top>=n.querySelector('b').getBoundingClientRect().bottom),
+    annexKpis:complete.querySelectorAll('[data-pdf-new-page] .dual-kpi').length,
+    annexDistanceCards:[...complete.querySelectorAll('[data-pdf-new-page] .dual-kpi')].some(n=>/Distancia/.test(n.textContent))};
   const visible=[...document.querySelectorAll('.hist-multi-comparison rect[data-value]')].map(n=>Number(n.dataset.value));
   const expectedBars=m.comparison.flatMap(f=>f.series.flatMap(s=>[s.tch,s.katm].filter(v=>v!=null))).sort((a,b)=>a-b);
   const reconciliation=m.selection.flatMap(f=>m.selectedZafras.map(z=>{
@@ -49,7 +58,7 @@ async function inspect(page){return page.evaluate(()=>{
     const sugar=valid.reduce((s,r)=>s+r.ton*r.katm/1000,0),area=valid.reduce((s,r)=>s+r.area,0);
     return {farmCode:f.farmCode,farmName:f.farmName,zafra:z,rows:rows.length,validRows:valid.length,sugarEquivalentTon:sugar,validArea:area,tah:area?sugar/area:null};
   }));
-  return {model:m,numeric,reconciliation,collisions,clipped,visibleBars:visible.sort((a,b)=>a-b),expectedBars:m.comparison.length<2?[]:expectedBars,
+  return {model:m,presentation,numeric,reconciliation,collisions,clipped,visibleBars:visible.sort((a,b)=>a-b),expectedBars:m.comparison.length<2?[]:expectedBars,
     pdfKpis:[...exec.querySelectorAll('.dual-kpi b')].map(n=>n.textContent),tablesExecutive:exec.querySelectorAll('table').length,
     tablesComplete:complete.querySelectorAll('table').length,annexes:complete.querySelectorAll('[data-pdf-new-page]').length,
     screenKpis:[...document.querySelectorAll('.hist-dual-summary .dual-kpi b')].map(n=>n.textContent),overflow:document.documentElement.scrollWidth>innerWidth};
@@ -64,10 +73,21 @@ async function run(){
   assert.ok(evidence.numeric.every(r=>r.match));assert.deepEqual(evidence.pdfKpis,evidence.screenKpis);assert.equal(evidence.tablesExecutive,0);assert.equal(evidence.overflow,false);
   assert.deepEqual(evidence.collisions,[]);assert.deepEqual(evidence.clipped,[]);assert.deepEqual(evidence.visibleBars,evidence.expectedBars);
   assert.equal(evidence.annexes,evidence.model.selection.length);assert.ok(evidence.tablesComplete>0);
+  assert.deepEqual(evidence.presentation.headings,['Histórico CASUR','Histórico del período seleccionado']);
+  assert.equal(evidence.presentation.obsolete,false);assert.equal(evidence.presentation.headerPeriod,false);
+  assert.equal(evidence.presentation.unitsBelow,true);assert.equal(evidence.presentation.annexDistanceCards,false);
+  assert.equal(evidence.presentation.annexKpis,evidence.model.selection.length*4);
   const m=evidence.model;
-  if(item.id==='A')assert.deepEqual([m.period.areaMean,m.period.tch,m.period.katm,Number(m.period.tahAudit.tah.toFixed(2)),m.currentDistance.kmWeighted],[187.41,53.57,105.66,5.66,36.10]);
+  if(item.id==='A'){
+    assert.deepEqual([m.period.areaMean,m.period.tch,m.period.katm,Number(m.period.tahAudit.tah.toFixed(2)),m.currentDistance.kmWeighted],[187.41,53.57,105.66,5.66,36.10]);
+    assert.deepEqual([m.full.areaMean,m.full.tch,m.full.katm,Number(m.full.tahAudit.tah.toFixed(2))],[204.26,61.20,108.63,6.65]);
+    assert.ok(evidence.presentation.selection.includes('983 · Rancho Peirano · Suertes 01, 04 y 04A'));
+    assert.ok(evidence.presentation.pdfSelection.includes('983 · Rancho Peirano · Suertes 01, 04 y 04A'));
+    assert.equal(evidence.presentation.compactDistance,'Distancia ponderada: 36.10 km');
+  }
   if(item.id==='B')assert.deepEqual([m.period.areaMean,m.period.tch,m.period.katm,m.currentDistance.kmWeighted],[188.84,48.92,108.56,36.10]);
   await page.locator('.hist-multi-global').screenshot({path:path.join(out,`${item.id}_${width}_productividad.png`)});
+  await page.locator('.hist-multi-included').screenshot({path:path.join(out,`${item.id}_${width}_seleccion.png`)});
   if(m.selection.length>1)await page.locator('.hist-multi-comparison').screenshot({path:path.join(out,`${item.id}_${width}_barras.png`)});
   if(width===390&&m.selection.length>1){const scrolled=await page.locator('.hist-bars .svgbox').first().evaluate(n=>{n.scrollLeft=n.scrollWidth;return n.scrollLeft>0;});assert.ok(scrolled);await page.locator('.hist-bars .svgbox').first().evaluate(n=>n.scrollLeft=0);}
   await page.locator('.hist-multi-global').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,`${item.id}_${width}_viewport.png`)});

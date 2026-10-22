@@ -144,7 +144,8 @@ check("exportación de hacienda es gráfica y paginada", () => {
   assert.ok(index.includes("cloneWithBarStyles('.crono-summary-grid'"));
   assert.ok(index.includes("?1400:960"));
   assert.ok(index.includes("getImageData(0,0,canvas.width,canvas.height)"));
-  assert.ok(index.includes("pageCount=Math.max(1,Math.ceil(effectiveHeight/sliceHeight))"));
+  assert.ok(index.includes("var pageCount=slices.length"));
+  assert.ok(index.includes("var options=safe.filter"));
   assert.ok(index.includes("PDF paginado descargado correctamente"));
 });
 

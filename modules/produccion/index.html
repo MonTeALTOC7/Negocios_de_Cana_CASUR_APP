@@ -1606,6 +1606,25 @@ body.crono-print-preview .print-end{display:block!important;text-align:center!im
 #fichaSection .hist-multi-trend-title{margin:14px 0 7px}
 #fichaSection .hist-multi-trend-title h3{margin:0;color:#10241a;font-size:15px}
 #fichaSection .hist-multi-trend-title small{display:block;margin-top:3px;color:#64748b;font-size:10.5px;font-weight:800}
+#fichaSection .hist-multi-farms{display:flex;flex:1 0 100%;gap:7px;flex-wrap:wrap}
+#fichaSection .hist-multi-farm-chip{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:6px 8px;border:1px solid #d3e4da;border-radius:11px;background:#fff;font-size:11px}
+#fichaSection .hist-multi-farm-chip strong{color:#123b27}
+#fichaSection .hist-multi-farm-chip span{color:#475569}
+#fichaSection .hist-multi-farm-chip button{border:0;background:#e8f1ff;color:#0b4f9c;border-radius:8px;padding:5px 8px;cursor:pointer;font-weight:850}
+#fichaSection .hist-multi-periods,#fichaSection .hist-multi-custom,#fichaSection .hist-multi-stage-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+#fichaSection .hist-multi-period-btn{border:1px solid #cbd5e1;border-radius:999px;background:#fff;color:#334155;padding:7px 11px;font-size:11px;font-weight:850;cursor:pointer}
+#fichaSection .hist-multi-period-btn.active{background:#0b7f3a;border-color:#0b7f3a;color:#fff}
+#fichaSection .hist-multi-custom label{display:inline-flex;align-items:center;gap:4px;padding:5px 7px;border-radius:8px;background:#fff;font-size:11px;font-weight:800}
+#fichaSection .hist-multi-stage-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0}
+#fichaSection .hist-multi-stage-kpis .kpi{min-width:0}
+#fichaSection .hist-multi-stage-note{padding:9px 11px;border:1px solid #dbe7e1;border-radius:11px;background:#f8faf9;color:#475569;font-size:11px;line-height:1.45}
+#fichaSection .hist-multi-stage-a h3{margin:16px 0 8px;font-size:15px}
+#fichaSection .hist-multi-stage-table{min-width:760px;width:100%}
+#fichaSection .hist-multi-stage-table td small{display:block;color:#64748b;font-size:9px}
+#fichaSection .hist-multi-stage-chart{border:1px solid #dbe7e1;border-radius:14px;padding:9px 11px;background:#fbfffc;overflow-x:auto}
+#fichaSection .hist-multi-stage-chart svg{display:block;width:100%;height:auto}
+#fichaSection .hist-multi-stage-chart small{display:block;color:#475569;font-size:11px;font-weight:850}
+@media(max-width:760px){#fichaSection .hist-multi-stage-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#fichaSection .hist-multi-badge{white-space:normal}}
 @media(min-width:760px){
   #fichaSection .hist-multi-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
   #fichaSection .hist-multi-dominants{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -3296,7 +3315,14 @@ window.addEventListener('load',setupCrono);
 (function(){
   'use strict';
   const D=window.APP_DATA||{};
+  const engine=window.CASUR_HISTORICAL_ENGINE;
+  let historicalRowSource=D.lotCompact;
+  let historicalRows=engine.normalizeHistoricalRows(historicalRowSource);
+  function currentHistoricalRows(){const source=window.APP_DATA?.lotCompact||D.lotCompact;if(source!==historicalRowSource){historicalRowSource=source;historicalRows=engine.normalizeHistoricalRows(source);}return historicalRows;}
   const selected=new Set();
+  let farmSelection={};
+  let periodMode='latest';
+  let customZafras=new Set();
   let multiMode=false;
   let activeZafra=Number(D.meta&&D.meta.latestZafra)||null;
   let visibleCodes=[];
@@ -3314,7 +3340,7 @@ window.addEventListener('load',setupCrono);
   function byId(id){return document.getElementById(id);}
   function escH(v){return String(v??'—').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
   function jsqH(v){return String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' ');}
-  function n(v){const x=Number(v);return Number.isFinite(x)?x:null;}
+  function n(v){if(v===null||v===undefined||String(v).trim()==='')return null;const x=Number(v);return Number.isFinite(x)?x:null;}
   function f2(v,suf=''){const x=n(v);return x===null?'—':x.toLocaleString('es-NI',{minimumFractionDigits:2,maximumFractionDigits:2})+suf;}
   function f0(v,suf=''){const x=n(v);return x===null?'—':Math.round(x).toLocaleString('es-NI')+suf;}
   function zlabel(z){const m=(D.meta&&D.meta.zafras||[]).find(x=>Number(x.value)===Number(z));if(m)return m.label;const s=String(z||'');return s.length===4?s.slice(0,2)+'/'+s.slice(2):s;}
@@ -3322,126 +3348,121 @@ window.addEventListener('load',setupCrono);
   function entity(code){try{return typeof getEntity==='function'?getEntity(normalizeCode(code)):null;}catch(_){return null;}}
   function entries(){return Array.from(selected).map(code=>({code,e:entity(code)})).filter(x=>x.e&&x.e.entityType==='lote');}
   function latestRow(e){const rows=e&&e.trend||[];return rows.find(r=>Number(r.zafra)===Number(D.meta&&D.meta.latestZafra))||rows[rows.length-1]||null;}
-  function rowAt(e,z){return (e&&e.trend||[]).find(r=>Number(r.zafra)===Number(z))||null;}
-  function detailAt(e,z){return (e&&e.details||[]).find(r=>Number(r.zafra)===Number(z))||(e&&e.details||[])[0]||null;}
   function allLotOptions(){try{return typeof historicoAllSuertes==='function'?historicoAllSuertes():[];}catch(_){return [];}}
+  function catalog(){return engine.historicalMultiCatalog(allLotOptions().map(o=>({farmCode:o.producerCode,farmName:o.producerName,lotId:o.codLote,suerte:o.suerte,isMaquila:!!entity(o.code)?.isMaquila})));}
+  function selectedLots(){return engine.resolveHistoricalMultiSelection(farmSelection,catalog());}
+  function syncSelected(){selected.clear();selectedLots().forEach(item=>selected.add(normalizeCode(item.lotId)));}
+  function selectionAction(action){try{farmSelection=engine.updateHistoricalMultiSelection(farmSelection,action,catalog());}catch(error){alert(error.message);return;}syncSelected();updateChecks();updateBar();const c=byId('fichaContent');if(c?.querySelector('.hist-multi-summary-root'))renderMultiSummaryStageA();}
   function optionByCode(code){const c=normalizeCode(code);return allLotOptions().find(x=>String(x.code)===c)||null;}
   function producerLots(code){return allLotOptions().filter(x=>String(x.producerCode||'')===String(code||''));}
-  function selectedArea(z=activeZafra){return entries().reduce((s,x)=>{const r=rowAt(x.e,z);return s+(r?Number(r.area)||0:0);},0);}
-  function safeTone(v){const x=n(v);return x===null?'warn':(x>=70?'good':(x<55?'bad':'warn'));}
-  function cutValue(e,z){const d=detailAt(e,z);return d&&d.corte!=null?n(d.corte):null;}
-  function cutGroup(v){const x=n(v);if(x===null)return 'Sin dato';if(x<=1)return 'Plantía / corte 1';if(x<=3)return 'Soca joven 2-3';if(x<=5)return 'Soca media 4-5';return 'Soca vieja 6+';}
-
-  function aggregate(z){
-    const rows=[];let area=0,ton=0,rtoNum=0,ageNum=0,cutNum=0,cutDen=0,sugar=0;
-    entries().forEach(({code,e})=>{
-      const r=rowAt(e,z);if(!r)return;
-      const a=Number(r.area)||0,t=Number(r.ton)||0,rt=n(r.rto),age=n(r.edad),cut=cutValue(e,z);
-      area+=a;ton+=t;if(rt!==null&&t>0){rtoNum+=rt*t;sugar+=t*rt/1000;}if(age!==null&&a>0)ageNum+=age*a;if(cut!==null&&a>0){cutNum+=cut*a;cutDen+=a;}
-      rows.push({code,e,r,cut});
-    });
-    const tch=area?ton/area:null,rto=ton?rtoNum/ton:null,edad=area?ageNum/area:null,corte=cutDen?cutNum/cutDen:null,tah=(tch!==null&&rto!==null)?tch*rto/1000:null;
-    return {zafra:Number(z),label:zlabel(z),rows,area,ton,tch,rto,edad,corte,tah,sugar,coverage:rows.length,selected:selected.size,haciendas:new Set(rows.map(x=>String(x.e.codHacienda||x.e.nomHacienda||x.e.displayCode||x.code))).size};
-  }
-  function availableZafras(){const set=new Set();entries().forEach(({e})=>(e.trend||[]).forEach(r=>set.add(Number(r.zafra))));return Array.from(set).filter(Number.isFinite).sort((a,b)=>a-b);}
-  function aggregatePeriod(zset){const allow=zset?new Set(Array.from(zset).map(Number)):null;let area=0,ton=0,rtoNum=0,ageNum=0;entries().forEach(({e})=>(e.trend||[]).forEach(r=>{if(allow&&!allow.has(Number(r.zafra)))return;const a=Number(r.area)||0,t=Number(r.ton)||0,rt=n(r.rto),age=n(r.edad);area+=a;ton+=t;if(rt!==null&&t>0)rtoNum+=rt*t;if(age!==null&&a>0)ageNum+=age*a;}));return {area,ton,tch:area?ton/area:null,rto:ton?rtoNum/ton:null,edad:area?ageNum/area:null};}
-  function weightedZoneReference(agg){if(Number(agg.zafra)!==Number(D.meta&&D.meta.latestZafra))return null;let num=0,den=0;agg.rows.forEach(x=>{const b=D.benchmarks&&D.benchmarks.zone&&D.benchmarks.zone[x.e.zona];const a=Number(x.r.area)||0;if(b&&n(b.tch)!==null&&a>0){num+=Number(b.tch)*a;den+=a;}});return den?num/den:null;}
-  function groupArea(agg,field){const map=new Map();agg.rows.forEach(x=>{let key='Sin dato';if(field==='corte')key=cutGroup(x.cut);else key=String(x.e[field]||'Sin dato');const a=Number(x.r.area)||0;map.set(key,(map.get(key)||0)+a);});return Array.from(map,([key,area])=>({key,area})).sort((a,b)=>b.area-a.area);}
-  function dominant(rows){return rows&&rows.length?rows[0].key:'—';}
-  function hbarHistMulti(rows,palette='blue'){
-    rows=(rows||[]).slice(0,8);if(!rows.length)return '<div class="empty">Sin datos.</div>';
-    const rgb=palette==='gold'?'206,139,15':palette==='green'?'11,127,58':'0,91,170';const max=Math.max(1,...rows.map(x=>Number(x.area)||0));
-    return '<div class="hchart">'+rows.map(x=>{const v=Number(x.area)||0,pct=Math.max(4,v/max*100);return '<div class="hrow"><div class="hlabel" title="'+escH(x.key)+'">'+escH(x.key)+'</div><div class="htrack" style="background:rgba('+rgb+',.10)"><div class="hfill" style="width:'+pct.toFixed(1)+'%;background:linear-gradient(90deg,rgba('+rgb+',.68),rgba('+rgb+',1))"></div></div><div class="hval">'+f2(v,' ha')+'</div></div>';}).join('')+'</div>';
-  }
   function kpiH(label,value,sub='',main=false){return '<div class="kpi '+(main?'main':'')+'"><span class="label">'+escH(label)+'</span><strong>'+value+'</strong>'+(sub?'<em>'+escH(sub)+'</em>':'')+'</div>';}
-  function dominantCard(label,value){return '<div class="hist-multi-dominant"><span>'+escH(label)+'</span><strong title="'+escH(value)+'">'+escH(value)+'</strong></div>';}
-  function deltaCardH(label,value,sub=''){
-    const x=n(value),cls=x===null?'neu':(x>0?'pos':(x<0?'neg':'neu')),txt=x===null?'—':((x>0?'▲ +':x<0?'▼ ':'• ')+x.toLocaleString('es-NI',{minimumFractionDigits:2,maximumFractionDigits:2}));
-    return '<div class="delta"><span>'+escH(label)+'</span><strong class="'+cls+'">'+txt+'</strong>'+(sub?'<small style="color:var(--muted)">'+escH(sub)+'</small>':'')+'</div>';
-  }
 
   function ensureBar(){
     const section=byId('fichaSection');if(!section)return null;let bar=byId('historicoMultiBar');if(bar)return bar;
     const actions=section.querySelector('.accordion-body > .historico-actions');if(!actions)return null;
     bar=document.createElement('div');bar.id='historicoMultiBar';bar.className='hist-multi-bar';
-    bar.innerHTML='<div class="hist-multi-copy"><div class="hist-multi-icon">✓</div><div><strong id="historicoMultiCount">0 suertes seleccionadas</strong><small id="historicoMultiArea">Área en zafra: 0.00 ha</small></div></div><div class="hist-multi-actions"><button class="btn btn-gold btn-compact" type="button" onclick="renderHistoricoMultiSummary()">Ver selección</button><button class="btn btn-blue btn-compact" type="button" onclick="clearHistoricoMultiSelection()">Vaciar selección</button></div>';
+    bar.innerHTML='<div class="hist-multi-copy"><div class="hist-multi-icon">✓</div><div><strong id="historicoMultiCount">Sin fincas seleccionadas</strong><small id="historicoMultiArea">Seleccione una finca completa o algunas suertes.</small></div></div><div class="hist-multi-actions"><button class="btn btn-gold btn-compact" type="button" onclick="renderHistoricoMultiSummary()">Analizar selección</button><button class="btn btn-blue btn-compact" type="button" onclick="clearHistoricoMultiSelection()">Limpiar selección</button></div><div id="historicoMultiFarms" class="hist-multi-farms" aria-live="polite"></div>';
     actions.insertAdjacentElement('afterend',bar);return bar;
   }
   function updateBar(){
     const bar=ensureBar(),count=byId('historicoMultiCount'),areaEl=byId('historicoMultiArea'),list=entries();
-    if(count)count.textContent=list.length+' '+(list.length===1?'suerte seleccionada':'suertes seleccionadas');
-    if(areaEl)areaEl.textContent='Área '+zlabel(activeZafra)+': '+f2(selectedArea(activeZafra),' ha');
+    const farms=catalog(),summary=Object.entries(farmSelection);
+    if(count)count.textContent=summary.length+' '+(summary.length===1?'finca seleccionada':'fincas seleccionadas')+' · '+list.length+' suertes históricas';
+    if(areaEl)areaEl.textContent=summary.length?'Selección combinada · finca completa o suertes específicas':'Seleccione una finca completa o algunas suertes.';
+    const panel=byId('historicoMultiFarms');if(panel)panel.innerHTML=summary.map(([code,entry])=>{const farm=farms.get(code),amount=entry.mode==='full'?farm?.lots.size:entry.lotIds.length;return '<div class="hist-multi-farm-chip"><strong>'+escH(code+' · '+(farm?.farmName||code))+'</strong><span>'+(entry.mode==='full'?'Finca completa':'Parcial · '+amount+' suertes')+'</span><button type="button" onclick="renderHistoricoProducerSelection(\''+jsqH(code)+'\')" aria-label="Modificar suertes de '+escH(code)+'">Modificar</button><button type="button" onclick="removeHistoricoMultiFarm(\''+jsqH(code)+'\')" aria-label="Quitar finca '+escH(code)+'">Quitar</button></div>';}).join('');
     if(bar)bar.classList.toggle('show',multiMode||list.length>0);
     const btn=byId('historicoMultiToggle');if(btn){btn.classList.toggle('hist-multi-mode-active',multiMode);btn.textContent=multiMode?'✓ Selección activa':'☑ Selección múltiple';}
   }
   function updateChecks(){document.querySelectorAll('#fichaSection .hist-row-check').forEach(input=>{const code=normalizeCode(input.dataset.code);input.checked=selected.has(code);const tr=input.closest('tr');if(tr)tr.classList.toggle('hist-row-selected',input.checked);});}
   function toggleOne(code,force){
-    code=normalizeCode(code);const on=typeof force==='boolean'?force:!selected.has(code);if(on)selected.add(code);else selected.delete(code);updateChecks();updateBar();
+    code=normalizeCode(code);const on=typeof force==='boolean'?force:!selected.has(code),option=optionByCode(code);if(!option)return;
+    selectionAction({type:on?'addLot':'removeLot',farmCode:option.producerCode,lotId:option.codLote});
     const box=byId('searchSuggestions');if(box&&box.style.display==='block')showSearchSuggestions();
-    const content=byId('fichaContent');if(content&&content.querySelector('.hist-multi-summary-root'))renderMultiSummary();
   }
-  function clearMulti(){selected.clear();updateChecks();updateBar();const c=byId('fichaContent');if(c&&c.querySelector('.hist-multi-summary-root'))renderStart();}
-  function toggleMode(){multiMode=!multiMode;updateBar();if(multiMode){if(selected.size)renderMultiSummary();else renderStart();const q=byId('q');setTimeout(()=>{if(q){q.focus();q.select();}},100);}else{const box=byId('searchSuggestions');if(box)box.style.display='none';}}
-  function renderStart(){const c=byId('fichaContent');if(!c)return;c.innerHTML='<div class="hist-multi-empty"><b>Selección múltiple histórica activa.</b><br>Busque una hacienda, productor, código de lote o suerte. Luego marque las suertes que desea consolidar por zafra.</div>';if(typeof showFichaEnd==='function')showFichaEnd(false);if(typeof updateState==='function')updateState('Histórico de Suertes · Selección múltiple','Sin suertes seleccionadas');}
+  function clearMulti(){selectionAction({type:'clear'});periodMode='latest';customZafras=new Set();renderStart();}
+  function toggleMode(){multiMode=!multiMode;updateBar();if(multiMode){if(selected.size)renderMultiSummaryStageA();else renderStart();const q=byId('q');setTimeout(()=>{if(q){q.focus();q.select();}},100);}else{const box=byId('searchSuggestions');if(box)box.style.display='none';}}
+  function renderStart(){const c=byId('fichaContent');if(!c)return;c.innerHTML='<div class="hist-multi-empty"><b>Selección histórica multifinca activa.</b><br>Busque una finca por código o nombre. Agregue la finca completa o elija sus suertes; puede combinar varias fincas.</div>';if(typeof showFichaEnd==='function')showFichaEnd(false);if(typeof updateState==='function')updateState('Histórico de Suertes · Selección múltiple','Sin suertes seleccionadas');}
   function focusSearch(){const q=byId('q');if(q){q.focus();q.select();q.scrollIntoView({behavior:'smooth',block:'center'});}}
 
   function selectionRow(opt){
     const e=entity(opt.code),r=latestRow(e)||{},code=normalizeCode(opt.code),on=selected.has(code),years=(e&&e.trend||[]).length;
     return '<tr class="'+(on?'hist-row-selected':'')+'"><td><input class="hist-row-check" type="checkbox" data-code="'+escH(code)+'" '+(on?'checked':'')+' onchange="toggleHistoricoSuerteSelection(\''+jsqH(code)+'\',this.checked)"></td><td><b>'+escH(e&&e.displayCode||opt.displayCode||opt.codLote)+'</b></td><td>'+escH(e&&e.nomHacienda||opt.producerName||opt.name)+'</td><td>'+escH(e&&e.suerte||opt.suerte||'—')+'</td><td>'+escH(e&&e.zona||opt.zone||'—')+'</td><td>'+escH(e&&e.variedad||opt.variedad||'—')+'</td><td>'+escH(e&&e.riego||opt.riego||'—')+'</td><td>'+f2(r.area,' ha')+'</td><td>'+f2(r.tch)+'</td><td>'+f0(years)+'</td><td><button class="btn btn-light btn-compact" type="button" onclick="viewHistoricoSuerte(\''+jsqH(code)+'\')">Ver ficha</button></td></tr>';
   }
-  function renderSelectable(lots,title,subtitle){
+  function renderSelectable(lots,title,subtitle,farmCode){
     visibleCodes=(lots||[]).map(x=>normalizeCode(x.code));const c=byId('fichaContent');if(!c)return;
     const rows=(lots||[]).map(selectionRow).join('');
-    c.innerHTML='<div class="hist-multi-header"><div class="hist-multi-header-row"><div><h2>'+escH(title)+'</h2><small>'+escH(subtitle)+'</small></div><span class="hist-multi-badge">'+f0(lots.length)+' suertes disponibles</span></div></div><div class="hist-multi-toolbar"><div class="hist-multi-toolbar-copy">Marque las suertes. La selección se conserva al buscar otra hacienda o productor.</div><div class="hist-multi-toolbar-actions"><button class="btn btn-light btn-compact" type="button" onclick="selectAllVisibleHistoricoRows()">Seleccionar visibles</button><button class="btn btn-blue btn-compact" type="button" onclick="unselectAllVisibleHistoricoRows()">Quitar visibles</button><button class="btn btn-gold btn-compact" type="button" onclick="renderHistoricoMultiSummary()">Analizar selección</button></div></div><div class="table-wrap"><table class="hist-multi-select-table"><thead><tr><th>✓</th><th>CodLote</th><th>Hacienda / productor</th><th>Suerte</th><th>Zona</th><th>Variedad</th><th>Riego</th><th>Área última</th><th>TCH última</th><th>Zafras</th><th>Ficha</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    c.innerHTML='<div class="hist-multi-header"><div class="hist-multi-header-row"><div><h2>'+escH(title)+'</h2><small>'+escH(subtitle)+'</small></div><span class="hist-multi-badge">'+f0(lots.length)+' suertes históricas disponibles</span></div></div><div class="hist-multi-toolbar"><div class="hist-multi-toolbar-copy">Marque varias suertes; buscar otra finca conserva la selección.</div><div class="hist-multi-toolbar-actions">'+(farmCode?'<button class="btn btn-green btn-compact" type="button" onclick="addHistoricoMultiFarm(\''+jsqH(farmCode)+'\')">Agregar finca completa</button>':'')+'<button class="btn btn-light btn-compact" type="button" onclick="selectAllVisibleHistoricoRows()">Seleccionar visibles</button><button class="btn btn-blue btn-compact" type="button" onclick="unselectAllVisibleHistoricoRows()">Quitar visibles</button><button class="btn btn-gold btn-compact" type="button" onclick="renderHistoricoMultiSummary()">Analizar selección</button></div></div><div class="table-wrap"><table class="hist-multi-select-table"><thead><tr><th>✓</th><th>CodLote</th><th>Hacienda / productor</th><th>Suerte</th><th>Zona</th><th>Variedad</th><th>Riego</th><th>Área última</th><th>TCH última</th><th>Zafras</th><th>Ficha</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
     if(typeof showFichaEnd==='function')showFichaEnd(false);updateChecks();updateBar();
   }
   function renderProducer(code){
     multiMode=true;updateBar();const lots=producerLots(code),name=(lots[0]&&(lots[0].producerName||lots[0].name))||('Código '+code);const q=byId('q'),sel=byId('producerSelect');if(q)q.value=code+' · '+name;if(sel)sel.value=code;if(typeof hideSearchSuggestions==='function')hideSearchSuggestions();
-    renderSelectable(lots,'Suertes disponibles · '+name,'Código '+code+' · seleccione una o varias suertes para consolidar su histórico.');
+    renderSelectable(lots,'Suertes disponibles · '+name,'Código '+code+' · agregue la finca completa o elija suertes.',code);
     if(typeof updateState==='function')updateState('Histórico de Suertes · Selección múltiple',name+' · '+lots.length+' suertes disponibles');
   }
   function renderSearchLots(raw){
     let matches=[];try{matches=typeof suggestionMatches==='function'?suggestionMatches(raw):[];}catch(_){}
+    const first=String(raw||'').split('·')[0].trim();
+    if(catalog().has(first)){renderProducer(first);return;}
+    const exactFarm=historicoOptions().find(x=>String(x.code)===first||String(x.displayCode)===first);
+    if(exactFarm){renderProducer(exactFarm.code);return;}
     let lots=matches.filter(x=>x&&x.type==='suerte');
-    if(!lots.length){const p=matches.find(x=>x&&x.type!=='suerte');if(p)lots=producerLots(p.code);}
+    const producer=matches.find(x=>x&&x.type!=='suerte');
+    if(producer&&(!lots.length||lots.every(x=>String(x.producerCode)===String(producer.code)))){renderProducer(producer.code);return;}
     renderSelectable(lots,'Resultados para seleccionar',lots.length?'Coincidencias de suertes para “'+raw+'”.':'No se encontraron suertes para “'+raw+'”.');
   }
-  function selectVisible(on){visibleCodes.forEach(code=>on?selected.add(code):selected.delete(code));updateChecks();updateBar();}
+  function selectVisible(on){let next=farmSelection;const farms=catalog();try{visibleCodes.forEach(code=>{const option=optionByCode(code);if(option)next=engine.updateHistoricalMultiSelection(next,{type:on?'addLot':'removeLot',farmCode:option.producerCode,lotId:option.codLote},farms);});}catch(error){alert(error.message);return;}farmSelection=next;syncSelected();updateChecks();updateBar();const c=byId('fichaContent');if(c?.querySelector('.hist-multi-summary-root'))renderMultiSummaryStageA();}
 
-  function aggregatedTrend(){return availableZafras().map(z=>aggregate(z)).filter(x=>x.coverage>0).map(x=>({zafra:x.zafra,label:x.label,area:x.area,ton:x.ton,tch:x.tch,rto:x.rto,edad:x.edad,suertes:x.coverage}));}
-  function summaryTable(trend,histTch){
-    if(!trend.length)return '<div class="empty">Sin historia disponible.</div>';
-    return '<div class="table-wrap"><table class="hist-multi-summary-table"><thead><tr><th>Zafra</th><th>Suertes con datos</th><th>Área</th><th>Ton</th><th>TCH pond.</th><th>KATM pond.</th><th>Edad pond.</th><th>TAH est.</th><th>Estado</th></tr></thead><tbody>'+trend.slice().sort((a,b)=>Number(a.zafra||0)-Number(b.zafra||0)).map(r=>{const d=n(r.tch)!==null&&n(histTch)!==null?r.tch-histTch:null,tone=d===null?'warn':(d>=4?'good':(d<=-4?'bad':'warn')),estado=tone==='good'?'Sobre histórico':tone==='bad'?'Bajo histórico':'Cercano';return '<tr class="'+(tone==='good'?'tch-good':tone==='bad'?'tch-low':'tch-warn')+'"><td><b>'+escH(r.label)+'</b></td><td>'+f0(r.suertes)+' de '+f0(selected.size)+'</td><td>'+f2(r.area,' ha')+'</td><td>'+f0(r.ton,' t')+'</td><td><span class="tch-val '+tone+'">'+f2(r.tch)+'</span></td><td>'+f2(r.rto)+'</td><td>'+f2(r.edad,' m')+'</td><td>'+f2((r.tch!=null&&r.rto!=null)?r.tch*r.rto/1000:null,' t/ha')+'</td><td><span class="detail-status '+tone+'">'+estado+'</span></td></tr>';}).join('')+'</tbody></table></div>';
+
+  // Etapa A: the VF51 controls keep one selection state, while all period and
+  // agronomic results come from the shared historical engine.
+  function multiAnalysis(){return engine.buildHistoricalMultiAnalysis(currentHistoricalRows(),farmSelection,catalog(),periodMode,customZafras,window.CRONO_DATA?.producers||[]);}
+  function changeMultiPeriod(mode){
+    periodMode=mode;
+    if(mode==='custom'&&!customZafras.size){const current=multiAnalysis().selectedZafras;customZafras=new Set(current.slice(-1));}
+    renderMultiSummaryStageA();
   }
-  function detailTable(agg){
-    const map=new Map(agg.rows.map(x=>[normalizeCode(x.code),x]));
-    return '<div class="table-wrap hist-multi-detail"><table><thead><tr><th>Quitar</th><th>CodLote</th><th>Hacienda / productor</th><th>Suerte</th><th>Área</th><th>Ton</th><th>TCH</th><th>KATM</th><th>Edad</th><th>Corte</th><th>Variedad</th><th>Riego</th><th>Zona</th><th>Estado</th></tr></thead><tbody>'+entries().map(({code,e})=>{const x=map.get(normalizeCode(code)),r=x&&x.r,tone=r?safeTone(r.tch):'warn';return '<tr><td><button class="hist-multi-remove" type="button" onclick="removeHistoricoMultiRow(\''+jsqH(code)+'\')">Quitar</button></td><td><b>'+escH(e.displayCode||e.codLote||code)+'</b></td><td>'+escH(e.nomHacienda||e.name||'—')+'</td><td>'+escH(e.suerte||'—')+'</td><td>'+(r?f2(r.area,' ha'):'<span class="hist-multi-no-data">Sin dato</span>')+'</td><td>'+(r?f0(r.ton,' t'):'—')+'</td><td>'+(r?'<span class="tch-val '+tone+'">'+f2(r.tch)+'</span>':'—')+'</td><td>'+(r?f2(r.rto):'—')+'</td><td>'+(r?f2(r.edad,' m'):'—')+'</td><td>'+(x&&x.cut!=null?f2(x.cut):'—')+'</td><td>'+escH(e.variedad||'—')+'</td><td>'+escH(e.riego||'—')+'</td><td>'+escH(e.zona||'—')+'</td><td>'+(r?'<span class="detail-status '+tone+'">'+(tone==='good'?'Alto':tone==='bad'?'Crítico':'Medio')+'</span>':'<span class="detail-status warn">Sin registro</span>')+'</td></tr>';}).join('')+'</tbody></table></div>';
+  function toggleMultiZafra(zafra,on){
+    const next=new Set(customZafras);if(on)next.add(Number(zafra));else next.delete(Number(zafra));
+    if(!next.size)return;
+    customZafras=next;periodMode='custom';renderMultiSummaryStageA();
   }
-  function renderMultiSummary(){
-    const list=entries(),c=byId('fichaContent');if(!c)return;if(!list.length){renderStart();updateBar();return;}
-    const zafras=availableZafras();if(!zafras.includes(Number(activeZafra)))activeZafra=zafras[zafras.length-1]||Number(D.meta&&D.meta.latestZafra);
-    const agg=aggregate(activeZafra),hist=aggregatePeriod(null),last3=aggregatePeriod(new Set(D.meta&&D.meta.last3Zafras||[])),trend=aggregatedTrend();
-    const prevZ=zafras.filter(z=>z<Number(activeZafra)).pop(),prev=prevZ?aggregate(prevZ):null,casur=Number(activeZafra)===Number(D.meta&&D.meta.latestZafra)?n(D.global&&D.global.latest&&D.global.latest.tch):null,zoneRef=weightedZoneReference(agg);
-    const groups={zona:groupArea(agg,'zona'),variedad:groupArea(agg,'variedad'),riego:groupArea(agg,'riego'),tenencia:groupArea(agg,'tenencia'),corte:groupArea(agg,'corte')};
-    const critical=agg.rows.filter(x=>n(x.r.tch)!==null&&x.r.tch<55).length,low=agg.rows.filter(x=>n(x.r.tch)!==null&&x.r.tch>=55&&x.r.tch<65).length,katmLow=agg.rows.filter(x=>n(x.r.rto)!==null&&x.r.rto<95).length,ageOut=agg.rows.filter(x=>n(x.r.edad)!==null&&(x.r.edad<10||x.r.edad>13)).length,missing=selected.size-agg.coverage;
-    const kpis=[
-      kpiH('Área total',f2(agg.area,' ha'),agg.label,true),kpiH('Toneladas',f0(agg.ton,' t'),'Suma selección'),kpiH('TCH ponderado',f2(agg.tch),'Ton ÷ área'),kpiH('KATM ponderado',f2(agg.rto),'Ponderado por toneladas'),
-      kpiH('Edad ponderada',f2(agg.edad,' m'),'Ponderada por área'),kpiH('TAH estimado',f2(agg.tah,' t/ha'),'TCH × KATM ÷ 1,000'),kpiH('Suertes con datos',f0(agg.coverage)+' de '+f0(selected.size),agg.label),kpiH('Haciendas',f0(agg.haciendas),'Con información')
-    ].join('');
-    const comparisons='<div class="delta-grid" style="margin-top:12px">'+[
-      deltaCardH('Vs histórico',n(agg.tch)!==null&&n(hist.tch)!==null?agg.tch-hist.tch:null,'TCH'),deltaCardH('Vs últimas 3',n(agg.tch)!==null&&n(last3.tch)!==null?agg.tch-last3.tch:null,'TCH'),deltaCardH('Vs zafra anterior',prev&&n(agg.tch)!==null&&n(prev.tch)!==null?agg.tch-prev.tch:null,prev?prev.label:'Sin anterior'),deltaCardH('Vs CASUR',n(agg.tch)!==null&&casur!==null?agg.tch-casur:null,casur===null?'Solo última zafra':'TCH'),deltaCardH('Vs zona ponderada',n(agg.tch)!==null&&zoneRef!==null?agg.tch-zoneRef:null,zoneRef===null?'Solo última zafra':'TCH'),deltaCardH('Cobertura',agg.coverage-selected.size,'Suertes con registro')
+  function multiTrendChart(seasons,reference){
+    const values=seasons.map(s=>s.tch).filter(v=>v!==null);
+    if(!values.length)return '<div class="empty">Sin TCH para la serie seleccionada.</div>';
+    const compact=window.matchMedia('(max-width:760px)').matches;
+    const W=compact?Math.max(310,seasons.length*52):720,H=compact?180:210,left=compact?32:44,right=compact?20:24,top=24,bottom=35;
+    const all=reference===null?values:[...values,reference],min=Math.min(...all),max=Math.max(...all),span=Math.max(1,max-min),low=min-span*.15,high=max+span*.15;
+    const x=i=>seasons.length===1?W/2:left+i*(W-left-right)/(seasons.length-1);
+    const y=v=>top+(high-v)/(high-low)*(H-top-bottom);
+    const segments=[];let segment=[];seasons.forEach((s,i)=>{if(s.tch===null){if(segment.length)segments.push(segment);segment=[];}else segment.push(x(i).toFixed(1)+','+y(s.tch).toFixed(1));});if(segment.length)segments.push(segment);
+    const line=segments.map(points=>points.length>1?'<polyline points="'+points.join(' ')+'" fill="none" stroke="#0b7f3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>':'').join('');
+    const ref=reference===null?'':'<line x1="'+left+'" x2="'+(W-right)+'" y1="'+y(reference).toFixed(1)+'" y2="'+y(reference).toFixed(1)+'" stroke="#0b4f9c" stroke-width="1.5" stroke-dasharray="6 6"/>';
+    const dots=seasons.map((s,i)=>'<text x="'+x(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" fill="#475569" font-size="11" font-weight="800">'+escH(zlabel(s.zafra))+'</text>'+(s.tch===null?'':'<circle cx="'+x(i).toFixed(1)+'" cy="'+y(s.tch).toFixed(1)+'" r="5" fill="#005baa" stroke="#fff" stroke-width="2"/><text x="'+x(i).toFixed(1)+'" y="'+Math.max(13,y(s.tch)-10).toFixed(1)+'" text-anchor="middle" fill="#10241a" font-size="11" font-weight="850">'+f2(s.tch)+'</text>')).join('');
+    return '<div class="hist-multi-stage-chart"><small>TCH agregado por zafra · referencia ponderada del mismo período: '+(reference===null?'N/D':f2(reference))+'</small><svg viewBox="0 0 '+W+' '+H+'" style="min-width:'+W+'px" role="img" aria-label="TCH por zafra del período seleccionado">'+ref+line+dots+'</svg></div>';
+  }
+  function renderMultiSummaryStageA(){
+    const c=byId('fichaContent');if(!c)return;
+    if(!selected.size){renderStart();updateBar();return;}
+    const result=multiAnalysis(),period=result.selectedZafras,summary=result.consolidated,one=period.length===1;
+    if(periodMode==='custom')customZafras=new Set(period);
+    const periodLabel=period.length?period.map(zlabel).join(' · '):'Sin zafras disponibles';
+    const modes=[['latest','Última'],['last3','Últimas 3'],['last5','Últimas 5'],['all','Todas'],['custom','Personalizado']];
+    const filters=modes.map(([mode,label])=>'<button type="button" class="hist-multi-period-btn '+(periodMode===mode?'active':'')+'" aria-pressed="'+(periodMode===mode)+'" onclick="changeHistoricoMultiPeriod(\''+mode+'\')">'+label+'</button>').join('');
+    const custom=periodMode==='custom'?'<div class="hist-multi-custom" aria-label="Zafras personalizadas">'+result.availableZafras.map(z=>'<label><input type="checkbox" '+(period.includes(z)?'checked':'')+' onchange="toggleHistoricoMultiZafra('+z+',this.checked)"> '+escH(zlabel(z))+'</label>').join('')+'</div>':'';
+    const area=one?summary.area:summary.areaAverage;
+    const coverage='Cobertura: '+summary.contributingLotCount+' de '+summary.selectedLotCount+' suertes con registro · '+summary.zafrasWithData.length+' de '+period.length+' zafras con datos';
+    const kpis='<div class="hist-multi-stage-kpis">'+[
+      kpiH(one?'Área cosechada':'Área media cosechada',area===null?'N/D':f2(area,one?' ha':' ha/zafra'),one?'Zafra seleccionada':'Acumulado: '+(summary.areaAccumulated===null?'N/D':f2(summary.areaAccumulated,' ha-zafra'))+' · '+period.length+' zafras',true),
+      kpiH('TCH ponderado',summary.tch===null?'N/D':f2(summary.tch),'Toneladas válidas ÷ área correspondiente'),
+      kpiH('KATM ponderado',summary.katm===null?'N/D':f2(summary.katm),'Ponderado solo por toneladas con KATM'),
+      kpiH('Edad ponderada',summary.edad===null?'N/D':f2(summary.edad,' meses'),'Por área válida')
     ].join('')+'</div>';
-    const dom='<div class="hist-multi-dominants">'+[
-      dominantCard('Zona dominante',dominant(groups.zona)),dominantCard('Variedad dominante',dominant(groups.variedad)),dominantCard('Riego dominante',dominant(groups.riego)),dominantCard('Tenencia dominante',dominant(groups.tenencia)),dominantCard('Corte ponderado',f2(agg.corte)),dominantCard('Azúcar estimada',f2(agg.sugar,' t'))
-    ].join('')+'</div>';
-    const cards='<div class="hist-multi-summary-grid">'+[
-      ['Área por zona',groups.zona,'green'],['Área por variedad',groups.variedad,'blue'],['Área por riego',groups.riego,'green'],['Área por tenencia',groups.tenencia,'gold'],['Área por etapa de corte',groups.corte,'blue']
-    ].map(x=>'<div class="crono-box"><h3>'+x[0]+'</h3>'+hbarHistMulti(x[1],x[2])+'</div>').join('')+'</div>';
-    const alerts='<div class="hist-multi-alerts"><strong>Alertas de la selección · '+escH(agg.label)+'</strong><div class="hist-multi-alert-row"><span class="alert-chip">'+critical+' TCH crítico</span><span class="alert-chip">'+low+' TCH bajo</span><span class="alert-chip">'+katmLow+' KATM bajo</span><span class="alert-chip">'+ageOut+' edad fuera de rango</span><span class="alert-chip '+(missing?'':'good')+'">'+missing+' sin información</span></div></div>';
-    const zopts=zafras.slice().reverse().map(z=>'<option value="'+z+'" '+(Number(z)===Number(activeZafra)?'selected':'')+'>'+escH(zlabel(z))+'</option>').join('');
-    let trendHtml='<div class="empty">Sin serie histórica consolidada.</div>';try{if(typeof lineChart==='function')trendHtml=lineChart(trend);}catch(_){}
-    c.innerHTML='<div class="hist-multi-summary-root"><div class="hist-multi-header"><div class="hist-multi-header-row"><div><h2>Selección múltiple histórica</h2><small>Consolidado por zafra de las suertes seleccionadas, sin duplicar áreas entre periodos.</small></div><span class="hist-multi-badge">'+selected.size+' suertes · '+f2(agg.area,' ha')+'</span></div><div class="hist-zafra-picker"><label for="historicoMultiZafra">Zafra de análisis</label><select id="historicoMultiZafra" onchange="changeHistoricoMultiZafra(this.value)">'+zopts+'</select><button class="btn btn-light btn-compact" type="button" onclick="focusHistoricoMultiSearch()">Agregar más suertes</button><button class="btn btn-blue btn-compact" type="button" onclick="clearHistoricoMultiSelection()">Vaciar selección</button></div></div><div class="hist-multi-kpis">'+kpis+'</div>'+comparisons+dom+alerts+'<div class="hist-multi-trend-title"><h3>Evolución histórica consolidada</h3><small>TCH ponderado de la selección por zafra y cobertura de suertes.</small></div>'+trendHtml+cards+'<div class="section-title" style="margin-top:14px"><div><h3>Resumen consolidado por zafra</h3><small>Una fila por zafra; el área no se mezcla entre periodos.</small></div></div>'+summaryTable(trend,hist.tch)+'<div class="section-title" style="margin-top:14px"><div><h3>Detalle de suertes seleccionadas · '+escH(agg.label)+'</h3><small>Puede retirar cualquier suerte sin perder las demás.</small></div></div>'+detailTable(agg)+'</div>';
-    if(typeof showFichaEnd==='function')showFichaEnd(false);updateBar();if(typeof updateState==='function')updateState('Histórico de Suertes · Selección múltiple',selected.size+' suertes · '+agg.label+' · '+f2(agg.tch)+' TCH');
+    const farms='<div class="table-wrap"><table class="hist-multi-stage-table"><thead><tr><th>Finca</th><th>Selección</th><th>Suertes con datos</th><th>Área '+(one?'cosechada':'media')+'</th><th>TCH pond.</th><th>KATM pond.</th><th>Km actual</th><th>Zafras con datos</th></tr></thead><tbody>'+result.farms.map(f=>{const farmArea=one?f.area:f.areaAverage;return '<tr><td><b>'+escH(f.farmCode)+' · '+escH(f.farmName)+'</b></td><td>'+(f.mode==='full'?'Completa':'Parcial · '+f.lotIds.join(', '))+'</td><td>'+f.contributingLotCount+' de '+f.selectedLotCount+'</td><td>'+(farmArea===null?'N/D':f2(farmArea,one?' ha':' ha/zafra'))+'</td><td>'+f2(f.tch)+'</td><td>'+f2(f.katm)+'</td><td>'+(f.currentDistance.kmWeighted===null?'N/D':f2(f.currentDistance.kmWeighted,' km'))+'<small>'+f2(f.currentDistance.coveragePct,' % cobertura vigente')+'</small></td><td>'+f.zafrasWithData.length+' de '+period.length+'</td></tr>';}).join('')+'</tbody></table></div>';
+    const seasons=result.series.filter(s=>s.selected);
+    const seasonTable='<div class="table-wrap"><table class="hist-multi-stage-table"><thead><tr><th>Zafra</th><th>Fincas con datos</th><th>Suertes con datos</th><th>Área cosechada</th><th>Ton válidas</th><th>TCH pond.</th><th>KATM pond.</th><th>Sin TCH</th><th>Sin KATM</th></tr></thead><tbody>'+seasons.map(s=>'<tr><td><b>'+escH(zlabel(s.zafra))+'</b></td><td>'+s.contributingFarmCount+' de '+s.selectedFarmCount+'</td><td>'+s.contributingLotCount+' de '+summary.selectedLotCount+'</td><td>'+(s.area===null?'N/D':f2(s.area,' ha'))+'</td><td>'+f2(s.ton,' t')+'</td><td>'+f2(s.tch)+'</td><td>'+f2(s.katm)+'</td><td>'+s.missingTchRows+'</td><td>'+s.missingKatmRows+'</td></tr>').join('')+'</tbody></table></div>';
+    const trend=multiTrendChart(seasons,summary.tch);
+    c.innerHTML='<div class="hist-multi-summary-root hist-multi-stage-a"><div class="hist-multi-header"><div class="hist-multi-header-row"><div><h2>Análisis histórico multifinca</h2><small>Período activo: '+escH(periodLabel)+' · '+result.selection.length+' fincas · '+summary.selectedLotCount+' suertes elegibles</small></div><span class="hist-multi-badge">'+escH(coverage)+'</span></div><div class="hist-multi-stage-actions"><button class="btn btn-light btn-compact" type="button" onclick="focusHistoricoMultiSearch()">Agregar otra finca o suerte</button></div><div class="hist-multi-periods" role="group" aria-label="Período histórico">'+filters+'</div>'+custom+'</div>'+kpis+'<div class="hist-multi-stage-note">'+escH(coverage)+' · Filas sin área válida: '+summary.invalidAreaRows+' · sin TCH: '+summary.missingTchRows+' · sin KATM: '+summary.missingKatmRows+'. La ausencia de registro no se imputa como cero. Distancia actual ponderada: '+(result.currentDistance.kmWeighted===null?'N/D':f2(result.currentDistance.kmWeighted,' km'))+' ('+f2(result.currentDistance.coveragePct,' % cobertura vigente')+').</div><h3>Comparación por finca</h3>'+farms+'<h3>Serie TCH del período</h3>'+trend+'<h3>Cobertura por zafra</h3>'+seasonTable+'</div>';
+    if(typeof showFichaEnd==='function')showFichaEnd(false);updateBar();if(typeof updateState==='function')updateState('Histórico de Suertes · Selección multifinca',periodLabel+' · '+f2(summary.tch)+' TCH');
   }
 
   function suggestionButtonMulti(e){
@@ -3451,7 +3472,7 @@ window.addEventListener('load',setupCrono);
       return '<button type="button" class="search-suggestion hist-multi-suggestion '+(on?'selected':'')+'" onclick="toggleHistoricoSuerteSelection(\''+jsqH(code)+'\')"><div><strong>'+escH((e.producerName||e.name||'')+' · Suerte '+(e.suerte||e.codLote||''))+'</strong><small>'+escH(meta)+'</small></div><span class="hist-suggest-action">'+(on?'✓ Agregada':'Agregar')+'</span></button>';
     }
     const la=e&&e.latest||{},meta=[e&&e.zona||'Sin zona',e&&e.tenencia||'Sin tenencia',la.area!=null?f2(la.area,' ha'):null].filter(Boolean).join(' · ');
-    return '<button type="button" class="search-suggestion hist-multi-suggestion hist-multi-producer" onclick="renderHistoricoProducerSelection(\''+jsqH(e&&e.code||'')+'\')"><div><strong>'+escH(e&&e.name||'Productor / hacienda')+'</strong><small>'+escH(meta)+'</small></div><span class="hist-suggest-action">Ver suertes</span></button>';
+    return '<button type="button" class="search-suggestion hist-multi-suggestion hist-multi-producer" onclick="renderHistoricoProducerSelection(\''+jsqH(e&&e.code||'')+'\')"><div><strong>'+escH(e&&e.name||'Productor / hacienda')+'</strong><small>'+escH(meta)+'</small></div><span class="hist-suggest-action">Elegir suertes</span></button>';
   }
   function showSuggestionsMulti(){
     if(!multiMode){if(typeof original.showSuggestions==='function')return original.showSuggestions();return;}
@@ -3466,18 +3487,27 @@ window.addEventListener('load',setupCrono);
   function runSearchMulti(){
     if(!multiMode){if(typeof original.runSearch==='function')return original.runSearch();return;}
     const raw=String(byId('q')&&byId('q').value||'').trim();if(typeof hideSearchSuggestions==='function')hideSearchSuggestions();if(!raw){renderStart();return;}
-    const first=raw.split('·')[0].trim().toLowerCase();const lot=allLotOptions().find(x=>String(x.codLote||x.displayCode||'').toLowerCase()===first);if(lot){toggleOne(lot.code,true);renderSelectable([lot],'Suerte seleccionada','Puede continuar buscando y agregando otras suertes.');return;}
+    const first=raw.split('·')[0].trim().toLowerCase();if(catalog().has(first)){renderProducer(first);return;}
+    const lot=allLotOptions().find(x=>String(x.codLote||x.displayCode||'').toLowerCase()===first);if(lot){toggleOne(lot.code,true);renderSelectable([lot],'Suerte seleccionada','Puede continuar buscando y agregando otras suertes.');return;}
     renderSearchLots(raw);
   }
   function selectProducerMulti(code){if(!multiMode){if(typeof original.selectProducer==='function')return original.selectProducer(code);return;}if(code)renderProducer(code);else renderStart();}
-  function clearHistoricalAll(){selected.clear();multiMode=false;activeZafra=Number(D.meta&&D.meta.latestZafra)||null;visibleCodes=[];updateChecks();updateBar();if(typeof original.clear==='function')original.clear();else if(typeof original.renderHome==='function')original.renderHome();}
+  function clearHistoricalAll(){farmSelection={};selected.clear();multiMode=false;periodMode='latest';customZafras=new Set();activeZafra=Number(D.meta&&D.meta.latestZafra)||null;visibleCodes=[];updateChecks();updateBar();if(typeof original.clear==='function')original.clear();else if(typeof original.renderHome==='function')original.renderHome();}
   function viewSuerte(code){if(typeof hideSearchSuggestions==='function')hideSearchSuggestions();if(typeof renderEntity==='function')renderEntity(normalizeCode(code));updateBar();}
-  function removeOne(code){selected.delete(normalizeCode(code));updateBar();renderMultiSummary();}
-  function changeZafra(z){activeZafra=Number(z);renderMultiSummary();}
+  function removeOne(code){toggleOne(code,false);renderMultiSummaryStageA();}
+  function changeZafra(z){customZafras=new Set([Number(z)]);periodMode='custom';renderMultiSummaryStageA();}
+
+  function addFarm(code){selectionAction({type:'addFarm',farmCode:code});renderMultiSummaryStageA();}
+  function removeFarm(code){selectionAction({type:'removeFarm',farmCode:code});if(selected.size)renderMultiSummaryStageA();else renderStart();}
 
   window.toggleHistoricoMultiSelection=toggleMode;
   window.toggleHistoricoSuerteSelection=toggleOne;
-  window.renderHistoricoMultiSummary=renderMultiSummary;
+  window.renderHistoricoMultiSummary=renderMultiSummaryStageA;
+  window.addHistoricoMultiFarm=addFarm;
+  window.removeHistoricoMultiFarm=removeFarm;
+  window.changeHistoricoMultiPeriod=changeMultiPeriod;
+  window.toggleHistoricoMultiZafra=toggleMultiZafra;
+  window.getHistoricoMultiAnalysis=multiAnalysis;
   window.renderHistoricoProducerSelection=renderProducer;
   window.selectAllVisibleHistoricoRows=function(){selectVisible(true);};
   window.unselectAllVisibleHistoricoRows=function(){selectVisible(false);};
@@ -4744,7 +4774,7 @@ function group(kind){var g=document.createElement('div');g.className='casur-visu
 
 function decorate(){
   qa('#printPanel .ficha-print-btn,#cronoPrintPanel .ficha-print-btn,#cronoPrintPanelPrint .ficha-print-btn').forEach(function(old){var panel=old.closest('#cronoPrintPanel,#cronoPrintPanelPrint')?'cronologico':'historico';var parent=old.parentElement;if(!parent)return;var existing=q('.casur-visual-actions',parent);if(existing){remove(old);return;}old.replaceWith(group(panel));});
-  var hh=q('.hist-multi-summary-root .hist-multi-header-row');if(hh&&!q('[data-casur-export-kind="historico-multiple"]',hh))hh.appendChild(group('historico-multiple'));
+  var hh=q('.hist-multi-summary-root:not(.hist-multi-stage-a) .hist-multi-header-row');if(hh&&!q('[data-casur-export-kind="historico-multiple"]',hh))hh.appendChild(group('historico-multiple'));
   var ck=q('#cronoContent .crono-multi-kpis');var ch=ck&&q('.crono-multi-header-row',q('#cronoContent'));if(ch&&!q('[data-casur-export-kind="cronologico-multiple"]',ch))ch.appendChild(group('cronologico-multiple'));
 }
 

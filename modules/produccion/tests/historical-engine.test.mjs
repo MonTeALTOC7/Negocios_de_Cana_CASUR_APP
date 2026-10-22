@@ -26,6 +26,10 @@ const {
   groupHistoricalByLot,
   buildHistoricalDrilldownModel,
   updateHistoricalDrilldownState,
+  historicalMultiCatalog,
+  updateHistoricalMultiSelection,
+  resolveHistoricalMultiSelection,
+  buildHistoricalMultiAnalysis,
 } = globalThis.CASUR_HISTORICAL_ENGINE;
 
 const historico = JSON.parse(fs.readFileSync(path.join(testRoot, "../data/historico.json"), "utf8"));
@@ -42,6 +46,156 @@ const sampleLotCompact = [
     [2122, 5, 250, 50, null, 14, 3],
   ], []],
 ];
+
+const multiLots = [
+  { farmCode: "100", farmName: "Finca A", lotId: "10001", suerte: "01" },
+  { farmCode: "100", farmName: "Finca A", lotId: "10002", suerte: "02" },
+  { farmCode: "200", farmName: "Finca B", lotId: "20001", suerte: "01" },
+];
+const multiRows = [
+  { ...multiLots[0], zafra: 2021, area: 10, ton: 100, katm: 80, edad: 10 },
+  { ...multiLots[1], zafra: 2021, area: 30, ton: 600, katm: 120, edad: null },
+  { ...multiLots[2], zafra: 2021, area: 10, ton: 500, katm: null, edad: 12 },
+  { ...multiLots[0], zafra: 2022, area: 10, ton: 200, katm: 100, edad: 11 },
+];
+const multiCatalog = historicalMultiCatalog(multiLots);
+
+test("modelo multifinca combina fincas completas y parciales sin duplicar suertes", () => {
+  let selection = updateHistoricalMultiSelection({}, { type: "addFarm", farmCode: "100" }, multiCatalog);
+  selection = updateHistoricalMultiSelection(selection, { type: "addLot", farmCode: "100", lotId: "10001" }, multiCatalog);
+  selection = updateHistoricalMultiSelection(selection, { type: "addLot", farmCode: "200", lotId: "20001" }, multiCatalog);
+  selection = updateHistoricalMultiSelection(selection, { type: "addLot", farmCode: "200", lotId: "20001" }, multiCatalog);
+  assert.deepEqual(resolveHistoricalMultiSelection(selection, multiCatalog).map((x) => x.lotId), ["10001", "10002", "20001"]);
+  selection = updateHistoricalMultiSelection(selection, { type: "removeLot", farmCode: "100", lotId: "10001" }, multiCatalog);
+  assert.deepEqual(selection["100"], { mode: "partial", lotIds: ["10002"] });
+  selection = updateHistoricalMultiSelection(selection, { type: "addFarm", farmCode: "100" }, multiCatalog);
+  assert.equal(selection["100"].mode, "full");
+  selection = updateHistoricalMultiSelection(selection, { type: "removeFarm", farmCode: "200" }, multiCatalog);
+  assert.equal(selection["200"], undefined);
+  assert.equal(resolveHistoricalMultiSelection(updateHistoricalMultiSelection(selection, { type: "clear" }, multiCatalog), multiCatalog).length, 0);
+});
+
+test("dos fincas completas y dos suertes parciales se resuelven sin usar el Cronológico vigente", () => {
+  let both = updateHistoricalMultiSelection({}, { type: "addFarm", farmCode: "100" }, multiCatalog);
+  both = updateHistoricalMultiSelection(both, { type: "addFarm", farmCode: "200" }, multiCatalog);
+  assert.deepEqual(resolveHistoricalMultiSelection(both, multiCatalog).map((lot) => lot.lotId), ["10001", "10002", "20001"]);
+  let partial = updateHistoricalMultiSelection({}, { type: "addLot", farmCode: "100", lotId: "10001" }, multiCatalog);
+  partial = updateHistoricalMultiSelection(partial, { type: "addLot", farmCode: "100", lotId: "10002" }, multiCatalog);
+  assert.deepEqual(partial["100"], { mode: "partial", lotIds: ["10001", "10002"] });
+  const historicalOnly = historicalMultiCatalog([{ farmCode: "100", farmName: "Finca A", lotId: "10099", suerte: "99" }]);
+  const selected = updateHistoricalMultiSelection({}, { type: "addFarm", farmCode: "100" }, historicalOnly);
+  assert.deepEqual(resolveHistoricalMultiSelection(selected, historicalOnly).map((lot) => lot.lotId), ["10099"]);
+});
+
+test("Maquila y universo principal no se mezclan en una selección", () => {
+  const catalog = historicalMultiCatalog([...multiLots, { farmCode: "300", farmName: "Maquila", lotId: "30001", suerte: "01", isMaquila: true }]);
+  const principal = { "100": { mode: "full" } };
+  assert.throws(() => updateHistoricalMultiSelection(principal, { type: "addFarm", farmCode: "300" }, catalog), /Maquila/);
+  assert.throws(() => resolveHistoricalMultiSelection({ ...principal, "300": { mode: "full" } }, catalog), /Maquila/);
+});
+
+test("multifinca pondera TCH por toneladas/área y KATM solo por toneladas con dato", () => {
+  const selection = { "100": { mode: "full" }, "200": { mode: "partial", lotIds: ["20001"] } };
+  const result = buildHistoricalMultiAnalysis(multiRows, selection, multiCatalog, "latest");
+  assert.deepEqual(result.selectedZafras, [2022]);
+  const first = buildHistoricalMultiAnalysis(multiRows, selection, multiCatalog, "custom", [2021]);
+  assert.equal(first.consolidated.area, 50);
+  assert.equal(first.consolidated.tch, 24);
+  assert.equal(first.consolidated.katm, 114.29);
+  assert.equal(first.consolidated.edad, 11);
+  assert.equal(first.consolidated.missingKatmRows, 1);
+  const all = buildHistoricalMultiAnalysis(multiRows, selection, multiCatalog, "all");
+  assert.equal(all.consolidated.areaAccumulated, 60);
+  assert.equal(all.consolidated.areaAverage, 30);
+  assert.equal(all.farms.find((farm) => farm.farmCode === "200").areaAverage, 5);
+  assert.equal(all.farms.find((farm) => farm.farmCode === "200").zafrasWithData.length, 1);
+  assert.equal(all.consolidated.missingLotSeasons, 2);
+});
+
+test("periodos de 3, 5 y personalizado no contiguo comparten la misma selección", () => {
+  const rows = [2021, 2022, 2023, 2024, 2025].map((zafra, i) => ({ ...multiLots[0], zafra, area: 10 + i, ton: 100 + i * 10, katm: 90, edad: 11 }));
+  const selection = { "100": { mode: "partial", lotIds: ["10001"] } };
+  assert.deepEqual(buildHistoricalMultiAnalysis(rows, selection, multiCatalog, "last3").selectedZafras, [2023, 2024, 2025]);
+  assert.equal(buildHistoricalMultiAnalysis(rows, selection, multiCatalog, "last3").consolidated.areaAverage, 13);
+  assert.equal(buildHistoricalMultiAnalysis(rows, selection, multiCatalog, "last5").consolidated.areaAverage, 12);
+  const custom = buildHistoricalMultiAnalysis(rows, selection, multiCatalog, "custom", [2021, 2025]);
+  assert.deepEqual(custom.selectedZafras, [2021, 2025]);
+  assert.equal(custom.consolidated.areaAverage, 12);
+});
+
+test("ausencia de zafra, área o toneladas nunca se convierte en cero acreditado", () => {
+  const selection = { "100": { mode: "full" }, "200": { mode: "full" } };
+  const result = buildHistoricalMultiAnalysis(multiRows, selection, multiCatalog, "all");
+  const missingFarm = result.farms.find((farm) => farm.farmCode === "200");
+  assert.equal(missingFarm.zafrasWithData.length, 1);
+  assert.equal(missingFarm.areaAverage, 5);
+  assert.equal(result.series.find((season) => season.zafra === 2022).contributingFarmCount, 1);
+  const incomplete = buildHistoricalMultiAnalysis([{ ...multiLots[0], zafra: 2021, area: null, ton: null, katm: null }], { "100": { mode: "full" } }, multiCatalog);
+  assert.equal(incomplete.consolidated.area, null);
+  assert.equal(incomplete.consolidated.areaAverage, null);
+  assert.equal(incomplete.consolidated.tch, null);
+  assert.equal(incomplete.consolidated.katm, null);
+  assert.equal(incomplete.consolidated.missingTonRows, 1);
+});
+
+test("Km actual pondera áreas vigentes de la selección y no cambia con zafras", () => {
+  const producers = [{ code: "100", details: [{ codLote: "10001", area: 10, distancia: 5 }, { codLote: "10002", area: 30, distancia: 0 }] }];
+  const selection = { "100": { mode: "full" } };
+  const first = buildHistoricalMultiAnalysis(multiRows, selection, multiCatalog, "custom", [2021], producers);
+  const last = buildHistoricalMultiAnalysis(multiRows, selection, multiCatalog, "latest", [], producers);
+  assert.equal(first.currentDistance.kmWeighted, 5);
+  assert.equal(last.currentDistance.kmWeighted, 5);
+  assert.equal(first.currentDistance.status, "partial");
+  assert.equal(first.currentDistance.coveragePct, 25);
+  const precise = buildHistoricalMultiAnalysis(multiRows, { "100": { mode: "partial", lotIds: ["10001"] }, "200": { mode: "full" } }, multiCatalog, "all", [], [
+    { code: "100", details: [{ codLote: "10001", area: 99, distancia: 1.0049 }] },
+    { code: "200", details: [{ codLote: "20001", area: 1, distancia: 1.0149 }] },
+  ]);
+  assert.equal(precise.currentDistance.kmWeighted, 1.01); // Sin redondear antes cada finca.
+});
+
+test("caso oficial Dolores completa + Rancho Peirano 01/02 concilia con la ficha individual", () => {
+  const catalog = historicalMultiCatalog(historico.lotCompact.map((lot) => ({ farmCode: lot[8], farmName: lot[9], lotId: lot[0], suerte: lot[10] })));
+  const selection = { "256": { mode: "full" }, "983": { mode: "partial", lotIds: ["98301", "98302"] } };
+  const latest = buildHistoricalMultiAnalysis(officialRows, selection, catalog, "latest", [], cronologico.producers);
+  const last3 = buildHistoricalMultiAnalysis(officialRows, selection, catalog, "last3", [], cronologico.producers);
+  assert.deepEqual(latest.selectedZafras, [2526]);
+  assert.equal(latest.consolidated.area, 188.78);
+  assert.equal(latest.consolidated.tch, 40.57);
+  assert.equal(latest.consolidated.katm, 103.9);
+  assert.deepEqual(last3.selectedZafras, [2324, 2425, 2526]);
+  assert.equal(last3.consolidated.areaAccumulated, 566.52);
+  assert.equal(last3.consolidated.areaAverage, 188.84);
+  assert.equal(last3.consolidated.tch, 48.92);
+  assert.equal(last3.consolidated.katm, 108.56);
+  const dolores = last3.farms.find((farm) => farm.farmCode === "256");
+  const individual = buildHistoricalAgronomicKpis(officialRows.filter((row) => row.farmCode === "256"), last3.selectedZafras);
+  assert.equal(dolores.areaAccumulated, 475.89);
+  assert.equal(dolores.areaAverage, 158.63);
+  assert.equal(dolores.areaAverage, individual.areaAverage);
+  assert.equal(dolores.tch, individual.tch);
+  const season1920 = buildHistoricalMultiAnalysis(officialRows, selection, catalog, "custom", [1920]);
+  assert.equal(season1920.consolidated.area, 377.74);
+  assert.equal(officialRows.find((row) => row.lotId === "98303" && row.zafra === 1920).area, 21.88);
+  assert.equal(season1920.consolidated.area + 21.88, 399.62);
+  assert.ok(!season1920.selection.find((farm) => farm.farmCode === "983").lotIds.includes("98303"));
+});
+
+test("Etapa A usa un solo motor y no atribuye el detalle de otra zafra", () => {
+  const ui = index.slice(index.indexOf("/* VF51 · Prueba quirúrgica"), index.indexOf("/* VF51 · Mejora quirúrgica: experiencia de selección múltiple en Cronológico"));
+  assert.match(ui, /buildHistoricalMultiAnalysis\(currentHistoricalRows\(\),farmSelection/);
+  assert.match(ui, /changeHistoricoMultiPeriod=changeMultiPeriod/);
+  assert.match(ui, /toggleHistoricoMultiZafra=toggleMultiZafra/);
+  assert.match(ui, /addHistoricoMultiFarm=addFarm/);
+  assert.match(ui, /removeHistoricoMultiFarm=removeFarm/);
+  assert.ok(!ui.includes("function detailAt(e,z)"));
+  assert.ok(!ui.includes("function aggregatePeriod(zset)"));
+  assert.ok(!ui.includes("function renderMultiSummary(){"));
+  assert.ok(!ui.includes("TAH estimado"));
+  assert.match(ui, /function multiTrendChart\(seasons,reference\)/);
+  assert.match(ui, /if\(catalog\(\)\.has\(first\)\)\{renderProducer\(first\);return;\}/);
+  assert.match(index, /hist-multi-summary-root:not\(\.hist-multi-stage-a\)/);
+});
 
 test("normaliza el esquema mínimo de lotCompact", () => {
   const [row] = normalizeHistoricalRows(sampleLotCompact);

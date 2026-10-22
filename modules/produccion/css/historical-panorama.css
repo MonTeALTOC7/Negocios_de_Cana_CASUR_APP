@@ -1,0 +1,74 @@
+/* Scoped to the multifarm dashboard; existing single-farm, GEO and exports retain their styles. */
+#fichaSection .historical-panorama{--pan-green:#09633b;--pan-dark:#123b2c;--pan-muted:#60746a;--pan-line:#dce7df;--pan-bg:#f4f8f5;--pan-blue:#276187;color:#18362a;margin-top:14px;min-width:0}
+#fichaSection .historical-panorama *{box-sizing:border-box}
+#fichaSection .historical-panorama-heading{display:flex;align-items:center;justify-content:space-between;gap:14px}
+#fichaSection .historical-panorama-eyebrow{font-size:11px;font-weight:750;letter-spacing:1.3px;color:var(--pan-green)}
+#fichaSection .historical-panorama h2{font-size:23px;line-height:1.2;letter-spacing:-.5px;margin:4px 0 0;color:var(--pan-dark)}
+#fichaSection .historical-panorama h3{font-size:15px;margin:0;color:var(--pan-dark);line-height:1.4}
+#fichaSection .historical-panorama-heading p{font-size:12px;color:var(--pan-muted);margin:6px 0 0;line-height:1.5}
+#fichaSection .historical-panorama-button{padding:9px 12px;border:1px solid var(--pan-line);border-radius:9px;background:white;color:var(--pan-green);font-family:inherit;font-size:12px;font-weight:650;cursor:pointer;min-height:42px}
+#fichaSection .historical-panorama button:focus-visible,#fichaSection .historical-panorama input:focus-visible,#fichaSection .historical-panorama summary:focus-visible{outline:3px solid #c99d2c;outline-offset:3px}
+#fichaSection .historical-panorama-periods{display:flex;flex-wrap:wrap;gap:5px;margin-top:16px}
+#fichaSection .historical-panorama-periods button{border:1px solid var(--pan-line);background:#fff;border-radius:8px;padding:8px 12px;font-size:12px;min-height:42px;color:#334d3f;cursor:pointer}
+#fichaSection .historical-panorama-periods button[aria-pressed=true]{background:var(--pan-green);color:white;border-color:var(--pan-green);font-weight:700}
+#fichaSection .historical-panorama-custom{display:flex;flex-wrap:wrap;gap:5px 13px;margin-top:12px}
+#fichaSection .historical-panorama-custom label{display:flex;align-items:center;gap:6px;min-height:40px;font-size:12px;cursor:pointer}
+#fichaSection .historical-panorama-custom input{width:18px;height:18px;accent-color:var(--pan-green)}
+#fichaSection .historical-panorama-custom small{font-size:11px;color:var(--pan-muted)}
+#fichaSection .historical-panorama-scope{font-size:12px;color:var(--pan-muted);margin:11px 0 16px;line-height:1.5}
+#fichaSection .historical-panorama-notice,#fichaSection .historical-panorama-warning{padding:10px 12px;background:#fbf5e7;border-radius:9px;color:#775d1c;font-size:12px;line-height:1.5;margin:10px 0 14px}
+#fichaSection .historical-panorama-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:16px}
+#fichaSection .historical-panorama-kpi{padding:14px;border:1px solid var(--pan-line);border-radius:13px;background:#fff;min-width:0;position:relative}
+#fichaSection .historical-panorama-kpi>span{font-size:12px;color:var(--pan-muted);display:block;font-weight:600}
+#fichaSection .historical-panorama-kpi>strong{display:block;font-size:27px;font-weight:700;letter-spacing:-.6px;line-height:1.25;margin-top:7px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#fichaSection .historical-panorama-kpi strong small{font-size:12px;margin-left:4px;letter-spacing:0;font-weight:500;white-space:nowrap}
+#fichaSection .historical-panorama-kpi p{font-size:11px;line-height:1.5;margin:7px 0 0;color:var(--pan-muted)}
+#fichaSection .historical-panorama-kpi.is-main{background:var(--pan-dark);color:#fff;border-color:var(--pan-dark)}
+#fichaSection .historical-panorama-kpi.is-main>span,#fichaSection .historical-panorama-kpi.is-main p{color:#d1e1d6}
+#fichaSection .historical-panorama-kpi.is-main:before{content:'';position:absolute;top:0;left:14px;right:14px;height:3px;background:#e7b735;border-radius:0 0 3px 3px}
+#fichaSection .historical-panorama-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(240px,1fr);gap:14px}
+#fichaSection .historical-panorama-panel{padding:16px;border:1px solid var(--pan-line);border-radius:14px;background:#fff;min-width:0}
+#fichaSection .historical-panorama-chart-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:13px}
+#fichaSection .historical-panorama-chart-heading p{font-size:12px;color:var(--pan-muted);margin:5px 0 0}
+#fichaSection .historical-panorama-metrics{display:flex;gap:4px;flex-wrap:wrap}
+#fichaSection .historical-panorama-metrics button{font-size:12px;min-height:40px;padding:7px 10px;border:1px solid var(--pan-line);background:white;border-radius:8px;cursor:pointer}
+#fichaSection .historical-panorama-metrics button[aria-pressed=true]{background:#eaf4ee;border-color:#a9cdb7;color:var(--pan-green);font-weight:700}
+#fichaSection .historical-panorama-key{display:flex;flex-wrap:wrap;gap:6px 15px;font-size:11px;color:var(--pan-muted);line-height:1.5;min-height:33px}
+#fichaSection .historical-panorama-key i{display:inline-block;width:16px;border-top:2px solid var(--pan-green);vertical-align:middle;margin-right:5px}
+#fichaSection .historical-panorama-key i.is-reference{border-top:1px dashed var(--pan-blue)}
+#fichaSection .historical-panorama-chart{width:100%;min-width:0}
+#fichaSection .historical-panorama-chart svg{display:block;width:100%;height:auto;overflow:visible}
+#fichaSection .historical-panorama-chart text{font:11px Segoe UI,Arial,sans-serif;fill:var(--pan-muted)}
+#fichaSection .historical-panorama-chart text.historical-panorama-value{fill:#18362a;font-weight:700}
+#fichaSection .historical-panorama-gridline{stroke:#e4ebe6;stroke-width:1}
+#fichaSection .historical-panorama-reference{stroke:var(--pan-blue);stroke-width:1;stroke-dasharray:5 5}
+#fichaSection .historical-panorama-line{stroke:var(--pan-green);stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+#fichaSection .historical-panorama-dot{fill:var(--pan-green);stroke:#fff;stroke-width:2}
+#fichaSection .historical-panorama-hit{fill:transparent;stroke:none;cursor:pointer;pointer-events:all}
+#fichaSection .historical-panorama-hit:focus{outline:none;stroke:var(--pan-green);stroke-width:1}
+#fichaSection .historical-panorama-readout{padding:11px;border-radius:9px;background:var(--pan-bg);font-size:12px;line-height:1.55;min-height:100px;color:var(--pan-muted);overflow-wrap:anywhere}
+#fichaSection .historical-panorama-readout p{margin:3px 0}
+#fichaSection .historical-panorama-readout b{color:var(--pan-dark)}
+#fichaSection .historical-panorama-empty{min-height:236px;display:grid;place-content:center;font-size:13px;color:var(--pan-muted)}
+#fichaSection .historical-panorama-coverage>p{color:var(--pan-muted);font-size:12px;line-height:1.5;margin:8px 0 16px}
+#fichaSection .historical-panorama-cover-item{margin:16px 0}
+#fichaSection .historical-panorama-cover-item>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+#fichaSection .historical-panorama-cover-item b{font-variant-numeric:tabular-nums}
+#fichaSection .historical-panorama-track{height:5px;background:#edf2ee;border-radius:4px;margin-top:6px;overflow:hidden}
+#fichaSection .historical-panorama-track span{display:block;background:var(--pan-green);height:100%;border-radius:4px}
+#fichaSection .historical-panorama-cover-item small{display:block;font-size:11px;color:var(--pan-muted);margin-top:5px;line-height:1.5}
+#fichaSection .historical-panorama-link{background:transparent;border:0;padding:7px 0;color:var(--pan-green);font-size:12px;font-weight:700;min-height:40px;cursor:pointer;text-align:left}
+#fichaSection .historical-panorama-quality,#fichaSection .historical-panorama-records{border:1px solid var(--pan-line);border-radius:12px;margin-top:14px;background:#fff}
+#fichaSection .historical-panorama summary{padding:13px 15px;min-height:44px;font-size:13px;font-weight:650;cursor:pointer;scroll-margin-top:110px}
+#fichaSection .historical-panorama-quality-body{padding:0 15px 14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+#fichaSection .historical-panorama-quality-body h3{font-size:13px}
+#fichaSection .historical-panorama-quality-body p{font-size:12px;color:var(--pan-muted);line-height:1.6;margin:6px 0;overflow-wrap:anywhere}
+#fichaSection .historical-panorama-season-list{padding:0 14px 14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#fichaSection .historical-panorama-season-list article{border:1px solid var(--pan-line);border-radius:10px;padding:13px;min-width:0}
+#fichaSection .historical-panorama-season-list p{font-size:12px;color:var(--pan-muted);line-height:1.6;overflow-wrap:anywhere;margin:5px 0 0}
+#fichaSection .historical-panorama-season-list dl{margin:12px 0}
+#fichaSection .historical-panorama-season-list dl div{display:flex;justify-content:space-between;gap:8px;font-size:12px;line-height:1.6}
+#fichaSection .historical-panorama-season-list dt{color:var(--pan-muted)}
+#fichaSection .historical-panorama-season-list dd{margin:0;font-variant-numeric:tabular-nums;text-align:right}
+@media(min-width:1200px){#fichaSection .historical-panorama-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}#fichaSection .historical-panorama-kpi{padding:12px 10px}#fichaSection .historical-panorama-kpi>strong{font-size:25px}}
+@media(max-width:760px){#fichaSection .historical-panorama-heading{align-items:flex-start}#fichaSection .historical-panorama-heading h2{font-size:21px}#fichaSection .historical-panorama-heading .historical-panorama-button{font-size:0;padding:5px 8px}#fichaSection .historical-panorama-button span{font-size:23px}#fichaSection .historical-panorama-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#fichaSection .historical-panorama-kpi{padding:12px}#fichaSection .historical-panorama-kpi>strong{font-size:26px}#fichaSection .historical-panorama-grid{grid-template-columns:1fr;gap:12px}#fichaSection .historical-panorama-periods{gap:4px}#fichaSection .historical-panorama-periods button{padding:8px 9px;font-size:12px}#fichaSection .historical-panorama-panel{padding:14px}#fichaSection .historical-panorama-metrics{width:100%}#fichaSection .historical-panorama-metrics button{flex:1;padding:7px 5px}#fichaSection .historical-panorama-quality-body{grid-template-columns:1fr}#fichaSection .historical-panorama-season-list{grid-template-columns:1fr}#fichaSection .historical-panorama-readout{min-height:125px}}

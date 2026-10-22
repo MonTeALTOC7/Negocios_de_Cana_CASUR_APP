@@ -224,14 +224,17 @@ test("Etapa A usa un solo motor y no atribuye el detalle de otra zafra", () => {
   assert.ok(!ui.includes("function aggregatePeriod(zset)"));
   assert.ok(!ui.includes("function renderMultiSummary(){"));
   assert.ok(!ui.includes("TAH estimado"));
-  assert.match(ui, /function multiTrendChart\(seasons,reference\)/);
+  assert.match(ui, /historicalChart\(\{scopeRows:rows,selectedZafras:period\}/);
+  assert.match(ui, /historicalChart\(\{scopeRows:farmRows,selectedZafras:period\}/);
+  assert.match(ui, /function multiComparisonChart\(result,rows\)/);
+  assert.match(ui, /function multiSeasonTable\(rows,zafras,distance\)/);
+  assert.match(ui, /function multiLotTable\(rows\)/);
   assert.match(ui, /if\(catalog\(\)\.has\(first\)\)\{renderProducer\(first\);return;\}/);
   assert.match(ui, /hist-multi-quality/);
   assert.match(ui, /hist-multi-scroll-hint/);
   assert.match(ui, /result\.periodStatus==='no-data'/);
-  assert.match(ui, /Cobertura '\+pct\(age\.pct\)/);
-  assert.match(ui, /requestedSeasons=periodMode==='custom'\?result\.requestedCustomZafras\.length:period\.length/);
-  assert.match(ui, /!period\.length\?'Cobertura N\/D'/);
+  assert.match(ui, /Detalle de calidad de datos/);
+  assert.match(ui, /result\.requestedCustomZafras\.length:period\.length/);
   assert.match(ui, /if\(sel\)sel\.value=lot\.producerCode;toggleOne\(lot\.code,true\)/);
   assert.match(index, /hist-multi-summary-root:not\(\.hist-multi-stage-a\)/);
 });
@@ -567,7 +570,7 @@ test("CAP1 conserva seis KPI junto al gráfico TCH legible y sin tarjeta princip
   assert.ok(index.includes(".casur-report-crono .table-wrap table{width:100%!important;table-layout:fixed!important"));
   assert.ok(index.includes(".casur-report-crono .table-wrap th,.casur-report-crono .table-wrap td{padding:4px 3px!important;white-space:normal!important"));
   assert.ok(index.includes(".casur-report-crono-general .table-wrap th,.casur-report-crono-general .table-wrap td{padding:4px 5px!important"));
-  assert.ok(index.includes("pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico')"));
+  assert.ok(index.includes("pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico',result.safeBreaks)"));
 });
 
 test("CAP3 recupera la jerarquía estable de ocho KPI históricos", () => {
@@ -638,6 +641,47 @@ test("PDF no crea una página vacía por el margen blanco final del canvas", asy
   vm.runInContext(index.slice(start, end), context);
   const pdf = vm.runInContext("pdfBlobFromCanvas(canvas,false)", context);
   assert.match(await pdf.text(), /\/Count 1\b/);
+});
+
+test("PDF multifinca corta en límites aprobados y no omite filas entre páginas", async () => {
+  const start = index.indexOf("function bytesFromBase64");
+  const end = index.indexOf("async function runAction", start);
+  const draws = [];
+  const pixels = new Uint8ClampedArray(100 * 400 * 4).fill(255);
+  pixels[(399 * 100) * 4] = 0;
+  const canvas = { width: 100, height: 400, getContext: () => ({ getImageData: () => ({ data: pixels }) }) };
+  const context = vm.createContext({ canvas, atob, Blob, TextEncoder, Uint8Array, document: {
+    createElement: () => ({ getContext: () => ({ fillRect() {}, drawImage(...args) { draws.push({start:args[2],height:args[4]}); } }), toDataURL: () => 'data:image/jpeg;base64,AA==' }),
+  } });
+  vm.runInContext(index.slice(start,end),context);
+  const pdf = vm.runInContext('pdfBlobFromCanvas(canvas,false,[110,220,330])',context);
+  assert.match(await pdf.text(), /\/Count 4\b/);
+  assert.deepEqual(draws,[{start:0,height:110},{start:110,height:110},{start:220,height:110},{start:330,height:70}]);
+});
+
+test("la ficha multifinca restringe la serie y los detalles a identidades seleccionadas", () => {
+  const start=index.indexOf('  function multiRows('), end=index.indexOf('  function multiKpis(',start);
+  const context=vm.createContext({currentHistoricalRows:()=>officialRows});
+  vm.runInContext(index.slice(start,end),context);
+  context.result={selection:[{farmCode:'256',lotIds:['25601','25602']},{farmCode:'983',lotIds:['98301','98302']}]};
+  const all=vm.runInContext('multiRows(result)',context);
+  const farm=vm.runInContext('multiRows(result,"983")',context);
+  assert.deepEqual([...new Set(all.map(row=>row.lotId))].sort(),['25601','25602','98301','98302']);
+  assert.ok(farm.every(row=>row.farmCode==='983'&&['98301','98302'].includes(row.lotId)));
+  assert.equal(aggregateHistoricalRows(filterHistoricalRows(farm,null,[2526])).tch,52.41);
+});
+
+test("la tabla multifinca no acredita área ni toneladas cero cuando faltan registros válidos", () => {
+  const start=index.indexOf('  function multiSeasonTable('),end=index.indexOf('  function multiLotTable(',start);
+  const context=vm.createContext({engine:globalThis.CASUR_HISTORICAL_ENGINE,
+    escH:String,zlabel:String,f0:String,f2:(value,suffix='')=>value==null?'N/D':value.toFixed(2)+suffix});
+  vm.runInContext(index.slice(start,end),context);
+  context.rows=[{farmCode:'100',lotId:'10001',zafra:2526,area:null,ton:null}];
+  const missing=vm.runInContext('multiSeasonTable(rows,[2526],{kmWeighted:null})',context);
+  assert.doesNotMatch(missing,/0\.00 ha|0\.00 t/);
+  assert.match(missing,/<td>N\/D<\/td>/);
+  context.rows=[{farmCode:'100',lotId:'10001',zafra:2526,area:10,ton:0}];
+  assert.match(vm.runInContext('multiSeasonTable(rows,[2526],{kmWeighted:null})',context),/0\.00 t/);
 });
 
 test("groupHistoricalByLot agrupa por lotId con metadatos", () => {

@@ -1629,6 +1629,33 @@ body.crono-print-preview .print-end{display:block!important;text-align:center!im
 #fichaSection .hist-multi-stage-chart{border:1px solid #dbe7e1;border-radius:14px;padding:9px 11px;background:#fbfffc;overflow-x:auto}
 #fichaSection .hist-multi-stage-chart svg{display:block;width:100%;height:auto}
 #fichaSection .hist-multi-stage-chart small{display:block;color:#475569;font-size:11px;font-weight:850}
+#fichaSection .hist-multi-recovered{display:grid;gap:13px;margin-top:10px}
+#fichaSection .hist-multi-recovered>* ,#fichaSection .hist-multi-farm-body>*{min-width:0;max-width:100%}
+#fichaSection .hist-multi-recovered .table-wrap{max-width:100%;overflow:auto}
+#fichaSection .hist-multi-recovered h3{margin:0 0 9px;color:#10241a;font-size:16px}
+#fichaSection .hist-multi-recovered .hist-multi-header{margin:0}
+#fichaSection .hist-multi-included{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:9px 11px;border:1px solid #d9e8df;border-radius:13px;background:#fff;font-size:11px}
+#fichaSection .hist-multi-included strong{color:#0b6031}
+#fichaSection .hist-multi-included span{padding:5px 8px;border-radius:999px;background:#eef6f0;color:#294b38;font-weight:800;overflow-wrap:anywhere}
+#fichaSection .hist-multi-global,#fichaSection .hist-multi-comparison{padding:14px;border:1px solid #d8e7de;border-radius:18px;background:#fff}
+#fichaSection .hist-multi-original-kpis{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:10px 0}
+#fichaSection .hist-multi-original-kpis .kpi{min-width:0}
+#fichaSection .hist-multi-results-table table{width:100%;min-width:760px}
+#fichaSection .hist-multi-results-table td small{display:block;color:#64748b;font-size:9px;margin-top:3px}
+#fichaSection .hist-multi-sort{border:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;cursor:pointer}
+#fichaSection .hist-multi-farms-analysis{display:grid;gap:9px}
+#fichaSection .hist-multi-farm-report{border:1px solid #d8e7de;border-radius:17px;background:#fff;overflow:hidden}
+#fichaSection .hist-multi-farm-report>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:12px 14px;cursor:pointer;background:#f5faf7}
+#fichaSection .hist-multi-farm-report>summary::-webkit-details-marker{display:none}
+#fichaSection .hist-multi-farm-report>summary strong{font-size:14px;color:#0b6031}
+#fichaSection .hist-multi-farm-report>summary small{font-size:11px;color:#475569;font-weight:800}
+#fichaSection .hist-multi-farm-body{display:grid;gap:12px;padding:12px}
+#fichaSection .hist-multi-farm-body .hist-multi-report-block+.hist-multi-report-block{border-top:1px solid #e2e9e4;padding-top:12px}
+#fichaSection .hist-multi-comparison-legend i{flex:0 0 auto}
+#fichaSection .hist-multi-comparison-chart .svgbox{overflow-x:auto}
+#fichaSection .hist-multi-method{margin:0;color:#64748b;font-size:10.5px;line-height:1.35}
+@media(max-width:900px){#fichaSection .hist-multi-original-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:560px){#fichaSection .hist-multi-global,#fichaSection .hist-multi-comparison{padding:10px}#fichaSection .hist-multi-original-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#fichaSection .hist-multi-original-kpis .kpi .label{font-size:10px}#fichaSection .hist-multi-original-kpis .kpi strong{font-size:18px}#fichaSection .hist-multi-farm-report>summary{display:grid}#fichaSection .hist-multi-comparison-chart .svgbox svg{min-width:640px}#fichaSection .hist-multi-included{display:grid}}
 @media(max-width:760px){#fichaSection .hist-multi-stage-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#fichaSection .hist-multi-badge{white-space:normal}}
 @media screen and (max-width:760px){#fichaSection .hist-multi-scroll-hint{display:block;margin:2px 0 5px;color:#0b6031;font-size:11px;font-weight:850}}
 @media(min-width:760px){
@@ -2354,7 +2381,8 @@ function setHistoricalChartMetric(metric){
  const next=String(metric||'').toLowerCase();
  if(next!=='tch'&&next!=='katm')return;
  HISTORICAL_CHART_STATE.historicalChartMetric=next;
- if(currentEntity)renderEntity(currentEntity.code,{preserveDrilldown:true,inPlace:true});
+ if(document.querySelector('.hist-multi-summary-root')&&typeof window.renderHistoricoMultiSummary==='function')window.renderHistoricoMultiSummary();
+ else if(currentEntity)renderEntity(currentEntity.code,{preserveDrilldown:true,inPlace:true});
 }
 function showHistoricalChartTooltip(point){
  const box=point&&point.closest('.svgbox'),tip=box&&box.querySelector('.historical-chart-tooltip');if(!box||!tip)return;
@@ -2381,7 +2409,7 @@ function hideHistoricalChartTooltip(point,force){
  const box=point.closest('.svgbox'),tip=box&&box.querySelector('.historical-chart-tooltip');if(!tip)return;
  point.classList.remove('is-active');tip.classList.remove('is-visible');tip.setAttribute('aria-hidden','true');
 }
-function historicalChart(context){
+function historicalChart(context,chartId='historicalChartTooltip'){
  const metric=HISTORICAL_CHART_STATE.historicalChartMetric==='katm'?'katm':'tch';
  const model=HISTORICAL_ENGINE.buildHistoricalChartModel(context.scopeRows,context.selectedZafras,metric);
  if(!model.points.length)return '<div class="empty">Sin serie histórica.</div>';
@@ -2402,10 +2430,10 @@ function historicalChart(context){
   const tooltip=`Zafra ${point.label} · Área ${area} · Toneladas ${ton} · TCH ${tch} · KATM ${katm} · Edad ${edad}`;
    const classes=['historical-chart-point',point.selected?'is-selected':'is-muted',point.value==null?'is-missing':''].filter(Boolean).join(' '),showValue=point.selected||index===0||index===points.length-1||index%2===0;
   const selected=point.selected,missing=point.value==null,fill=missing?'#fff':(selected?'#005baa':'#94a3b8'),stroke=missing?(selected?'#005baa':'#94a3b8'):'#fff',opacity=selected?'1':'.48';
-   return `<g class="${classes}" data-zafra="${point.zafra}" data-selected="${point.selected}" data-label="${esc(point.label)}" data-area="${esc(area)}" data-ton="${esc(ton)}" data-tch="${esc(tch)}" data-katm="${esc(katm)}" data-edad="${esc(edad)}" tabindex="0" role="img" aria-label="${esc(tooltip)}" aria-describedby="historicalChartTooltip" onmouseenter="showHistoricalChartTooltip(this)" onmouseleave="hideHistoricalChartTooltip(this)" onfocus="showHistoricalChartTooltip(this)" onblur="hideHistoricalChartTooltip(this,true)" onclick="pinHistoricalChartTooltip(this,event)"><circle class="historical-chart-hit" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="22" fill="transparent" stroke="none" pointer-events="all"></circle><circle class="historical-chart-dot" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${selected?6.5:5}" fill="${fill}" stroke="${stroke}" stroke-width="${selected?2.8:2.2}" opacity="${opacity}"${missing?' stroke-dasharray="2 2"':''}></circle>${showValue?`<text class="historical-chart-value" fill="${selected?'#10241a':'#64748b'}" font-size="10" font-weight="${selected?'950':'900'}" x="${point.x.toFixed(1)}" y="${Math.max(15,point.y-11).toFixed(1)}" text-anchor="middle">${esc(point.value==null?'N/D':nf.format(point.value))}</text>`:''}<text class="labeltxt" fill="#64748b" font-size="11" font-weight="800" x="${point.x.toFixed(1)}" y="${h-13}" text-anchor="middle">${esc(point.label)}</text></g>`;
+   return `<g class="${classes}" data-zafra="${point.zafra}" data-selected="${point.selected}" data-label="${esc(point.label)}" data-area="${esc(area)}" data-ton="${esc(ton)}" data-tch="${esc(tch)}" data-katm="${esc(katm)}" data-edad="${esc(edad)}" tabindex="0" role="img" aria-label="${esc(tooltip)}" aria-describedby="${esc(chartId)}" onmouseenter="showHistoricalChartTooltip(this)" onmouseleave="hideHistoricalChartTooltip(this)" onfocus="showHistoricalChartTooltip(this)" onblur="hideHistoricalChartTooltip(this,true)" onclick="pinHistoricalChartTooltip(this,event)"><circle class="historical-chart-hit" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="22" fill="transparent" stroke="none" pointer-events="all"></circle><circle class="historical-chart-dot" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${selected?6.5:5}" fill="${fill}" stroke="${stroke}" stroke-width="${selected?2.8:2.2}" opacity="${opacity}"${missing?' stroke-dasharray="2 2"':''}></circle>${showValue?`<text class="historical-chart-value" fill="${selected?'#10241a':'#64748b'}" font-size="10" font-weight="${selected?'950':'900'}" x="${point.x.toFixed(1)}" y="${Math.max(15,point.y-11).toFixed(1)}" text-anchor="middle">${esc(point.value==null?'N/D':nf.format(point.value))}</text>`:''}<text class="labeltxt" fill="#64748b" font-size="11" font-weight="800" x="${point.x.toFixed(1)}" y="${h-13}" text-anchor="middle">${esc(point.label)}</text></g>`;
  }).join('');
  const svg=`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Serie histórica de ${metricLabel}; las zafras del periodo activo están destacadas"><line class="axis" fill="none" stroke="#d7e1dc" stroke-width="1" x1="${padL}" y1="${baseY}" x2="${w-padR}" y2="${baseY}"/><line class="axis" fill="none" stroke="#d7e1dc" stroke-width="1" x1="${padL}" y1="${padT}" x2="${padL}" y2="${baseY}"/><text class="historical-chart-axis-value" fill="#64748b" font-size="9.5" font-weight="800" x="${padL-7}" y="${padT+4}" text-anchor="end">${esc(nf.format(max))}</text><text class="historical-chart-axis-value" fill="#64748b" font-size="9.5" font-weight="800" x="${padL-7}" y="${baseY}" text-anchor="end">${esc(nf.format(min))}</text>${reference}${fullPath?`<path class="historical-chart-line" fill="none" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" d="${fullPath}"/>`:''}${selectedPath?`<path class="historical-chart-selected-line" fill="none" stroke="#0b7f3a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="${selectedPath}"/>`:''}${pointMarkup}</svg>`;
- return `<div class="historical-chart-card"><div class="historical-chart-head"><div><h3>Histórico ${metricLabel} por zafra</h3><small>Serie completa; el periodo activo queda destacado y la referencia usa su agregado ponderado.</small></div><div class="historical-chart-tools">${referenceBadge}${selector}</div></div><div class="svgbox">${svg}<div class="historical-chart-tooltip" id="historicalChartTooltip" role="tooltip" aria-hidden="true"></div></div><div class="historical-chart-legend"><span class="selected"><i></i>Periodo activo</span><span><i></i>Fuera del periodo</span><span class="reference"><i></i>${esc(referenceText)}</span></div></div>`;
+ return `<div class="historical-chart-card"><div class="historical-chart-head"><div><h3>Histórico ${metricLabel} por zafra</h3><small>Serie completa; el periodo activo queda destacado y la referencia usa su agregado ponderado.</small></div><div class="historical-chart-tools">${referenceBadge}${selector}</div></div><div class="svgbox">${svg}<div class="historical-chart-tooltip" id="${esc(chartId)}" role="tooltip" aria-hidden="true"></div></div><div class="historical-chart-legend"><span class="selected"><i></i>Periodo activo</span><span><i></i>Fuera del periodo</span><span class="reference"><i></i>${esc(referenceText)}</span></div></div>`;
 }
 
 function historicalKpiDelta(value,suffix=''){
@@ -3432,48 +3460,76 @@ window.addEventListener('load',setupCrono);
     const next=new Set(customZafras);if(on)next.add(Number(zafra));else next.delete(Number(zafra));
     customZafras=next;customInitialized=true;periodMode='custom';renderMultiSummaryStageA();
   }
-  function multiTrendChart(seasons,reference){
-    const values=seasons.map(s=>s.tch).filter(v=>v!==null);
-    if(!values.length)return '<div class="empty">Sin TCH para la serie seleccionada.</div>';
-    const compact=window.matchMedia('(max-width:760px)').matches;
-    const W=compact?Math.max(310,seasons.length*52):720,H=compact?180:210,left=compact?32:44,right=compact?20:24,top=24,bottom=35;
-    const all=reference===null?values:[...values,reference],min=Math.min(...all),max=Math.max(...all),span=Math.max(1,max-min),low=min-span*.15,high=max+span*.15;
-    const x=i=>seasons.length===1?W/2:left+i*(W-left-right)/(seasons.length-1);
-    const y=v=>top+(high-v)/(high-low)*(H-top-bottom);
-    const segments=[];let segment=[];seasons.forEach((s,i)=>{if(s.tch===null){if(segment.length)segments.push(segment);segment=[];}else segment.push(x(i).toFixed(1)+','+y(s.tch).toFixed(1));});if(segment.length)segments.push(segment);
-    const line=segments.map(points=>points.length>1?'<polyline points="'+points.join(' ')+'" fill="none" stroke="#0b7f3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>':'').join('');
-    const ref=reference===null?'':'<line x1="'+left+'" x2="'+(W-right)+'" y1="'+y(reference).toFixed(1)+'" y2="'+y(reference).toFixed(1)+'" stroke="#0b4f9c" stroke-width="1.5" stroke-dasharray="6 6"/>';
-    const dots=seasons.map((s,i)=>'<text x="'+x(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" fill="#475569" font-size="11" font-weight="800">'+escH(zlabel(s.zafra))+'</text>'+(s.tch===null?'':'<circle cx="'+x(i).toFixed(1)+'" cy="'+y(s.tch).toFixed(1)+'" r="5" fill="#005baa" stroke="#fff" stroke-width="2"/><text x="'+x(i).toFixed(1)+'" y="'+Math.max(13,y(s.tch)-10).toFixed(1)+'" text-anchor="middle" fill="#10241a" font-size="11" font-weight="850">'+f2(s.tch)+'</text>')).join('');
-    return '<div class="hist-multi-stage-chart"><small>TCH agregado por zafra · referencia ponderada del mismo período: '+(reference===null?'N/D':f2(reference))+'</small><svg viewBox="0 0 '+W+' '+H+'" style="min-width:'+W+'px" role="img" aria-label="TCH por zafra del período seleccionado">'+ref+line+dots+'</svg></div>';
+  let farmSort='tch';
+  function multiRows(result,farmCode){
+    const ids=new Set(result.selection.filter(f=>!farmCode||f.farmCode===farmCode).flatMap(f=>f.lotIds.map(id=>f.farmCode+'\u0000'+id)));
+    return currentHistoricalRows().filter(row=>ids.has(row.farmCode+'\u0000'+row.lotId));
   }
+  function multiKpis(summary,distance,one){
+    const area=one?summary.area:summary.areaAverage;
+    const areaSub=one?'Zafra seleccionada':'Acumulado '+(summary.areaAccumulated==null?'N/D':f2(summary.areaAccumulated,' ha-zafra'));
+    const km=distance.kmWeighted;
+    return '<div class="kpis historical-agronomic-kpis hist-multi-original-kpis">'+[
+      kpi('TCH ponderado',summary.tch==null?'N/D':f2(summary.tch),'Toneladas ÷ área',true),
+      kpi('KATM ponderado',summary.katm==null?'N/D':f2(summary.katm),'Ponderado por toneladas',true),
+      kpi('Distancia ponderada actual',km==null?'N/D':f2(km,' km'),distance.status==='partial'?'Parcial · '+f2(distance.coveragePct,' % cobertura'):'Referencia vigente SIAGRI',false,'historical-kpi-secondary'),
+      kpi(one?'Área cosechada':'Área cosechada promedio',area==null?'N/D':f2(area,one?' ha':' ha/zafra'),areaSub,false,'historical-kpi-area'),
+      kpi('Edad ponderada',summary.edad==null?'N/D':f2(summary.edad,' meses'),'Ponderada por área válida',false,'historical-kpi-secondary')
+    ].join('')+'</div>';
+  }
+  function multiSeasonTable(rows,zafras,distance){
+    const groups=new Map(engine.groupHistoricalBySeason(engine.filterHistoricalRows(rows,null,zafras)).map(s=>{
+      const observed=rows.filter(row=>row.zafra===s.zafra);
+      return [s.zafra,{...s,area:observed.every(row=>row.area!=null&&row.area>0)?s.area:null,ton:observed.some(row=>row.ton!=null&&row.ton>=0)?s.ton:null}];
+    }));
+    return '<div class="hist-multi-scroll-hint">Deslice para ver todas las columnas →</div><div class="table-wrap historical-season-table hist-multi-results-table"><table><thead><tr><th>Zafra</th><th>Área cosechada</th><th>Ton</th><th>TCH pond.</th><th>KATM pond.</th><th>Edad pond.</th><th>Km pond. vigente</th><th>Suertes</th></tr></thead><tbody>'+
+      (zafras.length?zafras.map(z=>{const s=groups.get(z);return '<tr><td><b>'+escH(zlabel(z))+'</b></td><td>'+(s?f2(s.area,' ha'):'N/D')+'</td><td>'+(s?f2(s.ton,' t'):'N/D')+'</td><td>'+(s?f2(s.tch):'N/D')+'</td><td>'+(s?f2(s.katm):'N/D')+'</td><td>'+(s?f2(s.edad,' meses'):'N/D')+'</td><td>'+(distance.kmWeighted==null?'N/D':f2(distance.kmWeighted,' km'))+'</td><td>'+(s?f0(s.suertes):'—')+'</td></tr>';}).join(''):'<tr><td colspan="8">Sin registros para el período solicitado.</td></tr>')+'</tbody></table></div>';
+  }
+  function multiLotTable(rows){
+    const index=engine.buildCurrentDistanceIndex(window.CRONO_DATA?.producers||[]);
+    const lots=engine.groupHistoricalByLot(rows).map(lot=>{
+      const observed=rows.filter(row=>row.lotId===lot.lotId);
+      return {...lot,area:observed.every(row=>row.area!=null&&row.area>0)?lot.area:null,ton:observed.some(row=>row.ton!=null&&row.ton>=0)?lot.ton:null};
+    });
+    return '<div class="hist-multi-scroll-hint">Deslice para ver todas las columnas →</div><div class="table-wrap hist-multi-results-table hist-multi-lot-table"><table><thead><tr><th>Suerte</th><th>CodSuerte</th><th>Zafras</th><th>Área cosechada</th><th>Ton</th><th>TCH pond.</th><th>KATM pond.</th><th>Edad</th><th>Km actual</th><th class="no-print">Ficha</th></tr></thead><tbody>'+
+      (lots.length?lots.map(lot=>'<tr><td><b>'+escH(lot.suerte||'—')+'</b></td><td>'+escH(lot.lotId)+'</td><td>'+f0(lot.zafras.length)+'</td><td>'+f2(lot.area,' ha-zafra')+'</td><td>'+f2(lot.ton,' t')+'</td><td>'+f2(lot.tch)+'</td><td>'+f2(lot.katm)+'</td><td>'+f2(lot.edad,' meses')+'</td><td>'+historicalDistanceHtml(engine.currentDistanceForLot(index,lot.lotId))+'</td><td class="no-print"><button class="historical-lot-open" type="button" onclick="viewHistoricoSuerte(\'LOTE::'+jsqH(lot.lotId)+'\')">Ver ficha</button></td></tr>').join(''):'<tr><td colspan="10">Sin registros en el período.</td></tr>')+'</tbody></table></div>';
+  }
+  function multiComparisonChart(result,rows){
+    const metric=HISTORICAL_CHART_STATE.historicalChartMetric==='katm'?'katm':'tch',label=metric.toUpperCase(),seasons=result.selectedZafras;
+    if(!seasons.length)return '<div class="empty">Seleccione zafras con registros para comparar.</div>';
+    const colors=['#0b7f3a','#005baa','#b45309','#7c3aed','#b42346','#0f766e'];
+    const series=result.farms.map((farm,i)=>({farm,color:colors[i%colors.length],points:new Map(engine.groupHistoricalBySeason(engine.filterHistoricalRows(rows,{farmCode:farm.farmCode,lotIds:farm.lotIds},seasons)).map(s=>[s.zafra,s[metric]]))}));
+    const values=series.flatMap(s=>[...s.points.values()].filter(v=>v!=null));
+    if(!values.length)return '<div class="empty">Sin '+label+' comparable para el período.</div>';
+    const W=720,H=260,L=48,R=22,T=30,B=42,min=Math.min(...values),max=Math.max(...values),span=Math.max(max-min,1),low=min-span*.14,high=max+span*.14;
+    const x=i=>seasons.length===1?W/2:L+i*(W-L-R)/(seasons.length-1),y=v=>H-B-(v-low)/(high-low)*(H-T-B);
+    const paths=series.map(s=>{let path='',drawing=false;seasons.forEach((z,i)=>{const value=s.points.get(z);if(value==null){drawing=false;return;}path+=(drawing?' L':' M')+x(i).toFixed(1)+' '+y(value).toFixed(1);drawing=true;});return '<path d="'+path.trim()+'" fill="none" stroke="'+s.color+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'+seasons.map((z,i)=>{const value=s.points.get(z);return value==null?'':'<circle cx="'+x(i).toFixed(1)+'" cy="'+y(value).toFixed(1)+'" r="5" fill="'+s.color+'" stroke="#fff" stroke-width="2"><title>'+escH(s.farm.farmCode+' · '+s.farm.farmName+' · '+zlabel(z)+' · '+f2(value)+' '+label)+'</title></circle>';}).join('');}).join('');
+    const ticks=seasons.map((z,i)=>'<text class="labeltxt" x="'+x(i).toFixed(1)+'" y="'+(H-12)+'" text-anchor="middle">'+escH(zlabel(z))+'</text>').join('');
+    const legend=series.map(s=>'<span><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="'+s.color+'"/></svg>'+escH(s.farm.farmCode+' · '+s.farm.farmName)+'</span>').join('');
+    return '<div class="historical-chart-card hist-multi-comparison-chart"><div class="historical-chart-head"><div><h3>Comparación '+label+' por finca</h3><small>Una línea por finca; cada punto utiliza sus suertes incluidas.</small></div></div><div class="svgbox"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Comparación '+label+' de las fincas seleccionadas"><line class="axis" x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'"/><line class="axis" x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(H-B)+'"/><text class="historical-chart-axis-value" x="'+(L-7)+'" y="'+(T+4)+'" text-anchor="end">'+f2(high)+'</text><text class="historical-chart-axis-value" x="'+(L-7)+'" y="'+(H-B)+'" text-anchor="end">'+f2(low)+'</text>'+paths+ticks+'</svg></div><div class="historical-chart-legend hist-multi-comparison-legend">'+legend+'</div></div>';
+  }
+  function multiFarmTable(result){
+    const one=result.selectedZafras.length===1;
+    const farms=[...result.farms].sort((a,b)=>(b[farmSort]??-Infinity)-(a[farmSort]??-Infinity)||a.farmCode.localeCompare(b.farmCode,'es',{numeric:true}));
+    return '<div class="hist-multi-scroll-hint">Deslice para comparar todas las columnas →</div><div class="table-wrap hist-multi-results-table"><table><thead><tr><th>Finca</th><th>Suertes</th><th>Área '+(one?'cosechada':'media')+'</th><th><button class="hist-multi-sort no-print" type="button" onclick="sortHistoricoMultiFarms(\'tch\')">TCH pond. ↕</button><span class="print-only">TCH pond.</span></th><th><button class="hist-multi-sort no-print" type="button" onclick="sortHistoricoMultiFarms(\'katm\')">KATM pond. ↕</button><span class="print-only">KATM pond.</span></th><th>Km vigente</th><th>Ton</th><th class="no-print">Análisis</th></tr></thead><tbody>'+farms.map(f=>'<tr><td><b>'+escH(f.farmCode+' · '+f.farmName)+'</b><small>'+(f.mode==='full'?'Finca completa':'Selección parcial')+'</small></td><td>'+f0(f.contributingLotCount)+' de '+f0(f.selectedLotCount)+'</td><td>'+(one?f.area==null?'N/D':f2(f.area,' ha'):f.areaAverage==null?'N/D':f2(f.areaAverage,' ha/zafra'))+'</td><td>'+f2(f.tch)+'</td><td>'+f2(f.katm)+'</td><td>'+(f.currentDistance.kmWeighted==null?'N/D':f2(f.currentDistance.kmWeighted,' km'))+'</td><td>'+f2(f.ton,' t')+'</td><td class="no-print"><button class="historical-lot-open" type="button" onclick="focusHistoricoMultiFarm(\''+jsqH(f.farmCode)+'\')">Ver finca</button></td></tr>').join('')+'</tbody></table></div>';
+  }
+  function focusFarm(code){const section=[...document.querySelectorAll('.hist-multi-farm-report')].find(node=>node.dataset.farmCode===String(code));if(section){section.open=true;section.scrollIntoView({behavior:'smooth',block:'start'});section.querySelector('summary')?.focus({preventScroll:true});}}
   function renderMultiSummaryStageA(){
     const c=byId('fichaContent');if(!c)return;
     if(!selected.size){renderStart();updateBar();return;}
-    const result=multiAnalysis(),period=result.selectedZafras,summary=result.consolidated,one=period.length===1;
+    const openFarms=new Set([...c.querySelectorAll('.hist-multi-farm-report[open]')].map(node=>node.dataset.farmCode));
+    const scrollY=window.scrollY,result=multiAnalysis(),period=result.selectedZafras,summary=result.consolidated,one=period.length===1,rows=multiRows(result);
     const periodLabel=period.length?period.map(zlabel).join(' · '):'Sin registros para el período solicitado';
     const modes=[['latest','Última'],['last3','Últimas 3'],['last5','Últimas 5'],['all','Todas'],['custom','Personalizado']];
     const filters=modes.map(([mode,label])=>'<button type="button" class="hist-multi-period-btn '+(periodMode===mode?'active':'')+'" aria-pressed="'+(periodMode===mode)+'" onclick="changeHistoricoMultiPeriod(\''+mode+'\')">'+label+'</button>').join('');
     const custom=periodMode==='custom'?'<div class="hist-multi-custom" aria-label="Zafras personalizadas">'+[...new Set([...result.availableZafras,...result.unavailableCustomZafras])].sort((a,b)=>a-b).map(z=>'<label><input type="checkbox" '+(customZafras.has(z)?'checked':'')+' onchange="toggleHistoricoMultiZafra('+z+',this.checked)"> '+escH(zlabel(z))+(result.unavailableCustomZafras.includes(z)?' · sin registro aquí':'')+'</label>').join('')+'</div>':'';
     const periodAlert=result.periodStatus==='no-data'?'<div class="hist-multi-period-alert" role="status">No hay registros para las zafras personalizadas solicitadas en esta selección. Puede elegir otra zafra o recuperar una finca anterior.</div>':result.unavailableCustomZafras.length?'<div class="hist-multi-period-alert" role="status">Sin registro aquí para '+escH(result.unavailableCustomZafras.map(zlabel).join(' · '))+'. Las zafras disponibles permanecen seleccionadas.</div>':'';
-    const area=one?summary.area:summary.areaAverage;
-    const requestedSeasons=periodMode==='custom'?result.requestedCustomZafras.length:period.length;
-    const coverage='Cobertura: '+summary.contributingLotCount+' de '+summary.selectedLotCount+' suertes con registro · '+summary.zafrasWithData.length+' de '+requestedSeasons+' zafras '+(periodMode==='custom'?'solicitadas con registros':'con datos');
-    const pct=value=>value===null?'N/D':f2(value,' %');
     const age=summary.metricCoverage.edad,tch=summary.metricCoverage.tch,katm=summary.metricCoverage.katm;
-    const areaSub=one?'Zafra seleccionada':'Acumulado: '+(summary.areaAccumulated===null?'N/D':f2(summary.areaAccumulated,' ha-zafra'))+' · '+period.length+' zafras seleccionadas';
-    const kpis='<div class="hist-multi-stage-kpis">'+[
-      kpiH(one?'Área cosechada':'Área media · zafras seleccionadas',area===null?'N/D':f2(area,one?' ha':' ha/zafra'),areaSub,true),
-      kpiH('TCH ponderado',summary.tch===null?'N/D':f2(summary.tch),'Cobertura área '+pct(tch.pct)),
-      kpiH('KATM ponderado',summary.katm===null?'N/D':f2(summary.katm),'Cobertura toneladas '+pct(katm.pct)),
-      kpiH('Edad ponderada',summary.edad===null?'N/D':f2(summary.edad,' meses'),!period.length?'Cobertura N/D':'Cobertura '+pct(age.pct)+' · '+f2(age.area)+'/'+f2(age.eligibleArea)+' ha')
-    ].join('')+'</div>';
-    const quality='<details class="hist-multi-quality"><summary>Calidad de datos y denominadores</summary><div class="hist-multi-quality-body"><div>Área: '+(summary.areaAccumulated===null?'N/D':f2(summary.areaAccumulated,' ha-zafra'))+' ÷ '+period.length+' zafras seleccionadas; '+summary.zafrasWithData.length+' con registro. La media observada usa solo zafras con registro.</div><div>TCH: '+f2(tch.ton,' t')+' ÷ '+f2(tch.area,' ha')+' · cobertura de área '+pct(tch.pct)+'. KATM: '+f2(katm.numerator)+' ÷ '+f2(katm.ton,' t')+' · cobertura de toneladas '+pct(katm.pct)+'.</div><div>Edad: '+f2(age.numerator)+' meses·ha ÷ '+f2(age.area,' ha')+' · cobertura '+pct(age.pct)+'.</div><div>Sin registro: '+summary.missingLotSeasons+' combinaciones suerte-zafra. Filas sin área: '+summary.invalidAreaRows+'; sin TCH: '+summary.missingTchRows+'; sin KATM: '+summary.missingKatmRows+'. Ninguna ausencia se acredita como cosecha de 0 ha.</div><div>Km vigente ponderado: '+(result.currentDistance.kmWeighted===null?'N/D':f2(result.currentDistance.kmWeighted,' km'))+' · cobertura '+pct(result.currentDistance.coveragePct)+'.</div></div></details>';
-    const hint='<div class="hist-multi-scroll-hint">Deslice la tabla para ver más columnas →</div>';
-    const farms=hint+'<div class="table-wrap"><table class="hist-multi-stage-table"><thead><tr><th>Finca</th><th>Selección</th><th>Suertes con datos</th><th>Área '+(one?'cosechada':'media · zafras seleccionadas')+'</th><th>TCH pond.</th><th>KATM pond.</th><th>Km actual</th><th>Zafras con datos</th></tr></thead><tbody>'+result.farms.map(f=>{const farmArea=one?f.area:f.areaAverage,observed=f.zafrasWithData.length;const observedNote=!one&&observed!==period.length?'<small>'+observed+' de '+period.length+' zafras con registro · media observada '+(f.areaAverageObserved===null?'N/D':f2(f.areaAverageObserved,' ha/zafra'))+'</small>':'';return '<tr><td><b>'+escH(f.farmCode)+' · '+escH(f.farmName)+'</b></td><td>'+(f.mode==='full'?'Completa':'Parcial · '+f.lotIds.join(', '))+'</td><td>'+f.contributingLotCount+' de '+f.selectedLotCount+'</td><td>'+(farmArea===null?'N/D':f2(farmArea,one?' ha':' ha/zafra'))+observedNote+'</td><td>'+f2(f.tch)+'</td><td>'+f2(f.katm)+'</td><td>'+(f.currentDistance.kmWeighted===null?'N/D':f2(f.currentDistance.kmWeighted,' km'))+'<small>'+f2(f.currentDistance.coveragePct,' % cobertura vigente')+'</small></td><td>'+observed+' de '+period.length+'</td></tr>';}).join('')+'</tbody></table></div>';
-    const seasons=result.series.filter(s=>s.selected);
-    const seasonTable=hint+'<div class="table-wrap"><table class="hist-multi-stage-table"><thead><tr><th>Zafra</th><th>Fincas con datos</th><th>Suertes con datos</th><th>Área cosechada</th><th>Ton válidas</th><th>TCH pond.</th><th>KATM pond.</th><th>Sin TCH</th><th>Sin KATM</th></tr></thead><tbody>'+(seasons.length?seasons.map(s=>'<tr><td><b>'+escH(zlabel(s.zafra))+'</b></td><td>'+s.contributingFarmCount+' de '+s.selectedFarmCount+'</td><td>'+s.contributingLotCount+' de '+summary.selectedLotCount+'</td><td>'+(s.area===null?'N/D':f2(s.area,' ha'))+'</td><td>'+f2(s.ton,' t')+'</td><td>'+f2(s.tch)+'</td><td>'+f2(s.katm)+'</td><td>'+s.missingTchRows+'</td><td>'+s.missingKatmRows+'</td></tr>').join(''):'<tr><td colspan="9">Sin registros para el período solicitado.</td></tr>')+'</tbody></table></div>';
-    const trend=multiTrendChart(seasons,summary.tch);
-    c.innerHTML='<div class="hist-multi-summary-root hist-multi-stage-a"><div class="hist-multi-header"><div class="hist-multi-header-row"><div><h2>Análisis histórico multifinca</h2><small>Período activo: '+escH(periodLabel)+' · '+result.selection.length+' fincas · '+summary.selectedLotCount+' suertes elegibles</small></div><span class="hist-multi-badge">'+escH(coverage)+'</span></div><div class="hist-multi-stage-actions"><button class="btn btn-light btn-compact" type="button" onclick="focusHistoricoMultiSearch()">Agregar otra finca o suerte</button></div><div class="hist-multi-periods" role="group" aria-label="Período histórico">'+filters+'</div>'+custom+periodAlert+'</div>'+kpis+quality+'<h3>Comparación por finca</h3>'+farms+'<h3>Serie TCH del período</h3>'+trend+'<h3>Cobertura por zafra</h3>'+seasonTable+'</div>';
+    const quality='<details class="hist-multi-quality no-print"><summary>Detalle de calidad de datos</summary><div class="hist-multi-quality-body"><div>TCH: '+f2(tch.ton,' t')+' ÷ '+f2(tch.area,' ha')+'. KATM: '+f2(katm.numerator)+' ÷ '+f2(katm.ton,' t')+'. Edad: '+f2(age.numerator)+' meses·ha ÷ '+f2(age.area,' ha')+'.</div><div>Edad con dato: '+(age.pct==null?'N/D':f2(age.pct,' %'))+'. Zafras con registro: '+summary.zafrasWithData.length+' de '+(periodMode==='custom'?result.requestedCustomZafras.length:period.length)+'. Km vigente: '+f2(result.currentDistance.coveragePct,' % cobertura')+'.</div></div></details>';
+    const included='<div class="hist-multi-included"><strong>Selección incluida</strong>'+result.selection.map(f=>'<span>'+escH(f.farmCode+' · '+f.farmName)+' · '+(f.mode==='full'?'finca completa':f.lotIds.join(', '))+'</span>').join('')+'</div>';
+    const farmSections=result.farms.map(f=>{const farmRows=multiRows(result,f.farmCode),periodRows=engine.filterHistoricalRows(farmRows,null,period),open=!c.querySelector('.hist-multi-summary-root')||openFarms.has(f.farmCode);return '<details class="hist-multi-farm-report" data-farm-code="'+escH(f.farmCode)+'" data-lot-ids="'+escH(f.lotIds.join(', '))+'" '+(open?'open':'')+'><summary><strong>'+escH(f.farmCode+' · '+f.farmName)+'</strong><small>'+(f.mode==='full'?'Finca completa':'Selección parcial · '+f.lotIds.length+' suertes')+' · '+f2(f.tch)+' TCH · '+f2(f.katm)+' KATM</small></summary><div class="hist-multi-farm-body"><div class="hist-multi-report-block">'+multiKpis(f,f.currentDistance,one)+historicalChart({scopeRows:farmRows,selectedZafras:period},'historicalMultiChart'+escH(f.farmCode))+'</div><div class="hist-multi-report-block"><h3>Resumen de finca · por zafra</h3>'+multiSeasonTable(farmRows,period,f.currentDistance)+'</div><div class="hist-multi-report-block"><h3>Detalle por suerte · período seleccionado</h3>'+multiLotTable(periodRows)+'</div></div></details>';}).join('');
+    c.innerHTML='<div class="hist-multi-summary-root hist-multi-recovered"><div class="hist-multi-header"><div class="hist-multi-header-row"><div><h2>Histórico de Suertes · Selección multifinca</h2><small>Período '+escH(periodLabel)+' · '+result.selection.length+' fincas · '+summary.selectedLotCount+' suertes seleccionadas</small></div></div><div class="hist-multi-stage-actions no-print"><button class="btn btn-light btn-compact" type="button" onclick="focusHistoricoMultiSearch()">Modificar selección</button></div><div class="hist-multi-periods no-print" role="group" aria-label="Período histórico">'+filters+'</div>'+custom+periodAlert+'</div>'+included+'<section class="hist-multi-global hist-multi-report-block"><h3>Consolidado global</h3>'+multiKpis(summary,result.currentDistance,one)+historicalChart({scopeRows:rows,selectedZafras:period},'historicalMultiChartGlobal')+'<h3>Resultados globales por zafra</h3>'+multiSeasonTable(rows,period,result.currentDistance)+'</section><section class="hist-multi-comparison hist-multi-report-block"><h3>Comparación entre fincas</h3>'+multiComparisonChart(result,rows)+multiFarmTable(result)+'</section><section class="hist-multi-farms-analysis"><h3>Análisis por finca</h3>'+farmSections+'</section>'+quality+'<p class="hist-multi-method">TCH = toneladas válidas ÷ área correspondiente; KATM ponderado por toneladas. Km es referencia vigente del Cronológico SIAGRI.</p></div>';
+    requestAnimationFrame(()=>window.scrollTo({left:window.scrollX,top:scrollY,behavior:'instant'}));
     if(typeof showFichaEnd==='function')showFichaEnd(false);updateBar();if(typeof updateState==='function')updateState('Histórico de Suertes · Selección multifinca',periodLabel+' · '+f2(summary.tch)+' TCH');
   }
 
@@ -3515,6 +3571,8 @@ window.addEventListener('load',setupCrono);
   window.toggleHistoricoMultiSelection=toggleMode;
   window.toggleHistoricoSuerteSelection=toggleOne;
   window.renderHistoricoMultiSummary=renderMultiSummaryStageA;
+  window.focusHistoricoMultiFarm=focusFarm;
+  window.sortHistoricoMultiFarms=function(metric){if(metric==='tch'||metric==='katm'){farmSort=metric;renderMultiSummaryStageA();}};
   window.addHistoricoMultiFarm=addFarm;
   window.removeHistoricoMultiFarm=removeFarm;
   window.changeHistoricoMultiPeriod=changeMultiPeriod;
@@ -4400,6 +4458,9 @@ var RENDER_CSS=[
 '*{box-sizing:border-box;margin:0;padding:0}',
 'html,body{margin:0;padding:0;background:#fff;color:#132019;font-family:Arial,"Segoe UI",Helvetica,sans-serif;line-height:1.25}',
 '.casur-report{width:960px;background:#fff;padding:20px 22px;color:#132019}',
+'.casur-report-hist-multi{font-family:Arial,"Segoe UI",Helvetica,sans-serif!important;line-height:1.25!important}',
+'.casur-report-hist-multi .hist-multi-scroll-hint{display:none!important}',
+'.casur-report-hist-multi td small{display:block!important;color:#64748b!important}',
 '.casur-report *{box-sizing:border-box}',
 
 '.print-header{position:static!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(280px,44%)!important;align-items:start!important;gap:16px!important;min-height:0!important;margin:0 0 12px!important;padding:14px 16px!important;border:1px solid #c7dbd1!important;border-radius:14px!important;background:#f4f9f6!important;overflow:visible!important}',
@@ -4414,6 +4475,17 @@ var RENDER_CSS=[
 
 '.kpis{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;margin:0 0 10px!important}',
 '.casur-report-historico>.historical-agronomic-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}',
+'.casur-report-hist-multi .hist-multi-original-kpis{grid-template-columns:repeat(5,minmax(0,1fr))!important}',
+'.casur-report-hist-multi .hist-multi-included{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:6px!important;margin:0 0 11px!important;font-size:10px!important}',
+'.casur-report-hist-multi .hist-multi-included strong{color:#0b6031!important}',
+'.casur-report-hist-multi .hist-multi-included span{padding:5px 7px!important;border:1px solid #d8e7de!important;border-radius:8px!important;background:#f4faf6!important}',
+'.casur-report-hist-multi .hist-multi-report-block{display:block!important;margin:0 0 15px!important;padding:0 0 9px!important;border-bottom:1px solid #e2e9e4!important}',
+'.casur-report-hist-multi .hist-multi-report-block h3{margin:0 0 8px!important;color:#10241a!important;font-size:16px!important}',
+'.casur-report-hist-multi .hist-multi-farm-title{margin:0 0 10px!important;padding:8px 10px!important;border-radius:10px!important;background:#f4f9f6!important;color:#0b6031!important;font-size:16px!important}',
+'.casur-report-hist-multi .hist-multi-comparison-legend{display:flex!important;flex-wrap:wrap!important;gap:8px 15px!important}',
+'.casur-report-hist-multi .hist-multi-comparison-legend span{white-space:normal!important}',
+'.casur-report-hist-multi .hist-multi-comparison-legend i{opacity:1!important}',
+'.casur-report-hist-multi .hist-multi-method{display:block!important;margin:4px 0 8px!important;color:#64748b!important;font-size:10px!important}',
 '.casur-report-historico .historical-kpi-help{display:none!important}',
 '.kpi{position:static!important;display:block!important;min-width:0!important;min-height:72px!important;height:auto!important;margin:0!important;padding:10px 12px!important;border:1px solid #cfe5d7!important;border-left:5px solid #0b7f3a!important;border-radius:14px!important;background:#fff!important;overflow:hidden!important;box-shadow:none!important}',
 '.kpi.main{background:linear-gradient(145deg,#087c39,#075f2d)!important;color:#fff!important;border-color:#087c39!important;border-left-color:#ffd13b!important}',
@@ -4694,7 +4766,33 @@ function buildCronoMultiple(node){
   root.appendChild(footer());return root;
 }
 function buildGeneric(node){var c=cleanElement(node.cloneNode(true));c.classList.add('casur-report','generic-report');var old=q('.print-end',c);if(old)remove(old);c.appendChild(footer());return c;}
-function prepareClone(node,kind){if(kind==='historico')return buildHistorical(node);if(kind==='cronologico')return q('.single-suerte-layout',node)?buildCronoSingle(node):buildCronoGeneral(node);if(kind==='cronologico-multiple')return buildCronoMultiple(node);return buildGeneric(node);}
+function buildHistoricalMulti(node){
+  var root=document.createElement('section');root.className='casur-report casur-report-hist-multi';
+  var h=header(node,'Histórico de Suertes · Selección multifinca'),meta=q('.print-meta',h),period=q('.hist-multi-header small',node);
+  if(meta)meta.innerHTML='<strong>'+esc(subject('',node))+'</strong><span>'+esc(period?period.textContent.trim():'')+'</span><span>Consulta: '+esc(new Date().toLocaleString('es-NI'))+'</span>';
+  root.appendChild(h);
+  var included=clone('.hist-multi-included',node);if(included)root.appendChild(included);
+  function block(title,items){var section=document.createElement('section');section.className='hist-multi-report-block';section.setAttribute('data-pdf-break','');if(title){var heading=document.createElement('h3');heading.textContent=title;section.appendChild(heading);}items.forEach(function(item){if(item)section.appendChild(item);});root.appendChild(section);}
+  var global=q('.hist-multi-global',node);
+  block('Consolidado global',[clone('.hist-multi-original-kpis',global),cleanChart(clone('.historical-chart-card',global))]);
+  block('Resultados globales por zafra',[clone('.hist-multi-results-table',global)]);
+  var comparison=q('.hist-multi-comparison',node);
+  block('Comparación entre fincas',[cleanChart(clone('.hist-multi-comparison-chart',comparison))]);
+  block('Resultados por finca',[clone('.hist-multi-results-table',comparison)]);
+  qa('.hist-multi-farm-report',node).forEach(function(farm){
+    var label=q('summary strong',farm),name=label?label.textContent.trim():'Finca';
+    var selected=document.createElement('p');selected.className='hist-multi-method';selected.textContent='CodSuerte incluidos: '+farm.dataset.lotIds;
+    var parts=qa('.hist-multi-report-block',farm);
+    parts.forEach(function(part,i){
+      var copy=cleanElement(part.cloneNode(true));qa('.historical-chart-card',copy).forEach(cleanChart);
+      if(i===0)copy.prepend(selected);
+      block(i===0?name:null,[copy]);
+    });
+  });
+  var method=clone('.hist-multi-method',node);if(method)root.appendChild(method);
+  root.appendChild(footer());return root;
+}
+function prepareClone(node,kind){if(kind==='historico')return buildHistorical(node);if(kind==='historico-multiple')return buildHistoricalMulti(node);if(kind==='cronologico')return q('.single-suerte-layout',node)?buildCronoSingle(node):buildCronoGeneral(node);if(kind==='cronologico-multiple')return buildCronoMultiple(node);return buildGeneric(node);}
 
 function nextFrame(){return new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(r);});});}
 function imageFromSvg(svg){return new Promise(function(resolve,reject){var img=new Image();img.onload=function(){resolve(img);};img.onerror=function(){reject(new Error('El navegador no pudo renderizar el reporte.'));};img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);});}
@@ -4716,7 +4814,8 @@ async function renderCanvas(kind){
     var scale=Math.min(2,16000/width,16000/height);
     var canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
     var ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    return{canvas:canvas,node:node,width:width,height:height,clone:cloneNode};
+    var safeBreaks=kind==='historico-multiple'?qa('[data-pdf-break],.hist-multi-results-table tbody tr',cloneNode).map(function(el){return Math.ceil((el.getBoundingClientRect().bottom-reportRect.top+2)*scale);}).filter(function(y){return y>0&&y<canvas.height;}):[];
+    return{canvas:canvas,node:node,width:width,height:height,clone:cloneNode,safeBreaks:safeBreaks};
   }finally{remove(host);}
 }
 
@@ -4727,7 +4826,7 @@ function bytesFromBase64(v){var bin=atob(v),out=new Uint8Array(bin.length);for(v
 function concatBytes(parts){var total=0;parts.forEach(function(p){total+=p.length;});var out=new Uint8Array(total),pos=0;parts.forEach(function(p){out.set(p,pos);pos+=p.length;});return out;}
 function textBytes(v){return new TextEncoder().encode(v);}
 
-function pdfBlobFromCanvas(canvas,forceLandscape){
+function pdfBlobFromCanvas(canvas,forceLandscape,safeBreaks){
   var margin=18,pageW=forceLandscape?792:612,pageH=forceLandscape?612:792;
   var contentW=pageW-margin*2,contentH=pageH-margin*2,ratio=contentW/canvas.width;
   // El render SVG deja margen blanco al final; no crear una página vacía por ese sobrante.
@@ -4739,10 +4838,17 @@ function pdfBlobFromCanvas(canvas,forceLandscape){
       if(pixels[at]<245||pixels[at+1]<245||pixels[at+2]<245){effectiveHeight=y+1;break outer;}
     }}
   }catch(e){} // Si el navegador restringe lectura de píxeles, conservar el paginado anterior.
-  var sliceHeight=Math.max(1,Math.floor(contentH/ratio)),pageCount=Math.max(1,Math.ceil(effectiveHeight/sliceHeight));
+  var sliceHeight=Math.max(1,Math.floor(contentH/ratio)),slices=[],source=0;
+  var safe=Array.isArray(safeBreaks)?safeBreaks.filter(function(y){return Number.isFinite(y)&&y>0&&y<effectiveHeight;}).sort(function(a,b){return a-b;}):[];
+  while(source<effectiveHeight){
+    var end=Math.min(effectiveHeight,source+sliceHeight);
+    if(end<effectiveHeight){var options=safe.filter(function(y){return y>source+10&&y<=end-3;});if(options.length)end=options[options.length-1];}
+    slices.push({y:source,height:end-source});source=end;
+  }
+  var pageCount=slices.length;
   var images=[];
   for(var pageIndex=0;pageIndex<pageCount;pageIndex++){
-    var sourceY=pageIndex*sliceHeight,sourceH=Math.min(sliceHeight,effectiveHeight-sourceY);
+    var sourceY=slices[pageIndex].y,sourceH=slices[pageIndex].height;
     var slice=document.createElement('canvas');slice.width=canvas.width;slice.height=sourceH;
     var sliceCtx=slice.getContext('2d',{alpha:false});sliceCtx.fillStyle='#fff';sliceCtx.fillRect(0,0,slice.width,slice.height);sliceCtx.drawImage(canvas,0,sourceY,canvas.width,sourceH,0,0,canvas.width,sourceH);
     images.push({bytes:bytesFromBase64(slice.toDataURL('image/jpeg',.96).split(',')[1]),width:slice.width,height:slice.height});
@@ -4775,7 +4881,7 @@ async function runAction(kind,type,button){
     toast(type==='pdf'?'Generando PDF\u2026':'Generando imagen PNG\u2026',5000);
     var result=await renderCanvas(kind);var canvas=result.canvas;
     if(type==='image'){var blob=await canvasBlob(canvas,'image/png',1);downloadBlob(blob,filename(kind,node,'png'));toast('Imagen PNG descargada correctamente.');}
-    else{var blob2=pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico');downloadBlob(blob2,filename(kind,node,'pdf'));toast('PDF paginado descargado correctamente.');}
+    else{var blob2=pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico',result.safeBreaks);downloadBlob(blob2,filename(kind,node,'pdf'));toast('PDF paginado descargado correctamente.');}
   }catch(err){console.error(err);alert('No se pudo generar el reporte: '+(err.message||err));}
   finally{button.disabled=false;button.innerHTML=original;}
 }

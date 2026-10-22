@@ -226,7 +226,7 @@ test("Etapa A usa un solo motor y no atribuye el detalle de otra zafra", () => {
   assert.ok(!ui.includes("TAH estimado"));
   assert.match(ui, /historicalChart\(\{scopeRows:rows,selectedZafras:period\}/);
   assert.match(ui, /historicalChart\(\{scopeRows:farmRows,selectedZafras:period\}/);
-  assert.match(ui, /function multiComparisonChart\(result,rows,reportMetric\)/);
+  assert.match(ui, /function multiComparisonChart\(model,metric\)/);
   assert.match(ui, /function multiSeasonTable\(rows,zafras,distance\)/);
   assert.match(ui, /function multiLotTable\(rows\)/);
   assert.match(ui, /if\(catalog\(\)\.has\(first\)\)\{renderProducer\(first\);return;\}/);

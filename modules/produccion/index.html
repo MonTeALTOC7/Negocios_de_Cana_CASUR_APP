@@ -2409,8 +2409,8 @@ function hideHistoricalChartTooltip(point,force){
  const box=point.closest('.svgbox'),tip=box&&box.querySelector('.historical-chart-tooltip');if(!tip)return;
  point.classList.remove('is-active');tip.classList.remove('is-visible');tip.setAttribute('aria-hidden','true');
 }
-function historicalChart(context,chartId='historicalChartTooltip'){
- const metric=HISTORICAL_CHART_STATE.historicalChartMetric==='katm'?'katm':'tch';
+function historicalChart(context,chartId='historicalChartTooltip',reportMetric){
+ const metric=(reportMetric||HISTORICAL_CHART_STATE.historicalChartMetric)==='katm'?'katm':'tch';
  const model=HISTORICAL_ENGINE.buildHistoricalChartModel(context.scopeRows,context.selectedZafras,metric);
  if(!model.points.length)return '<div class="empty">Sin serie histórica.</div>';
  const metricLabel=metric==='katm'?'KATM':'TCH';
@@ -3494,8 +3494,8 @@ window.addEventListener('load',setupCrono);
     return '<div class="hist-multi-scroll-hint">Deslice para ver todas las columnas →</div><div class="table-wrap hist-multi-results-table hist-multi-lot-table"><table><thead><tr><th>Suerte</th><th>CodSuerte</th><th>Zafras</th><th>Área cosechada</th><th>Ton</th><th>TCH pond.</th><th>KATM pond.</th><th>Edad</th><th>Km actual</th><th class="no-print">Ficha</th></tr></thead><tbody>'+
       (lots.length?lots.map(lot=>'<tr><td><b>'+escH(lot.suerte||'—')+'</b></td><td>'+escH(lot.lotId)+'</td><td>'+f0(lot.zafras.length)+'</td><td>'+f2(lot.area,' ha-zafra')+'</td><td>'+f2(lot.ton,' t')+'</td><td>'+f2(lot.tch)+'</td><td>'+f2(lot.katm)+'</td><td>'+f2(lot.edad,' meses')+'</td><td>'+historicalDistanceHtml(engine.currentDistanceForLot(index,lot.lotId))+'</td><td class="no-print"><button class="historical-lot-open" type="button" onclick="viewHistoricoSuerte(\'LOTE::'+jsqH(lot.lotId)+'\')">Ver ficha</button></td></tr>').join(''):'<tr><td colspan="10">Sin registros en el período.</td></tr>')+'</tbody></table></div>';
   }
-  function multiComparisonChart(result,rows){
-    const metric=HISTORICAL_CHART_STATE.historicalChartMetric==='katm'?'katm':'tch',label=metric.toUpperCase(),seasons=result.selectedZafras;
+  function multiComparisonChart(result,rows,reportMetric){
+    const metric=(reportMetric||HISTORICAL_CHART_STATE.historicalChartMetric)==='katm'?'katm':'tch',label=metric.toUpperCase(),seasons=result.selectedZafras;
     if(!seasons.length)return '<div class="empty">Seleccione zafras con registros para comparar.</div>';
     const colors=['#0b7f3a','#005baa','#b45309','#7c3aed','#b42346','#0f766e'];
     const series=result.farms.map((farm,i)=>({farm,color:colors[i%colors.length],points:new Map(engine.groupHistoricalBySeason(engine.filterHistoricalRows(rows,{farmCode:farm.farmCode,lotIds:farm.lotIds},seasons)).map(s=>[s.zafra,s[metric]]))}));
@@ -3503,7 +3503,12 @@ window.addEventListener('load',setupCrono);
     if(!values.length)return '<div class="empty">Sin '+label+' comparable para el período.</div>';
     const W=720,H=260,L=48,R=22,T=30,B=42,min=Math.min(...values),max=Math.max(...values),span=Math.max(max-min,1),low=min-span*.14,high=max+span*.14;
     const x=i=>seasons.length===1?W/2:L+i*(W-L-R)/(seasons.length-1),y=v=>H-B-(v-low)/(high-low)*(H-T-B);
-    const paths=series.map(s=>{let path='',drawing=false;seasons.forEach((z,i)=>{const value=s.points.get(z);if(value==null){drawing=false;return;}path+=(drawing?' L':' M')+x(i).toFixed(1)+' '+y(value).toFixed(1);drawing=true;});return '<path d="'+path.trim()+'" fill="none" stroke="'+s.color+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'+seasons.map((z,i)=>{const value=s.points.get(z);return value==null?'':'<circle cx="'+x(i).toFixed(1)+'" cy="'+y(value).toFixed(1)+'" r="5" fill="'+s.color+'" stroke="#fff" stroke-width="2"><title>'+escH(s.farm.farmCode+' · '+s.farm.farmName+' · '+zlabel(z)+' · '+f2(value)+' '+label)+'</title></circle>';}).join('');}).join('');
+    const paths=series.map(s=>{let path='',drawing=false;seasons.forEach((z,i)=>{const value=s.points.get(z);if(value==null){drawing=false;return;}path+=(drawing?' L':' M')+x(i).toFixed(1)+' '+y(value).toFixed(1);drawing=true;});return '<path d="'+path.trim()+'" fill="none" stroke="'+s.color+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'+seasons.map((z,i)=>{
+      const value=s.points.get(z);if(value==null)return '';
+      const rank=series.filter(other=>other.points.get(z)!=null).sort((a,b)=>b.points.get(z)-a.points.get(z)).indexOf(s);
+      const labelY=Math.max(12,Math.min(H-B-3,y(value)+(rank%2?18:-11)));
+      return '<circle cx="'+x(i).toFixed(1)+'" cy="'+y(value).toFixed(1)+'" r="5" fill="'+s.color+'" stroke="#fff" stroke-width="2"><title>'+escH(s.farm.farmCode+' · '+s.farm.farmName+' · '+zlabel(z)+' · '+f2(value)+' '+label)+'</title></circle>'+(reportMetric?'<text class="pdf-comparison-value" x="'+(x(i)+(i===0?8:0)).toFixed(1)+'" y="'+labelY.toFixed(1)+'" text-anchor="'+(i===0?'start':'middle')+'" fill="'+s.color+'" stroke="white" stroke-width="3" paint-order="stroke" font-size="11" font-weight="800">'+f2(value)+'</text>':'');
+    }).join('');}).join('');
     const ticks=seasons.map((z,i)=>'<text class="labeltxt" x="'+x(i).toFixed(1)+'" y="'+(H-12)+'" text-anchor="middle">'+escH(zlabel(z))+'</text>').join('');
     const legend=series.map(s=>'<span><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="'+s.color+'"/></svg>'+escH(s.farm.farmCode+' · '+s.farm.farmName)+'</span>').join('');
     return '<div class="historical-chart-card hist-multi-comparison-chart"><div class="historical-chart-head"><div><h3>Comparación '+label+' por finca</h3><small>Una línea por finca; cada punto utiliza sus suertes incluidas.</small></div></div><div class="svgbox"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Comparación '+label+' de las fincas seleccionadas"><line class="axis" x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'"/><line class="axis" x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(H-B)+'"/><text class="historical-chart-axis-value" x="'+(L-7)+'" y="'+(T+4)+'" text-anchor="end">'+f2(high)+'</text><text class="historical-chart-axis-value" x="'+(L-7)+'" y="'+(H-B)+'" text-anchor="end">'+f2(low)+'</text>'+paths+ticks+'</svg></div><div class="historical-chart-legend hist-multi-comparison-legend">'+legend+'</div></div>';
@@ -3578,6 +3583,12 @@ window.addEventListener('load',setupCrono);
   window.changeHistoricoMultiPeriod=changeMultiPeriod;
   window.toggleHistoricoMultiZafra=toggleMultiZafra;
   window.getHistoricoMultiAnalysis=multiAnalysis;
+  // Export-only composition: same rows, selection and chart renderers; never changes live metric state.
+  window.historicoMultiReportCharts=function(){
+    const result=multiAnalysis(),rows=multiRows(result);
+    const pair=(scope,id)=>['tch','katm'].map(metric=>historicalChart({scopeRows:scope,selectedZafras:result.selectedZafras},id+metric,metric));
+    return {result,global:pair(rows,'pdfGlobal'),comparison:['tch','katm'].map(metric=>multiComparisonChart(result,rows,metric)),farms:new Map(result.farms.map(f=>[f.farmCode,pair(multiRows(result,f.farmCode),'pdf'+f.farmCode)]))};
+  };
   window.renderHistoricoProducerSelection=renderProducer;
   window.selectAllVisibleHistoricoRows=function(){selectVisible(true);};
   window.unselectAllVisibleHistoricoRows=function(){selectVisible(false);};
@@ -4461,6 +4472,9 @@ var RENDER_CSS=[
 '.casur-report-hist-multi{font-family:Arial,"Segoe UI",Helvetica,sans-serif!important;line-height:1.25!important}',
 '.casur-report-hist-multi .hist-multi-scroll-hint{display:none!important}',
 '.casur-report-hist-multi td small{display:block!important;color:#64748b!important}',
+'.casur-report.casur-report-executive .hist-multi-report-block{margin-bottom:10px!important;padding-bottom:5px!important}',
+'.casur-report-executive .svgbox svg{height:195px!important;max-height:195px!important}',
+'.casur-report-executive .svgbox{min-height:0!important}',
 '.casur-report *{box-sizing:border-box}',
 
 '.print-header{position:static!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(280px,44%)!important;align-items:start!important;gap:16px!important;min-height:0!important;margin:0 0 12px!important;padding:14px 16px!important;border:1px solid #c7dbd1!important;border-radius:14px!important;background:#f4f9f6!important;overflow:visible!important}',
@@ -4792,14 +4806,56 @@ function buildHistoricalMulti(node){
   var method=clone('.hist-multi-method',node);if(method)root.appendChild(method);
   root.appendChild(footer());return root;
 }
-function prepareClone(node,kind){if(kind==='historico')return buildHistorical(node);if(kind==='historico-multiple')return buildHistoricalMulti(node);if(kind==='cronologico')return q('.single-suerte-layout',node)?buildCronoSingle(node):buildCronoGeneral(node);if(kind==='cronologico-multiple')return buildCronoMultiple(node);return buildGeneric(node);}
+function buildHistoricalExecutive(node,includeAnnexes){
+  var report=window.historicoMultiReportCharts(),root=document.createElement('section');
+  root.className='casur-report casur-report-hist-multi casur-report-executive';
+  var h=header(node,'Informe Ejecutivo · Histórico de Producción');
+  q('h2',h).textContent='Informe Ejecutivo · Histórico de Producción';
+  q('p',h).textContent='Selección multifinca';
+  q('.print-meta',h).innerHTML='<strong>Período '+esc(report.result.selectedZafras.map(zlabelJS).join(' · ')||'sin registros')+'</strong><span>Consulta: '+esc(new Date().toLocaleString('es-NI'))+'</span>';
+  root.appendChild(h);
+  var included=clone('.hist-multi-included',node);if(included)root.appendChild(included);
+  function block(title,items,newPage){
+    var section=document.createElement('section');section.className='hist-multi-report-block';section.setAttribute('data-pdf-break','');
+    if(newPage)section.setAttribute('data-pdf-new-page','');
+    if(title){var heading=document.createElement('h3');heading.textContent=title;section.appendChild(heading);}
+    items.forEach(function(item){if(item)section.appendChild(item);});root.appendChild(section);return section;
+  }
+  function chart(html){var holder=document.createElement('div');holder.innerHTML=html;var c=cleanChart(cleanElement(holder.firstElementChild));qa('.historical-chart-head small',c).forEach(remove);return c;}
+  function kpis(scope){
+    var cards=clone('.hist-multi-original-kpis',scope);if(!cards)return null;
+    var area=q('.historical-kpi-area',cards);if(area){cards.prepend(area);q('.label',area).textContent=report.result.selectedZafras.length===1?'Área cosechada':'Área cosechada por zafra';}
+    return cards;
+  }
+  function table(scope,columns,labels){
+    var copy=clone('.hist-multi-results-table',scope);if(!copy)return null;
+    qa('tr',copy).forEach(function(row){var cells=Array.from(row.children);if(cells.length===1&&cells[0].colSpan>1){cells[0].colSpan=columns.length;return;}row.replaceChildren(...columns.map(function(i){return cells[i];}).filter(Boolean));});
+    qa('thead th',copy).forEach(function(th,i){th.textContent=labels[i];});return copy;
+  }
+  var global=q('.hist-multi-global',node),comparison=q('.hist-multi-comparison',node);
+  block('Consolidado global',[kpis(global),chart(report.global[0])]);
+  block(null,[chart(report.global[1])]);
+  block('Resultados globales por zafra',[table(global,[0,1,2,3,4],['Zafra','Área cosechada','Toneladas','TCH pond.','KATM pond.'])]);
+  block('Resultados por finca',[table(comparison,[0,2,6,3,4],['Finca',report.result.selectedZafras.length===1?'Área cosechada':'Área por zafra','Toneladas','TCH pond.','KATM pond.'])]);
+  block('Comparación entre fincas',[chart(report.comparison[0])],true);
+  block(null,[chart(report.comparison[1])]);
+  if(includeAnnexes)qa('.hist-multi-farm-report',node).forEach(function(farm){
+    var name=q('summary strong',farm).textContent.trim(),charts=report.farms.get(farm.dataset.farmCode);
+    var selected=document.createElement('p');selected.className='hist-multi-method';selected.textContent='CodSuerte incluidos: '+farm.dataset.lotIds;
+    block('Anexo · '+name,[selected,kpis(farm),chart(charts[0])],true);
+    block(null,[chart(charts[1])]);
+    qa('.hist-multi-report-block',farm).slice(1).forEach(function(part){var copy=cleanElement(part.cloneNode(true));copy.setAttribute('data-pdf-break','');root.appendChild(copy);});
+  });
+  root.appendChild(footer());return root;
+}
+function prepareClone(node,kind,variant){if(kind==='historico')return buildHistorical(node);if(kind==='historico-multiple')return variant?buildHistoricalExecutive(node,variant==='complete'):buildHistoricalMulti(node);if(kind==='cronologico')return q('.single-suerte-layout',node)?buildCronoSingle(node):buildCronoGeneral(node);if(kind==='cronologico-multiple')return buildCronoMultiple(node);return buildGeneric(node);}
 
 function nextFrame(){return new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(r);});});}
 function imageFromSvg(svg){return new Promise(function(resolve,reject){var img=new Image();img.onload=function(){resolve(img);};img.onerror=function(){reject(new Error('El navegador no pudo renderizar el reporte.'));};img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);});}
 
-async function renderCanvas(kind){
+async function renderCanvas(kind,variant){
   var node=target(kind);if(!node)throw new Error('Abra primero la ficha o el resumen que desea exportar.');
-  var cloneNode=prepareClone(node,kind);
+  var cloneNode=prepareClone(node,kind,variant);
   var width=kind==='cronologico-multiple'?1600:(cloneNode.classList.contains('casur-report-crono-general')?1400:960);
   var host=document.createElement('div');host.className='casur-capture-host';host.style.width=width+'px';
   var liveStyle=document.createElement('style');liveStyle.textContent=RENDER_CSS;host.appendChild(liveStyle);host.appendChild(cloneNode);document.body.appendChild(host);
@@ -4815,7 +4871,8 @@ async function renderCanvas(kind){
     var canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
     var ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
     var safeBreaks=kind==='historico-multiple'?qa('[data-pdf-break],.hist-multi-results-table tbody tr',cloneNode).map(function(el){return Math.ceil((el.getBoundingClientRect().bottom-reportRect.top+2)*scale);}).filter(function(y){return y>0&&y<canvas.height;}):[];
-    return{canvas:canvas,node:node,width:width,height:height,clone:cloneNode,safeBreaks:safeBreaks};
+    var forcedBreaks=qa('[data-pdf-new-page]',cloneNode).map(function(el){return Math.floor((el.getBoundingClientRect().top-reportRect.top-5)*scale);}).filter(function(y){return y>0&&y<canvas.height;});
+    return{canvas:canvas,node:node,width:width,height:height,clone:cloneNode,safeBreaks:safeBreaks,forcedBreaks:forcedBreaks};
   }finally{remove(host);}
 }
 
@@ -4826,7 +4883,7 @@ function bytesFromBase64(v){var bin=atob(v),out=new Uint8Array(bin.length);for(v
 function concatBytes(parts){var total=0;parts.forEach(function(p){total+=p.length;});var out=new Uint8Array(total),pos=0;parts.forEach(function(p){out.set(p,pos);pos+=p.length;});return out;}
 function textBytes(v){return new TextEncoder().encode(v);}
 
-function pdfBlobFromCanvas(canvas,forceLandscape,safeBreaks){
+function pdfBlobFromCanvas(canvas,forceLandscape,safeBreaks,forcedBreaks){
   var margin=18,pageW=forceLandscape?792:612,pageH=forceLandscape?612:792;
   var contentW=pageW-margin*2,contentH=pageH-margin*2,ratio=contentW/canvas.width;
   // El render SVG deja margen blanco al final; no crear una página vacía por ese sobrante.
@@ -4840,9 +4897,12 @@ function pdfBlobFromCanvas(canvas,forceLandscape,safeBreaks){
   }catch(e){} // Si el navegador restringe lectura de píxeles, conservar el paginado anterior.
   var sliceHeight=Math.max(1,Math.floor(contentH/ratio)),slices=[],source=0;
   var safe=Array.isArray(safeBreaks)?safeBreaks.filter(function(y){return Number.isFinite(y)&&y>0&&y<effectiveHeight;}).sort(function(a,b){return a-b;}):[];
+  var forced=Array.isArray(forcedBreaks)?forcedBreaks.filter(function(y){return Number.isFinite(y)&&y>0&&y<effectiveHeight;}).sort(function(a,b){return a-b;}):[];
   while(source<effectiveHeight){
     var end=Math.min(effectiveHeight,source+sliceHeight);
-    if(end<effectiveHeight){var options=safe.filter(function(y){return y>source+10&&y<=end-3;});if(options.length)end=options[options.length-1];}
+    var mandatory=forced.find(function(y){return y>source&&y<=end;});
+    if(mandatory!=null)end=mandatory;
+    else if(end<effectiveHeight){var options=safe.filter(function(y){return y>source+10&&y<=end-3;});if(options.length)end=options[options.length-1];}
     slices.push({y:source,height:end-source});source=end;
   }
   var pageCount=slices.length;
@@ -4873,22 +4933,22 @@ function pdfBlobFromCanvas(canvas,forceLandscape,safeBreaks){
   return new Blob([concatBytes(parts)],{type:'application/pdf'});
 }
 
-async function runAction(kind,type,button){
+async function runAction(kind,type,button,variant){
   var node=target(kind);if(!node){alert('Abra primero la ficha o el resumen que desea exportar.');return;}
   var original=button.innerHTML;button.disabled=true;
   button.innerHTML='<span class="spinner"></span><span class="copy"><b>Procesando</b><small>un momento\u2026</small></span>';
   try{
     toast(type==='pdf'?'Generando PDF\u2026':'Generando imagen PNG\u2026',5000);
-    var result=await renderCanvas(kind);var canvas=result.canvas;
+    var result=await renderCanvas(kind,variant);var canvas=result.canvas;
     if(type==='image'){var blob=await canvasBlob(canvas,'image/png',1);downloadBlob(blob,filename(kind,node,'png'));toast('Imagen PNG descargada correctamente.');}
-    else{var blob2=pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico',result.safeBreaks);downloadBlob(blob2,filename(kind,node,'pdf'));toast('PDF paginado descargado correctamente.');}
+    else{var blob2=pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico',result.safeBreaks,result.forcedBreaks);var name=filename(kind,node,'pdf');if(variant)name=name.replace(/\.pdf$/i,variant==='complete'?'_Completo.pdf':'_Ejecutivo.pdf');downloadBlob(blob2,name);toast('PDF paginado descargado correctamente.');}
   }catch(err){console.error(err);alert('No se pudo generar el reporte: '+(err.message||err));}
   finally{button.disabled=false;button.innerHTML=original;}
 }
 
 var icons={pdf:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v5h5"/><path d="M8 16h2a2 2 0 0 0 0-4H8v6m5 0v-6h2.5M13 15h2"/></svg>',image:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 15-5-5L5 20"/></svg>'};
-function button(kind,type,label,small){var b=document.createElement('button');b.type='button';b.className='casur-visual-action '+type;b.innerHTML='<span class="ico">'+icons[type]+'</span><span class="copy"><b>'+label+'</b><small>'+small+'</small></span>';b.addEventListener('click',function(){runAction(kind,type,b);});return b;}
-function group(kind){var g=document.createElement('div');g.className='casur-visual-actions no-print';g.setAttribute('data-casur-export-kind',kind);g.append(button(kind,'pdf','Descargar PDF','formato paginado legible'),button(kind,'image','Descargar imagen','PNG alta calidad'));return g;}
+function button(kind,type,label,small,variant){var b=document.createElement('button');b.type='button';b.className='casur-visual-action '+type;if(variant)b.dataset.pdfVariant=variant;b.innerHTML='<span class="ico">'+icons[type]+'</span><span class="copy"><b>'+label+'</b><small>'+small+'</small></span>';b.addEventListener('click',function(){runAction(kind,type,b,variant);});return b;}
+function group(kind){var g=document.createElement('div');g.className='casur-visual-actions no-print';g.setAttribute('data-casur-export-kind',kind);if(kind==='historico-multiple')g.append(button(kind,'pdf','PDF ejecutivo','sin anexos','executive'),button(kind,'pdf','PDF completo','con anexos por finca','complete'));else g.append(button(kind,'pdf','Descargar PDF','formato paginado legible'));g.append(button(kind,'image','Descargar imagen','PNG alta calidad'));return g;}
 
 function decorate(){
   qa('#printPanel .ficha-print-btn,#cronoPrintPanel .ficha-print-btn,#cronoPrintPanelPrint .ficha-print-btn').forEach(function(old){var panel=old.closest('#cronoPrintPanel,#cronoPrintPanelPrint')?'cronologico':'historico';var parent=old.parentElement;if(!parent)return;var existing=q('.casur-visual-actions',parent);if(existing){remove(old);return;}old.replaceWith(group(panel));});

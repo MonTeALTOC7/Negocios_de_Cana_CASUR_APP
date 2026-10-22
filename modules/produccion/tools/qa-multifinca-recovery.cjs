@@ -26,7 +26,7 @@ async function snapshot(page, name) {
 
 async function download(page, kind, name, host=page) {
   const promise = host.waitForEvent('download', { timeout: 90000 });
-  await page.locator(`[data-casur-export-kind="${kind}"] .${name.endsWith('.png')?'image':'pdf'}`).click();
+  await page.locator(`[data-casur-export-kind="${kind}"] .${name.endsWith('.png')?'image':'pdf'}`).first().click();
   const file = await promise;
   const location = path.join(out, name);
   await file.saveAs(location);

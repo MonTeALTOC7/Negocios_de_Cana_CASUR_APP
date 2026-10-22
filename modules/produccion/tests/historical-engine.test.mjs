@@ -226,7 +226,7 @@ test("Etapa A usa un solo motor y no atribuye el detalle de otra zafra", () => {
   assert.ok(!ui.includes("TAH estimado"));
   assert.match(ui, /historicalChart\(\{scopeRows:rows,selectedZafras:period\}/);
   assert.match(ui, /historicalChart\(\{scopeRows:farmRows,selectedZafras:period\}/);
-  assert.match(ui, /function multiComparisonChart\(result,rows\)/);
+  assert.match(ui, /function multiComparisonChart\(result,rows,reportMetric\)/);
   assert.match(ui, /function multiSeasonTable\(rows,zafras,distance\)/);
   assert.match(ui, /function multiLotTable\(rows\)/);
   assert.match(ui, /if\(catalog\(\)\.has\(first\)\)\{renderProducer\(first\);return;\}/);
@@ -570,7 +570,7 @@ test("CAP1 conserva seis KPI junto al gráfico TCH legible y sin tarjeta princip
   assert.ok(index.includes(".casur-report-crono .table-wrap table{width:100%!important;table-layout:fixed!important"));
   assert.ok(index.includes(".casur-report-crono .table-wrap th,.casur-report-crono .table-wrap td{padding:4px 3px!important;white-space:normal!important"));
   assert.ok(index.includes(".casur-report-crono-general .table-wrap th,.casur-report-crono-general .table-wrap td{padding:4px 5px!important"));
-  assert.ok(index.includes("pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico',result.safeBreaks)"));
+  assert.ok(index.includes("pdfBlobFromCanvas(canvas,result.width>=1200||kind==='cronologico',result.safeBreaks,result.forcedBreaks)"));
 });
 
 test("CAP3 recupera la jerarquía estable de ocho KPI históricos", () => {
@@ -657,6 +657,26 @@ test("PDF multifinca corta en límites aprobados y no omite filas entre páginas
   const pdf = vm.runInContext('pdfBlobFromCanvas(canvas,false,[110,220,330])',context);
   assert.match(await pdf.text(), /\/Count 4\b/);
   assert.deepEqual(draws,[{start:0,height:110},{start:110,height:110},{start:220,height:110},{start:330,height:70}]);
+});
+
+test("PDF ejecutivo respeta saltos de sección obligatorios sin omitir contenido ni añadir páginas vacías", async () => {
+  const start=index.indexOf('function bytesFromBase64'),end=index.indexOf('async function runAction',start),draws=[];
+  const pixels=new Uint8ClampedArray(100*400*4).fill(255);pixels[399*100*4]=0;
+  const canvas={width:100,height:400,getContext:()=>({getImageData:()=>({data:pixels})})};
+  const context=vm.createContext({canvas,atob,Blob,TextEncoder,Uint8Array,document:{createElement:()=>({getContext:()=>({fillRect(){},drawImage(...a){draws.push([a[2],a[4]]);}}),toDataURL:()=> 'data:image/jpeg;base64,AA=='})}});
+  vm.runInContext(index.slice(start,end),context);
+  const pdf=vm.runInContext('pdfBlobFromCanvas(canvas,false,[110,220,330],[90,240,400])',context);
+  assert.match(await pdf.text(),/\/Count 5\b/);
+  assert.deepEqual(draws,[[0,90],[90,20],[110,130],[240,90],[330,70]]);
+});
+
+test("variantes PDF multifinca son optativas y no cambian la métrica activa ni el PNG", () => {
+  assert.match(index,/variant\?buildHistoricalExecutive\(node,variant==='complete'\):buildHistoricalMulti\(node\)/);
+  const composition=index.slice(index.indexOf('window.historicoMultiReportCharts='),index.indexOf('window.historicoMultiReportCharts=')+850);
+  assert.match(composition,/\['tch','katm'\]/);
+  assert.equal(composition.includes('historicalChartMetric='),false);
+  assert.match(index,/PDF ejecutivo/);assert.match(index,/PDF completo/);
+  assert.match(index,/if\(includeAnnexes\)/);
 });
 
 test("la ficha multifinca restringe la serie y los detalles a identidades seleccionadas", () => {

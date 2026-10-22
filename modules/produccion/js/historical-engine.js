@@ -243,6 +243,85 @@
       .map(([zafra, values]) => ({ zafra, ...aggregateHistoricalRows(values) }));
   }
 
+  // `distancia` is the official SIAGRI Cronológico `Km` field. Its data build
+  // maps a blank Km to 0, so 0 cannot be certified as an observed distance.
+  function buildCurrentDistanceIndex(producers) {
+    const index = new Map();
+    (Array.isArray(producers) ? producers : []).forEach((producer) => {
+      (Array.isArray(producer?.details) ? producer.details : []).forEach((lot) => {
+        const lotId = text(lot?.codLote);
+        if (!lotId) return;
+        if (index.has(lotId)) {
+          index.set(lotId, { km: null, reason: `Correspondencia ambigua: ${lotId}` });
+          return;
+        }
+        const km = finite(lot?.distancia);
+        index.set(lotId, km !== null && km > 0
+          ? { km, reason: null }
+          : { km: null, reason: `Km no acreditado: ${lotId}` });
+      });
+    });
+    return index;
+  }
+
+  function currentDistanceForLot(index, lotId) {
+    const id = text(lotId);
+    if (!id) return { km: null, reason: "CodSuerte histórico ausente" };
+    return index?.get(id) || { km: null, reason: `Sin correspondencia vigente: ${id}` };
+  }
+
+  // La referencia de finca procede solo del Cronológico vigente. Las zafras
+  // históricas nunca participan en el denominador ni en la cobertura.
+  function calculateCurrentFarmWeightedKm(producers, farmCode) {
+    const code = text(farmCode);
+    const matches = (Array.isArray(producers) ? producers : []).filter((producer) => text(producer?.code) === code);
+    const empty = { kmWeighted: null, areaTotal: 0, areaCovered: 0, coveragePct: 0,
+      lotCount: 0, lotCountWithKm: 0, status: "unavailable", reason: "Sin finca vigente en Cronológico SIAGRI" };
+    if (!code || !matches.length) return empty;
+    if (matches.length !== 1) return { ...empty, reason: `Finca vigente ambigua: ${code}` };
+    const lots = Array.isArray(matches[0].details) ? matches[0].details : [];
+    const grouped = new Map();
+    const seenIds = new Set();
+    let invalidArea = 0;
+    for (const lot of lots) {
+      const id = text(lot?.codLote);
+      const repeated = !!id && seenIds.has(id);
+      if (id) seenIds.add(id);
+      const area = finite(lot?.area);
+      if (area === null || area <= 0) {
+        invalidArea++;
+        if (grouped.has(id)) grouped.get(id).ambiguous = true;
+        continue;
+      }
+      const key = id || `__sin_id_${grouped.size}`;
+      if (!grouped.has(key)) grouped.set(key, { lot, area, ambiguous: !id || repeated });
+      else grouped.get(key).ambiguous = true;
+    }
+    let areaTotal = 0, areaCovered = 0, numerator = 0, lotCountWithKm = 0, ambiguous = 0, missingKm = 0;
+    for (const entry of grouped.values()) {
+      areaTotal += entry.area; // Nunca contar dos veces una identidad duplicada.
+      if (entry.ambiguous) { ambiguous++; continue; }
+      const km = finite(entry.lot.distancia);
+      if (km === null || km <= 0) { missingKm++; continue; }
+      numerator += km * entry.area;
+      areaCovered += entry.area;
+      lotCountWithKm++;
+    }
+    const incidents = [
+      ambiguous && `${ambiguous} identidad(es) ambigua(s)`,
+      missingKm && `${missingKm} Km no acreditado(s)`,
+      invalidArea && `${invalidArea} área(s) inválida(s) excluida(s)`,
+    ].filter(Boolean);
+    const coveragePct = areaTotal > 0 ? round(areaCovered / areaTotal * 100) : 0;
+    const status = areaCovered <= 0 ? "unavailable" : incidents.length || areaCovered < areaTotal ? "partial" : "complete";
+    return {
+      kmWeighted: areaCovered > 0 ? round(numerator / areaCovered) : null,
+      areaTotal: round(areaTotal), areaCovered: round(areaCovered), coveragePct,
+      lotCount: grouped.size, lotCountWithKm, status,
+      reason: incidents.length ? incidents.join(" · ") : areaTotal <= 0 ? "Sin suertes vigentes con área válida" : null,
+    };
+  }
+
   function buildHistoricalAgronomicKpis(rows, selectedZafras) {
     const list = Array.isArray(rows) ? rows : [];
     const availableZafras = groupHistoricalBySeason(list).map((season) => season.zafra);
@@ -255,6 +334,14 @@
     const period = aggregateHistoricalRows(periodRows);
     const full = aggregateHistoricalRows(list);
     const seasons = groupHistoricalBySeason(periodRows);
+    const hasCompleteArea = periodRows.length > 0 && periodRows.every((row) => {
+      const area = finite(row?.area);
+      return area !== null && area > 0;
+    });
+    const area = hasCompleteArea ? period.area : null;
+    const areaAverage = hasCompleteArea && seasons.length > 0
+      ? round(period.area / seasons.length)
+      : null;
     const first = seasons[0] || null;
     const last = seasons[seasons.length - 1] || null;
     const canCompare = seasons.length > 1 && first?.tch !== null && last?.tch !== null;
@@ -265,6 +352,8 @@
       : null;
 
     return {
+      area,
+      areaAverage,
       tch: period.tch,
       katm: period.katm,
       edad: period.edad,
@@ -353,6 +442,9 @@
     compareHistoricalRows,
     buildHistoricalChartModel,
     groupHistoricalBySeason,
+    buildCurrentDistanceIndex,
+    currentDistanceForLot,
+    calculateCurrentFarmWeightedKm,
     buildHistoricalAgronomicKpis,
     groupHistoricalByLot,
     buildHistoricalDrilldownModel,

@@ -2,6 +2,12 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.3.2] — 2026-10-20 · área histórica y Km vigente de finca
+- Histórico muestra área cosechada por zafra o promedio multizafra, con hectáreas-zafra acumuladas como dato secundario.
+- Cronológico e Histórico comparten el ponderado de `Km` oficial SIAGRI por área vigente de las suertes de la finca; en Histórico es una referencia actual, independiente de las zafras seleccionadas.
+- La cobertura parcial de Km se declara explícitamente y las suertes solo históricas no reducen la cobertura vigente.
+- Se renueva la generación de caché del shell; GEO r2, LKG de Producción e IndexedDB se conservan. Maestro VF54.8 y TCH 2.8.0 no cambian.
+
 ## [1.3.1] — 2026-10-13 · actualización de caché GEO/Producción
 - La App Maestra renueva el shell para distribuir los cambios de identificación de Suerte/CodSuerte en Producción y la etiqueta contextual del visor GEO.
 - El visor GEO compartido permanece incluido en el shell offline; GEO r2, la caché LKG de Producción e IndexedDB conservan su almacenamiento independiente.

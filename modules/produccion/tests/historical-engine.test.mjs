@@ -92,6 +92,9 @@ test("Maquila y universo principal no se mezclan en una selección", () => {
   const principal = { "100": { mode: "full" } };
   assert.throws(() => updateHistoricalMultiSelection(principal, { type: "addFarm", farmCode: "300" }, catalog), /Maquila/);
   assert.throws(() => resolveHistoricalMultiSelection({ ...principal, "300": { mode: "full" } }, catalog), /Maquila/);
+  assert.throws(() => historicalMultiCatalog([
+    multiLots[0], { ...multiLots[1], isMaquila: true },
+  ]), /mezcla suertes de Maquila y producción principal/);
 });
 
 test("multifinca pondera TCH por toneladas/área y KATM solo por toneladas con dato", () => {
@@ -108,8 +111,26 @@ test("multifinca pondera TCH por toneladas/área y KATM solo por toneladas con d
   assert.equal(all.consolidated.areaAccumulated, 60);
   assert.equal(all.consolidated.areaAverage, 30);
   assert.equal(all.farms.find((farm) => farm.farmCode === "200").areaAverage, 5);
+  assert.equal(all.farms.find((farm) => farm.farmCode === "200").areaAverageObserved, 10);
   assert.equal(all.farms.find((farm) => farm.farmCode === "200").zafrasWithData.length, 1);
   assert.equal(all.consolidated.missingLotSeasons, 2);
+});
+
+test("personalizado conserva solicitudes y nunca sustituye silencio por Última al cambiar alcance", () => {
+  const only200 = { "200": { mode: "full" } };
+  const partial = buildHistoricalMultiAnalysis(multiRows, only200, multiCatalog, "custom", [2021, 2022]);
+  assert.deepEqual(partial.requestedCustomZafras, [2021, 2022]);
+  assert.deepEqual(partial.selectedZafras, [2021]);
+  assert.deepEqual(partial.unavailableCustomZafras, [2022]);
+  assert.equal(partial.periodStatus, "partial");
+  const none = buildHistoricalMultiAnalysis(multiRows, only200, multiCatalog, "custom", [2022]);
+  assert.deepEqual(none.selectedZafras, []);
+  assert.equal(none.periodStatus, "no-data");
+  assert.equal(none.consolidated.area, null);
+  const restored = buildHistoricalMultiAnalysis(multiRows, { "100": { mode: "partial", lotIds: ["10001"] } }, multiCatalog, "custom", [2022]);
+  assert.deepEqual(restored.selectedZafras, [2022]);
+  assert.equal(restored.periodStatus, "ready");
+  assert.deepEqual(buildHistoricalMultiAnalysis(multiRows, only200, multiCatalog, "custom", []).selectedZafras, []);
 });
 
 test("periodos de 3, 5 y personalizado no contiguo comparten la misma selección", () => {
@@ -136,6 +157,9 @@ test("ausencia de zafra, área o toneladas nunca se convierte en cero acreditado
   assert.equal(incomplete.consolidated.tch, null);
   assert.equal(incomplete.consolidated.katm, null);
   assert.equal(incomplete.consolidated.missingTonRows, 1);
+  assert.equal(incomplete.consolidated.metricCoverage.tch.pct, null);
+  assert.equal(incomplete.consolidated.metricCoverage.katm.pct, null);
+  assert.equal(incomplete.consolidated.metricCoverage.edad.pct, null);
 });
 
 test("Km actual pondera áreas vigentes de la selección y no cambia con zafras", () => {
@@ -163,11 +187,19 @@ test("caso oficial Dolores completa + Rancho Peirano 01/02 concilia con la ficha
   assert.equal(latest.consolidated.area, 188.78);
   assert.equal(latest.consolidated.tch, 40.57);
   assert.equal(latest.consolidated.katm, 103.9);
+  assert.equal(latest.consolidated.metricCoverage.edad.area, 123);
+  assert.equal(latest.consolidated.metricCoverage.edad.eligibleArea, 188.78);
+  assert.equal(latest.consolidated.metricCoverage.edad.pct, 65.16);
+  assert.equal(latest.consolidated.metricCoverage.tch.pct, 100);
+  assert.equal(latest.consolidated.metricCoverage.katm.pct, 100);
   assert.deepEqual(last3.selectedZafras, [2324, 2425, 2526]);
   assert.equal(last3.consolidated.areaAccumulated, 566.52);
   assert.equal(last3.consolidated.areaAverage, 188.84);
   assert.equal(last3.consolidated.tch, 48.92);
   assert.equal(last3.consolidated.katm, 108.56);
+  assert.equal(last3.consolidated.metricCoverage.edad.area, 500.74);
+  assert.equal(last3.consolidated.metricCoverage.edad.eligibleArea, 566.52);
+  assert.equal(last3.consolidated.metricCoverage.edad.pct, 88.39);
   const dolores = last3.farms.find((farm) => farm.farmCode === "256");
   const individual = buildHistoricalAgronomicKpis(officialRows.filter((row) => row.farmCode === "256"), last3.selectedZafras);
   assert.equal(dolores.areaAccumulated, 475.89);
@@ -194,6 +226,10 @@ test("Etapa A usa un solo motor y no atribuye el detalle de otra zafra", () => {
   assert.ok(!ui.includes("TAH estimado"));
   assert.match(ui, /function multiTrendChart\(seasons,reference\)/);
   assert.match(ui, /if\(catalog\(\)\.has\(first\)\)\{renderProducer\(first\);return;\}/);
+  assert.match(ui, /hist-multi-quality/);
+  assert.match(ui, /hist-multi-scroll-hint/);
+  assert.match(ui, /result\.periodStatus==='no-data'/);
+  assert.match(ui, /Cobertura '\+pct\(age\.pct\)/);
   assert.match(index, /hist-multi-summary-root:not\(\.hist-multi-stage-a\)/);
 });
 

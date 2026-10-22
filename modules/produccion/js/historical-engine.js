@@ -444,6 +444,9 @@
       if (!farms.has(farmCode)) farms.set(farmCode, { farmCode, farmName: text(lot.farmName), universe: lot.isMaquila ? "maquila" : "principal", lots: new Map() });
       const farm = farms.get(farmCode);
       if (!farm.farmName && text(lot.farmName)) farm.farmName = text(lot.farmName);
+      if (farm.universe !== (lot.isMaquila ? "maquila" : "principal")) {
+        throw new RangeError(`La finca ${farmCode} mezcla suertes de Maquila y producción principal.`);
+      }
       if (!farm.lots.has(lotId)) farm.lots.set(lotId, { lotId, suerte: text(lot.suerte) });
     });
     return farms;
@@ -497,13 +500,34 @@
     const identities = new Set(resolved.map(({ farmCode, lotId }) => `${farmCode}\u0000${lotId}`));
     const allRows = (Array.isArray(rows) ? rows : []).filter((row) => identities.has(`${text(row.farmCode)}\u0000${text(row.lotId)}`));
     const availableZafras = groupHistoricalBySeason(allRows).map((season) => season.zafra);
-    const selectedZafras = reconcilePeriodSelection(availableZafras, mode, custom);
+    const isCustom = periodMode(mode) === "custom" || periodMode(mode) === "personalizado" || periodMode(mode) === "personalizada";
+    const requestedCustomZafras = isCustom ? [...new Set((custom instanceof Set ? [...custom] : Array.isArray(custom) ? custom : [custom])
+      .map(finite).filter((zafra) => zafra !== null))].sort((a, b) => a - b) : [];
+    const selectedZafras = isCustom ? availableZafras.filter((zafra) => requestedCustomZafras.includes(zafra))
+      : reconcilePeriodSelection(availableZafras, mode, custom);
+    const unavailableCustomZafras = requestedCustomZafras.filter((zafra) => !availableZafras.includes(zafra));
     const selectedRows = filterHistoricalRows(allRows, null, selectedZafras);
     const selectedFarmCodes = [...new Set(resolved.map((item) => item.farmCode))];
     const numeric = (list) => {
       const aggregate = aggregateHistoricalRows(list);
       const areaComplete = list.length > 0 && list.every((row) => finite(row.area) !== null && finite(row.area) > 0);
+      const tonComplete = list.length > 0 && list.every((row) => finite(row.ton) !== null && finite(row.ton) >= 0);
+      let tchArea = 0, tchTon = 0, katmTon = 0, katmNumerator = 0, edadArea = 0, edadNumerator = 0;
+      list.forEach((row) => {
+        const area = finite(row.area), ton = finite(row.ton), katm = finite(row.katm), edad = finite(row.edad);
+        if (area !== null && area > 0 && ton !== null && ton >= 0) { tchArea += area; tchTon += ton; }
+        if (ton !== null && ton >= 0 && katm !== null) { katmTon += ton; katmNumerator += katm * ton; }
+        if (area !== null && area > 0 && edad !== null) { edadArea += area; edadNumerator += edad * area; }
+      });
       return { ...aggregate, area: areaComplete ? aggregate.area : null,
+        metricCoverage: {
+          tch: { ton: round(tchTon), area: round(tchArea), eligibleArea: areaComplete ? aggregate.area : null,
+            pct: areaComplete && aggregate.area > 0 ? round(tchArea / aggregate.area * 100) : null },
+          katm: { numerator: round(katmNumerator, 4), ton: round(katmTon), eligibleTon: tonComplete ? aggregate.ton : null,
+            pct: tonComplete && aggregate.ton > 0 ? round(katmTon / aggregate.ton * 100) : null },
+          edad: { numerator: round(edadNumerator, 4), area: round(edadArea), eligibleArea: areaComplete ? aggregate.area : null,
+            pct: areaComplete && aggregate.area > 0 ? round(edadArea / aggregate.area * 100) : null },
+        },
         invalidAreaRows: list.filter((row) => finite(row.area) === null || finite(row.area) <= 0).length,
         missingTonRows: list.filter((row) => finite(row.ton) === null || finite(row.ton) < 0).length,
         missingTchRows: list.filter((row) => finite(row.area) === null || finite(row.area) <= 0 || finite(row.ton) === null || finite(row.ton) < 0).length,
@@ -515,6 +539,7 @@
       const zafrasWithData = [...new Set(list.map((row) => finite(row.zafra)).filter((z) => z !== null))].sort((a, b) => a - b);
       return { ...metric, areaAccumulated: metric.area,
         areaAverage: metric.area !== null && selectedZafras.length ? round(metric.area / selectedZafras.length) : null,
+        areaAverageObserved: metric.area !== null && zafrasWithData.length ? round(metric.area / zafrasWithData.length) : null,
         selectedSeasonCount: selectedZafras.length, zafrasWithData,
         selectedLotCount: eligibleLots.length, contributingLotCount: contributing.size,
         missingLotSeasons: Math.max(0, selectedZafras.length * eligibleLots.length - observedLotSeasons.size) };
@@ -545,7 +570,9 @@
     const kmArea = farms.reduce((sum, farm) => sum + (farm.currentDistance.areaCovered || 0), 0);
     const kmTotal = farms.reduce((sum, farm) => sum + (farm.currentDistance.areaTotal || 0), 0);
     return { selection: farms.map(({ farmCode, farmName, mode: farmMode, lotIds }) => ({ farmCode, farmName, mode: farmMode, lotIds })),
-      selectedZafras, availableZafras, farms, consolidated: summarize(selectedRows, resolved), series,
+      selectedZafras, availableZafras, requestedCustomZafras, unavailableCustomZafras,
+      periodStatus: isCustom && !selectedZafras.length ? "no-data" : unavailableCustomZafras.length ? "partial" : "ready",
+      farms, consolidated: summarize(selectedRows, resolved), series,
       currentDistance: { kmWeighted: kmArea > 0 ? round(farms.reduce((sum, farm) => sum + (farm.currentDistance.weightedNumerator || 0), 0) / kmArea) : null,
         areaCovered: round(kmArea), areaTotal: round(kmTotal), coveragePct: kmTotal > 0 ? round(kmArea / kmTotal * 100) : 0,
         status: kmArea <= 0 ? "unavailable" : farms.some((farm) => farm.currentDistance.status !== "complete") ? "partial" : "complete" } };

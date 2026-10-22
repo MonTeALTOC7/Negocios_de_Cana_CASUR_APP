@@ -230,6 +230,9 @@ test("Etapa A usa un solo motor y no atribuye el detalle de otra zafra", () => {
   assert.match(ui, /hist-multi-scroll-hint/);
   assert.match(ui, /result\.periodStatus==='no-data'/);
   assert.match(ui, /Cobertura '\+pct\(age\.pct\)/);
+  assert.match(ui, /requestedSeasons=periodMode==='custom'\?result\.requestedCustomZafras\.length:period\.length/);
+  assert.match(ui, /!period\.length\?'Cobertura N\/D'/);
+  assert.match(ui, /if\(sel\)sel\.value=lot\.producerCode;toggleOne\(lot\.code,true\)/);
   assert.match(index, /hist-multi-summary-root:not\(\.hist-multi-stage-a\)/);
 });
 

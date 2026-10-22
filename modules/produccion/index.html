@@ -3456,7 +3456,8 @@ window.addEventListener('load',setupCrono);
     const custom=periodMode==='custom'?'<div class="hist-multi-custom" aria-label="Zafras personalizadas">'+[...new Set([...result.availableZafras,...result.unavailableCustomZafras])].sort((a,b)=>a-b).map(z=>'<label><input type="checkbox" '+(customZafras.has(z)?'checked':'')+' onchange="toggleHistoricoMultiZafra('+z+',this.checked)"> '+escH(zlabel(z))+(result.unavailableCustomZafras.includes(z)?' · sin registro aquí':'')+'</label>').join('')+'</div>':'';
     const periodAlert=result.periodStatus==='no-data'?'<div class="hist-multi-period-alert" role="status">No hay registros para las zafras personalizadas solicitadas en esta selección. Puede elegir otra zafra o recuperar una finca anterior.</div>':result.unavailableCustomZafras.length?'<div class="hist-multi-period-alert" role="status">Sin registro aquí para '+escH(result.unavailableCustomZafras.map(zlabel).join(' · '))+'. Las zafras disponibles permanecen seleccionadas.</div>':'';
     const area=one?summary.area:summary.areaAverage;
-    const coverage='Cobertura: '+summary.contributingLotCount+' de '+summary.selectedLotCount+' suertes con registro · '+summary.zafrasWithData.length+' de '+period.length+' zafras con datos';
+    const requestedSeasons=periodMode==='custom'?result.requestedCustomZafras.length:period.length;
+    const coverage='Cobertura: '+summary.contributingLotCount+' de '+summary.selectedLotCount+' suertes con registro · '+summary.zafrasWithData.length+' de '+requestedSeasons+' zafras '+(periodMode==='custom'?'solicitadas con registros':'con datos');
     const pct=value=>value===null?'N/D':f2(value,' %');
     const age=summary.metricCoverage.edad,tch=summary.metricCoverage.tch,katm=summary.metricCoverage.katm;
     const areaSub=one?'Zafra seleccionada':'Acumulado: '+(summary.areaAccumulated===null?'N/D':f2(summary.areaAccumulated,' ha-zafra'))+' · '+period.length+' zafras seleccionadas';
@@ -3464,7 +3465,7 @@ window.addEventListener('load',setupCrono);
       kpiH(one?'Área cosechada':'Área media · zafras seleccionadas',area===null?'N/D':f2(area,one?' ha':' ha/zafra'),areaSub,true),
       kpiH('TCH ponderado',summary.tch===null?'N/D':f2(summary.tch),'Cobertura área '+pct(tch.pct)),
       kpiH('KATM ponderado',summary.katm===null?'N/D':f2(summary.katm),'Cobertura toneladas '+pct(katm.pct)),
-      kpiH('Edad ponderada',summary.edad===null?'N/D':f2(summary.edad,' meses'),'Cobertura '+pct(age.pct)+' · '+f2(age.area)+'/'+f2(age.eligibleArea)+' ha')
+      kpiH('Edad ponderada',summary.edad===null?'N/D':f2(summary.edad,' meses'),!period.length?'Cobertura N/D':'Cobertura '+pct(age.pct)+' · '+f2(age.area)+'/'+f2(age.eligibleArea)+' ha')
     ].join('')+'</div>';
     const quality='<details class="hist-multi-quality"><summary>Calidad de datos y denominadores</summary><div class="hist-multi-quality-body"><div>Área: '+(summary.areaAccumulated===null?'N/D':f2(summary.areaAccumulated,' ha-zafra'))+' ÷ '+period.length+' zafras seleccionadas; '+summary.zafrasWithData.length+' con registro. La media observada usa solo zafras con registro.</div><div>TCH: '+f2(tch.ton,' t')+' ÷ '+f2(tch.area,' ha')+' · cobertura de área '+pct(tch.pct)+'. KATM: '+f2(katm.numerator)+' ÷ '+f2(katm.ton,' t')+' · cobertura de toneladas '+pct(katm.pct)+'.</div><div>Edad: '+f2(age.numerator)+' meses·ha ÷ '+f2(age.area,' ha')+' · cobertura '+pct(age.pct)+'.</div><div>Sin registro: '+summary.missingLotSeasons+' combinaciones suerte-zafra. Filas sin área: '+summary.invalidAreaRows+'; sin TCH: '+summary.missingTchRows+'; sin KATM: '+summary.missingKatmRows+'. Ninguna ausencia se acredita como cosecha de 0 ha.</div><div>Km vigente ponderado: '+(result.currentDistance.kmWeighted===null?'N/D':f2(result.currentDistance.kmWeighted,' km'))+' · cobertura '+pct(result.currentDistance.coveragePct)+'.</div></div></details>';
     const hint='<div class="hist-multi-scroll-hint">Deslice la tabla para ver más columnas →</div>';
@@ -3499,7 +3500,7 @@ window.addEventListener('load',setupCrono);
     if(!multiMode){if(typeof original.runSearch==='function')return original.runSearch();return;}
     const raw=String(byId('q')&&byId('q').value||'').trim();if(typeof hideSearchSuggestions==='function')hideSearchSuggestions();if(!raw){renderStart();return;}
     const first=raw.split('·')[0].trim().toLowerCase();if(catalog().has(first)){renderProducer(first);return;}
-    const lot=allLotOptions().find(x=>String(x.codLote||x.displayCode||'').toLowerCase()===first);if(lot){toggleOne(lot.code,true);renderSelectable([lot],'Suerte seleccionada','Puede continuar buscando y agregando otras suertes.');return;}
+    const lot=allLotOptions().find(x=>String(x.codLote||x.displayCode||'').toLowerCase()===first);if(lot){const sel=byId('producerSelect');if(sel)sel.value=lot.producerCode;toggleOne(lot.code,true);renderSelectable([lot],'Suerte seleccionada','Puede continuar buscando y agregando otras suertes.');return;}
     renderSearchLots(raw);
   }
   function selectProducerMulti(code){if(!multiMode){if(typeof original.selectProducer==='function')return original.selectProducer(code);return;}if(code)renderProducer(code);else renderStart();}

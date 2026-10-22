@@ -61,6 +61,20 @@ async function run() {
       await verify('ultima', '188.78 ha', '40.57', '103.90', '11.80 meses', '65.16', '123.00/188.78 ha');
       await page.getByRole('button', { name: 'Últimas 3' }).click();
       await verify('ultimas3', '188.84 ha/zafra', '48.92', '108.56', '11.60 meses', '88.39', '500.74/566.52 ha');
+      const sticky = await page.evaluate(() => {
+        const header = document.querySelector('header');
+        const kpis = document.querySelector('.hist-multi-stage-kpis');
+        window.scrollTo(0, scrollY + kpis.getBoundingClientRect().top - header.getBoundingClientRect().height - 12);
+        return { headerHeight: header.getBoundingClientRect().height };
+      });
+      await page.waitForTimeout(350);
+      const visible = await page.evaluate(() => {
+        const header = document.querySelector('header').getBoundingClientRect();
+        const kpis = document.querySelector('.hist-multi-stage-kpis').getBoundingClientRect();
+        return { headerBottom: header.bottom, kpisTop: kpis.top };
+      });
+      assert.ok(visible.kpisTop >= visible.headerBottom, JSON.stringify({ sticky, visible }));
+      await page.screenshot({ path: path.join(out, `uso_normal_${width}x${height}.png`) });
 
       await page.getByRole('button', { name: 'Personalizado' }).click();
       await page.locator('.hist-multi-custom input[onchange*="1920"]').check();
@@ -69,6 +83,7 @@ async function run() {
       await page.locator('.hist-multi-farm-chip').filter({ hasText: '983 · Rancho Peirano' }).getByRole('button', { name: /Quitar/ }).click();
       await page.locator('#q').fill('25608');
       await page.locator('#q').press('Enter');
+      assert.equal(await page.locator('#producerSelect').inputValue(), '256');
       await page.getByRole('button', { name: 'Analizar selección' }).first().click();
       // 25608 solo tiene 16/17 y 17/18: las zafras solicitadas no se sustituyen.
       const noData = await page.evaluate(() => window.getHistoricoMultiAnalysis());
@@ -76,6 +91,8 @@ async function run() {
       assert.deepEqual(noData.selectedZafras, []);
       assert.deepEqual(noData.requestedCustomZafras, [1920, 2526]);
       assert.match(await page.locator('.hist-multi-period-alert').innerText(), /No hay registros/);
+      assert.match(await page.locator('.hist-multi-badge').last().innerText(), /0 de 2 zafras solicitadas con registros/);
+      assert.equal(await page.locator('.hist-multi-stage-kpis .kpi').nth(3).locator('em').innerText(), 'Cobertura N/D');
       assert.match(await page.locator('.hist-multi-custom').innerText(), /sin registro aquí/);
       assert.equal(await page.locator('.hist-multi-custom input[onchange*="1920"]').isChecked(), true);
       await page.waitForTimeout(800);

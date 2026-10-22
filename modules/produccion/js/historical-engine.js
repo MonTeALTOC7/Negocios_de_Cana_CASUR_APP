@@ -275,7 +275,7 @@
   function calculateCurrentFarmWeightedKm(producers, farmCode) {
     const code = text(farmCode);
     const matches = (Array.isArray(producers) ? producers : []).filter((producer) => text(producer?.code) === code);
-    const empty = { kmWeighted: null, areaTotal: 0, areaCovered: 0, coveragePct: 0,
+    const empty = { kmWeighted: null, weightedNumerator: 0, areaTotal: 0, areaCovered: 0, coveragePct: 0,
       lotCount: 0, lotCountWithKm: 0, status: "unavailable", reason: "Sin finca vigente en Cronológico SIAGRI" };
     if (!code || !matches.length) return empty;
     if (matches.length !== 1) return { ...empty, reason: `Finca vigente ambigua: ${code}` };
@@ -316,6 +316,7 @@
     const status = areaCovered <= 0 ? "unavailable" : incidents.length || areaCovered < areaTotal ? "partial" : "complete";
     return {
       kmWeighted: areaCovered > 0 ? round(numerator / areaCovered) : null,
+      weightedNumerator: numerator,
       areaTotal: round(areaTotal), areaCovered: round(areaCovered), coveragePct,
       lotCount: grouped.size, lotCountWithKm, status,
       reason: incidents.length ? incidents.join(" · ") : areaTotal <= 0 ? "Sin suertes vigentes con área válida" : null,
@@ -433,6 +434,150 @@
     return current;
   }
 
+  // Selection is keyed by historical farm identity, never by the current
+  // Cronológico inventory. A full farm resolves to all eligible historical lots.
+  function historicalMultiCatalog(lots) {
+    const farms = new Map();
+    (Array.isArray(lots) ? lots : []).forEach((lot) => {
+      const farmCode = text(lot?.farmCode), lotId = text(lot?.lotId);
+      if (!farmCode || !lotId) return;
+      if (!farms.has(farmCode)) farms.set(farmCode, { farmCode, farmName: text(lot.farmName), universe: lot.isMaquila ? "maquila" : "principal", lots: new Map() });
+      const farm = farms.get(farmCode);
+      if (!farm.farmName && text(lot.farmName)) farm.farmName = text(lot.farmName);
+      if (farm.universe !== (lot.isMaquila ? "maquila" : "principal")) {
+        throw new RangeError(`La finca ${farmCode} mezcla suertes de Maquila y producción principal.`);
+      }
+      if (!farm.lots.has(lotId)) farm.lots.set(lotId, { lotId, suerte: text(lot.suerte) });
+    });
+    return farms;
+  }
+
+  function updateHistoricalMultiSelection(selection, action, catalog) {
+    const farms = catalog instanceof Map ? catalog : historicalMultiCatalog(catalog);
+    const next = {};
+    for (const [code, entry] of Object.entries(selection || {})) {
+      if (!farms.has(code)) continue;
+      next[code] = entry?.mode === "full" ? { mode: "full" }
+        : { mode: "partial", lotIds: [...new Set((entry?.lotIds || []).map(text))].filter((id) => farms.get(code).lots.has(id)) };
+      if (next[code].mode === "partial" && !next[code].lotIds.length) delete next[code];
+    }
+    const code = text(action?.farmCode), lotId = text(action?.lotId), farm = farms.get(code);
+    if ((text(action?.type) === "addFarm" || text(action?.type) === "addLot") && farm) {
+      const other = Object.keys(next).find((selectedCode) => selectedCode !== code && farms.get(selectedCode)?.universe !== farm.universe);
+      if (other) throw new RangeError("No se pueden combinar fincas de Maquila con el universo principal.");
+    }
+    switch (text(action?.type)) {
+      case "clear": return {};
+      case "addFarm": if (farm) next[code] = { mode: "full" }; break;
+      case "removeFarm": delete next[code]; break;
+      case "addLot":
+        if (farm?.lots.has(lotId) && next[code]?.mode !== "full")
+          next[code] = { mode: "partial", lotIds: [...new Set([...(next[code]?.lotIds || []), lotId])] };
+        break;
+      case "removeLot":
+        if (!farm?.lots.has(lotId) || !next[code]) break;
+        next[code] = { mode: "partial", lotIds: (next[code].mode === "full" ? [...farm.lots.keys()] : next[code].lotIds).filter((id) => id !== lotId) };
+        if (!next[code].lotIds.length) delete next[code];
+        break;
+    }
+    return next;
+  }
+
+  function resolveHistoricalMultiSelection(selection, catalog) {
+    const farms = catalog instanceof Map ? catalog : historicalMultiCatalog(catalog);
+    const universes = new Set(Object.keys(selection || {}).filter((code) => farms.has(code)).map((code) => farms.get(code).universe));
+    if (universes.size > 1) throw new RangeError("No se pueden combinar fincas de Maquila con el universo principal.");
+    return Object.entries(selection || {}).flatMap(([farmCode, entry]) => {
+      const farm = farms.get(farmCode);
+      if (!farm) return [];
+      const ids = entry?.mode === "full" ? [...farm.lots.keys()] : [...new Set(entry?.lotIds || [])].filter((id) => farm.lots.has(id));
+      return ids.map((lotId) => ({ farmCode, farmName: farm.farmName, lotId, suerte: farm.lots.get(lotId).suerte }));
+    });
+  }
+
+  function buildHistoricalMultiAnalysis(rows, selection, catalog, mode = "latest", custom = [], producers = []) {
+    const resolved = resolveHistoricalMultiSelection(selection, catalog);
+    const identities = new Set(resolved.map(({ farmCode, lotId }) => `${farmCode}\u0000${lotId}`));
+    const allRows = (Array.isArray(rows) ? rows : []).filter((row) => identities.has(`${text(row.farmCode)}\u0000${text(row.lotId)}`));
+    const availableZafras = groupHistoricalBySeason(allRows).map((season) => season.zafra);
+    const isCustom = periodMode(mode) === "custom" || periodMode(mode) === "personalizado" || periodMode(mode) === "personalizada";
+    const requestedCustomZafras = isCustom ? [...new Set((custom instanceof Set ? [...custom] : Array.isArray(custom) ? custom : [custom])
+      .map(finite).filter((zafra) => zafra !== null))].sort((a, b) => a - b) : [];
+    const selectedZafras = isCustom ? availableZafras.filter((zafra) => requestedCustomZafras.includes(zafra))
+      : reconcilePeriodSelection(availableZafras, mode, custom);
+    const unavailableCustomZafras = requestedCustomZafras.filter((zafra) => !availableZafras.includes(zafra));
+    const selectedRows = filterHistoricalRows(allRows, null, selectedZafras);
+    const selectedFarmCodes = [...new Set(resolved.map((item) => item.farmCode))];
+    const numeric = (list) => {
+      const aggregate = aggregateHistoricalRows(list);
+      const areaComplete = list.length > 0 && list.every((row) => finite(row.area) !== null && finite(row.area) > 0);
+      const tonComplete = list.length > 0 && list.every((row) => finite(row.ton) !== null && finite(row.ton) >= 0);
+      let tchArea = 0, tchTon = 0, katmTon = 0, katmNumerator = 0, edadArea = 0, edadNumerator = 0;
+      list.forEach((row) => {
+        const area = finite(row.area), ton = finite(row.ton), katm = finite(row.katm), edad = finite(row.edad);
+        if (area !== null && area > 0 && ton !== null && ton >= 0) { tchArea += area; tchTon += ton; }
+        if (ton !== null && ton >= 0 && katm !== null) { katmTon += ton; katmNumerator += katm * ton; }
+        if (area !== null && area > 0 && edad !== null) { edadArea += area; edadNumerator += edad * area; }
+      });
+      return { ...aggregate, area: areaComplete ? aggregate.area : null,
+        metricCoverage: {
+          tch: { ton: round(tchTon), area: round(tchArea), eligibleArea: areaComplete ? aggregate.area : null,
+            pct: areaComplete && aggregate.area > 0 ? round(tchArea / aggregate.area * 100) : null },
+          katm: { numerator: round(katmNumerator, 4), ton: round(katmTon), eligibleTon: tonComplete ? aggregate.ton : null,
+            pct: tonComplete && aggregate.ton > 0 ? round(katmTon / aggregate.ton * 100) : null },
+          edad: { numerator: round(edadNumerator, 4), area: round(edadArea), eligibleArea: areaComplete ? aggregate.area : null,
+            pct: areaComplete && aggregate.area > 0 ? round(edadArea / aggregate.area * 100) : null },
+        },
+        invalidAreaRows: list.filter((row) => finite(row.area) === null || finite(row.area) <= 0).length,
+        missingTonRows: list.filter((row) => finite(row.ton) === null || finite(row.ton) < 0).length,
+        missingTchRows: list.filter((row) => finite(row.area) === null || finite(row.area) <= 0 || finite(row.ton) === null || finite(row.ton) < 0).length,
+        missingKatmRows: list.filter((row) => finite(row.katm) === null).length };
+    };
+    const summarize = (list, eligibleLots) => {
+      const metric = numeric(list), contributing = new Set(list.map((row) => `${text(row.farmCode)}\u0000${text(row.lotId)}`));
+      const observedLotSeasons = new Set(list.map((row) => `${text(row.farmCode)}\u0000${text(row.lotId)}\u0000${finite(row.zafra)}`));
+      const zafrasWithData = [...new Set(list.map((row) => finite(row.zafra)).filter((z) => z !== null))].sort((a, b) => a - b);
+      return { ...metric, areaAccumulated: metric.area,
+        areaAverage: metric.area !== null && selectedZafras.length ? round(metric.area / selectedZafras.length) : null,
+        areaAverageObserved: metric.area !== null && zafrasWithData.length ? round(metric.area / zafrasWithData.length) : null,
+        selectedSeasonCount: selectedZafras.length, zafrasWithData,
+        selectedLotCount: eligibleLots.length, contributingLotCount: contributing.size,
+        missingLotSeasons: Math.max(0, selectedZafras.length * eligibleLots.length - observedLotSeasons.size) };
+    };
+    const farms = selectedFarmCodes.map((farmCode) => {
+      const lots = resolved.filter((item) => item.farmCode === farmCode);
+      const farmRows = selectedRows.filter((row) => text(row.farmCode) === farmCode);
+      const farmEntry = catalog instanceof Map ? catalog.get(farmCode) : historicalMultiCatalog(catalog).get(farmCode);
+      const current = (Array.isArray(producers) ? producers : []).filter((p) => text(p?.code) === farmCode);
+      const limitedCurrent = selection?.[farmCode]?.mode === "full" ? current : current.map((p) => ({ ...p, details: (p.details || []).filter((lot) => lots.some((item) => item.lotId === text(lot.codLote))) }));
+      return { farmCode, farmName: farmEntry?.farmName || farmCode, mode: selection[farmCode].mode,
+        lotIds: lots.map((item) => item.lotId), ...summarize(farmRows, lots),
+        currentDistance: calculateCurrentFarmWeightedKm(limitedCurrent, farmCode) };
+    });
+    const series = availableZafras.map((zafra) => {
+      const seasonRows = filterHistoricalRows(allRows, null, [zafra]);
+      const metric = numeric(seasonRows);
+      return { zafra, selected: selectedZafras.includes(zafra), ...metric,
+        contributingFarmCodes: [...new Set(seasonRows.map((row) => text(row.farmCode)))],
+        missingFarmCodes: selectedFarmCodes.filter((code) => !seasonRows.some((row) => text(row.farmCode) === code)),
+        contributingLotIds: [...new Set(seasonRows.map((row) => text(row.lotId)))],
+        missingLotIds: resolved.filter((lot) => !seasonRows.some((row) => text(row.farmCode) === lot.farmCode && text(row.lotId) === lot.lotId)).map((lot) => lot.lotId),
+        contributingFarmCount: new Set(seasonRows.map((row) => text(row.farmCode))).size,
+        selectedFarmCount: selectedFarmCodes.length,
+        contributingLotCount: new Set(seasonRows.map((row) => `${text(row.farmCode)}\u0000${text(row.lotId)}`)).size,
+        missingLotCount: resolved.length - new Set(seasonRows.map((row) => `${text(row.farmCode)}\u0000${text(row.lotId)}`)).size };
+    });
+    const kmArea = farms.reduce((sum, farm) => sum + (farm.currentDistance.areaCovered || 0), 0);
+    const kmTotal = farms.reduce((sum, farm) => sum + (farm.currentDistance.areaTotal || 0), 0);
+    return { selection: farms.map(({ farmCode, farmName, mode: farmMode, lotIds }) => ({ farmCode, farmName, mode: farmMode, lotIds })),
+      selectedZafras, availableZafras, requestedCustomZafras, unavailableCustomZafras,
+      periodStatus: isCustom && !selectedZafras.length ? "no-data" : unavailableCustomZafras.length ? "partial" : "ready",
+      farms, consolidated: summarize(selectedRows, resolved), series,
+      currentDistance: { kmWeighted: kmArea > 0 ? round(farms.reduce((sum, farm) => sum + (farm.currentDistance.weightedNumerator || 0), 0) / kmArea) : null,
+        areaCovered: round(kmArea), areaTotal: round(kmTotal), coveragePct: kmTotal > 0 ? round(kmArea / kmTotal * 100) : 0,
+        status: kmArea <= 0 ? "unavailable" : farms.some((farm) => farm.currentDistance.status !== "complete") ? "partial" : "complete" } };
+  }
+
   return Object.freeze({
     normalizeHistoricalRows,
     resolvePeriod,
@@ -449,5 +594,9 @@
     groupHistoricalByLot,
     buildHistoricalDrilldownModel,
     updateHistoricalDrilldownState,
+    historicalMultiCatalog,
+    updateHistoricalMultiSelection,
+    resolveHistoricalMultiSelection,
+    buildHistoricalMultiAnalysis,
   });
 });

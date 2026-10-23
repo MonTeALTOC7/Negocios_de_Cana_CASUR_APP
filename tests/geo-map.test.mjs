@@ -133,6 +133,12 @@ function fakeLeaflet() {
   return { L, records };
 }
 
+test("estilo optativo por finca se conserva al seleccionar sin cambiar defaults", () => {
+  const { L, records } = fakeLeaflet();
+  const viewer=createCasurMap(fakeElement(),{leaflet:L,showAnchor:false,featureStyle:f=>({color:f.properties.lotId==='25601'?'#0b7f3a':'#005baa'})});
+  viewer.setLots([polygon('25601'),polygon('98301')]);viewer.selectLot('98301');
+  assert.deepEqual(records.geo[0].children.map(l=>l.style.color),['#0b7f3a','#005baa']);viewer.destroy();
+});
 test("createCasurMap monta híbrido, vecinos azules y selección amarilla sin reconstruir GeoJSON", () => {
   const element = fakeElement();
   const { L, records } = fakeLeaflet();
@@ -206,6 +212,22 @@ test("el tooltip admite etiqueta de suerte explícita y conserva CodSuerte como 
   viewer.setLots([selected], "24201");
   assert.equal(records.geo[0].children[0].tooltip.label, "Suerte 01 · CodSuerte 24201");
   assert.equal(viewer.getSelectedLotId(), "24201");
+  viewer.destroy();
+});
+
+test("ocultar etiquetas contextuales conserva clic e identificación sin tooltip permanente", () => {
+  const { L, records } = fakeLeaflet();
+  const selections = [];
+  const viewer = createCasurMap(fakeElement(), {leaflet:L, hideContextualLabels:true,
+    contextualFeature:f=>f.properties.lotId==='98302', onSelectLot:f=>selections.push(f.properties.lotId)});
+  viewer.setLots([polygon('98301'),polygon('98302')]);
+  records.geo[0].children[1].events.get('click')();
+  assert.deepEqual(selections,['98302']);
+  assert.equal(viewer.getSelectedLotId(),'98302');
+  assert.equal(records.geo[0].children[1].tooltip.options.permanent,false);
+  viewer.selectLot('98301');
+  assert.equal(records.geo[0].children[0].tooltip.options.permanent,true);
+  assert.equal(records.geo[0].children.length,2);
   viewer.destroy();
 });
 

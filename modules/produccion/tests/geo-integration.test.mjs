@@ -376,7 +376,8 @@ test("origen, navegación canónica y exportación mantienen la suerte explorada
 });
 
 test("la exportación GEO crea un mapa temporal sin volver a cargar GeoJSON", () => {
-  assert.match(enhancements, /createMap\(mapNode,[\s\S]*controller\.setLots\(geoFeatures/);
+  assert.match(enhancements, /const features = configuration\?\.features \|\| geoFeatures/);
+  assert.match(enhancements, /createMap\(mapNode,[\s\S]*controller\.setLots\(features/);
   assert.match(enhancements, /fitPadding: \[56, 56\]/);
   assert.match(enhancements, /maxFitZoom: 17/);
   assert.match(enhancements, /useCORS: true/);
@@ -388,7 +389,8 @@ test("la exportación GEO crea un mapa temporal sin volver a cargar GeoJSON", ()
   assert.match(enhancements, /geoInlineExportTiles/);
   assert.match(enhancements, /geoRasterizeExportMap/);
   assert.match(enhancements, /getBoundingClientRect\(\)/);
-  assert.match(enhancements, /fetch\(source, \{ mode: "cors", cache: "force-cache" \}\)/);
+  assert.match(enhancements, /fetch\(source, \{ mode: "cors", cache: "force-cache",/);
+  assert.match(enhancements, /bounded \? \{ signal: AbortSignal\.timeout\(15000\)/);
   assert.match(enhancements, /El mapa base falló durante la captura/);
   assert.match(enhancements, /geoExportAttribution/);
   assert.match(enhancements, /casur-geo-export-sheet--\$\{context\.source === "historico"/);

@@ -1,0 +1,41 @@
+name: CASUR Release Gate
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify shell and data guard
+        run: node --test tests/*.test.mjs
+      - name: Verify Produccion
+        run: npm test --prefix modules/produccion
+      - name: Verify TCH
+        run: npm run validate --prefix modules/tch
+      - name: Verify coordinated PWA version
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const sw = fs.readFileSync('sw.js','utf8');
+          const core = fs.readFileSync('core/versions/versions.js','utf8');
+          const html = fs.readFileSync('index.html','utf8');
+          const m = sw.match(/const APP_VERSION = '([^']+)'/);
+          assert.ok(m, 'Missing APP_VERSION in SW');
+          assert.ok(core.includes("export const APP_VERSION = '" + m[1] + "'"), 'core version mismatch');
+          assert.ok(html.includes('id="appVersion">v' + m[1]), 'HTML version mismatch');
+          console.log('PWA version consistent:',m[1]);
+          NODE

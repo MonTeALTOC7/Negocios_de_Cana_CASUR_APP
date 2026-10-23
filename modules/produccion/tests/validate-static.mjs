@@ -144,7 +144,8 @@ check("exportación de hacienda es gráfica y paginada", () => {
   assert.ok(index.includes("cloneWithBarStyles('.crono-summary-grid'"));
   assert.ok(index.includes("?1400:960"));
   assert.ok(index.includes("getImageData(0,0,canvas.width,canvas.height)"));
-  assert.ok(index.includes("pageCount=Math.max(1,Math.ceil(effectiveHeight/sliceHeight))"));
+  assert.ok(index.includes("var pageCount=slices.length"));
+  assert.ok(index.includes("var options=safe.filter"));
   assert.ok(index.includes("PDF paginado descargado correctamente"));
 });
 
@@ -199,7 +200,8 @@ check("motor histórico integrado sin corte ficticio", () => {
 
 check("gráfico histórico comparte motor, periodo y métrica accesible", () => {
   assert.ok(historicalEngine.includes("function buildHistoricalChartModel"));
-  assert.ok(index.includes("HISTORICAL_ENGINE.buildHistoricalChartModel(context.scopeRows,context.selectedZafras,metric)"));
+  assert.ok(index.includes("HISTORICAL_ENGINE.buildHistoricalChartModel(context.scopeRows,chartSeasons,metric)"));
+  assert.ok(index.includes("const chartSeasons=context.selectedZafras;"));
   assert.ok(index.includes("const HISTORICAL_CHART_STATE = {historicalChartMetric:'tch'}"));
   assert.ok(index.includes('aria-label="Métrica del gráfico histórico"'));
   assert.ok(index.includes('data-selected="${point.selected}"'));

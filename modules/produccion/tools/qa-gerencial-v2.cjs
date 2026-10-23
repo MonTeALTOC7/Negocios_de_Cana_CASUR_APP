@@ -45,6 +45,7 @@ async function inspect(page){return page.evaluate(()=>{
   const exec=api.prepareClone(api.target('historico-multiple'),'historico-multiple','executive');
   const complete=api.prepareClone(api.target('historico-multiple'),'historico-multiple','complete');
   for(const report of [exec,complete]){
+    for(const item of report.querySelectorAll('.hist-selection-list [data-farm-color]'))if(item.style.getPropertyValue('--farm-color')!==item.dataset.farmColor)throw Error('Acento de finca perdido en PDF');
     if(report.querySelector('.hist-bars pattern,.hist-bars linearGradient,.hist-bars radialGradient'))throw Error('Trama o degradado en barras PDF');
     for(const rect of report.querySelectorAll('.hist-bars rect'))if(!/^#[0-9a-f]{6}$/i.test(rect.getAttribute('fill')||''))throw Error('Relleno no sólido en barra/leyenda PDF');
     for(const rect of report.querySelectorAll('.hist-bars rect[data-farm]')){
@@ -92,7 +93,7 @@ async function run(){
   assert.ok(evidence.numeric.every(r=>r.match));assert.deepEqual(evidence.pdfKpis,evidence.screenKpis);assert.equal(evidence.tablesExecutive,0);assert.equal(evidence.overflow,false);
   assert.deepEqual(evidence.collisions,[]);assert.deepEqual(evidence.clipped,[]);assert.deepEqual(evidence.visibleBars,evidence.expectedBars);
   assert.equal(evidence.annexes,evidence.model.selection.length);assert.ok(evidence.tablesComplete>0);
-  assert.deepEqual(evidence.presentation.headings,['Histórico CASUR','Histórico del período seleccionado']);
+  assert.deepEqual(evidence.presentation.headings,['Producción histórica','Histórico del período seleccionado']);
   assert.equal(evidence.presentation.obsolete,false);assert.equal(evidence.presentation.headerPeriod,false);
   assert.equal(evidence.presentation.unitsBelow,true);assert.equal(evidence.presentation.annexDistanceCards,false);
   assert.equal(evidence.presentation.annexKpis,evidence.model.selection.length*4);
@@ -101,9 +102,9 @@ async function run(){
   if(item.id==='A'){
     assert.deepEqual([m.period.areaMean,m.period.tch,m.period.katm,Number(m.period.tahAudit.tah.toFixed(2)),m.currentDistance.kmWeighted],[187.41,53.57,105.66,5.66,36.10]);
     assert.deepEqual([m.full.areaMean,m.full.tch,m.full.katm,Number(m.full.tahAudit.tah.toFixed(2))],[204.26,61.20,108.63,6.65]);
-    assert.ok(evidence.presentation.selection.includes('Rancho Peirano (983) — suertes 01, 04 y 04A'));
-    assert.ok(evidence.presentation.pdfSelection.includes('Rancho Peirano (983) — suertes 01, 04 y 04A'));
-    assert.ok(evidence.presentation.selection.includes('Dolores (256) — finca completa'));
+    assert.ok(evidence.presentation.selection.includes('Rancho Peirano (983) · Suertes 01, 04 y 04A'));
+    assert.ok(evidence.presentation.pdfSelection.includes('Rancho Peirano (983) · Suertes 01, 04 y 04A'));
+    assert.ok(evidence.presentation.selection.includes('Dolores (256) · Finca completa'));
     assert.equal(evidence.presentation.compactDistance,'Distancia ponderada: 36.10 km');
   }
   if(item.id==='B')assert.deepEqual([m.period.areaMean,m.period.tch,m.period.katm,m.currentDistance.kmWeighted],[188.84,48.92,108.56,36.10]);

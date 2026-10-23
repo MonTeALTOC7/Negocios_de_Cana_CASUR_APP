@@ -21,3 +21,11 @@ test('etiquetas con colisiones usan guías o lista explícita; nunca se enciman 
   for(const b of result.labels.slice(i+1))assert.ok(!(a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y));
  }
 });
+
+test('contexto tenue no desplaza etiquetas principales ni agrega guías externas',()=>{
+ const items=[{id:'principal',text:'Suerte 01',points:[{x:150,y:170}]},{id:'contexto',text:'Suerte 02',contextual:true,points:[{x:150,y:170}]}];
+ const before=JSON.stringify(items),result=cartographicLabelLayout(items,320,440,s=>s.length*7);
+ assert.deepEqual(result.labels.map(l=>l.id),['principal']);assert.deepEqual(result.unresolved,['contexto']);assert.equal(JSON.stringify(items),before);
+ const separate=cartographicLabelLayout([{...items[1],points:[{x:150,y:250}]}],320,440,s=>s.length*7);
+ assert.equal(separate.labels[0].external,false);assert.equal(separate.labels[0].contextual,true);
+});

@@ -7,6 +7,7 @@
 
 import * as router from './core/navigation/router.js';
 import { createModuleCheckpointRunner, resolveHistoryNavigation } from './core/navigation/module-checkpoint.js';
+import { installUpdateControl } from './core/updates/pwa-update.js';
 import * as registry from './core/module-registry/registry.js';
 import * as gate from './core/permissions/gate.js';
 import * as status from './core/sync/status.js';
@@ -1052,37 +1053,12 @@ function route(r) {
 
 /* ---------------- Service Worker ---------------- */
 function registerSW() {
-  if (!('serviceWorker' in navigator)) return;
-  const warmGeo = () => navigator.serviceWorker.ready
-    .then((reg) => reg.active?.postMessage({ type: 'WARM_GEO' }))
-    .catch((error) => console.warn('Geometría offline pendiente:', error));
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js', { scope: './' }).then((reg) => {
-      /* [Hotfix 4.4.3] Activar automáticamente el SW nuevo (incluye el gate
-         LKG de Producción) en cuanto esté instalado, sin exigir un clic del
-         usuario — importante porque la protección anti-downgrade vive en el
-         propio SW. */
-      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-      reg.addEventListener('updatefound', () => {
-        const nw = reg.installing;
-        if (!nw) return;
-        nw.addEventListener('statechange', () => {
-          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-            nw.postMessage({ type: 'SKIP_WAITING' });
-          }
-        });
-      });
-      void warmGeo();
-    }).catch((e) => console.warn('SW no registrado:', e));
-
-    window.addEventListener('online', warmGeo);
-
-    /* Recarga del shell UNA sola vez al cambiar de controlador (guard evita bucles). */
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (refreshing) return; refreshing = true; location.reload();
-    });
-  });
+  const start = () => installUpdateControl({ version: APP_VERSION, checkpoint: async reason => {
+    if (moduleNavigationPending || historyNavigationPending) return {ok:false};
+    return checkpointActiveModule(reason);
+  }}).catch(error => console.warn('Actualización PWA pendiente:', error));
+  if (document.readyState === 'complete') void start();
+  else window.addEventListener('load', start, {once:true});
 }
 
 /* ---------------- Arranque ---------------- */

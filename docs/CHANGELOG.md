@@ -2,6 +2,13 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.3.5] / Producción [V1.5.1] — pendiente de publicación
+- PATCH compatible: aviso real de versión preparada, Actualizar ahora/Más tarde y checkpoint multiventana antes de activar. Instalación incompleta no sustituye al SW activo.
+- Generación de código local verificada por SHA-256; conservación de IndexedDB, LKG, GEO y recursos offline. La transición desde 1.3.4 requiere guardar y cerrar ventanas antiguas; no se promete consentimiento retroactivo.
+- Cronológico muestra la fecha del dataset efectivo, valida calendario y distingue publicación/generación/importación. Novedades conserva V1.5.0/1.3.4 como instantáneas.
+- Política SemVer y control CI de cambios por módulo; sincronización de metadatos derivados. TCH y otros módulos, datos y fórmulas sin cambios.
+- Procedimiento y limitaciones: `docs/VERSIONADO_Y_ACTUALIZACIONES.md`.
+
 ## [1.3.4] — pendiente de publicación · identificación de versiones
 - Por decisión del responsable, el módulo completo Cronológico e Histórico adopta V1.5.0 como nueva línea unificada de versiones (package 1.5.0). Sucede a VF54.8 e integra la funcionalidad Histórico multifinca V2.9. No es una regresión de código ni una migración de datos; App Maestra conserva 1.3.4.
 - Mantenimiento de PWA para renovar la generación del shell y distribuir los metadatos locales y Novedades de Producción. Se incrementa App de 1.3.3 a 1.3.4 por cambio de código precacheado; no es una actualización SIAGRI.

@@ -132,8 +132,8 @@
     };
     const priorMeta = window.CRONO_DATA?.meta || {};
     return {
-      meta: { ...priorMeta, source, rows: rows.length, rawRows: rows.length, productores: producers.length,
-        generated: new Date().toISOString().slice(0, 10), tchEst2627EffectiveDate: ESTIMATE_DATE, manualChanges: true },
+      meta: { ...priorMeta, publishedAt: null, importedAt: new Date().toISOString(), source, rows: rows.length, rawRows: rows.length, productores: producers.length,
+        generated: null, tchEst2627EffectiveDate: ESTIMATE_DATE, manualChanges: true },
       global,
       options: producers.map((producer) => ({ code: producer.code, name: producer.name, zone: producer.zone,
         area: producer.area, tch: producer.tch, tchEst2627: producer.tchEst2627, label: `${producer.code} · ${producer.name}` })),
@@ -152,6 +152,7 @@
   function applyCronoData(data, message) {
     if (!window.CRONO_DATA) window.CRONO_DATA = {};
     replaceObject(window.CRONO_DATA, data);
+    document.dispatchEvent(new CustomEvent('casur-crono-effective-change'));
     window.__CRONO_ZONE_ROWS = null;
     window.CASUR_ADMIN_DATA = window.CRONO_DATA;
     refreshCronoEditorOptions();
@@ -493,8 +494,9 @@
   async function downloadDataUpdate() {
     try {
       const version = text($("casurPublishVersion")?.value) || `${new Date().toISOString().slice(0, 10).replace(/-/g, ".")}-${String(Date.now()).slice(-4)}`;
-      const cronologico = window.CASUR_ADMIN_DATA || window.CRONO_DATA;
-      const historico = window.CASUR_ADMIN_HISTORICO || window.APP_DATA;
+      // Packaging a proposed release must not relabel the dataset still in use.
+      const cronologico = { ...(window.CASUR_ADMIN_DATA || window.CRONO_DATA) };
+      const historico = { ...(window.CASUR_ADMIN_HISTORICO || window.APP_DATA) };
       cronologico.meta = { ...cronologico.meta, dataVersion: version, publishedAt: new Date().toISOString() };
       historico.meta = { ...historico.meta, dataVersion: version, publishedAt: new Date().toISOString() };
       const release = { version, publishedAt: new Date().toISOString(), source: cronologico.meta?.source || "Centro Maestro",

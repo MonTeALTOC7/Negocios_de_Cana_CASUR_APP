@@ -23,14 +23,14 @@ test('V2.1: rango dinámico no acredita continuidad cuando faltan zafras',()=>{
 });
 test('V2.3: selección flexible y acento lateral exclusivo del período',()=>{
   assert.match(html,/hist-multi-included\{display:flex!important;align-items:baseline;flex-wrap:wrap/);
-  assert.match(html,/\.hist-selection-list li\{border-left:1px solid #aab9af/);
+  assert.match(html,/\.hist-selection-list li\{border:1px solid #aab9af/);
   assert.match(html,/\.dual-period \.dual-kpi\{border-top-width:1px;border-left:4px solid #9bd8ae/);
   assert.match(html,/\.casur-report-executive \.dual-period \.dual-kpi\{border-top-width:1px;border-top-color:#81988a;border-left:4px solid #245b38/);
 });
 test('selección analizada distingue nombre, código y alcance sin mutar identidades',()=>{
   const farms=[{farmCode:'256',farmName:'Dolores',mode:'full',lotIds:['25601']},{farmCode:'983',farmName:'Rancho Peirano',mode:'partial',lotIds:['98301','98304','98304A']}];
   const before=JSON.stringify(farms),result=ctx.managerialIncludedSelection(farms);
-  assert.match(result,/<strong>Selección analizada<\/strong><ul/);
+  assert.match(result,/<strong>Fincas seleccionadas<\/strong><ul/);
   assert.match(result,/<b>Dolores \(256\)<\/b> — <em>finca completa<\/em>/);
   assert.match(result,/<b>Rancho Peirano \(983\)<\/b> — <em>suertes 01, 04 y 04A<\/em>/);
   assert.equal((result.match(/<li>/g)||[]).length,2);assert.equal(JSON.stringify(farms),before);

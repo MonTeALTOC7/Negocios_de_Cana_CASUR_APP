@@ -41,6 +41,62 @@ function featureAnchor(feature) {
   return Array.isArray(anchor) && anchor.length === 2 && anchor.every(Number.isFinite) ? anchor : null;
 }
 
+// Display-only geometry queries. Coordinates/rings are never modified.
+export function cartographicInteriorPoints(feature) {
+  const polygons = feature.geometry.type === "Polygon" ? [feature.geometry.coordinates] : feature.geometry.coordinates;
+  const containsRing = (p, ring) => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const a = ring[i], b = ring[j];
+      if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside;
+    }
+    return inside;
+  };
+  const contains = (p, rings) => containsRing(p, rings[0]) && !rings.slice(1).some(r => containsRing(p, r));
+  const points = [], anchor = featureAnchor(feature);
+  if (anchor && polygons.some(r => contains(anchor, r))) points.push(anchor);
+  // Scan-line intervals find interior points even in thin fragments and around holes.
+  const ranked = [];
+  for (const rings of polygons) {
+    const ys = rings[0].map(p => p[1]), lo = Math.min(...ys), hi = Math.max(...ys);
+    for (let step = 1; step < 16; step++) {
+      const y = lo + (hi - lo) * step / 16, xs = [];
+      for (const ring of rings) for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const a = ring[i], b = ring[j];
+        if ((a[1] > y) !== (b[1] > y)) xs.push(a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1]));
+      }
+      xs.sort((a, b) => a - b);
+      for (let i = 0; i + 1 < xs.length; i += 2) {
+        const p = [(xs[i] + xs[i + 1]) / 2, y];
+        if (contains(p, rings)) ranked.push({ p, span: xs[i + 1] - xs[i] });
+      }
+    }
+  }
+  ranked.sort((a, b) => b.span - a.span);
+  return points.concat(ranked.slice(0, 24).map(item => item.p));
+}
+
+export function cartographicLabelLayout(items, width, height, measure, scale = 1) {
+  const boxes = [], labels = [], unresolved = [];
+  const intersects = (a, b) => a.x < b.x + b.w + 4 && a.x + a.w + 4 > b.x && a.y < b.y + b.h + 4 && a.y + a.h + 4 > b.y;
+  for (const item of items) {
+    const w = measure(item.text) + 16 * scale, h = 24 * scale;
+    const points = item.points.filter(p => p.x > 0 && p.x < width && p.y > 0 && p.y < height);
+    if (!points.length) { unresolved.push(item.id); continue; }
+    const origin = points[0];
+    const candidates = points.map(p => ({ ...p, origin: p }));
+    for (const radius of [32, 60, 90, 125]) for (let n = 0; n < 8; n++) candidates.push({ x: origin.x + Math.cos(n * Math.PI / 4) * radius, y: origin.y + Math.sin(n * Math.PI / 4) * radius, origin });
+    const candidate = candidates.find(p => {
+      const b = { x: p.x - w / 2, y: p.y - h / 2, w, h };
+      return b.x >= 64 && b.y >= 12 && b.x + w <= width - 12 && b.y + h <= height - 35 && !boxes.some(other => intersects(b, other));
+    });
+    if (!candidate) { unresolved.push(item.id); continue; }
+    const box = { x: candidate.x - w / 2, y: candidate.y - h / 2, w, h };
+    boxes.push(box); labels.push({ ...item, ...box, origin: candidate.origin, external: Math.hypot(candidate.x - candidate.origin.x, candidate.y - candidate.origin.y) > 1 });
+  }
+  return { labels, unresolved };
+}
+
 /** Reusable CASUR polygon viewer. It does not fetch geometry or own application state. */
 export function createCasurMap(container, options = {}) {
   const element = resolveContainer(container);
@@ -95,6 +151,8 @@ export function createCasurMap(container, options = {}) {
   let visibleFeatures = [];
   let selectedLotId = "";
   let lotsLayer = null;
+  let haloLayer = null;
+  let labelSvg = null;
   let anchorLayer = null;
   const tileErrorCounts = { hybrid: 0, satellite: 0, osm: 0 };
   let resizeObserver = null;
@@ -209,6 +267,50 @@ export function createCasurMap(container, options = {}) {
     });
   }
 
+  function drawCartographicLabels() {
+    if (!options.cartographicLabels || destroyed) return;
+    labelSvg?.remove();
+    const size = map.getSize(), width = size.x, height = size.y;
+    const context = document.createElement("canvas").getContext("2d");
+    const scale = options.cartographicLabelScale || 1;
+    context.font = `600 ${13 * scale}px Arial`;
+    const items = visibleFeatures.map(feature => ({
+      id: featureLotId(feature), text: String(options.cartographicLabel?.(feature) || featureLotId(feature)),
+      color: styleFor(feature).color,
+      points: cartographicInteriorPoints(feature).map(p => map.latLngToContainerPoint([p[1], p[0]])),
+    }));
+    const result = cartographicLabelLayout(items, width, height, text => context.measureText(text).width, scale);
+    const ns = "http://www.w3.org/2000/svg";
+    labelSvg = document.createElementNS(ns, "svg");
+    labelSvg.setAttribute("width", width); labelSvg.setAttribute("height", height);
+    labelSvg.setAttribute("class", "casur-cartographic-labels");
+    labelSvg.style.cssText = "position:absolute;inset:0;z-index:450;pointer-events:none";
+    for (const label of result.labels) {
+      const group = document.createElementNS(ns, "g"); group.dataset.lotId = label.id;
+      const add = (tag, attrs) => { const node = document.createElementNS(ns, tag); for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value); group.append(node); return node; };
+      if (label.external) add("line", { x1: label.origin.x, y1: label.origin.y, x2: label.x + label.w / 2, y2: label.y + label.h / 2, stroke: "#fff", "stroke-width": 1.5 });
+      add("rect", { x: label.x, y: label.y, width: label.w, height: label.h, rx: 3, fill: "#14282d", "fill-opacity": .9, stroke: label.color, "stroke-width": 2 });
+      add("text", { x: label.x + label.w / 2, y: label.y + 16 * scale, "text-anchor": "middle", "font-family": "Arial", "font-size": 13 * scale, "font-weight": 600, fill: "#fff" }).textContent = label.text;
+      labelSvg.append(group);
+    }
+    element.append(labelSvg);
+    options.onLabelLayout?.(result);
+  }
+  function redrawCartography() {
+    if ((options.cartographicLabels || options.outlineHalo) && !Number.isFinite(map.getZoom())) return;
+    if (options.outlineHalo) {
+      const weight = map.getZoom() >= 15 ? 2.6 : 2;
+      lotsLayer?.setStyle?.(feature => ({ ...styleFor(feature), weight }));
+      haloLayer?.setStyle?.({ weight: weight + 2, color: "#f8faf1", opacity: .85, fill: false });
+    }
+    drawCartographicLabels();
+  }
+  function hideMovingLabels() { if (labelSvg) labelSvg.style.visibility = "hidden"; }
+  if (options.cartographicLabels || options.outlineHalo) {
+    map.on("moveend zoomend resize", redrawCartography);
+    map.on("movestart zoomstart", hideMovingLabels);
+  }
+
   function removeLayer(layer) {
     if (layer && map.hasLayer?.(layer)) map.removeLayer(layer);
   }
@@ -266,6 +368,8 @@ export function createCasurMap(container, options = {}) {
 
   function clearLotsLayer() {
     removeLayer(lotsLayer);
+    removeLayer(haloLayer); haloLayer = null;
+    labelSvg?.remove(); labelSvg = null;
     removeLayer(anchorLayer);
     lotsLayer = null;
     anchorLayer = null;
@@ -317,6 +421,7 @@ export function createCasurMap(container, options = {}) {
     selectedLotId = requested && seen.has(requested) ? requested : "";
     clearLotsLayer();
     if (visibleFeatures.length) {
+      if (options.outlineHalo) haloLayer = L.geoJSON(featureCollection(visibleFeatures), { pane: panes.lots, interactive: false, style: { color: "#f8faf1", weight: 4, opacity: .85, fill: false } }).addTo(map);
       lotsLayer = L.geoJSON(featureCollection(visibleFeatures), {
         pane: panes.lots,
         style: styleFor,
@@ -325,6 +430,7 @@ export function createCasurMap(container, options = {}) {
       refreshSelectionStyles();
     }
     if (options.autoFit !== false) fitToData();
+    redrawCartography();
     return api;
   }
 
@@ -342,6 +448,9 @@ export function createCasurMap(container, options = {}) {
     resizeObserver = null;
     tileErrorHandlers.forEach(([layer, handler]) => layer.off?.("tileerror", handler));
     map.off?.("baselayerchange", onBaseLayerChange);
+    map.off?.("moveend zoomend resize", redrawCartography);
+    map.off?.("movestart zoomstart", hideMovingLabels);
+    labelSvg?.remove();
     map.remove?.();
     offlineNotice?.remove?.();
     element.classList?.remove("casur-geo-map", "casur-geo-map--offline");

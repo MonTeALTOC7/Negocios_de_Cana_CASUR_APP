@@ -1039,7 +1039,7 @@
     });
   }
 
-  async function geoInlineExportTiles(mapNode, baseKey) {
+  async function geoInlineExportTiles(mapNode, baseKey, bounded = false) {
     const required = geoTileRequirements(baseKey);
     if (!required.length) return;
     const tiles = [...mapNode.querySelectorAll(".leaflet-tile-pane img.leaflet-tile")]
@@ -1050,7 +1050,7 @@
     }
     await Promise.all(tiles.map(async (image, index) => {
       const source = sources[index];
-      const response = await fetch(source, { mode: "cors", cache: "force-cache" });
+      const response = await fetch(source, { mode: "cors", cache: "force-cache", ...(bounded ? { signal: AbortSignal.timeout(15000) } : {}) });
       if (!response.ok) throw new Error(`No fue posible preparar una tesela del mapa base (${response.status}).`);
       image.removeAttribute("crossorigin");
       image.src = await geoBlobDataUrl(await response.blob());
@@ -1058,7 +1058,7 @@
     }));
   }
 
-  async function geoRasterizeExportMap(html2canvas, mapNode) {
+  async function geoRasterizeExportMap(html2canvas, mapNode, directSvg = false) {
     const width = mapNode.clientWidth || 1088;
     const height = mapNode.clientHeight || 720;
     const canvas = document.createElement("canvas");
@@ -1076,6 +1076,24 @@
       if (x >= width || y >= height || x + bounds.width <= 0 || y + bounds.height <= 0) return;
       context.drawImage(image, x, y, bounds.width, bounds.height);
     });
+
+    if (directSvg) {
+      // Leaflet pans its SVG viewport independently. Draw each actual viewport at
+      // its measured bounds; html2canvas otherwise reapplies its parent transform.
+      for (const svg of mapNode.querySelectorAll(".leaflet-pane svg, .casur-cartographic-labels")) {
+        const bounds = svg.getBoundingClientRect();
+        const copy = svg.cloneNode(true);
+        copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        copy.setAttribute("width", bounds.width); copy.setAttribute("height", bounds.height);
+        copy.style.cssText = "";
+        const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(copy)], { type: "image/svg+xml" }));
+        try {
+          const image = new Image(); image.src = url; await image.decode();
+          context.drawImage(image, bounds.left - mapBounds.left, bounds.top - mapBounds.top, bounds.width, bounds.height);
+        } finally { URL.revokeObjectURL(url); }
+      }
+      return canvas;
+    }
 
     const tilePane = mapNode.querySelector(".leaflet-tile-pane");
     const previousVisibility = tilePane?.style.visibility || "";
@@ -1135,14 +1153,20 @@
     return `CASUR_Mapa_${source}_${geoSafeFilenamePart(selected)}.png`;
   }
 
-  async function geoCaptureExportMap(html2canvas, context, mode, selected) {
+  async function geoCaptureExportMap(html2canvas, context, mode, selected, configuration = null) {
     const createMap = window.createCasurMap;
-    if (typeof createMap !== "function" || !geoFeatures.length) throw new Error("No hay geometría cargada para exportar.");
-    const activeBase = geoMapController?.getActiveBase?.() || "hybrid";
+    const features = configuration?.features || geoFeatures;
+    if (typeof createMap !== "function" || !features.length) throw new Error("No hay geometría cargada para exportar.");
+    const activeBase = configuration?.base || geoMapController?.getActiveBase?.() || "hybrid";
     const host = document.createElement("div");
     host.className = "casur-geo-export-map-host";
     const mapNode = document.createElement("div");
     mapNode.className = "casur-geo-map casur-geo-export-map";
+    if (configuration) {
+      mapNode.className = "casur-geo-map";
+      host.style.cssText = "position:fixed;left:-20000px;top:0;width:1400px;height:1000px;";
+      mapNode.style.cssText = "width:1400px;height:1000px;max-width:none;max-height:none;";
+    }
     host.appendChild(mapNode);
     document.body.appendChild(host);
     let controller = null;
@@ -1154,26 +1178,33 @@
         maxFitZoom: 17,
         layersCollapsed: true,
         ...(context.source === "cronologico" ? { lotTooltipLabel: (_feature, lotId) => geoChronologicalLotTooltipLabel(context, lotId) } : {}),
-        mapOptions: { zoomControl: false, attributionControl: false },
+        ...(configuration?.mapOptions || {}),
+        mapOptions: { ...(configuration?.mapOptions?.mapOptions || {}), zoomControl: false, attributionControl: false },
       }));
       const mapSelection = mode === "lot" ? selected : "";
-      await Promise.resolve(controller.setLots(geoFeatures, mapSelection));
+      await Promise.resolve(controller.setLots(features, mapSelection));
       await Promise.resolve(mode === "lot" ? controller.fitToLot(selected) : controller.fitToData());
       await geoNextFrames();
-      await geoWaitForExportTiles(mapNode, activeBase);
+      await geoWaitForExportTiles(mapNode, activeBase, configuration ? 20000 : 8000);
       if (activeBase !== "blank" && controller.getActiveBase?.() !== activeBase) {
         throw new Error("El mapa base falló durante la captura; no se descargó una lámina incompleta.");
       }
-      await geoInlineExportTiles(mapNode, activeBase);
-      const canvas = await geoRasterizeExportMap(html2canvas, mapNode);
+      await geoInlineExportTiles(mapNode, activeBase, Boolean(configuration));
+      const canvas = await geoRasterizeExportMap(html2canvas, mapNode, Boolean(configuration));
       canvas.toDataURL("image/png");
       if (!geoCanvasHasContent(canvas)) throw new Error("La captura del mapa no contiene información visual suficiente.");
-      return { canvas, baseKey: activeBase };
+      return { canvas, baseKey: activeBase, tileCount: mapNode.querySelectorAll(".leaflet-tile-pane img.leaflet-tile").length };
     } finally {
       try { controller?.destroy?.(); } catch (error) {}
       host.remove();
     }
   }
+
+  // The multifarm report uses the same tile readiness, CORS and rasterization pipeline.
+  window.CASUR_GEO_EXPORT = Object.freeze({
+    capture: async (configuration) => geoCaptureExportMap(null, {}, "farm", "", configuration),
+    attribution: geoExportAttribution,
+  });
 
   async function geoBuildExportSheet(html2canvas, context, mode, selected, mapCapture) {
     const host = document.createElement("div");

@@ -2565,7 +2565,7 @@ function managerialHistoricalChart(html){
  const metric=html.includes('Histórico KATM')?'KATM':'TCH';
  svg.setAttribute('aria-label',metric+' por zafra');host.querySelector('.historical-chart-head small').remove();
  // One period reference in the legend; the complete historical series stays visible.
- const badge=host.querySelector('.historical-chart-reference-badge');badge.textContent=badge.textContent.replace(' ponderado del periodo',' · zafras seleccionadas');
+ const badge=host.querySelector('.historical-chart-reference-badge');badge.textContent=badge.textContent.replace(' ponderado del periodo',' ponderado · '+window.getHistoricoMultiPeriodDescription().legend);
  const ref=host.querySelector('.historical-chart-reference title');if(ref)ref.textContent=badge.textContent;
  host.querySelector('.historical-chart-legend').innerHTML='<span class="selected"><i></i>'+metric+' por zafra</span><span class="reference"><i></i>'+esc(badge.textContent)+'</span>';badge.remove();
  return host.innerHTML;
@@ -3692,10 +3692,18 @@ window.addEventListener('load',setupCrono);
       card('katm','KATM',scope.katm,'kg azúcar/t caña',coverage(scope,'katm'))+
       card('tah','TAH',scope.tahAudit.tah,'t azúcar/ha',scope.tahAudit.tah!=null&&scope.tahAudit.excludedRows?'Cobertura '+f2(scope.tahAudit.coveragePct)+' %':'')+'</div>'+(scope.zafrasWithData.length<scope.requestedSeasonCount?'<small>'+scope.zafrasWithData.length+' de '+scope.requestedSeasonCount+' zafras solicitadas con registros · media sobre zafras observadas.</small>':'')+'</section>';
   }
+  function managerialPeriodDescription(mode,count){
+    const noun=count===1?'zafra':'zafras';
+    if(mode==='latest')return {title:'Histórico de la última zafra',legend:'última zafra'};
+    if(mode==='all')return {title:'Histórico de todas las zafras',legend:'todas las zafras'};
+    if(mode==='custom')return {title:'Histórico de '+count+' '+noun+' seleccionada'+(count===1?'':'s'),legend:count+' '+noun+' seleccionada'+(count===1?'':'s')};
+    if(count===1)return {title:'Histórico de la última zafra',legend:'última zafra'};
+    return {title:'Histórico de las últimas '+count+' zafras',legend:'últimas '+count+' zafras'};
+  }
   function dualKpis(model){
     const requested=model.analysis?.requestedCustomZafras?.length?model.analysis.requestedCustomZafras:model.selectedZafras;
     return '<div class="hist-dual-summary">'+managerialKpiGroup(model.full,'full','Producción histórica',managerialSeasonRange(model.full.zafrasWithData))+
-      managerialKpiGroup(model.period,'period','Histórico de las zafras seleccionadas',requested.length+' '+(requested.length===1?'zafra':'zafras')+' · '+(requested.length?requested.map(zlabel).join(' · '):'Sin zafras seleccionadas'))+
+      managerialKpiGroup(model.period,'period',managerialPeriodDescription(periodMode,requested.length).title,requested.length+' '+(requested.length===1?'zafra':'zafras')+' · '+(requested.length?requested.map(zlabel).join(' · '):'Sin zafras seleccionadas'))+
       (model.equivalent?'<small class="dual-equivalent">Ambos ámbitos comprenden las mismas zafras disponibles.</small>':'')+'</div>';
   }
   function multiLogistics(model){
@@ -3827,6 +3835,7 @@ window.addEventListener('load',setupCrono);
   window.toggleHistoricoMultiZafra=toggleMultiZafra;
   window.getHistoricoMultiAnalysis=multiAnalysis;
   window.getHistoricoDualSummary=multiDualModel;
+  window.getHistoricoMultiPeriodDescription=function(){const m=multiDualModel();return managerialPeriodDescription(periodMode,periodMode==='custom'?customZafras.size:m.selectedZafras.length);};
   // Export-only composition: same rows, selection and chart renderers; never changes live metric state.
   window.historicoMultiReportCharts=function(){
     const model=multiDualModel(),result=model.analysis,rows=multiRows(result);

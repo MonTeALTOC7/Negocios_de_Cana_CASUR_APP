@@ -2,6 +2,12 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.3.4] — pendiente de publicación · identificación de versiones
+- Mantenimiento de PWA para renovar la generación del shell y distribuir los metadatos locales y Novedades de Producción. Se incrementa App de 1.3.3 a 1.3.4 por cambio de código precacheado; no es una actualización SIAGRI.
+- Producción permanece VF54.8, Histórico multifinca V2.9 y TCH 2.8.0. GEO, LKG e IndexedDB conservan sus generaciones y almacenamiento.
+- Encabezado compacto con versiones; diálogo accesible de novedades offline. Sin cambios productivos ni exportadores.
+- La fecha de publicación se añadirá a los metadatos al publicar; no se presenta una fecha de desarrollo como fecha de liberación.
+
 ## [1.3.2] — 2026-10-20 · área histórica y Km vigente de finca
 - Histórico muestra área cosechada por zafra o promedio multizafra, con hectáreas-zafra acumuladas como dato secundario.
 - Cronológico e Histórico comparten el ponderado de `Km` oficial SIAGRI por área vigente de las suertes de la finca; en Histórico es una referencia actual, independiente de las zafras seleccionadas.

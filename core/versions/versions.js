@@ -5,8 +5,17 @@
    número de un módulo aquí no afecta a los demás.
    ============================================================ */
 
-export const APP_VERSION = '1.3.3';
+export const APP_VERSION = '1.3.4';
 export const APP_CHANNEL = 'GitHub Pages';
+
+// Historial de código instalado, independiente de las publicaciones SIAGRI/GEO.
+export const PRODUCTION_RELEASES = [
+  { get moduleVersion() { return MODULE_VERSIONS.produccion; }, historicalVersion: 'V2.9', appVersion: APP_VERSION,
+    changes: ['Identificación visible de versiones y consulta de novedades offline.',
+      'Selección y análisis multifinca.', 'Producción histórica y período seleccionado.',
+      'TCH, KATM y TAH.', 'Gráficos históricos y comparativos.',
+      'Mapa híbrido de suertes seleccionadas.', 'PDF ejecutivo y completo.'] },
+];
 
 /* Versiones detectadas en la auditoría (Fase 0). En fase 1 son
    informativas (placeholders); al integrar cada módulo real se

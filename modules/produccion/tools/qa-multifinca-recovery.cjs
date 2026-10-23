@@ -138,7 +138,10 @@ async function run() {
     await selectOfficial(moduleFrame());
     await moduleFrame().getByRole('button',{name:'Últimas 3',exact:true}).click();
     assert.equal(await moduleFrame().evaluate(()=>window.getHistoricoMultiAnalysis().consolidated.tch),48.92);
+    let acceptedMapFallback=false;
+    shell.on('dialog',async dialog=>{if(dialog.type()==='confirm'&&dialog.message().includes('SIN mapa base')){acceptedMapFallback=true;await dialog.accept();}else await dialog.dismiss();});
     report.push(await download(moduleFrame(),'historico-multiple','Historico_Multifinca_Offline.pdf',shell));
+    assert.equal(acceptedMapFallback,true);
     assert.deepEqual(shellErrors,[]);
     report.push({shell:true,offline:'recarga con caché precargada y descarga PDF',tch:48.92,errors:shellErrors});
     await shellContext.close();

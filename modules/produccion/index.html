@@ -1813,6 +1813,9 @@ body.crono-print-preview .print-end{display:block!important;text-align:center!im
 .dual-scope:not(.dual-period),.casur-report-executive .dual-scope:not(.dual-period){border-top:3px solid #438c5e}
 .dual-period{border-left:3px solid #326b46}
 #historicalMultiMap{min-width:0;overflow-wrap:anywhere}#historicalMultiMap .hist-map-focus{display:flex;flex-wrap:wrap;gap:4px}#historicalMultiMap .hist-map-focus button{white-space:normal;max-width:100%;text-align:left}
+#historicalMultiMap .hist-map-canvas{height:520px;width:100%;border-radius:8px;margin-top:8px}
+.hist-map-legend{display:flex;flex-wrap:wrap;gap:8px 20px;padding:10px 0;font-size:12px;line-height:1.5}.hist-map-legend span{border-left:4px solid var(--farm-color);padding-left:8px}
+@media(max-width:600px){#historicalMultiMap .hist-map-canvas{height:440px}.hist-map-legend{display:grid;gap:6px}}
 .historical-chart-card.is-complete-history .historical-chart-line{stroke:#0b7f3a;stroke-width:3;opacity:1}
 .historical-chart-card.is-complete-history .historical-chart-dot{fill:#0b7f3a;opacity:1;stroke-width:2.8}
 .historical-chart-card.is-complete-history .historical-chart-legend .selected i{background:#0b7f3a}
@@ -2469,15 +2472,49 @@ function historicalMapSvg(farm){
 function historicalMapReport(model){
  return model.farms.map(f=>'<section class="hist-map-print" data-pdf-break><h3>Ubicación de fincas y suertes seleccionadas · '+esc(f.farmName)+' ('+esc(f.farmCode)+')</h3><p><b style="color:'+f.color+'">■</b> '+f.features.length+' de '+f.lotIds.length+' suertes con polígono · '+(f.mode==='full'?'Finca completa':'Selección parcial')+'</p>'+historicalMapSvg(f)+(f.missing.length?'<p>Sin polígono: '+f.missing.map(esc).join(', ')+'</p>':'')+'<small>Geometrías oficiales CASUR · EPSG:4326 · vista por finca, encuadres independientes.</small></section>').join('');
 }
+function historicalMapLotLabel(farm,lotId){
+ const prefix=String(farm.farmCode),suffix=String(lotId).startsWith(prefix)?String(lotId).slice(prefix.length):'';
+ return /^\d{2}[A-Z]*$/.test(suffix)?'Suerte '+suffix:'CodSuerte '+lotId;
+}
+function historicalMapLegend(model){
+ return '<div class="hist-map-legend">'+model.farms.map(f=>'<span style="--farm-color:'+f.color+'"><b>'+esc(f.farmName)+' ('+esc(f.farmCode)+')</b><br>'+f.features.length+'/'+f.lotIds.length+' suertes con polígono</span>').join('')+'</div>';
+}
+function historicalMapOptions(model,onLabelLayout){
+ const owner=new Map(model.farms.flatMap(f=>f.features.map(g=>[g.properties.lotId,f])));
+ return {initialBase:'hybrid',showAnchor:false,outlineHalo:true,cartographicLabels:true,fitPadding:[24,36],mapOptions:{zoomSnap:.25,zoomAnimation:false,fadeAnimation:false},
+  featureStyle:g=>({color:owner.get(g.properties.lotId).color,fillColor:owner.get(g.properties.lotId).color,weight:2,fillOpacity:.16}),
+  cartographicLabel:g=>historicalMapLotLabel(owner.get(g.properties.lotId),g.properties.lotId),
+  lotTooltipLabel:g=>owner.get(g.properties.lotId).farmName+' · CodSuerte '+g.properties.lotId,onLabelLayout};
+}
+async function historicalHybridReport(model){
+ if(!model.available)return '<section data-pdf-break><h3>Mapa de fincas y suertes seleccionadas</h3><p>Sin geometrías disponibles para la selección.</p>'+historicalMapLegend(model)+'</section>';
+ const features=model.farms.flatMap(f=>f.features);
+ const extent=items=>{const points=items.flatMap(f=>f.geometry.coordinates.flat(f.geometry.type==='Polygon'?1:2));return Math.max(Math.max(...points.map(p=>p[0]))-Math.min(...points.map(p=>p[0])),Math.max(...points.map(p=>p[1]))-Math.min(...points.map(p=>p[1])));};
+ const nearby=extent(features)<=4*Math.max(...model.farms.filter(f=>f.features.length).map(f=>extent(f.features)));
+ const groups=nearby?[model]:model.farms.filter(f=>f.features.length).map(f=>({...model,farms:[f],selected:f.lotIds.length,available:f.features.length}));
+ const panels=[],audit=[];
+ for(const group of groups){
+  let layout=null;
+  const capture=await window.CASUR_GEO_EXPORT.capture({base:'hybrid',features:group.farms.flatMap(f=>f.features),mapOptions:{...historicalMapOptions(group,result=>layout=result),cartographicLabelScale:1.5,fitPadding:[100,90]}});
+  try{
+   const image=capture.canvas.toDataURL('image/png');
+   const unresolved=layout?.unresolved||[];
+   audit.push({farms:group.farms.map(f=>f.farmCode),base:capture.baseKey,tiles:capture.tileCount,labels:layout?.labels.map(l=>({id:l.id,x:l.x,y:l.y,w:l.w,h:l.h}))||[],unresolved,width:capture.canvas.width,height:capture.canvas.height});
+   panels.push('<section class="hist-map-print" data-pdf-break><h3>Mapa de fincas y suertes seleccionadas</h3>'+historicalMapLegend(group)+'<img style="display:block;width:100%;height:auto" alt="Mapa híbrido de la selección CASUR" src="'+image+'"><small>'+esc(window.CASUR_GEO_EXPORT.attribution('hybrid'))+' · '+group.available+'/'+group.selected+' con polígono.</small>'+group.farms.filter(f=>f.missing.length).map(f=>'<p style="font-size:11px">'+esc(f.farmName)+' · Sin polígono: '+f.missing.map(esc).join(', ')+'</p>').join('')+(unresolved.length?'<p>Etiquetas no colocadas a esta escala (CodSuerte): '+unresolved.map(esc).join(', ')+'</p>':'')+'</section>');
+  }finally{capture.canvas.width=1;capture.canvas.height=1;}
+ }
+ window.CASUR_HISTORICAL_MAP_EXPORT_AUDIT=audit;
+ return panels.join('');
+}
 let historicalMapController=null,historicalMapMount=null;
 async function mountHistoricalMultiMap(){
  const mount=document.querySelector('#historicalMultiMap');if(mount===historicalMapMount)return;
  historicalMapController?.destroy();historicalMapController=null;historicalMapMount=mount;if(!mount)return;
  try{
   const model=await historicalMapModel(getHistoricoDualSummary().selection);if(!mount.isConnected||mount!==historicalMapMount)return;
-  mount.dataset.key=model.key;mount.innerHTML='<details open><summary>Mapa de fincas seleccionadas</summary><p role="status">'+model.available+' de '+model.selected+' suertes con polígono</p><div class="hist-map-focus"></div><div class="hist-map-canvas" style="height:380px;width:100%"></div><p class="hist-map-identify" aria-live="polite">Seleccione un polígono para identificar finca y suerte.</p></details>';
+  mount.dataset.key=model.key;mount.innerHTML='<details open><summary>Mapa de fincas seleccionadas</summary><div class="hist-map-focus"></div><div class="hist-map-canvas"></div>'+historicalMapLegend(model)+'<p class="hist-map-identify" aria-live="polite">Seleccione un polígono para identificar finca y suerte.</p><small class="hist-map-label-note"></small></details>';
   const owner=new Map(model.farms.flatMap(f=>f.features.map(g=>[g.properties.lotId,f])));
-  const controller=createCasurMap(mount.querySelector('.hist-map-canvas'),{initialBase:'blank',showAnchor:false,featureStyle:g=>({color:owner.get(g.properties.lotId).color,fillColor:owner.get(g.properties.lotId).color,weight:2,fillOpacity:.25}),lotTooltipLabel:g=>{const f=owner.get(g.properties.lotId);return f.farmName+' · CodSuerte '+g.properties.lotId;},onSelectLot:g=>{const f=owner.get(g.properties.lotId);mount.querySelector('.hist-map-identify').textContent=f.farmName+' ('+f.farmCode+') · CodSuerte '+g.properties.lotId;}});historicalMapController=controller;
+  const controller=createCasurMap(mount.querySelector('.hist-map-canvas'),{...historicalMapOptions(model,result=>{mount.querySelector('.hist-map-label-note').textContent=result.unresolved.length?'Acérquese para identificar: '+result.unresolved.join(', '):'';}),onSelectLot:g=>{const f=owner.get(g.properties.lotId);mount.querySelector('.hist-map-identify').textContent=f.farmName+' ('+f.farmCode+') · '+historicalMapLotLabel(f,g.properties.lotId)+' · CodSuerte '+g.properties.lotId;}});historicalMapController=controller;
   const all=model.farms.flatMap(f=>f.features);controller.setLots(all);
   const coverage=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Cobertura por finca';coverage.append(summary);for(const f of model.farms){const p=document.createElement('p');p.textContent=f.farmName+': '+f.features.length+' de '+f.lotIds.length+(f.missing.length?' · Sin polígono: '+f.missing.join(', '):'');coverage.append(p);}mount.querySelector('details').append(coverage);
   for(const f of [{farmName:'Vista general',features:all},...model.farms]){const b=document.createElement('button');b.type='button';b.className='btn btn-light btn-compact';b.textContent=f.farmName+(f.color?' · '+f.features.length+' polígonos':'');b.style.borderLeft=f.color?'4px solid '+f.color:'';b.onclick=()=>controller.setLots(f.features);mount.querySelector('.hist-map-focus').append(b);}
@@ -5152,8 +5189,12 @@ async function renderCanvas(kind,variant){
   var cloneNode=prepareClone(node,kind,variant);
   if(kind==='historico-multiple'&&variant){
     var mapHolder=document.createElement('div');
-    try{mapHolder.innerHTML=historicalMapReport(await historicalMapModel(window.getHistoricoDualSummary().selection));}
-    catch(error){mapHolder.innerHTML='<section data-pdf-break><h3>Ubicación de fincas y suertes seleccionadas</h3><p>Cartografía no disponible. Los resultados productivos se conservan.</p></section>';}
+    var mapModel=null;
+    try{mapModel=await historicalMapModel(window.getHistoricoDualSummary().selection);mapHolder.innerHTML=await historicalHybridReport(mapModel);}
+    catch(error){
+      if(!window.confirm('No fue posible completar el mapa híbrido: '+error.message+'\n¿Acepta exportar este informe SIN mapa base? Cancele para reintentar con conexión.'))throw error;
+      mapHolder.innerHTML='<section data-pdf-break><h3>Mapa sin fondo cartográfico</h3><p>Modalidad aceptada por el usuario. Mosaicos híbridos no disponibles.</p></section>'+(mapModel?historicalMapReport(mapModel):'<section data-pdf-break><p>Geometrías no disponibles. Resultados productivos conservados.</p></section>');
+    }
     var firstAnnex=cloneNode.querySelector('[data-pdf-new-page]');
     Array.from(mapHolder.children).forEach(function(panel){panel.classList.add('hist-multi-report-block');panel.setAttribute('data-pdf-break','');cloneNode.insertBefore(panel,firstAnnex||cloneNode.lastElementChild);});
   }

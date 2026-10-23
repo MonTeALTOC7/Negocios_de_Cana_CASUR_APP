@@ -1,2 +1,2 @@
-VF54.8 CASUR · GEO-1 · 11-oct-2026
+V1.5.0 CASUR · Cronológico e Histórico de Producción de Suertes
 El módulo técnico se abre desde una tarjeta protegida en el Panel Ejecutivo, permanece oculto hasta desbloquearse y desaparece de las exportaciones operativas.

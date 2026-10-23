@@ -21,7 +21,7 @@ export const PRODUCTION_RELEASES = [
    informativas (placeholders); al integrar cada módulo real se
    confirmarán/leerán de su propio version.json cuando exista. */
 export const MODULE_VERSIONS = {
-  produccion: 'VF54.8',
+  produccion: 'V1.5.0',
   tch: '2.8.0',
   riego: 'v6',
   insumos: '1.0',
@@ -40,7 +40,7 @@ export function moduleVersion(id) {
    de su fase. El TCH está integrado técnicamente; cámara/GPS/Android
    requieren validación final en dispositivo real tras publicar. */
 export const MODULE_STATUS = {
-  produccion: 'integrado · VF54.8 (código) · mapa agrícola · datos vía SIAGRI→adaptador',
+  produccion: 'integrado · V1.5.0 (código) · mapa agrícola · datos vía SIAGRI→adaptador',
   tch: 'integrado · cámara/GPS: validar en dispositivo',
   riego: 'integrado · fuente/backend Supabase propios',
   insumos: 'integrado · fuente/Maestro propios (conexión al Maestro Central en Fase 5.1)',

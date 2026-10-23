@@ -3,8 +3,9 @@
 Formato: [versión] — fecha · resumen.
 
 ## [1.3.4] — pendiente de publicación · identificación de versiones
+- Por decisión del responsable, el módulo completo Cronológico e Histórico adopta V1.5.0 como nueva línea unificada de versiones (package 1.5.0). Sucede a VF54.8 e integra la funcionalidad Histórico multifinca V2.9. No es una regresión de código ni una migración de datos; App Maestra conserva 1.3.4.
 - Mantenimiento de PWA para renovar la generación del shell y distribuir los metadatos locales y Novedades de Producción. Se incrementa App de 1.3.3 a 1.3.4 por cambio de código precacheado; no es una actualización SIAGRI.
-- Producción permanece VF54.8, Histórico multifinca V2.9 y TCH 2.8.0. GEO, LKG e IndexedDB conservan sus generaciones y almacenamiento.
+- Producción se identifica como V1.5.0, Histórico multifinca permanece V2.9 y TCH 2.8.0. GEO, LKG e IndexedDB conservan sus generaciones y almacenamiento.
 - Encabezado compacto con versiones; diálogo accesible de novedades offline. Sin cambios productivos ni exportadores.
 - La fecha de publicación se añadirá a los metadatos al publicar; no se presenta una fecha de desarrollo como fecha de liberación.
 

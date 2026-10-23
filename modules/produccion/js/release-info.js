@@ -10,7 +10,7 @@ if (header && release) {
   row.className = 'production-release no-print export-excluded';
   row.dataset.exportExclude = 'true';
   const version = document.createElement('span');
-  version.textContent = `V${APP_VERSION}`;
+  version.textContent = release.moduleVersion;
   const chronoDate = document.createElement('span');
   function refreshChronoDate() {
     const meta = window.CRONO_DATA?.meta;

@@ -5,7 +5,21 @@ import vm from 'node:vm';
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const source=html.slice(html.indexOf('  function managerialSelectionLabel('),html.indexOf('  function dualQuality('));
 const ctx=vm.createContext({escH:s=>String(s).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;'),f2:v=>Number(v).toFixed(2),zlabel:z=>String(z).padStart(4,'0').slice(0,2)+'/'+String(z).padStart(4,'0').slice(2)});
+ctx.periodMode='custom';
 vm.runInContext(source,ctx);
+test('V2.9: descripción temporal distingue modo real, singular y ausencia de registros',()=>{
+ for(const [mode,count,title,legend] of [
+ ['latest',1,'Histórico de la última zafra','última zafra'],
+ ['last3',3,'Histórico de las últimas 3 zafras','últimas 3 zafras'],
+ ['last5',5,'Histórico de las últimas 5 zafras','últimas 5 zafras'],
+ ['all',10,'Histórico de todas las zafras','todas las zafras'],
+ ['custom',5,'Histórico de 5 zafras seleccionadas','5 zafras seleccionadas'],
+ ['custom',1,'Histórico de 1 zafra seleccionada','1 zafra seleccionada'],
+ ['custom',2,'Histórico de 2 zafras seleccionadas','2 zafras seleccionadas'],
+ ['custom',0,'Histórico de 0 zafras seleccionadas','0 zafras seleccionadas']]){
+ const actual=ctx.managerialPeriodDescription(mode,count);assert.equal(actual.title,title);assert.equal(actual.legend,legend);
+ }
+});
 test('V2.1: abreviación segura preserva ceros, sufijos y selección original',()=>{
   const farm={farmCode:'983',mode:'partial',lotIds:['98301','98304','98304A']},before=JSON.stringify(farm);
   assert.equal(ctx.managerialSelectionLabel(farm),'Suertes 01, 04 y 04A');
@@ -47,7 +61,7 @@ const scope={areaMean:187.41,areaAccumulated:937.03,tch:53.57,katm:105.66,tahAud
 test('V2.1: nombres, unidades y notas comparten presentación sin mutar resultados',()=>{
   const model={full:scope,period:scope,availableZafras:[2122,2526],selectedZafras:[2122,2526]},before=JSON.stringify(model);
   const result=ctx.dualKpis(model);
-  assert.match(result,/Producción histórica/);assert.match(result,/Histórico de las zafras seleccionadas/);
+  assert.match(result,/Producción histórica/);assert.match(result,/Histórico de 2 zafras seleccionadas/);
   assert.match(result,/Área histórica/);assert.match(result,/Área del período/);
   assert.match(result,/<strong>2 zafras<\/strong> · 21\/22 · 25\/26/);
   for(const label of ['TCH','KATM','TAH'])assert.match(result,new RegExp('<small>'+label+'</small>'));

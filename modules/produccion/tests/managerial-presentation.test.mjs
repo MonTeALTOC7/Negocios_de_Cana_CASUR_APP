@@ -30,7 +30,7 @@ test('V2.3: selección flexible y acento lateral exclusivo del período',()=>{
 test('selección analizada distingue nombre, código y alcance sin mutar identidades',()=>{
   const farms=[{farmCode:'256',farmName:'Dolores',mode:'full',lotIds:['25601']},{farmCode:'983',farmName:'Rancho Peirano',mode:'partial',lotIds:['98301','98304','98304A']}];
   const before=JSON.stringify(farms),result=ctx.managerialIncludedSelection(farms);
-  assert.match(result,/<strong>Fincas del informe<\/strong><ul/);
+  assert.match(result,/<strong>Fincas seleccionadas<\/strong><ul/);
   assert.match(result,/<b>Dolores<\/b> <span class="farm-code">\(256\)<\/span> · <em>Finca completa<\/em>/);
   assert.match(result,/<b>Rancho Peirano<\/b> <span class="farm-code">\(983\)<\/span> · <em>Suertes 01, 04 y 04A<\/em>/);
   assert.equal((result.match(/<li /g)||[]).length,2);assert.equal(JSON.stringify(farms),before);
@@ -47,7 +47,7 @@ const scope={areaMean:187.41,areaAccumulated:937.03,tch:53.57,katm:105.66,tahAud
 test('V2.1: nombres, unidades y notas comparten presentación sin mutar resultados',()=>{
   const model={full:scope,period:scope,availableZafras:[2122,2526],selectedZafras:[2122,2526]},before=JSON.stringify(model);
   const result=ctx.dualKpis(model);
-  assert.match(result,/Producción histórica/);assert.match(result,/Histórico del período seleccionado/);
+  assert.match(result,/Producción histórica/);assert.match(result,/Histórico de las zafras seleccionadas/);
   assert.match(result,/Área histórica/);assert.match(result,/Área del período/);
   assert.match(result,/<strong>2 zafras<\/strong> · 21\/22 · 25\/26/);
   for(const label of ['TCH','KATM','TAH'])assert.match(result,new RegExp('<small>'+label+'</small>'));
@@ -55,7 +55,7 @@ test('V2.1: nombres, unidades y notas comparten presentación sin mutar resultad
   assert.doesNotMatch(result,/Área cosechada media|Equivalente estimado|Desempeño productivo/);
   assert.equal(JSON.stringify(model),before);
   const empty={...scope,areaMean:null,areaAccumulated:null,tch:null,katm:null,tahAudit:{tah:null},zafrasWithData:[]};
-  const nd=ctx.managerialKpiGroup(empty,'period','Histórico del período seleccionado','Zafras 21/22 · 25/26');
+  const nd=ctx.managerialKpiGroup(empty,'period','Histórico de las zafras seleccionadas','Zafras 21/22 · 25/26');
   assert.equal((nd.match(/<b>N\/D<\/b>/g)||[]).length,4);assert.match(nd,/0 de 2 zafras solicitadas/);assert.doesNotMatch(nd,/Acumulado 0/);
 });
 test('V2.1: distancia compacta mantiene procedencia y cobertura parcial accesible',()=>{

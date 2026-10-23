@@ -93,7 +93,7 @@ async function run(){
   assert.ok(evidence.numeric.every(r=>r.match));assert.deepEqual(evidence.pdfKpis,evidence.screenKpis);assert.equal(evidence.tablesExecutive,0);assert.equal(evidence.overflow,false);
   assert.deepEqual(evidence.collisions,[]);assert.deepEqual(evidence.clipped,[]);assert.deepEqual(evidence.visibleBars,evidence.expectedBars);
   assert.equal(evidence.annexes,evidence.model.selection.length);assert.ok(evidence.tablesComplete>0);
-  assert.deepEqual(evidence.presentation.headings,['Producción histórica','Histórico del período seleccionado']);
+  assert.deepEqual(evidence.presentation.headings,['Producción histórica','Histórico de las zafras seleccionadas']);
   assert.equal(evidence.presentation.obsolete,false);assert.equal(evidence.presentation.headerPeriod,false);
   assert.equal(evidence.presentation.unitsBelow,true);assert.equal(evidence.presentation.annexDistanceCards,false);
   assert.equal(evidence.presentation.annexKpis,evidence.model.selection.length*4);

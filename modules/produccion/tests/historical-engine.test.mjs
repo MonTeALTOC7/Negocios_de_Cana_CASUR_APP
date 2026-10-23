@@ -671,7 +671,7 @@ test("PDF ejecutivo respeta saltos de sección obligatorios sin omitir contenido
 });
 
 test("variantes PDF multifinca son optativas y no cambian la métrica activa ni el PNG", () => {
-  assert.match(index,/variant\?printFarmPatterns\(buildHistoricalExecutive\(node,variant==='complete'\)\):buildHistoricalMulti\(node\)/);
+  assert.match(index,/variant\?buildHistoricalExecutive\(node,variant==='complete'\):buildHistoricalMulti\(node\)/);
   const composition=index.slice(index.indexOf('window.historicoMultiReportCharts='),index.indexOf('window.historicoMultiReportCharts=')+850);
   assert.match(composition,/\['tch','katm'\]/);
   assert.equal(composition.includes('historicalChartMetric='),false);

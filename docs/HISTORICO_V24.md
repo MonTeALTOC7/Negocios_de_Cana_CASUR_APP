@@ -10,7 +10,7 @@ Etiquetas determinísticas: medidas Canvas de la fuente Arial, cajas de texto, c
 
 Fincas seleccionadas: unidades horizontales con borde discreto, abreviación anterior intacta. Contenedor CASUR y tarjetas con borde superior; período con borde izquierdo.
 
-PDF: tramas SVG exclusivamente en la composición ejecutiva/completa, también en leyendas. Orden numérico reproducible de códigos: primera serie sólida; siguientes diagonal, puntos, horizontal y diagonal más espaciada. Caso A: Dolores sólida, Peirano diagonal. Sin cambios de datos, escala u orden de barras.
+Corrección posterior aprobada por el usuario: PDF ejecutivo y completo conservan los colores sólidos originales de la aplicación, incluidas las leyendas. Caso A: Dolores verde #0b7f3a y Peirano azul #005baa. Se retiró printFarmPatterns sin otros consumidores. Sin cambios de datos, escala u orden de barras. qa-gerencial-v2.cjs rechaza patrones, degradados y rellenos no sólidos en ambos informes.
 
 ## Validación
 
@@ -28,4 +28,4 @@ Evidencia local en C:/Users/ctije/Videos/CASUR_V24_QA. Entrega en `definitivo/`;
 
 ## Límites y siguiente fase
 
-Impresión física pendiente del usuario; grises es simulación digital. Las tramas y etiquetas no sustituyen una prueba en la impresora de CASUR. El conjunto de candidatos de etiquetas es acotado: nuevas series mucho más densas requieren repetir QA visual. No se implementa cartografía ni se modifica GEO. El visor compartido existente queda fuera de este cambio.
+Impresión física pendiente del usuario; grises es simulación digital. Por preferencia expresa del usuario se mantienen colores sólidos, aunque puedan aproximarse al imprimir en monocromo. El conjunto de candidatos de etiquetas es acotado: nuevas series mucho más densas requieren repetir QA visual. No se implementa cartografía ni se modifica GEO. El visor compartido existente queda fuera de este cambio.

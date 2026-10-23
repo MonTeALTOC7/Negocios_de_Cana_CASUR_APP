@@ -44,6 +44,14 @@ async function inspect(page){return page.evaluate(()=>{
   });
   const exec=api.prepareClone(api.target('historico-multiple'),'historico-multiple','executive');
   const complete=api.prepareClone(api.target('historico-multiple'),'historico-multiple','complete');
+  for(const report of [exec,complete]){
+    if(report.querySelector('.hist-bars pattern,.hist-bars linearGradient,.hist-bars radialGradient'))throw Error('Trama o degradado en barras PDF');
+    for(const rect of report.querySelectorAll('.hist-bars rect'))if(!/^#[0-9a-f]{6}$/i.test(rect.getAttribute('fill')||''))throw Error('Relleno no sólido en barra/leyenda PDF');
+    for(const rect of report.querySelectorAll('.hist-bars rect[data-farm]')){
+      const expected={'256':'#0b7f3a','983':'#005baa'};
+      if(m.selection.length===2&&expected[rect.dataset.farm]&&rect.getAttribute('fill')!==expected[rect.dataset.farm])throw Error('Color original incorrecto');
+    }
+  }
   // Inspect shared export styles on a detached report, never mutate the live selection.
   const styleHost=document.createElement('div');styleHost.style.cssText='position:absolute;left:-20000px;top:0;width:960px';
   styleHost.appendChild(complete);document.body.appendChild(styleHost);

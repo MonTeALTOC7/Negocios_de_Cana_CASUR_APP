@@ -46,7 +46,7 @@ test('bloques excesivos se rechazan en lugar de recortar contenido silenciosamen
 });
 test('PDF individual y PNG conservan builders previos; solo variante multifinca planifica páginas',()=>{
   assert.match(html,/if\(kind==='historico-multiple'&&variant\)return await renderHistoricalPdfPages/);
-  assert.match(html,/variant\?printFarmPatterns\(buildHistoricalExecutive\(node,variant==='complete'\)\):buildHistoricalMulti\(node\)/);
+  assert.match(html,/variant\?buildHistoricalExecutive\(node,variant==='complete'\):buildHistoricalMulti\(node\)/);
   assert.match(html,/Informe Histórico de Producción de Fincas/);
   assert.match(html,/sourceRows\.filter/);
 });

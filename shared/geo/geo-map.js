@@ -260,7 +260,7 @@ export function createCasurMap(container, options = {}) {
       ? options.lotTooltipLabel(feature, lotId)
       : `Suerte ${lotId}`;
     layer.bindTooltip?.(String(tooltipLabel), {
-      permanent: selected || options.permanentLabels === true,
+      permanent: !(options.hideContextualLabels && options.contextualFeature?.(feature)) && (selected || options.permanentLabels === true),
       direction: "center",
       className: selected ? "casur-geo-label casur-geo-label--selected" : "casur-geo-label",
       opacity: 1,
@@ -274,7 +274,7 @@ export function createCasurMap(container, options = {}) {
     const context = document.createElement("canvas").getContext("2d");
     const scale = options.cartographicLabelScale || 1;
     context.font = `600 ${13 * scale}px Arial`;
-    const items = visibleFeatures.map(feature => ({
+    const items = visibleFeatures.filter(feature => (!options.hideContextualLabels || !options.contextualFeature?.(feature)) && options.cartographicLabelVisible?.(feature) !== false).map(feature => ({
       id: featureLotId(feature), text: String(options.cartographicLabel?.(feature) || featureLotId(feature)),
       contextual: options.contextualFeature?.(feature) === true,
       color: styleFor(feature).color,

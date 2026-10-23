@@ -4,7 +4,7 @@ function api(fetch,ids=['98304A','sin']){const c=vm.createContext({window:{CASUR
 const feature={type:'Feature',properties:{lotId:'98304A'},geometry:{type:'MultiPolygon',coordinates:[[[[0,0],[1,0],[1,1],[0,0]],[[.1,.1],[.2,.1],[.1,.2],[.1,.1]]],[[[2,2],[3,2],[2,3],[2,2]]]]}};
 test('selección exacta, cobertura, caché y geometrías sin mutación',async()=>{let calls=0;const c=api(async ids=>{calls++;assert.deepEqual([...ids],['98304A','sin']);return [feature];}),selection=[{farmCode:'983',farmName:'Peirano',mode:'partial',lotIds:['98304A','sin']}],before=JSON.stringify(feature);
 const m=await c.historicalMapModel(selection);assert.equal(m.available,1);assert.deepEqual([...m.farms[0].missing],['sin']);assert.equal(await c.historicalMapModel(selection),m);assert.equal(calls,1);const svg=c.historicalMapSvg(m.farms[0]);assert.equal((svg.match(/data-lot-id=/g)||[]).length,2);assert.ok(svg.includes('fill-rule="evenodd"'));assert.equal((svg.match(/Z/g)||[]).length,3);assert.equal(JSON.stringify(feature),before);});
-test('ausencia y fallo GEO no inventan geometrías y permiten reintento',async()=>{let fail=true;const c=api(async()=>{if(fail)throw Error('offline');return [];},['1A']);const s=[{farmCode:'1',farmName:'Sin mapa',lotIds:['1A']}];await assert.rejects(c.historicalMapModel(s));fail=false;const m=await c.historicalMapModel(s);assert.equal(m.available,0);assert.match(c.historicalMapReport(m),/Sin polígonos disponibles/);assert.match(c.historicalMapReport(m),/1 suertes del inventario cargado sin geometría/);});
+test('ausencia y fallo GEO no inventan geometrías y permiten reintento',async()=>{let fail=true;const c=api(async()=>{if(fail)throw Error('offline');return [];},['1A']);const s=[{farmCode:'1',farmName:'Sin mapa',lotIds:['1A']}];await assert.rejects(c.historicalMapModel(s));fail=false;const m=await c.historicalMapModel(s);assert.equal(m.available,0);assert.match(c.historicalMapReport(m),/Sin polígonos disponibles/);assert.match(c.historicalMapCoverage(m),/1 suertes del inventario cargado sin geometría/);});
 
 test('inventario cartográfico separado: completas, parciales, históricas y contexto no mutan selección',async()=>{
  const features=['98304A','98302'].map(id=>({...feature,properties:{lotId:id}}));
@@ -30,4 +30,17 @@ test('exportación híbrida exige mosaicos completos y aceptación explícita pa
  assert.match(source,/geoWaitForExportTiles\(mapNode, activeBase/);
  assert.match(source,/geoInlineExportTiles\(mapNode, activeBase, Boolean\(configuration\)\)/);
  assert.match(source,/geoRasterizeExportMap\(html2canvas, mapNode, Boolean\(configuration\)\)/);
+});
+
+test('V2.8: leyenda ejecutiva limpia; diagnóstico retenido y etiquetas solo de la selección',async()=>{
+ const features=['98304A','98302'].map(id=>({...feature,properties:{lotId:id}}));
+ const c=api(async()=>features,['98304A','98302']);
+ const m=await c.historicalMapModel([{farmCode:'983',farmName:'Peirano',mode:'partial',lotIds:['98304A']}]);
+ const opts=c.historicalMapOptions(m);assert.equal(opts.hideContextualLabels,true);
+ assert.equal(opts.cartographicLabelVisible(features[0]),true);assert.equal(opts.cartographicLabelVisible(features[1]),false);
+ assert.equal(m.available,2);assert.deepEqual([...m.farms[0].contextIds],['98302']);
+ assert.doesNotMatch(c.historicalMapLegend(m),/Contexto cartográfico|Resto de suertes|referencia cargada|Cobertura/);
+ assert.match(m.reference,/referencia cargada/);
+ const svg=c.historicalMapSvg(m.farms[0]);assert.match(svg,/data-lot-id="98302"/);assert.doesNotMatch(svg,/>98302<\/text>/);
+ assert.match(html,/esc\(window.CASUR_GEO_EXPORT.attribution\('hybrid'\)\)/);
 });

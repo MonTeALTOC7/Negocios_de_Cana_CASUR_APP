@@ -215,6 +215,22 @@ test("el tooltip admite etiqueta de suerte explícita y conserva CodSuerte como 
   viewer.destroy();
 });
 
+test("ocultar etiquetas contextuales conserva clic e identificación sin tooltip permanente", () => {
+  const { L, records } = fakeLeaflet();
+  const selections = [];
+  const viewer = createCasurMap(fakeElement(), {leaflet:L, hideContextualLabels:true,
+    contextualFeature:f=>f.properties.lotId==='98302', onSelectLot:f=>selections.push(f.properties.lotId)});
+  viewer.setLots([polygon('98301'),polygon('98302')]);
+  records.geo[0].children[1].events.get('click')();
+  assert.deepEqual(selections,['98302']);
+  assert.equal(viewer.getSelectedLotId(),'98302');
+  assert.equal(records.geo[0].children[1].tooltip.options.permanent,false);
+  viewer.selectLot('98301');
+  assert.equal(records.geo[0].children[0].tooltip.options.permanent,true);
+  assert.equal(records.geo[0].children.length,2);
+  viewer.destroy();
+});
+
 test("el cambio de base sigue notificándose sin duplicar el selector en el mapa", () => {
   const element = fakeElement();
   const { L, records } = fakeLeaflet();

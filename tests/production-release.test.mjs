@@ -7,7 +7,10 @@ test('metadatos locales distinguen PWA, módulo e Histórico y quedan precachead
  assert.equal(release.moduleVersion,MODULE_VERSIONS.produccion);
  assert.equal(release.appVersion,APP_VERSION);
  assert.equal(release.historicalVersion,'V2.9');
- assert.ok(release.changes.length>=6);
+ assert.ok(release.changes.length>=3);
+ assert.equal(PRODUCTION_RELEASES[1].moduleVersion,'V1.5.0');
+ assert.equal(PRODUCTION_RELEASES[1].appVersion,'1.3.4');
+ assert.ok(Object.isFrozen(PRODUCTION_RELEASES[1]));
  const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
  assert.ok(sw.includes("'./modules/produccion/js/release-info.js'"));
  assert.ok(sw.includes("'./core/versions/versions.js'"));

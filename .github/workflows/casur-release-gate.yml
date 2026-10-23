@@ -15,10 +15,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Verify release metadata
+        run: |
+          node tools/sync-versions.mjs
+          node tools/runtime-assets.mjs
+      - name: Enforce scoped release versions
+        if: github.event_name == 'pull_request'
+        env:
+          RELEASE_BASE: ${{ github.event.pull_request.base.sha }}
+        run: node tools/check-release-policy.mjs "$RELEASE_BASE"
       - name: Verify shell and data guard
         run: node --test tests/*.test.mjs
       - name: Verify Produccion

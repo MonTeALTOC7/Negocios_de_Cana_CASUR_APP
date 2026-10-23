@@ -175,7 +175,7 @@ check("PWA sincroniza datos con red primero", () => {
   assert.ok(serviceWorker.includes("sw.js — ÚNICO Service Worker raíz"));
   assert.ok(serviceWorker.includes("PROD_DATA_RE"));
   assert.ok(serviceWorker.includes("produccionDataGate(event, req, url)"));
-  assert.ok(serviceWorker.includes("staleWhileRevalidate(req, SHELL_CACHE)"));
+  assert.ok(serviceWorker.includes("cacheFirst(req, SHELL_CACHE)"), 'código instalado fijado hasta activar actualización');
   assert.ok(enhancement.includes("data/version.json?ts="));
   assert.ok(enhancement.includes("location.reload()"));
 });

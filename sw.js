@@ -9,7 +9,7 @@
    neutralizados dentro de la Maestra: aquí no se registran.
    ============================================================ */
 
-const APP_VERSION = '1.3.4';
+const APP_VERSION = '1.3.5';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;
@@ -36,8 +36,8 @@ const GEO_ASSETS = [
   './shared/geo/data/zona-5-productores.geojson',
 ];
 
-/* App-shell: lo mínimo para arrancar offline. Los módulos se
-   cachean bajo demanda (no se precachea el monolito de Producción). */
+/* Shell mínimo + manifiesto verificado de código y recursos visuales locales.
+   Datasets y servicios externos conservan sus estrategias independientes. */
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -46,12 +46,14 @@ const SHELL_ASSETS = [
   './app.js',
   './core/navigation/router.js',
   './core/navigation/module-checkpoint.js',
+  './core/updates/pwa-update.js',
   './core/module-registry/registry.js',
   './core/permissions/gate.js',
   './core/sync/status.js',
   './core/storage/storage.js',
   './core/versions/versions.js',
   './modules/produccion/js/release-info.js',
+  './modules/produccion/js/effective-data-date.js',
   './shared/components/icons.js',
   './shared/styles/tokens.css',
   './shared/styles/app.css',
@@ -76,41 +78,99 @@ const SHELL_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
-    // addAll falla si un archivo falta; usamos add individual tolerante.
+    const manifestResponse = await fetch(new URL('./core/versions/runtime-assets.json', self.registration.scope), {cache:'no-store'});
+    if (!manifestResponse.ok) throw new Error('Release manifest unavailable');
+    const manifest = await manifestResponse.json();
+    if (manifest.appVersion !== APP_VERSION || !manifest.assets || !Object.keys(manifest.assets).length) throw new Error('Release manifest mismatch');
+    // All local executable resources, including modules never opened, form one snapshot.
+    // Hash validation prevents a partial deployment from producing a mixed generation.
+    for (const [path, expected] of Object.entries(manifest.assets)) {
+      const url = new URL(path, self.registration.scope);
+      if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) throw new Error('Invalid release asset');
+      const response = await fetch(url, {cache:'no-store'});
+      if (!response.ok) throw new Error(`Release asset unavailable: ${path}`);
+      const bytes = /\.(?:html|css|js|mjs|svg)$/.test(path)
+        ? new TextEncoder().encode((await response.clone().text()).replace(/\r\n/g,'\n'))
+        : await response.clone().arrayBuffer();
+      const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)), byte => byte.toString(16).padStart(2,'0')).join('');
+      if (digest !== expected) throw new Error(`Release hash mismatch: ${path}`);
+      await cache.put(url,response);
+    }
+    await cache.put(new URL('./core/versions/runtime-assets.json', self.registration.scope),new Response(JSON.stringify(manifest)));
+    // A missing code asset rejects installation; the previous worker stays active.
     await Promise.all([
-      ...SHELL_ASSETS.map((url) =>
-        cache.add(url).catch((e) => console.warn('[SW] no cacheado:', url, e))
-      ),
+      ...SHELL_ASSETS.map(async (url) => { if (!(await cache.match(url))) await cache.add(url); }),
       warmGeoCache(),
     ]);
-    /* [Hotfix 4.4.4] Activar automáticamente este SW nuevo, incluso en
-       dispositivos todavía controlados por un app.js de una fase anterior
-       (p.ej. 4.4.2) que no envía el mensaje SKIP_WAITING. clients.claim()
-       en 'activate' y el guard de una sola recarga en 'controllerchange'
-       (app.js) se mantienen intactos. */
-    self.skipWaiting();
+    // Refresh previously used module resources before allowing an offline update.
+    for (const name of await caches.keys()) {
+      if (!name.startsWith(MASTER_PREFIX + 'shell_v') || name === SHELL_CACHE) continue;
+      const old = await caches.open(name);
+      for (const request of await old.keys()) {
+        const url = new URL(request.url);
+        if (url.pathname.endsWith('/__release_ready__')) continue;
+        // Removed runtime files must not be fetched from a different release.
+        if (/\.(?:js|mjs|html|css)$/.test(url.pathname)) continue;
+        if (!(await cache.match(request))) await cache.add(request);
+      }
+    }
+    const dataCache = await caches.open(DATA_CACHE);
+    for (const name of (await caches.keys()).reverse()) {
+      if (!name.startsWith(MASTER_PREFIX + 'data_v') || name === DATA_CACHE) continue;
+      const old = await caches.open(name);
+      for (const request of await old.keys()) if (!(await dataCache.match(request))) await dataCache.put(request, await old.match(request));
+    }
+    await cache.put(new URL('./__release_ready__', self.registration.scope), new Response(APP_VERSION));
   })());
 });
 
 /* ---------------- Activate ---------------- */
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(
-      keys
-        // SOLO cachés maestras viejas. Jamás cachés de módulos.
-        // Las generaciones GEO se conservan hasta que una nueva generación
-        // completa se promueve y las poda explícitamente.
-        .filter((k) => k.startsWith(MASTER_PREFIX) && !OWNED.has(k) && !k.startsWith(GEO_CACHE_PREFIX))
-        .map((k) => caches.delete(k))
-    );
+    // Preserve prior code/data caches: other tabs may still use the old release.
+    // LKG/GEO lifecycle remains independent. No user data is pruned here.
     await self.clients.claim();
   })());
 });
 
 /* ---------------- Mensajes (actualización controlada) ---------------- */
+let updateInProgress = false;
+async function releaseReady() {
+  const cache = await caches.open(SHELL_CACHE);
+  const manifestResponse = await cache.match(new URL('./core/versions/runtime-assets.json', self.registration.scope));
+  if (!manifestResponse || !(await cache.match(new URL('./__release_ready__', self.registration.scope)))) return false;
+  const manifest = await manifestResponse.json();
+  return manifest.appVersion === APP_VERSION && (await Promise.all([...SHELL_ASSETS,...Object.keys(manifest.assets)].map(url => cache.match(new URL(url,self.registration.scope))))).every(Boolean);
+}
+async function coordinateUpdate() {
+  if (updateInProgress) return {ok:false};
+  updateInProgress = true;
+  let clients = [];
+  try {
+    if (!(await releaseReady())) throw new Error('incomplete');
+    clients = (await self.clients.matchAll({type:'window', includeUncontrolled:true})).filter(client => client.frameType !== 'nested');
+    const results = await Promise.all(clients.map(client => new Promise(resolve => {
+      const channel = new MessageChannel();
+      const timer = setTimeout(() => { channel.port1.close(); resolve(false); }, 10000);
+      channel.port1.onmessage = event => { clearTimeout(timer); channel.port1.close(); resolve(event.data?.ok === true); };
+      client.postMessage({type:'CASUR_UPDATE_PREPARE'}, [channel.port2]);
+    })));
+    const current = (await self.clients.matchAll({type:'window', includeUncontrolled:true})).filter(client => client.frameType !== 'nested');
+    if (!results.every(Boolean) || current.some(client => !clients.some(previous => previous.id === client.id))) throw new Error('checkpoint');
+    await self.skipWaiting();
+    return {ok:true, version:APP_VERSION};
+  } catch {
+    clients.forEach(client => client.postMessage({type:'CASUR_UPDATE_CANCEL'}));
+    return {ok:false};
+  } finally { updateInProgress = false; }
+}
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  // Ignore legacy SKIP_WAITING: v1.3.4 cannot provide a safe checkpoint handshake.
+  if (event.data?.type === 'CASUR_UPDATE_INFO') event.waitUntil((async () => {
+    const previous = (await caches.keys()).filter(key => key.startsWith(MASTER_PREFIX+'shell_v') && key !== SHELL_CACHE).map(key => key.slice((MASTER_PREFIX+'shell_v').length));
+    event.ports?.[0]?.postMessage({version:APP_VERSION, ready:await releaseReady(), previous});
+  })());
+  if (event.data?.type === 'CASUR_UPDATE_APPLY') event.waitUntil(coordinateUpdate().then(result => event.ports?.[0]?.postMessage(result)));
   if (event.data && event.data.type === 'WARM_GEO') {
     event.waitUntil(warmGeoCache().then((result) => {
       // Respuesta opcional para diagnóstico; el shell no requiere intervención.
@@ -138,7 +198,7 @@ self.addEventListener('fetch', (event) => {
   //    shell maestro. Así, cuando un módulo se cargue en iframe, offline
   //    no termina metiendo la App Maestra dentro de sí misma.
   if (req.mode === 'navigate') {
-    event.respondWith(networkFirst(req, SHELL_CACHE, navigationFallback(url)));
+    event.respondWith(installedNavigation(req, navigationFallback(url)));
     return;
   }
 
@@ -181,9 +241,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5) Shell y demás recursos propios: stale-while-revalidate ligero.
-  event.respondWith(staleWhileRevalidate(req, SHELL_CACHE));
+  // 5) Installed runtime is pinned, including cache-busting query strings.
+  if (/\.(?:js|mjs|html|css)$/.test(url.pathname)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(SHELL_CACHE);
+      return await cache.match(req,{ignoreSearch:true}) || new Response('Recurso no incluido en esta versión instalada.',{status:503});
+    })());
+    return;
+  }
+  // Pin installed code until an explicit activation, avoiding mixed-version imports.
+  event.respondWith(cacheFirst(req, SHELL_CACHE));
 });
+
+async function installedNavigation(req, fallback) {
+  const cache = await caches.open(SHELL_CACHE);
+  const cached = await cache.match(req) || await cache.match(fallback);
+  return cached || networkFirst(req, SHELL_CACHE, fallback);
+}
 
 /* ---------------- Fallback de navegación por scope ---------------- */
 /* Devuelve el index.html que corresponde a la ruta navegada:

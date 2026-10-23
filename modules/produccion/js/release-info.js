@@ -1,4 +1,5 @@
 import { APP_VERSION, PRODUCTION_RELEASES } from '../../../core/versions/versions.js';
+import { effectiveChronoDate } from './effective-data-date.js';
 
 const release = PRODUCTION_RELEASES[0];
 const header = document.querySelector('header .brand-title');
@@ -13,17 +14,19 @@ if (header && release) {
   version.textContent = release.moduleVersion;
   const chronoDate = document.createElement('span');
   function refreshChronoDate() {
-    const meta = window.CRONO_DATA?.meta;
-    const raw = meta?.publishedAt || meta?.generated;
-    const day = typeof raw === 'string' && raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    chronoDate.textContent = day && months[Number(day[2])-1] ? `Cronológico ${day[3]}-${months[Number(day[2])-1]}-${day[1]}` : 'Cronológico: fecha N/D';
-    chronoDate.title = 'Fecha de la referencia cronológica cargada';
+    const effective = effectiveChronoDate(window.CRONO_DATA);
+    chronoDate.textContent = effective.text;
+    chronoDate.title = effective.detail;
+    document.querySelector('#productionDataProvenance')?.replaceChildren(document.createTextNode(effective.detail));
   }
   refreshChronoDate();
   window.addEventListener('load', refreshChronoDate);
   window.addEventListener('focus', refreshChronoDate);
-  setInterval(refreshChronoDate, 30000);
+  document.addEventListener('casur-crono-effective-change', refreshChronoDate);
+  document.addEventListener('casur-master-overlay', () => queueMicrotask(refreshChronoDate));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshChronoDate(); });
+  // Legacy imports can mutate CRONO_DATA in place without an event.
+  setInterval(() => { if (!document.hidden) refreshChronoDate(); }, 120000);
   const trigger = document.createElement('button');
   trigger.type = 'button'; trigger.textContent = 'Novedades';
   trigger.setAttribute('aria-haspopup', 'dialog');
@@ -33,6 +36,8 @@ if (header && release) {
   const title = document.createElement('h2');
   title.id = 'productionNewsTitle'; title.textContent = 'Novedades de la app';
   dialog.append(title);
+  const provenance = document.createElement('p'); provenance.id = 'productionDataProvenance';
+  provenance.textContent = effectiveChronoDate(window.CRONO_DATA).detail; dialog.append(provenance);
   for (const item of PRODUCTION_RELEASES) {
     const section = document.createElement('section');
     const label = document.createElement('p');

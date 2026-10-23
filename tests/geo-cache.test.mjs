@@ -1,25 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
+import { createHash, webcrypto } from 'node:crypto';
 import vm from 'node:vm';
+import { MessageChannel } from 'node:worker_threads';
 
 const source = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(readFileSync(new URL('../shared/geo/data/manifest.json', import.meta.url)));
 const productionEnhancements = readFileSync(new URL('../modules/produccion/js/casur-enhancements.js', import.meta.url), 'utf8');
 
-function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.4', geoVersion = manifest.dataVersion, indexedDB = { records: new Map() }, fetchImpl = () => { throw new Error('network unavailable'); } } = {}) {
+function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.5', geoVersion = manifest.dataVersion, indexedDB = { records: new Map() }, fetchImpl = () => { throw new Error('network unavailable'); } } = {}) {
   const handlers = {};
   const downloads = [];
-  const key = (url) => new URL(typeof url === 'string' ? url : url.url, 'https://casur.test/').href;
+  const key = (url) => new URL(typeof url === 'string' ? url : url.url || url.href, 'https://casur.test/').href;
   const caches = {
     async open(name) {
       if (!storage.has(name)) storage.set(name, new Map());
       const entries = storage.get(name);
       return {
-        async match(url) { return entries.get(key(url)); },
+        async keys() { return [...entries.keys()].map(url => ({url})); },
+        async match(url) { return entries.get(key(url))?.clone(); },
         async add(url) {
-          downloads.push(url);
+          downloads.push(typeof url === 'string' ? url : url.url || url.href);
           if (fail.has(url)) throw new Error('network unavailable');
           entries.set(key(url), new Response(JSON.stringify({ generation: geoVersion, url })));
         },
@@ -30,17 +32,21 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.4', 
     async delete(name) { return storage.delete(name); },
   };
   const context = vm.createContext({
-    caches, Response, URL, indexedDB, console: { warn() {} },
-    fetch: fetchImpl,
+    caches, Response, URL, TextEncoder, Uint8Array, MessageChannel, setTimeout, clearTimeout, crypto:webcrypto, indexedDB, console: { warn() {} },
+    fetch: async (url, options) => {
+      if (String(url).endsWith('/core/versions/runtime-assets.json')) return new Response(JSON.stringify({appVersion,assets:{'modules/produccion/js/casur-enhancements.js':createHash('sha256').update(productionEnhancements.replace(/\r\n/g,'\n')).digest('hex')}}));
+      if (options?.cache === 'no-store' && String(url).endsWith('/modules/produccion/js/casur-enhancements.js')) return new Response(productionEnhancements);
+      return fetchImpl(url,options);
+    },
     self: {
       location: { origin: 'https://casur.test' },
       registration: { scope: 'https://casur.test/' },
       addEventListener(type, handler) { handlers[type] = handler; },
-      skipWaiting() {}, clients: { async claim() {} },
+      skipWaiting() { context.activationCount = (context.activationCount || 0) + 1; }, clients: { async claim() {}, async matchAll() { return []; } },
     },
   });
   const executable = source
-    .replace("const APP_VERSION = '1.3.4';", `const APP_VERSION = '${appVersion}';`)
+    .replace("const APP_VERSION = '1.3.5';", `const APP_VERSION = '${appVersion}';`)
     .replace("const GEO_DATA_VERSION = '2026-07-24-maestro-26-27-r2';", `const GEO_DATA_VERSION = '${geoVersion}';`);
   vm.runInContext(executable, context);
   const value = (expression) => vm.runInContext(expression, context);
@@ -95,18 +101,18 @@ test('fallo de cada asset produce incomplete y WARM_GEO reintenta solo el faltan
   }
 });
 
-test('fallo GEO y fallo individual del shell permiten instalar y reintentar después', async () => {
+test('fallo del shell rechaza instalación; GEO incompleto puede reintentarse', async () => {
   const h = harness({ fail: new Set(['./index.html', './shared/geo/data/manifest.json']) });
-  await h.dispatch('install');
+  await assert.rejects(h.dispatch('install'), /network unavailable/);
   assert.equal((await h.message()).status, 'incomplete');
   h.fail.clear();
   assert.equal((await h.message()).status, 'complete');
 });
 
-test('actualizar v1.3.3 → v1.3.4 renueva shell y conserva GEO, LKG e IndexedDB', async () => {
+test('actualizar v1.3.4 → v1.3.5 conserva shell anterior, GEO, LKG e IndexedDB', async () => {
   const indexedDB = { records: new Map([['biometry:original', { id: 'biometry:original', latitude: 11.5, longitude: -85.8 }]]) };
   const network = { online: true };
-  const previous = harness({ appVersion: '1.3.3', indexedDB });
+  const previous = harness({ appVersion: '1.3.4', indexedDB });
   await previous.dispatch('install');
   const oldShell = previous.value('SHELL_CACHE');
   const lkg = previous.value('PROD_LKG_CACHE');
@@ -114,7 +120,7 @@ test('actualizar v1.3.3 → v1.3.4 renueva shell y conserva GEO, LKG e IndexedDB
   previous.storage.set(lkg, lkgEntries);
   const next = harness({
     storage: previous.storage,
-    appVersion: '1.3.4',
+    appVersion: '1.3.5',
     indexedDB,
     fetchImpl: async () => {
       if (!network.online) throw new Error('offline');
@@ -123,7 +129,7 @@ test('actualizar v1.3.3 → v1.3.4 renueva shell y conserva GEO, LKG e IndexedDB
   });
   await next.dispatch('install');
   await next.dispatch('activate');
-  assert.ok(!next.storage.has(oldShell));
+  assert.ok(next.storage.has(oldShell));
   assert.ok(next.storage.has(next.value('SHELL_CACHE')));
   assert.ok(next.storage.has(previous.value('GEO_CACHE')));
   assert.equal(next.storage.get(lkg), lkgEntries);
@@ -217,4 +223,45 @@ test('los cinco hashes publicados GEO permanecen exactamente iguales', () => {
   for (const [file, expected] of Object.entries(hashes)) {
     assert.equal(createHash('sha256').update(readFileSync(new URL('../shared/geo/data/' + file, import.meta.url))).digest('hex'), expected, file);
   }
+});
+
+test('waiting ignora activación legacy y rechaza una generación no preparada',async()=>{
+ const h=harness(); await h.dispatch('message',{data:{type:'SKIP_WAITING'}});
+ assert.equal(h.value('globalThis.activationCount || 0'),0);
+ assert.equal((await h.value('coordinateUpdate()')).ok,false);
+});
+
+test('hash de recurso inconsistente rechaza instalación y no habilita activación',async()=>{
+ const h=harness();
+ h.value(`const originalFetch=fetch; globalThis.fetch=async (...args)=>{
+   if(String(args[0]).endsWith('/modules/produccion/js/casur-enhancements.js')) return new Response('inconsistent deployment');
+   return originalFetch(...args);
+ };`);
+ await assert.rejects(h.dispatch('install'),/Release hash mismatch/);
+ assert.equal((await h.value('coordinateUpdate()')).ok,false);
+ assert.equal(h.value('globalThis.activationCount || 0'),0);
+});
+
+test('checkpoint multiventana: todos confirman; un rechazo o ventana nueva cancela',async()=>{
+ for(const mode of ['success','reject','new-window']){
+  const h=harness();await h.dispatch('install');
+  h.value(`globalThis.calls=0; globalThis.cancelled=0;
+    self.clients.matchAll=async()=>{
+      calls++;
+      const client=(id,ok)=>({id,frameType:'top-level',postMessage(message,ports){if(message.type==='CASUR_UPDATE_CANCEL'){cancelled++;return;} ports[0].postMessage({ok});ports[0].close();}});
+      const list=[client('a',true),client('b',${mode!=='reject'})];
+      if(${mode==='new-window'} && calls>1)list.push(client('c',true));
+      return list;
+    };`);
+  const result=await h.value('coordinateUpdate()');
+  assert.equal(result.ok,mode==='success');
+  assert.equal(h.value('globalThis.activationCount || 0'),mode==='success'?1:0);
+  assert.equal(h.value('cancelled'),mode==='success'?0:2);
+ }
+});
+
+test('runtime con query usa código instalado; código ausente no descarga otra versión',async()=>{
+ const h=harness();await h.dispatch('install');let response;
+ h.handlers.fetch({request:{method:'GET',url:'https://casur.test/unknown-new-module.js'},respondWith(p){response=p;}});
+ assert.equal((await response).status,503);
 });

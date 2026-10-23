@@ -22,13 +22,14 @@
    ============================================================ */
 
 import * as store from '../storage/storage.js';
+import { MODULE_VERSIONS } from '../versions/versions.js';
 
 /* Definición base (fuente de verdad). En Fase 1 las rutas apuntan
    a placeholders; al integrar cada módulo real (Fases 2–8) se
    reemplaza el contenido de esa carpeta, no esta tabla. */
 const BASE_MODULES = [
   { moduleId: 'produccion', name: 'Maestro de Suertes', desc: 'Cronológico e Histórico de suertes CASUR',
-    version: 'V1.5.0', route: 'modules/produccion/index.html', icon: 'produccion',
+    version: 'V1.5.1', route: 'modules/produccion/index.html', icon: 'produccion',
     accent: 'var(--accent-produccion)', enabled: true, visible: true, order: 1,
     requiresOnline: false, usesSupabase: false,
     storageNamespaces: ['cache:casur-suertes-vf54-*'], privacy: 'public' },
@@ -90,7 +91,7 @@ function overrides() {
 
 function apply(mod) {
   const o = overrides()[mod.moduleId] || {};
-  return { ...mod, ...o };
+  return { ...mod, ...o, version: MODULE_VERSIONS[mod.moduleId] || mod.version };
 }
 
 /** Todos los módulos (con overrides aplicados), ordenados. */

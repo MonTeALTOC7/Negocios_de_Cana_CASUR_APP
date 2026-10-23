@@ -190,6 +190,7 @@ export function createCasurMap(container, options = {}) {
   };
 
   function styleFor(feature) {
+    if (typeof options.featureStyle === "function") return { ...neighborStyle, ...options.featureStyle(feature) };
     return featureLotId(feature) === selectedLotId ? { ...selectedStyle } : { ...neighborStyle };
   }
 
@@ -232,7 +233,7 @@ export function createCasurMap(container, options = {}) {
 
   function refreshSelectionStyles() {
     layersByLot.forEach((layer, lotId) => {
-      layer.setStyle?.(lotId === selectedLotId ? { ...selectedStyle } : { ...neighborStyle });
+      layer.setStyle?.(styleFor(layer.feature));
       bindLabel(layer.feature, layer);
       if (lotId === selectedLotId) layer.bringToFront?.();
     });

@@ -85,7 +85,7 @@ async function inspect(page){return page.evaluate(()=>{
 async function run(){
  fs.mkdirSync(out,{recursive:true});const results=[],uiResults=[];
  const browser=await chromium.launch({headless:true,executablePath:process.env.CASUR_CHROME_EXECUTABLE});
- try{for(const item of cases){for(const width of [1440,390]){
+ try{for(const item of cases.filter(c=>!process.env.CASUR_QA_CASES||process.env.CASUR_QA_CASES.split(',').includes(c.id))){for(const width of [1440,390]){
   const context=await browser.newContext({viewport:{width,height:width===390?844:900},serviceWorkers:'block',acceptDownloads:true}),page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));assert.equal((await page.goto(new URL('modules/produccion/',base).href)).status(),200);
   await select(page,item);const evidence=await inspect(page);
@@ -118,7 +118,7 @@ async function run(){
   for(const variant of (['A','B'].includes(item.id)?['executive','complete']:width===1440?['executive']:[])){
     const pending=page.waitForEvent('download',{timeout:180000});await page.locator(`[data-pdf-variant="${variant}"]`).click();const download=await pending,file=path.join(out,`${item.id}_${width}_${variant}.pdf`);await download.saveAs(file);
     const pages=await renderPdf(file),layout=await page.evaluate(()=>window.CASUR_VISUAL_EXPORT.lastLayoutAudit);
-    if(['A','B'].includes(item.id))assert.ok(pages.length<=(variant==='complete'?5:2),'No agregar páginas respecto a V2.1');
+    if(['A','B'].includes(item.id))assert.ok(pages.length<=(variant==='complete'?7:4),'Mapas por finca admiten páginas adicionales sin recortar gráficos');
     assert.equal(layout.missingRows,0);assert.equal(layout.duplicatedRows,0);assert.ok(layout.pages.every(p=>p.height<=layout.capacity+1));
     if(variant==='complete')assert.equal(layout.pages.filter(p=>p.titles[0]?.startsWith('Anexo ·')).length,m.selection.length);
     results.push({case:item.id,width,variant,file:path.basename(file),pages,layout,evidence,errors});fs.writeFileSync(path.join(out,'qa-results.json'),JSON.stringify(results,null,2));

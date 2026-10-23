@@ -133,6 +133,12 @@ function fakeLeaflet() {
   return { L, records };
 }
 
+test("estilo optativo por finca se conserva al seleccionar sin cambiar defaults", () => {
+  const { L, records } = fakeLeaflet();
+  const viewer=createCasurMap(fakeElement(),{leaflet:L,showAnchor:false,featureStyle:f=>({color:f.properties.lotId==='25601'?'#0b7f3a':'#005baa'})});
+  viewer.setLots([polygon('25601'),polygon('98301')]);viewer.selectLot('98301');
+  assert.deepEqual(records.geo[0].children.map(l=>l.style.color),['#0b7f3a','#005baa']);viewer.destroy();
+});
 test("createCasurMap monta híbrido, vecinos azules y selección amarilla sin reconstruir GeoJSON", () => {
   const element = fakeElement();
   const { L, records } = fakeLeaflet();

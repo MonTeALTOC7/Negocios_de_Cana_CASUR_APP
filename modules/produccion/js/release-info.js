@@ -10,13 +10,14 @@ if (header && release) {
   row.className = 'production-release no-print export-excluded';
   row.dataset.exportExclude = 'true';
   const version = document.createElement('span');
-  version.textContent = `App v${APP_VERSION}`;
+  version.textContent = `V${APP_VERSION}`;
   const chronoDate = document.createElement('span');
   function refreshChronoDate() {
     const meta = window.CRONO_DATA?.meta;
     const raw = meta?.publishedAt || meta?.generated;
     const day = typeof raw === 'string' && raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    chronoDate.textContent = day ? `Cronológico ${day[3]}/${day[2]}/${day[1]}` : 'Cronológico: fecha N/D';
+    const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    chronoDate.textContent = day && months[Number(day[2])-1] ? `Cronológico ${day[3]}-${months[Number(day[2])-1]}-${day[1]}` : 'Cronológico: fecha N/D';
     chronoDate.title = 'Fecha de la referencia cronológica cargada';
   }
   refreshChronoDate();

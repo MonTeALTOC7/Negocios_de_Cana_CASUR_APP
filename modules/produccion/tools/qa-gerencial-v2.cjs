@@ -13,6 +13,8 @@ const cases=[{id:'A',lots:['98301','98304','98304A'],mode:'Últimas 5'},
   {id:'custom',lots:['98301','98302'],mode:'Personalizado'}];
 async function renderPdf(file){
   const prefix=file.replace(/\.pdf$/,'');execFileSync('pdftoppm',['-scale-to','1500','-png',file,prefix]);
+  const grayDir=path.join(out,'grises');fs.mkdirSync(grayDir,{recursive:true});
+  execFileSync('pdftoppm',['-scale-to','1500','-gray','-png',file,path.join(grayDir,path.basename(prefix))]);
   const names=fs.readdirSync(out).filter(n=>n.startsWith(path.basename(prefix)+'-')&&n.endsWith('.png')).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
   const pages=[];
   for(const png of names){const {data,info}=await sharp(path.join(out,png)).resize({width:400}).removeAlpha().raw().toBuffer({resolveWithObject:true});let active=0;
@@ -42,6 +44,15 @@ async function inspect(page){return page.evaluate(()=>{
   });
   const exec=api.prepareClone(api.target('historico-multiple'),'historico-multiple','executive');
   const complete=api.prepareClone(api.target('historico-multiple'),'historico-multiple','complete');
+  // Inspect shared export styles on a detached report, never mutate the live selection.
+  const styleHost=document.createElement('div');styleHost.style.cssText='position:absolute;left:-20000px;top:0;width:960px';
+  styleHost.appendChild(complete);document.body.appendChild(styleHost);
+  const luminance=rgb=>rgb.match(/\d+/g).slice(0,3).map(v=>Number(v)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);
+  const printCards=[...complete.querySelectorAll('.dual-kpi')].map(n=>{
+    const bg=getComputedStyle(n).backgroundColor,fg=getComputedStyle(n.querySelector('b')).color;
+    return {background:bg,color:fg,contrast:(luminance(bg)+.05)/(luminance(fg)+.05)};
+  });
+  styleHost.remove();
   const presentation={selection:document.querySelector('.hist-multi-included').innerText,
     headings:[...document.querySelectorAll('.hist-dual-summary h3')].map(n=>n.textContent),
     compactDistance:document.querySelector('.hist-multi-global .hist-logistics').innerText,
@@ -58,7 +69,7 @@ async function inspect(page){return page.evaluate(()=>{
     const sugar=valid.reduce((s,r)=>s+r.ton*r.katm/1000,0),area=valid.reduce((s,r)=>s+r.area,0);
     return {farmCode:f.farmCode,farmName:f.farmName,zafra:z,rows:rows.length,validRows:valid.length,sugarEquivalentTon:sugar,validArea:area,tah:area?sugar/area:null};
   }));
-  return {model:m,presentation,numeric,reconciliation,collisions,clipped,visibleBars:visible.sort((a,b)=>a-b),expectedBars:m.comparison.length<2?[]:expectedBars,
+  return {model:m,presentation,printCards,numeric,reconciliation,collisions,clipped,visibleBars:visible.sort((a,b)=>a-b),expectedBars:m.comparison.length<2?[]:expectedBars,
     pdfKpis:[...exec.querySelectorAll('.dual-kpi b')].map(n=>n.textContent),tablesExecutive:exec.querySelectorAll('table').length,
     tablesComplete:complete.querySelectorAll('table').length,annexes:complete.querySelectorAll('[data-pdf-new-page]').length,
     screenKpis:[...document.querySelectorAll('.hist-dual-summary .dual-kpi b')].map(n=>n.textContent),overflow:document.documentElement.scrollWidth>innerWidth};
@@ -77,12 +88,14 @@ async function run(){
   assert.equal(evidence.presentation.obsolete,false);assert.equal(evidence.presentation.headerPeriod,false);
   assert.equal(evidence.presentation.unitsBelow,true);assert.equal(evidence.presentation.annexDistanceCards,false);
   assert.equal(evidence.presentation.annexKpis,evidence.model.selection.length*4);
+  assert.ok(evidence.printCards.length>=8);assert.ok(evidence.printCards.every(c=>c.background==='rgb(255, 255, 255)'&&c.contrast>=7));
   const m=evidence.model;
   if(item.id==='A'){
     assert.deepEqual([m.period.areaMean,m.period.tch,m.period.katm,Number(m.period.tahAudit.tah.toFixed(2)),m.currentDistance.kmWeighted],[187.41,53.57,105.66,5.66,36.10]);
     assert.deepEqual([m.full.areaMean,m.full.tch,m.full.katm,Number(m.full.tahAudit.tah.toFixed(2))],[204.26,61.20,108.63,6.65]);
-    assert.ok(evidence.presentation.selection.includes('983 · Rancho Peirano · Suertes 01, 04 y 04A'));
-    assert.ok(evidence.presentation.pdfSelection.includes('983 · Rancho Peirano · Suertes 01, 04 y 04A'));
+    assert.ok(evidence.presentation.selection.includes('Rancho Peirano (983) — suertes 01, 04 y 04A'));
+    assert.ok(evidence.presentation.pdfSelection.includes('Rancho Peirano (983) — suertes 01, 04 y 04A'));
+    assert.ok(evidence.presentation.selection.includes('Dolores (256) — finca completa'));
     assert.equal(evidence.presentation.compactDistance,'Distancia ponderada: 36.10 km');
   }
   if(item.id==='B')assert.deepEqual([m.period.areaMean,m.period.tch,m.period.katm,m.currentDistance.kmWeighted],[188.84,48.92,108.56,36.10]);
@@ -97,6 +110,7 @@ async function run(){
   for(const variant of (['A','B'].includes(item.id)?['executive','complete']:width===1440?['executive']:[])){
     const pending=page.waitForEvent('download',{timeout:180000});await page.locator(`[data-pdf-variant="${variant}"]`).click();const download=await pending,file=path.join(out,`${item.id}_${width}_${variant}.pdf`);await download.saveAs(file);
     const pages=await renderPdf(file),layout=await page.evaluate(()=>window.CASUR_VISUAL_EXPORT.lastLayoutAudit);
+    if(['A','B'].includes(item.id))assert.ok(pages.length<=(variant==='complete'?5:2),'No agregar páginas respecto a V2.1');
     assert.equal(layout.missingRows,0);assert.equal(layout.duplicatedRows,0);assert.ok(layout.pages.every(p=>p.height<=layout.capacity+1));
     if(variant==='complete')assert.equal(layout.pages.filter(p=>p.titles[0]?.startsWith('Anexo ·')).length,m.selection.length);
     results.push({case:item.id,width,variant,file:path.basename(file),pages,layout,evidence,errors});fs.writeFileSync(path.join(out,'qa-results.json'),JSON.stringify(results,null,2));

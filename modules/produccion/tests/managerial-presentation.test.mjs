@@ -21,6 +21,22 @@ test('V2.1: rango dinámico no acredita continuidad cuando faltan zafras',()=>{
   assert.equal(ctx.managerialSeasonRange([2526]),'Zafra 25/26');
   assert.equal(ctx.managerialSeasonRange([]),'Sin zafras con registros');
 });
+test('selección analizada distingue nombre, código y alcance sin mutar identidades',()=>{
+  const farms=[{farmCode:'256',farmName:'Dolores',mode:'full',lotIds:['25601']},{farmCode:'983',farmName:'Rancho Peirano',mode:'partial',lotIds:['98301','98304','98304A']}];
+  const before=JSON.stringify(farms),result=ctx.managerialIncludedSelection(farms);
+  assert.match(result,/<strong>Selección analizada<\/strong><ul/);
+  assert.match(result,/<b>Dolores \(256\)<\/b> — <em>finca completa<\/em>/);
+  assert.match(result,/<b>Rancho Peirano \(983\)<\/b> — <em>suertes 01, 04 y 04A<\/em>/);
+  assert.equal((result.match(/<li>/g)||[]).length,2);assert.equal(JSON.stringify(farms),before);
+  assert.match(ctx.managerialIncludedSelection([{...farms[1],farmName:'<nombre>',lotIds:['25601']}]),/&lt;nombre>/);
+  assert.match(ctx.managerialIncludedSelection([{...farms[1],lotIds:['25601']}]),/suerte 25601/);
+});
+test('estilo de papel queda acotado al ejecutivo y anexos sin alterar fichas individuales',()=>{
+  assert.match(html,/\.casur-report-executive \.dual-period \.dual-kpi\{background:#fff;color:#17261c/);
+  assert.match(html,/\.casur-report-executive \.dual-period\{background:#f6f7f6;border-left:3px/);
+  assert.match(html,/\.dual-period \.dual-kpi\{background:#087638;color:#fff/);
+  assert.match(html,/const included=managerialIncludedSelection\(result.selection\)/);
+});
 const scope={areaMean:187.41,areaAccumulated:937.03,tch:53.57,katm:105.66,tahAudit:{tah:5.66,excludedRows:0},metricCoverage:{tch:{pct:100},katm:{pct:100}},zafrasWithData:[2122,2526],requestedSeasonCount:2};
 test('V2.1: nombres, unidades y notas comparten presentación sin mutar resultados',()=>{
   const model={full:scope,period:scope,availableZafras:[2122,2526],selectedZafras:[2122,2526]},before=JSON.stringify(model);

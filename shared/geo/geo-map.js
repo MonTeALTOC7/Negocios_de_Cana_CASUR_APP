@@ -85,7 +85,7 @@ export function cartographicLabelLayout(items, width, height, measure, scale = 1
     if (!points.length) { unresolved.push(item.id); continue; }
     const origin = points[0];
     const candidates = points.map(p => ({ ...p, origin: p }));
-    for (const radius of [32, 60, 90, 125]) for (let n = 0; n < 8; n++) candidates.push({ x: origin.x + Math.cos(n * Math.PI / 4) * radius, y: origin.y + Math.sin(n * Math.PI / 4) * radius, origin });
+    if (!item.contextual) for (const radius of [32, 60, 90, 125]) for (let n = 0; n < 8; n++) candidates.push({ x: origin.x + Math.cos(n * Math.PI / 4) * radius, y: origin.y + Math.sin(n * Math.PI / 4) * radius, origin });
     const candidate = candidates.find(p => {
       const b = { x: p.x - w / 2, y: p.y - h / 2, w, h };
       return b.x >= 64 && b.y >= 12 && b.x + w <= width - 12 && b.y + h <= height - 35 && !boxes.some(other => intersects(b, other));
@@ -276,9 +276,10 @@ export function createCasurMap(container, options = {}) {
     context.font = `600 ${13 * scale}px Arial`;
     const items = visibleFeatures.map(feature => ({
       id: featureLotId(feature), text: String(options.cartographicLabel?.(feature) || featureLotId(feature)),
+      contextual: options.contextualFeature?.(feature) === true,
       color: styleFor(feature).color,
       points: cartographicInteriorPoints(feature).map(p => map.latLngToContainerPoint([p[1], p[0]])),
-    }));
+    })).sort((a, b) => Number(a.contextual) - Number(b.contextual));
     const result = cartographicLabelLayout(items, width, height, text => context.measureText(text).width, scale);
     const ns = "http://www.w3.org/2000/svg";
     labelSvg = document.createElementNS(ns, "svg");
@@ -289,8 +290,8 @@ export function createCasurMap(container, options = {}) {
       const group = document.createElementNS(ns, "g"); group.dataset.lotId = label.id;
       const add = (tag, attrs) => { const node = document.createElementNS(ns, tag); for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value); group.append(node); return node; };
       if (label.external) add("line", { x1: label.origin.x, y1: label.origin.y, x2: label.x + label.w / 2, y2: label.y + label.h / 2, stroke: "#fff", "stroke-width": 1.5 });
-      add("rect", { x: label.x, y: label.y, width: label.w, height: label.h, rx: 3, fill: "#14282d", "fill-opacity": .9, stroke: label.color, "stroke-width": 2 });
-      add("text", { x: label.x + label.w / 2, y: label.y + 16 * scale, "text-anchor": "middle", "font-family": "Arial", "font-size": 13 * scale, "font-weight": 600, fill: "#fff" }).textContent = label.text;
+      add("rect", { x: label.x, y: label.y, width: label.w, height: label.h, rx: 3, fill: label.contextual ? "#eef0ee" : "#14282d", "fill-opacity": .9, stroke: label.color, "stroke-width": label.contextual ? 1 : 2 });
+      add("text", { x: label.x + label.w / 2, y: label.y + 16 * scale, "text-anchor": "middle", "font-family": "Arial", "font-size": 13 * scale, "font-weight": label.contextual ? 400 : 600, fill: label.contextual ? "#46534e" : "#fff" }).textContent = label.text;
       labelSvg.append(group);
     }
     element.append(labelSvg);
@@ -300,8 +301,8 @@ export function createCasurMap(container, options = {}) {
     if ((options.cartographicLabels || options.outlineHalo) && !Number.isFinite(map.getZoom())) return;
     if (options.outlineHalo) {
       const weight = map.getZoom() >= 15 ? 2.6 : 2;
-      lotsLayer?.setStyle?.(feature => ({ ...styleFor(feature), weight }));
-      haloLayer?.setStyle?.({ weight: weight + 2, color: "#f8faf1", opacity: .85, fill: false });
+      lotsLayer?.setStyle?.(feature => ({ ...styleFor(feature), weight: options.contextualFeature?.(feature) ? 1 : weight }));
+      haloLayer?.setStyle?.(feature => ({ weight: weight + 2, color: "#f8faf1", opacity: options.contextualFeature?.(feature) ? .12 : .85, fill: false }));
     }
     drawCartographicLabels();
   }

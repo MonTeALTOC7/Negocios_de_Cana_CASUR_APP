@@ -200,7 +200,8 @@ check("motor histórico integrado sin corte ficticio", () => {
 
 check("gráfico histórico comparte motor, periodo y métrica accesible", () => {
   assert.ok(historicalEngine.includes("function buildHistoricalChartModel"));
-  assert.ok(index.includes("HISTORICAL_ENGINE.buildHistoricalChartModel(context.scopeRows,context.selectedZafras,metric)"));
+  assert.ok(index.includes("HISTORICAL_ENGINE.buildHistoricalChartModel(context.scopeRows,chartSeasons,metric)"));
+  assert.ok(index.includes("completeHistory?[...new Set(context.scopeRows.map(row=>row.zafra))]:context.selectedZafras"));
   assert.ok(index.includes("const HISTORICAL_CHART_STATE = {historicalChartMetric:'tch'}"));
   assert.ok(index.includes('aria-label="Métrica del gráfico histórico"'));
   assert.ok(index.includes('data-selected="${point.selected}"'));

@@ -8,7 +8,7 @@ const source = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(readFileSync(new URL('../shared/geo/data/manifest.json', import.meta.url)));
 const productionEnhancements = readFileSync(new URL('../modules/produccion/js/casur-enhancements.js', import.meta.url), 'utf8');
 
-function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.3', geoVersion = manifest.dataVersion, indexedDB = { records: new Map() }, fetchImpl = () => { throw new Error('network unavailable'); } } = {}) {
+function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.4', geoVersion = manifest.dataVersion, indexedDB = { records: new Map() }, fetchImpl = () => { throw new Error('network unavailable'); } } = {}) {
   const handlers = {};
   const downloads = [];
   const key = (url) => new URL(typeof url === 'string' ? url : url.url, 'https://casur.test/').href;
@@ -40,7 +40,7 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.3', 
     },
   });
   const executable = source
-    .replace("const APP_VERSION = '1.3.3';", `const APP_VERSION = '${appVersion}';`)
+    .replace("const APP_VERSION = '1.3.4';", `const APP_VERSION = '${appVersion}';`)
     .replace("const GEO_DATA_VERSION = '2026-07-24-maestro-26-27-r2';", `const GEO_DATA_VERSION = '${geoVersion}';`);
   vm.runInContext(executable, context);
   const value = (expression) => vm.runInContext(expression, context);
@@ -103,10 +103,10 @@ test('fallo GEO y fallo individual del shell permiten instalar y reintentar desp
   assert.equal((await h.message()).status, 'complete');
 });
 
-test('actualizar v1.3.2 → v1.3.3 renueva shell y conserva GEO, LKG e IndexedDB', async () => {
+test('actualizar v1.3.3 → v1.3.4 renueva shell y conserva GEO, LKG e IndexedDB', async () => {
   const indexedDB = { records: new Map([['biometry:original', { id: 'biometry:original', latitude: 11.5, longitude: -85.8 }]]) };
   const network = { online: true };
-  const previous = harness({ appVersion: '1.3.2', indexedDB });
+  const previous = harness({ appVersion: '1.3.3', indexedDB });
   await previous.dispatch('install');
   const oldShell = previous.value('SHELL_CACHE');
   const lkg = previous.value('PROD_LKG_CACHE');
@@ -114,7 +114,7 @@ test('actualizar v1.3.2 → v1.3.3 renueva shell y conserva GEO, LKG e IndexedDB
   previous.storage.set(lkg, lkgEntries);
   const next = harness({
     storage: previous.storage,
-    appVersion: '1.3.3',
+    appVersion: '1.3.4',
     indexedDB,
     fetchImpl: async () => {
       if (!network.online) throw new Error('offline');

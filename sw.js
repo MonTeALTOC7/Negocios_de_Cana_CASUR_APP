@@ -9,7 +9,7 @@
    neutralizados dentro de la Maestra: aquí no se registran.
    ============================================================ */
 
-const APP_VERSION = '1.3.3';
+const APP_VERSION = '1.3.4';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;
@@ -51,6 +51,7 @@ const SHELL_ASSETS = [
   './core/sync/status.js',
   './core/storage/storage.js',
   './core/versions/versions.js',
+  './modules/produccion/js/release-info.js',
   './shared/components/icons.js',
   './shared/styles/tokens.css',
   './shared/styles/app.css',

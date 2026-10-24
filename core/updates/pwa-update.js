@@ -16,6 +16,8 @@ export async function installUpdateControl({ version, checkpoint }) {
   let registration, waiting, shownVersion, prepared = false, refreshing = false, busy = false, lastCheck = 0, unlockTimer;
   const read = key => { try { return sessionStorage.getItem(key); } catch { return null; } };
   const write = (key, value) => { try { sessionStorage.setItem(key, value); } catch { /* private mode */ } };
+  // Retired confirmation marker: remove only our obsolete key, never user data.
+  try { sessionStorage.removeItem('casur-update-confirm'); } catch { /* private mode */ }
   const style = document.createElement('style');
   style.textContent = '.casur-update{position:fixed;right:12px;bottom:76px;z-index:10000;width:min(350px,calc(100vw - 24px));box-sizing:border-box;background:#fff;color:#173c29;border:1px solid #95b9a3;border-radius:12px;padding:14px;box-shadow:0 4px 18px #0002;font:14px/1.4 system-ui}.casur-update p{margin:6px 0}.casur-update button{font:inherit;min-height:36px;margin:5px 6px 0 0;cursor:pointer}.casur-update-lock{border:1px solid #95b9a3;border-radius:12px;max-width:calc(100vw - 40px)}.casur-update-lock::backdrop{background:#082c2266}@media print{.casur-update,.casur-update-lock{display:none!important}}';
   document.head.append(style);
@@ -45,24 +47,29 @@ export async function installUpdateControl({ version, checkpoint }) {
   });
   sw.addEventListener('controllerchange', () => {
     if (!prepared || refreshing) return;
-    refreshing = true; write('casur-update-confirm', 'pending'); location.reload();
+    refreshing = true; location.reload();
   });
   async function showWaiting() {
-    if (!registration.waiting || !sw.controller) return;
-    waiting = registration.waiting;
-    const info = await workerRequest(waiting, {type:'CASUR_UPDATE_INFO'});
-    if (!info.ready || info.version === version) return;
+    const candidate = registration.waiting, controller = sw.controller;
+    if (!candidate || !controller || candidate === controller) return;
+    const [info, installed] = await Promise.all([
+      workerRequest(candidate, {type:'CASUR_UPDATE_INFO'}),
+      workerRequest(controller, {type:'CASUR_UPDATE_INFO'}),
+    ]);
+    if (registration.waiting !== candidate || sw.controller !== controller || !info.ready ||
+        !info.version || !installed.version || info.version === installed.version || info.version === version) return;
+    waiting = candidate;
     if (shownVersion === info.version || busy) return;
     shownVersion = info.version;
     title.textContent = 'Nueva versión de CASUR disponible'; detail.textContent = `Versión ${info.version}`;
     later.textContent = 'Más tarde';
-    message.textContent = 'Hay mejoras disponibles para Negocios de Caña CASUR.';
+    message.textContent = '';
     const postponed = read('casur-update-later') === info.version;
-    message.hidden = postponed; detail.hidden = postponed; later.hidden = postponed;
+    message.hidden = true; detail.hidden = postponed; later.hidden = postponed;
     apply.hidden = false; apply.textContent = postponed ? 'Ver actualización' : 'Actualizar ahora'; box.hidden = false;
     later.onclick = () => { write('casur-update-later', info.version); shownVersion = null; void showWaiting().catch(() => {}); };
     apply.onclick = async () => {
-      if (apply.textContent === 'Ver actualización') { message.hidden = detail.hidden = later.hidden = false; apply.textContent = 'Actualizar ahora'; return; }
+      if (apply.textContent === 'Ver actualización') { detail.hidden = later.hidden = false; apply.textContent = 'Actualizar ahora'; return; }
       if (busy) return; busy = true; apply.disabled = true;
       message.hidden = false; message.textContent = 'Comprobando recursos y guardando el estado de las ventanas…';
       try {
@@ -83,14 +90,6 @@ export async function installUpdateControl({ version, checkpoint }) {
     worker?.addEventListener('statechange', () => { if (worker.state === 'installed') void showWaiting().catch(() => {}); });
   });
   await showWaiting().catch(() => {});
-  if (!registration.waiting) {
-    const info = await workerRequest(sw.controller, {type:'CASUR_UPDATE_INFO'}).catch(() => null);
-    if (info?.version === version && (read('casur-update-confirm') === 'pending' || (info.previous?.length && read('casur-update-confirm') !== version))) {
-      write('casur-update-confirm', version); title.textContent = `CASUR actualizado · Versión ${version}`;
-      detail.textContent = 'Versión instalada confirmada.'; message.hidden = apply.hidden = true; later.hidden = false;
-      later.textContent = 'Cerrar'; later.onclick = () => { box.hidden = true; }; box.hidden = false;
-    }
-  }
   const warm = () => registration.active?.postMessage({type:'WARM_GEO'});
   void sw.ready.then(warm); void check(true);
   window.addEventListener('online', () => { warm(); void check(true); });

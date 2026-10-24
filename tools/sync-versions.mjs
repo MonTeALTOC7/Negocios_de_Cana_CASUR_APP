@@ -3,7 +3,7 @@ import { APP_VERSION, MODULE_VERSIONS, PRODUCTION_RELEASES, APP_RELEASES } from 
 
 const check = !process.argv.includes('--write');
 const production = MODULE_VERSIONS.produccion;
-if (APP_RELEASES[0].version !== APP_VERSION || PRODUCTION_RELEASES[0].moduleVersion !== production || PRODUCTION_RELEASES[0].appVersion !== APP_VERSION) throw new Error('Canonical release history mismatch');
+if (APP_RELEASES[0].version !== APP_VERSION || PRODUCTION_RELEASES[0].moduleVersion !== production || !APP_RELEASES.some(release => release.version === PRODUCTION_RELEASES[0].appVersion)) throw new Error('Canonical release history mismatch');
 let mismatches = 0;
 function update(path, transform) {
   const original = fs.readFileSync(path,'utf8');

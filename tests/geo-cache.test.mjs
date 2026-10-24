@@ -46,7 +46,7 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.5', 
     },
   });
   const executable = source
-    .replace("const APP_VERSION = '1.3.5';", `const APP_VERSION = '${appVersion}';`)
+    .replace(/const APP_VERSION = '[^']+';/, `const APP_VERSION = '${appVersion}';`)
     .replace("const GEO_DATA_VERSION = '2026-07-24-maestro-26-27-r2';", `const GEO_DATA_VERSION = '${geoVersion}';`);
   vm.runInContext(executable, context);
   const value = (expression) => vm.runInContext(expression, context);

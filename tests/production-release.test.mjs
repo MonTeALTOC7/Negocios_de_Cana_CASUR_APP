@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {APP_VERSION,MODULE_VERSIONS,PRODUCTION_RELEASES} from '../core/versions/versions.js';
+import {APP_VERSION,APP_RELEASES,MODULE_VERSIONS,PRODUCTION_RELEASES} from '../core/versions/versions.js';
 test('metadatos locales distinguen PWA, módulo e Histórico y quedan precacheados',()=>{
  const release=PRODUCTION_RELEASES[0];
  assert.equal(release.moduleVersion,MODULE_VERSIONS.produccion);
- assert.equal(release.appVersion,APP_VERSION);
+ assert.equal(APP_RELEASES[0].version,APP_VERSION);
+ assert.equal(release.appVersion,'1.3.5');
+ assert.ok(APP_RELEASES.some(app=>app.version===release.appVersion));
  assert.equal(release.historicalVersion,'V2.9');
  assert.ok(release.changes.length>=3);
  assert.equal(PRODUCTION_RELEASES[1].moduleVersion,'V1.5.0');

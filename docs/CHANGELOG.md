@@ -2,6 +2,11 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.3.6] — pendiente de publicación · notificación de actualización
+- PATCH del shell: al abrir o finalizar una actualización no se muestra confirmación automática. Las cachés anteriores no se interpretan como una actualización reciente.
+- El aviso se ofrece exclusivamente para un SW distinto del controlador instalado, en espera y con recursos preparados. Se conservan Más tarde, checkpoint multiventana, hashes y una recarga segura.
+- Se retira únicamente el marcador de sesión de confirmación. Sin borrado de cachés, IDB, GEO, LKG o datos. Producción conserva V1.5.1 y su instantánea de liberación original.
+
 ## [1.3.5] / Producción [V1.5.1] — pendiente de publicación
 - PATCH compatible: aviso real de versión preparada, Actualizar ahora/Más tarde y checkpoint multiventana antes de activar. Instalación incompleta no sustituye al SW activo.
 - Generación de código local verificada por SHA-256; conservación de IndexedDB, LKG, GEO y recursos offline. La transición desde 1.3.4 requiere guardar y cerrar ventanas antiguas; no se promete consentimiento retroactivo.

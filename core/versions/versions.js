@@ -5,7 +5,7 @@
    número de un módulo aquí no afecta a los demás.
    ============================================================ */
 
-export const APP_VERSION = '1.3.5';
+export const APP_VERSION = '1.3.6';
 export const APP_CHANNEL = 'GitHub Pages';
 
 // Historial de código instalado, independiente de las publicaciones SIAGRI/GEO.
@@ -57,6 +57,8 @@ export function moduleStatus(id) {
 }
 
 export const APP_RELEASES = Object.freeze([
+  Object.freeze({ id: 'shell', version: '1.3.6', type: 'PATCH', publishedAt: null,
+    changes: Object.freeze(['Avisos exclusivamente para una nueva versión preparada en espera.', 'Retiro de confirmaciones automáticas al iniciar o terminar una actualización.']) }),
   Object.freeze({ id: 'shell', version: '1.3.5', type: 'PATCH', publishedAt: null,
     changes: Object.freeze(['Actualización controlada con checkpoint y conservación offline.', 'Política verificable de versiones independientes.']) }),
   Object.freeze({ id: 'shell', version: '1.3.4', type: 'PATCH', publishedAt: null,

@@ -3,8 +3,9 @@
 ## Política global
 
 `core/versions/versions.js` es la autoridad del shell y de cada módulo. App Maestra
-y Producción se liberan como 1.3.5 / V1.5.1: PATCH autorizado para corregir la
-activación insegura, coherencia de código instalado y procedencia de fechas.
+y Producción tienen versiones independientes: shell 1.3.6 (PATCH para retirar
+confirmaciones repetitivas) y módulo V1.5.1. Su instantánea de liberación conserva
+App 1.3.5, versión con la que se publicó, sin reescribir el historial del módulo.
 TCH 2.8.0, Riego, Insumos, Inventario, Labores, Convertidor y Conciliación conservan
 sus números. Histórico V2.9 identifica una funcionalidad, no otro módulo.
 
@@ -62,7 +63,9 @@ Un módulo sin bridge conserva el contrato existente `unsupported`; no se puede
 afirmar que un formulario arbitrario sin bridge queda persistido. Formularios nuevos
 que requieran protección deben implementar CASUR_MODULE_BRIDGE.
 Con éxito: skipWaiting, claim, controllerchange y una recarga por ventana preparada.
-Se confirma la versión del controlador frente al código realmente cargado.
+El encabezado identifica la versión instalada. No se presenta un aviso automático
+de confirmación después de actualizar ni en aperturas posteriores. El cliente elimina
+únicamente su marcador de sesión obsoleto `casur-update-confirm`.
 
 Más tarde conserva un control discreto recuperable, con preferencia por versión en
 sessionStorage; no vuelve a expandirlo por cada comprobación. Comprobación al abrir,
@@ -75,8 +78,11 @@ Al cerrar todas las ventanas el navegador puede activar waiting naturalmente.
 legacy: la transición segura requiere guardar trabajo y cerrar todas las ventanas
 CASUR, después reabrir. El cliente viejo puede mezclar recursos por su estrategia
 previa; no se puede corregir retroactivamente. No prometer el aviso nuevo en 1.3.4.
-1.3.5 confirma instalación al reconocer cachés anteriores. El ciclo con consentimiento
-se verifica desde 1.3.5 hacia 1.3.6 **simulada sólo en servidor de pruebas**.
+1.3.5 tenía una confirmación inferida de cachés anteriores; 1.3.6 elimina esa
+inferencia. Las cachés se conservan y nunca justifican una notificación.
+El aviso exige un worker en espera distinto del controlador instalado, con una
+versión diferente y generación preparada. El ciclo con consentimiento se verifica
+desde 1.3.5 a 1.3.6; 1.3.7 se simula exclusivamente en el servidor de QA.
 
 ### Conservación y rollback
 
@@ -109,6 +115,10 @@ vista ya cargada: se refleja cuando el módulo adopta esa generación (recarga).
 - `CASUR_QA_OUT`, `CASUR_CHROME_EXECUTABLE` y Playwright externo en `NODE_PATH`:
   `node tools/qa-pwa-updates.cjs`. Levanta origen aislado efímero, sirve el commit
   real 1.3.4 y código actual, simula 1.3.6 sin cambiar fuentes ni datos oficiales.
+- El script anterior documenta el QA original de 1.3.5 (ejecutar sobre ese commit).
+  Para 1.3.6: `node tools/qa-pwa-notifications.cjs`, con las mismas variables.
+  Incluye diez reaperturas, reinicio de Chromium, cachés antiguas, actualización
+  1.3.5→1.3.6 y 1.3.7 simulada, Más tarde, multiventana y persistencia offline.
 - Exportaciones: herramientas QA existentes de Producción, con `CASUR_PREVIEW_URL`
   y `CASUR_QA_OUT` fuera del repositorio.
 

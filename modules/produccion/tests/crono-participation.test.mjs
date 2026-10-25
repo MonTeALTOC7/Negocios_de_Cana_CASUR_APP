@@ -96,6 +96,22 @@ test('formato Cronológico dd-mmm-aaaa deja ISO intacto y no modifica otras fech
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');assert.match(html,/function dateTxt\(iso\)\{return window.CASUR_CRONO_PARTICIPATION.formatDate\(iso\);\}/);
 });
 
+test('subtexto del estimado usa fecha de aforo explícita, sin inferir cosecha ni completar faltantes',()=>{
+ const api=view().CASUR_CRONO_PARTICIPATION;
+ assert.equal(api.estimateCaption('Aforo autorizado','2026-10-12'),'Aforo autorizado\n12-oct-2026');
+ assert.equal(api.estimateCaption('Sin estimado en la fuente',null),'Sin estimado en la fuente');
+ assert.equal(api.estimateCaption('Aforo autorizado','2026-02-30'),'Aforo autorizado');
+ assert.doesNotMatch(api.estimateCaption('Aforo autorizado','2026-10-12'),/24-dic/);
+});
+
+test('pulido visual queda acotado a ficha de suerte y mantiene distancia en detalle',()=>{
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'),css=fs.readFileSync(new URL('../css/casur-upgrade.css',import.meta.url),'utf8');
+ assert.ok(html.includes("suerte?'TCH anterior Z25/26'"));assert.ok(html.includes("suerte?'Edad actual'"));assert.ok(html.includes("suerte?'Variedad':'Distancia ponderada (km)'"));
+ assert.ok(html.includes('cronoDistanceCell(r,distanceIndex)'));
+ assert.ok(css.includes('#cronoContent[data-geo-scope="lot"] .ficha-band'));
+ assert.ok(html.includes(".crono-kpi em{white-space:pre-line!important"));
+});
+
 test('la ficha existente contiene fecha, conserva variedad en tabla y no monta una segunda consulta',()=>{
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const ui=fs.readFileSync(new URL('../js/operational-import-ui.js',import.meta.url),'utf8');

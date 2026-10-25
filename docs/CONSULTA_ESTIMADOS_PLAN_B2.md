@@ -106,7 +106,7 @@ Salida controlada: `%LOCALAPPDATA%/CASUR/QA/work/Aforo/current`.
 La entrega anterior está conservada en `archive/ac54ec8-approved`.
 Los diagnósticos se guardan con motivo en `diagnostics`; no se borraron pruebas.
 
-Producción: 22 controles + 197 tests; Shell/GEO 63; TCH validate/test 91 cada uno.
+Producción: 22 controles + 199 tests; Shell/GEO 63; TCH validate/test 91 cada uno.
 Tests focales: ambos libros, columnas reordenadas, procedencia completa,
 Manual/mecánico/desconocido, propuesta pasada/ausente, tipo ausente, diferentes
 fechas, fuente/zafra/generación incorrectas, compatibilidad y participación.
@@ -134,3 +134,38 @@ el contexto QA al perfil real.
 Sin cambios a datasets oficiales, Maestro, motor Histórico, TCH, fórmulas,
 GIS, SW, versiones, schema IndexedDB o lógica de exportadores. Solo se actualizan
 hashes de los archivos runtime modificados. Sin merge, despliegue ni main.
+
+
+## Pulido visual de ficha de suerte (posterior a 01245e0)
+
+Sin cambios al importador, participación, decisiones, fechas AD/AE/BP/BQ,
+cálculos o datasets. Solo se adapta la presentación de las seis tarjetas:
+
+1. Área: conserva área y subtexto operativos.
+2. `TCH anterior Z25/26`: mismo valor y referencia.
+3. `TCH estimado 26/27`: mismo valor; subtexto con motivo de disponibilidad
+   y fecha de procedencia del aforo en línea separada. Para 99336:
+   `Aforo autorizado` / `12-oct-2026`, obtenida de `source.sourceDate`
+   de la fila autorizada. No se usa fecha propuesta ni tipo de corte aquí.
+4. `Edad actual`: misma fórmula y cifra.
+5. `Variedad`: valor de la suerte. La distancia sigue en tabla/datos;
+   las fichas de finca conservan su KPI de distancia ponderada.
+6. `Fecha propuesta de cosecha`: mantiene 24-dic-2026 / Corte mecánico;
+   ausencia de propuesta sigue N/D sin sustituir por corte real.
+
+Se retiran ambos badges duplicados exclusivamente de la cabecera de suerte.
+Las fichas de finca mantienen su tratamiento anterior. El selector CSS está
+acotado a `#cronoContent[data-geo-scope="lot"]`: padding de 12 px,
+acciones en fila con wrap y columna en móvil; margen negativo heredado eliminado
+para evitar recortar nombre/botones. La cabecera PC mide 86 px de alto.
+Se conservan los tres botones y el nombre/contexto, sin panel ni rediseño.
+El único ajuste del estilo de exportación es `white-space:pre-line` en el
+subtexto de tarjetas cronológicas para conservar las dos líneas del aforo.
+
+QA Chromium comprueba títulos, variedad y fecha de aforo, seis tarjetas,
+ningún badge duplicado de suerte, alto PC menor a 130 px y límites de nombre/
+botones dentro del contenido a 1440×900, 768×1024 y 390×844. También vuelve a
+validar producción global/fincas, 2003/1927, múltiple, PDF/PNG, offline/rollback
+y cero escrituras IDB al consultar/exportar. Mismo origen de datos auditado.
+Las entregas anteriores se conservan en `archive/01245e0-approved` y
+`archive/ac54ec8-approved`; el diagnóstico de margen está en `diagnostics`.

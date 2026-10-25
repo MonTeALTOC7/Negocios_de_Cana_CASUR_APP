@@ -283,6 +283,10 @@
   function estimateKpi(label, value, sub) {
     return `<div class="kpi casur-estimate-kpi" data-casur-estimate="1"><span class="label">${esc(label)}</span><strong>${value}</strong><em>${esc(sub)}</em></div>`;
   }
+  function estimateCaption(reason, sourceDate) {
+    const date = window.CASUR_OPERATIONAL_IMPORT.dateValue(sourceDate).iso;
+    return reason + (date ? `\n${formatCronoDate(date)}` : '');
+  }
   function dateKpi(rows) {
     const d = dateSummary(rows);
     return `<div class="kpi" data-crono-date="${esc(d.type)}" data-date-metadata="${esc(JSON.stringify(d))}"><span class="label">${esc(d.label)}</span><strong>${esc(d.display)}</strong><em>${esc(d.detail)}</em></div>`;
@@ -302,15 +306,19 @@
       const individual = scope.rows.length === 1 ? forecastForRow(scope.rows[0], season) : null;
       const estimateValue = individual ? individual.tch : summary.estimateTch;
       const sourceLabel = individual ? individual.reason : estimateCoverageText(summary);
+      const aforoDate = individual?.source?.sourceDate ||
+        (operational && summary.estimateState === 'applied' ? window.CRONO_DATA.meta.tchEst2627EffectiveDate : null);
       const kpis = content.querySelector(".kpis");
       if (kpis && !kpis.querySelector("[data-casur-estimate]")) {
         const estimate = finite(estimateValue);
-        const card = estimateKpi(`TCH estimado ${season}`, estimate === null ? "N/D" : fmt(estimate), sourceLabel);
+        const card = estimateKpi(`TCH estimado ${season}`, estimate === null ? "N/D" : fmt(estimate), estimateCaption(sourceLabel, aforoDate));
         const realTch = kpis.children[1];
         if (realTch) realTch.insertAdjacentHTML("afterend", card);
         else kpis.insertAdjacentHTML("beforeend", card);
       }
       const actions = content.querySelector(".ficha-actions");
+      const lotFicha = content.dataset.geoScope === 'lot';
+      if (lotFicha) actions?.querySelectorAll('.status-pill,.casur-estimate-badge').forEach(node => node.remove());
       const detailTitle = content.querySelector('#cronoPrintPanel > .section-title > div');
       if (operational && detailTitle && !detailTitle.dataset.participationScope) {
         const s = estimateSummary(scope.rows);
@@ -319,7 +327,7 @@
         const heading = detailTitle.querySelector('h3');
         if (heading) heading.textContent = `Detalle por suerte · ${s.activeLots} activas · ${s.catalogLots} catálogo`;
       }
-      if (actions && !actions.querySelector(".casur-estimate-badge")) {
+      if (!lotFicha && actions && !actions.querySelector(".casur-estimate-badge")) {
         const hasEstimate = finite(estimateValue) !== null;
         const estimateDate=window.CRONO_DATA?.meta?.operationalContract?window.CRONO_DATA.meta.tchEst2627EffectiveDate:ESTIMATE_DATE;
         actions.insertAdjacentHTML("afterbegin", `<span class="casur-estimate-badge ${hasEstimate ? "" : "is-empty"}">${esc(season)}: ${hasEstimate ? fmt(estimateValue) + ' TCH' : 'N/D'}${hasEstimate ? (estimateDate ? ` · ${formatCronoDate(estimateDate)}` : "") : ' · ' + esc(sourceLabel)}</span>`);
@@ -1889,7 +1897,7 @@
   window.CASUR_BUILD_CRONO_DATA = buildCronoData;
   window.CASUR_REFRESH_OPERATIONAL_VIEW = refreshOperationalView;
   window.CASUR_CRONO_PARTICIPATION = Object.freeze({summary: estimateSummary, coverageText: estimateCoverageText,
-    forecastForRow, referenceDate, dateSummary, dateKpi, formatDate: formatCronoDate, cutTypeText});
+    forecastForRow, referenceDate, dateSummary, dateKpi, formatDate: formatCronoDate, cutTypeText, estimateCaption});
 
   function openModuleContext(context) {
     if (!context || context.kind !== "lot") return { ok: false, status: "invalid-context" };

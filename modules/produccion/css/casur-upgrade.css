@@ -171,3 +171,12 @@ body.casur-geo-open{overflow:hidden}
   .casur-geo-foot-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.casur-geo-control{width:100%;padding-inline:6px}
 }
 @media print{.casur-geo-layer,.casur-geo-action{display:none!important}}
+
+/* PR45: compact only the existing chronological lot header; farms/history retain theirs. */
+#cronoContent .casur-estimate-kpi em{white-space:pre-line}
+#cronoContent[data-geo-scope="lot"] .ficha-band{margin:0 0 14px;padding:12px 15px;align-items:center;gap:10px}
+#cronoContent[data-geo-scope="lot"] .ficha-actions{flex-direction:row;align-items:center;flex-wrap:wrap;gap:8px}
+@media(max-width:760px){
+ #cronoContent[data-geo-scope="lot"] .ficha-band{flex-direction:column;align-items:stretch;padding:12px;gap:10px}
+ #cronoContent[data-geo-scope="lot"] .ficha-actions{width:100%;align-items:stretch}
+}

@@ -39,6 +39,9 @@ const cronoUrl=new URL('modules/produccion/',base).href,version='2026.10.25-afor
     cards:[...document.querySelectorAll('#cronoPrintPanel .kpi')].map(el=>{const r=el.getBoundingClientRect();return {text:el.innerText,left:r.left,right:r.right};})}));
    assert.equal(layout.width<=width,true,`${name} ${width} horizontal overflow`);
    assert.ok(layout.cards.every(c=>c.left>=0&&c.right<=width),`${name} ${width} cards fit`);
+   const hero=await page.evaluate(()=>{const box=document.querySelector('#cronoContent').getBoundingClientRect();return {left:box.left,right:box.right,children:[...document.querySelectorAll('#cronoContent .ficha-band h2,#cronoContent .ficha-actions button')].map(e=>{const r=e.getBoundingClientRect();return {text:e.textContent,left:r.left,right:r.right};})};});
+   assert.ok(hero.children.every(r=>r.left>=hero.left&&r.right<=hero.right),`${name} ${width} header/button clipping`);
+   layout.header=hero;
    write(`${name}-layout-${width}.json`,layout);
    await page.screenshot({path:path.join(out,`${name}-${width}.png`)});
    await page.locator('#cronoContent').screenshot({path:path.join(out,`${name}-ficha-${width}.png`)});
@@ -60,7 +63,7 @@ const cronoUrl=new URL('modules/produccion/',base).href,version='2026.10.25-afor
   await check('A: shared 99336 has no applied aforo, six existing cards and no duplicated panel',async()=>{
    await lot();assert.equal(await page.evaluate(()=>CRONO_DATA.meta.dataVersion),'2026.09.06-siagri.1415');
    const texts=await cards();assert.equal(texts.length,6);assert.match(texts[2],/N\/D.*Aforo autorizado no cargado\/aplicado/s);
-   assert.match(texts[0],/8.91 ha/);assert.match(texts[1],/67.15/);assert.match(texts[3],/9.72 meses/);assert.match(texts[4],/7.37 km/);
+   assert.match(texts[0],/8.91 ha/);assert.match(texts[1],/67.15/);assert.match(texts[1],/TCH anterior Z25\/26/);assert.match(texts[3],/Edad actual.*9.72 meses/s);assert.match(texts[4],/Variedad.*CP 72-2086/s);
    assert.match(texts[5],/Fecha propuesta de cosecha.*N\/D/s);assert.equal(await page.locator('#operationalAnalysis').count(),0);
    assert.ok(!(await page.locator('body').innerText()).includes('Estimados y plan de cosecha · Consulta'));
    write('A-cards.json',texts);await capture('A-compartidos');
@@ -96,11 +99,13 @@ const cronoUrl=new URL('modules/produccion/',base).href,version='2026.10.25-afor
    await page.evaluate(()=>{window.__qaReadWrites=[];window.__qaPut=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(v,...args){window.__qaReadWrites.push({store:this.name,key:v?.key});return window.__qaPut.call(this,v,...args);};window.__qaDataBefore=JSON.stringify(CRONO_DATA);});
   });
   await check('B: 99336 shows 65 TCH, 579.15 tons, proposed 24-dic-2026 and Corte mecánico',async()=>{
-   await lot();const texts=await cards();assert.equal(texts.length,6);assert.match(texts[2],/65.00.*Aforo autorizado/s);assert.match(texts[5],/Fecha propuesta de cosecha.*24-dic-2026.*Corte mecánico/s);
+   await lot();const texts=await cards();assert.equal(texts.length,6);assert.match(texts[2],/65.00.*Aforo autorizado.*12-oct-2026/s);assert.match(texts[1],/TCH anterior Z25\/26/);assert.match(texts[3],/Edad actual/);assert.match(texts[4],/Variedad.*CP 72-2086/s);assert.match(texts[5],/Fecha propuesta de cosecha.*24-dic-2026.*Corte mecánico/s);
    const row=await page.locator('#cronoPrintPanel table tbody tr').innerText();assert.match(row,/65.00/);assert.match(row,/579.15 t/);
    const metadata=await page.locator('[data-crono-date]').getAttribute('data-date-metadata');const d=JSON.parse(metadata);
    assert.equal(d.type,'proposed');assert.equal(d.provenance.row,1020);assert.equal(d.provenance.column,68);assert.equal(d.cutProvenance.column,69);assert.equal(d.cutType,'CORTE MECANICO');assert.equal(d.dataVersion,version);assert.equal(d.source.sha256,sha);
    assert.match(row,/CP 72-2086/);assert.match(row,/02-ene-2026/);assert.match(row,/24-dic-2026.*Corte mecánico/s);assert.doesNotMatch(row,/601,000|36,641/);assert.equal(await page.locator('#operationalAnalysis').count(),0);
+   assert.equal(await page.locator('#cronoContent .ficha-actions .casur-estimate-badge,#cronoContent .ficha-actions .status-pill').count(),0);
+   const header=await page.locator('#cronoContent .ficha-band').boundingBox();assert.ok(header.height<130,'desktop lot header compact');write('header-layout.json',header);
    write('B-cards.json',texts);write('date-evidence-99336.json',d);await capture('B-aforo-aplicado');await exports('B-suerte-99336');
   });
   await check('Manual, past/missing proposal, missing/unknown BQ; original record remains unchanged',async()=>{

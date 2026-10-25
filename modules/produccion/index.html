@@ -3156,9 +3156,9 @@ function renderCronoScope(code,suerte){
   const distanceValue=suerte?(individualDistance.km==null?'N/D':fmt(individualDistance.km,' km')):(ssum.distance.kmWeighted==null?'N/D':fmt(ssum.distance.kmWeighted,' km'));
   const kpis=[
     kpi(C.meta?.operationalContract===1?'Área activa':'Área total',fmt(ssum.area,' ha'),C.meta?.operationalContract===1?'Inventario '+fmt(ssum.inventoryArea,' ha')+' · Molienda '+fmt(ssum.millingArea,' ha'):(suerte?'Suerte seleccionada':'Suma de suertes'),true),
-    kpi(C.meta?.operationalContract===1?'TCH anterior':'TCH/Z 25-26',`<span class="tch-val ${t}">${fmt(ssum.tch)}</span>`,C.meta?.operationalContract===1?'Referencia · área activa':''),
-    kpi(suerte?'Edad':'Edad ponderada',safe(singleAge||'—'),''),
-    kpi(suerte?'Distancia (km)':'Distancia ponderada (km)',distanceValue,''),
+    kpi(suerte?'TCH anterior Z25/26':(C.meta?.operationalContract===1?'TCH anterior':'TCH/Z 25-26'),`<span class="tch-val ${t}">${fmt(ssum.tch)}</span>`,C.meta?.operationalContract===1?'Referencia · área activa':''),
+    kpi(suerte?'Edad actual':'Edad ponderada',safe(singleAge||'—'),''),
+    kpi(suerte?'Variedad':'Distancia ponderada (km)',suerte?safe(rows[0]?.variedad||'—'):distanceValue,''),
     window.CASUR_CRONO_PARTICIPATION.dateKpi(rows)
   ].join('');
   const summaryBoxes=suerte?'':'<div class="crono-summary-grid"><div class="crono-box"><h3>Área por riego</h3>'+hbar(byR,8,'blue')+'</div><div class="crono-box"><h3>Área por variedad</h3>'+hbar(byV,8,'green')+'</div><div class="crono-box"><h3>Área por textura</h3>'+hbar(byT,8,'gold')+'</div><div class="crono-box"><h3>Área por Destino Cultivo</h3>'+hbar(byD,8,'green')+'</div></div>';
@@ -4894,7 +4894,7 @@ document.getElementById('historical-dual-styles').textContent,
 '.crono-kpi.main .label{color:#e9f7ef!important}',
 '.crono-kpi strong{display:block!important;margin-top:8px!important;color:#132019!important;font-size:24px!important;line-height:1.08!important;font-weight:950!important;white-space:normal!important;letter-spacing:-.3px!important}',
 '.crono-kpi.main strong{color:#fff!important}',
-'.crono-kpi em{display:block!important;margin-top:5px!important;color:#5f7189!important;font-size:10px!important;font-style:normal!important;font-weight:800!important}',
+'.crono-kpi em{white-space:pre-line!important;display:block!important;margin-top:5px!important;color:#5f7189!important;font-size:10px!important;font-style:normal!important;font-weight:800!important}',
 '.crono-kpi.main em{color:#e9f7ef!important}',
 
 '.crono-trend-card{display:flex!important;flex-direction:column!important;min-width:0!important;height:auto!important;min-height:0!important;margin:0!important;padding:10px 12px!important;border:1px solid #d8ecdf!important;border-radius:14px!important;background:#fbfffc!important;overflow:hidden!important;box-shadow:none!important}',

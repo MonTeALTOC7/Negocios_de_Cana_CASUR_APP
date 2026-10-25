@@ -132,7 +132,6 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    }
    await page.setViewportSize({width:1440,height:900});
   });
-  if(process.env.CASUR_QA_STAGE==='B2')await require('./qa-operational-b2.cjs')({phase:'live',page,context,out,check});
   await check('failed transaction after staging previous version rolls back all writes',async()=>{
    const outcome=await page.evaluate(async()=>{
     const store=await import('../../core/shared-data/master-store.js'),before=await store.loadProduccionDataset(),payload=structuredClone(before.payload);
@@ -149,7 +148,6 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    await reopen.goto(new URL('modules/produccion/',base).href);
    await reopen.waitForFunction(()=>window.CRONO_DATA?.meta?.dataVersion==='2026.10.24-aforo.1001',{},{timeout:60000});
    assert.equal(await reopen.evaluate(()=>CRONO_DATA.operational.totals.inventoried),1046);assert.equal(await reopen.evaluate(()=>JSON.stringify(APP_DATA)),historicalHash);
-   if(process.env.CASUR_QA_STAGE==='B2')await require('./qa-operational-b2.cjs')({phase:'offline',page:reopen,context,out,check});
    await reopen.setViewportSize({width:390,height:844});await reopen.evaluate(()=>{document.querySelector('#masterUpdateSection').open=true;});
    await reopen.locator('.operational-import').scrollIntoViewIfNeeded();assert.equal(await reopen.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
    await reopen.screenshot({path:path.join(out,'offline-mobile.png')});
@@ -183,6 +181,5 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    fs.writeFileSync(path.join(out,'source-sha256.json'),JSON.stringify(hashes,null,2));
    fs.writeFileSync(path.join(out,'page-exceptions.json'),JSON.stringify(exceptions,null,2));assert.deepEqual(exceptions,[]);
   });
-  if(process.env.CASUR_QA_STAGE==='B2')await require('./qa-operational-b2.cjs')({phase:'archive',page:p,context,out,check});
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);fs.writeFileSync(path.join(out,'error.txt'),String(e.stack));process.exitCode=1;});

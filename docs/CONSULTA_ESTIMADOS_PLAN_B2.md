@@ -1,132 +1,151 @@
-# Etapa B2 · consulta de Estimados y Plan de Cosecha
+# B2 · aforo integrado en el Cronológico existente
 
-Base: PR #44 actualizado, `bb04f8f104bdbb421182975d0623c6c6379850ea`.
-Rama: `codex/estimados-plan-consulta-b2`. Alcance autorizado el 25-oct-2026:
-consulta y análisis; sin edición, activación de generaciones ni publicación.
+PR #45 · `codex/estimados-plan-consulta-b2`, base #44 `bb04f8f`.
+Esta corrección sustituye la consulta independiente Estimados/Plan.
+No autoriza Plan 600K/601K, nuevas fases, merge ni publicación productiva.
 
-## Uso
+## Diagnóstico y fuente verificable
 
-Dentro de Cronológico, debajo de la ficha, abrir **Estimados y plan de cosecha ·
-Consulta**. Elegir generación, zafra, finca/productor, suerte y/o zona. Se conserva
-el código de hacienda y el número de suerte; CodSuerte sigue siendo la identidad
-técnica. Las tablas se desplazan horizontalmente y paginan cada 50 registros.
+La captura original de 993 / Pansaco / Suerte 36 / CodSuerte 99336
+correspondía a `2026.09.06-siagri.1415`, sin generación operativa aplicada:
+8,91 ha, TCH anterior 67,15, edad 9,72 meses al 25-oct-2026, 7,37 km
+y estimado nulo. No era un fallo de ponderación. La consulta separada no
+compartía una generación aplicada porque no existía ninguna en ese origen.
 
-- **Estimados:** área operativa Molienda y Semilla, TCH, toneladas, cobertura,
-  catálogo/activas/participantes, pendientes y condiciones por suerte. Se muestra
-  la clase y destino originales separados del destino operativo confirmado.
-- **Plan propuesto:** líneas, fracciones, fecha/tipo de corte, edad aportada y
-  calculada, área y toneladas propuestas; no acredita cosecha ejecutada.
-- **Comparación:** estimado/plan/diferencia para las mismas suertes con ambos
-  datos válidos; detalle por suerte, finca/productor y zona. Expone falta de plan,
-  estimado ausente y discrepancias de superficie o fracciones.
+La extracción `Estimados_para_APP_Z2627.xlsx` fue auditada con SHA-256
+`82cd45c03b8c80ddda6ebc6078289df4f63b6a380403da6f103f2a52fa30e069`.
+Su hoja en aquella auditoría se llamaba `Estimados_2627`; la instrucción
+actual la denomina `Cronologico`. Se documenta la diferencia, sin asumir que
+el nombre acredita contenido. El archivo de extracción ya no existe en su
+ruta anterior y no se lo recreó ni se falsificó su hash.
 
-La fuente, fecha, generación y zafra consultadas permanecen visibles. Consultar
-una versión archivada no la aplica ni altera el Cronológico en uso. Solo aparecen
-campañas acreditadas en una generación: no se infieren ni mezclan otras zafras.
-Sin generación operativa válida se presenta un estado explícito, sin cifras
-fabricadas ni importación automática al perfil del usuario.
+El usuario indicó en la sesión anterior utilizar `Cronologico` de
+`AforosZ2026_27_v05151026_OP.xlsx`. Se mantiene esa autorización para
+inventario/aforo; la última corrección excluye expresamente BP/BQ del plan.
+Este es el original disponible utilizado en el QA aislado:
 
-## Reglas y denominadores
+- Ruta: `C:/Users/ctije/OneDrive - CASUR/Respaldo/ctijerino/Documents/AforosZ2026_27_v05151026_OP.xlsx`.
+- SHA anterior auditado: `716d374c63aa0e990f18cbabee9f391eee3d54d50fd8395488a8357e5bbcbbae`.
+- SHA actual exacto: `849e3bac1fa0ff6abd49c690f25ab0910b18282674ddea833283c79d6d46fc04`.
+- Comparación de los 1.046 registros con los valores preservados de la
+  extracción original: **78.450 celdas, cero diferencias**.
+- La igualdad de valores no implica igualdad binaria ni acredita qué programa
+  guardó el libro. La causa concreta del nuevo hash no está determinada.
+- Evidencia: `source-correspondence.json` en la salida QA; no se cambió el Excel.
 
-`core/imports/operational-analysis.js` reutiliza `participation()` y `totals()`.
-No duplica reglas de Molienda/Semilla. Las decisiones de 2003/1927 del PR #44
-se respetan tanto en la generación actual como en la vista derivada de archivos.
+Fila 1020: AD `actTCH` = 65; E `Area Ha` = 8,91; AE = 579,15 t.
+O `F. Ult. Cte` = serial 46024 = 2026-01-02. La extracción auditada usa
+`actTCH_2627` para el mismo campo y valores. BP/BQ siguen como información
+original de plan, pero nunca alimentan tarjetas ni tablas operativas nuevas.
+No se usa 67,15 como sustituto del estimado ni se suman toneladas propuestas.
 
-Cada línea se vincula con CodSuerte dentro de la generación seleccionada. Su zafra
-y SHA de fuente deben coincidir. IDs de línea ausentes/duplicados o procedencia
-inconclusa se informan: no se suman silenciosamente y los totales completos
-afectados se presentan N/D. Las identidades duplicadas bloquean el modelo.
+## Cambio funcional mínimo
 
-Las fracciones se suman por identidad para comparar área y toneladas propuestas,
-pero el inventario y el estimado se cuentan una sola vez por suerte. No se
-normalizan fracciones ni se distribuye área de oficio.
+Se conservan las seis tarjetas y su diseño: área, TCH anterior, estimado,
+edad, distancia y fecha. La sexta sustituye a Variedad; variedad permanece
+en los datos, gráficos y detalle por suerte, también en la ficha individual.
 
-- Área/toneladas de plan total: suma de líneas verificables del ámbito completo;
-  puede incluir destinos distintos de Molienda. Falta de algún valor → N/D.
-- Diferencia comparable: Σ(plan − estimado) solamente donde ambos valores existen
-  para la misma suerte de Molienda. Se indica el número de suertes comparadas.
-  Un plan parcial no se resta de un estimado global de otro ámbito.
-- Diferencia de superficie por suerte: área propuesta − inventario original de
-  esa identidad presente; ausencia de área no se convierte en cero.
-- Cobertura de plan: área operativa de Molienda de identidades cuyas líneas
-  concilian área con inventario (tolerancia existente 0,02 ha) y fracción 100%
-  cuando fue aportada. En varias líneas es obligatorio acreditar las fracciones.
-  Se divide por toda el área operativa de Molienda seleccionada. No es cobertura
-  de cosecha ejecutada ni programación aprobada.
+Fecha: solo una fecha prevista explícita, con fuente autorizada y campo
+independiente del plan, puede preceder al último corte real. Sin ambos,
+N/D. La siembra, edad y fecha base no se convierten en cosecha.
+Para 99336 se muestra **Último corte · 02/01/2026**, con subtexto
+**Último corte real acreditado**. El modelo conserva tipo, fuente, zafra y
+procedencia de columna/fila. No se promedian fechas entre suertes.
 
-La edad calculada reutiliza la fórmula vigente del importador: días entre fecha
-propuesta y fecha base / 30,4375. Si la línea no aporta base se usa únicamente la
-base de plan de la misma identidad/generación, con procedencia visible. Una edad
-aportada del inventario solo se vincula cuando coincide la fecha propuesta de
-la línea. Otra fracción con otra fecha conserva edad aportada N/D; su edad se
-calcula desde su propia propuesta y la base acreditada. No se cambia el origen,
-no se redondea el cálculo y no se utilizan edades del Histórico ejecutado.
+El aforo exige hash exacto, zafra 26/27, fuente coherente y generación
+identificada; no se permite mezclar generaciones. Los estados individuales
+son disponible, cero explícito, faltante en fuente y aforo no cargado/aplicado.
+No hay importación ni aplicación automática en el perfil del usuario.
 
-## Conciliación oficial de QA
+Finca, zonas y selección múltiple reutilizan participación de #44 y la misma
+área válida: Molienda con estimado positivo autorizado. Cero/faltante conserva
+área activa y estado pendiente, sin diluir TCH; Semilla queda fuera de molienda.
+La tabla individual conserva el cero explícito sin convertirlo en producción.
 
-La generación de prueba aislada conserva 1.053 identidades, 1.046 presentes,
-995 activas; 47 Semilla / 459,01 ha y 948 Molienda / 9.115,65 ha. Estimado:
-563.187,9696909501 t / 9.115,65 ha = 61,7825354957 TCH, cobertura 100%.
+Se elimina el panel independiente, su módulo de UI, filtros, pestañas,
+estilos, listeners y QA antiguo que exigía la interfaz rechazada.
+Centro Maestro conserva importación, conciliación, aprobación, archivo y
+recuperación. El modelo puro de análisis y lector readonly de archivo quedan
+por compatibilidad, sin consumidores operativos en el Cronológico.
+Se conserva en el HTML el selector acotado `overflow:clip` que protege la
+ficha de paneo accidental; la tabla mantiene desplazamiento independiente.
 
-Plan total: **1.050 líneas / 1.046 identidades**, 9.672,13 ha propuestas y
-601.000,00 t de escenario. Para las **948 suertes de Molienda** comparables:
-599.829,70 t de plan frente a 563.187,9696909501 t estimadas;
-diferencia **36.641,73030905 t**. No se mezclan las 1.170,30 t propuestas
-en otros destinos con el estimado de Molienda.
+## SHA y decisiones operativas
 
-99207: dos líneas, una identidad; áreas 12,61823529411734 y 1,0117647058826607 ha
-= 13,63 ha; toneladas 1.072,55 y 86,00 = 1.158,55 t propuestas, frente a
-1.090,40 t de estimado. La superficie del inventario permanece 13,63 ha.
-El aporte de edad de la primera línea conserva la precisión original; la segunda
-no hereda esa edad porque cambia la fecha propuesta. Ambas edades calculadas
-usan la misma base acreditada y sus fechas individuales.
+El nuevo SHA se agrega explícitamente a la lista cerrada de snapshots,
+tras la correspondencia documentada. No se acepta cualquier hash, nombre,
+prefijo o coincidencia parcial. No se modifica el guard central del motor.
+Cada decisión requiere además identidad, zafra, generación y valores esperados
+de área, clasificación, destino y TCH. Las pruebas verifican los tres SHA
+exactos, rechazo de SHA alterado y rechazo si cambia el área esperada.
 
-San Lucas (20): 14 activas, 10 Molienda / 66,68 ha y 4 Semilla / 34,55 ha;
-5.684,80 t estimadas, 5.965,40 t de plan comparable, diferencia 280,60 t.
-San Fernando (19): 33 Molienda / 253,48 ha, 21.357,35 t estimadas y
-22.178,03 t propuestas comparables; diferencia 820,68 t. Se conserva 1927.
-Se conciliaron las 100 entidades de finca/productor y las cuatro zonas.
+Solo hay dos decisiones: 2003 Semilla activa / 10,95 ha, fuera de molienda;
+1927 Molienda activa / 6,15 ha × 70 = 430,50 t, conservando destino original
+Semilla. Ninguna reclasificación nueva. Diez contradicciones siguen pendientes.
 
-## Integridad y QA
+## Conciliación real del QA corregido
 
-La única ampliación de persistencia es un lector de generaciones archivadas con
-transacción readonly sobre `datasets` de la DB existente. No hay nueva base,
-migración, limpieza, cambio de schema ni método de escritura en la consulta.
-El QA instrumenta `IDBObjectStore.put` y confirma cero escrituras al consultar,
-filtrar y comparar; verifica que `CRONO_DATA` no cambia al elegir un archivo.
+- Catálogo 1.053, inventariadas 1.046, activas 995.
+- Inventario 9.672,13 ha; área activa 9.574,66 ha.
+- Semilla 47 / 459,01 ha; Molienda 948 / 9.115,65 ha.
+- 563.187,9696909501 t / 9.115,65 ha = 61,7825354957 TCH.
+- Pansaco: 49 catálogo, 42 activas, 2 Semilla / 9,14 ha,
+  40 Molienda / 359,30 ha, 17.452,08 t, TCH 48,57 mostrado.
+- 99336: 8,91 × 65 = 579,15 t; tarjeta y tabla coherentes.
+- Selección 99336 + 1927 + 2003: 1.009,65 t / 15,06 ha válidas
+  = 67,0418326693 TCH; 10,95 ha de Semilla excluidas del denominador.
+- Las 100 fincas concilian con una suma independiente desde las filas.
 
-La consulta está fuera de los nodos exportados y marcada no-print/export-excluded.
-Se descargan y revisan los PNG/PDF cronológicos existentes. Las funciones y datos
-históricos, SW, GEO, GPS y TCH permanecen intactos.
+## QA y evidencias
 
-Se reprodujo un paneo interno de 15 px en la tarjeta cronológica después de
-exportar/cambiar viewport: su `overflow:hidden` admitía scroll programático.
-Un único selector acotado usa `overflow:clip`; conserva el diseño y el scroll
-independiente de la tabla. Chromium verifica que la tarjeta no se desplaza.
-Las capturas se sincronizan sin transiciones de scroll intermedias.
+Salida final controlada: `%LOCALAPPDATA%/CASUR/QA/work/Aforo/current`.
+Los intentos y QA con alcance BP/BQ obsoleto se conservaron en `diagnostics`;
+no cuentan como aprobación de esta corrección. No se borran evidencias A/B1/B2.
+Antes original: `AforoAntes/current`. Datos compartidos: `AforoCompartidos/current`.
 
-Los dos archivos nuevos de runtime se agregan al manifiesto SHA-256 existente
-(164 recursos). No cambia la estrategia SW ni las versiones de la liberación
-pendiente. Offline se prueba desde una página nueva tras precarga y cierre.
+Chromium, 9 grupos aprobados: shared sin aforo; importación protegida y elección
+sin aplicar; aprobación explícita; seis tarjetas y exclusión BP/BQ; finca y
+múltiple; conciliación de todas las fincas y cero escrituras IDB durante
+consulta/exportación; reapertura de página offline; rollback offline;
+sin excepciones ni errores de consola y SHA del original intacto.
 
-Pruebas: Producción 22 controles + 186 tests; Shell/GEO JavaScript 63; TCH
-validate/test 91 cada uno; Chromium con los 11 grupos del Cronológico más
-consulta B2, offline B2 y generación archivada: 14 grupos. Hay casos sintéticos
-para faltantes, duplicados, otra zafra/fuente, fracciones, áreas discordantes,
-comparación parcial, preservación y origen de edad.
+Capturas reales 1440×900, 768×1024 y 390×844, sin overflow horizontal.
+PDF/PNG descargados de suerte, finca y múltiple. PDF de suerte: 1 página;
+finca: 2; múltiple: 1. Todas las páginas renderizadas y revisadas.
+Suerte/finca completas, sin filas cortadas ni páginas residuales.
+**Limitación heredada:** el PDF/PNG múltiple presenta contraste insuficiente
+en el KPI de área (texto claro sobre fondo claro). El builder y sus estilos
+no se modificaron; no se acredita ese detalle visual como aprobado ni se
+rediseña el exportador, fuera del alcance. Sus cálculos y descarga sí pasan.
 
-Salida controlada: `%LOCALAPPDATA%/CASUR/QA/work/B2/current`, mediante
-`tools/run-operational-qa.ps1 -Stage B2` con las rutas de los dos Excel originales.
-`results.json`, conciliaciones y capturas permiten revisar la ejecución final;
-los diagnósticos previos se conservan aparte, sin eliminar ni sobrescribir A/B1.
+Regresiones: Producción 22 controles + 193 tests; Shell/GEO JS 63;
+TCH validate/test 91 cada uno. Sintaxis JS e inline, versiones, manifiesto
+SHA-256 de runtime y `git diff --check` verificados. Se conserva App 1.4.0 /
+Producción V1.6.0 de la liberación pendiente; no se aumentan versiones.
 
-## Pendientes y límites
+## Reproducción en preview aislado
 
-Diez contradicciones de origen siguen sin decisión operativa; no se resuelven.
-No se acredita Python GEO local (falta geopandas) ni dispositivo físico. Las
-pruebas móviles son Chromium emulado. No se aplican datasets al perfil real ni
-se publican Excel o datos nuevos. La nueva consulta no añade exportadores B2:
-se preservan las exportaciones cronológicas/históricas existentes.
+Abrir el preview local entregado y buscar 99336 en Cronológico. Sin una
+importación aprobada de ese origen se verá N/D, aforo no cargado/aplicado,
+y último corte real. No se transfiere el perfil de QA al navegador del usuario.
 
-No se implementaron edición, aprobación de escenarios, programación efectiva,
-ejecución de cosecha ni otras fases. Requieren autorización posterior.
+Para probar aforo: desbloquear Centro Maestro por el procedimiento normal,
+elegir el original indicado, esquema `Cronologico`, sin líneas adicionales
+de plan; zafra 26/27 y una versión de datos nueva. Conciliar y revisar; solo
+con aprobación expresa aplicar en un perfil de prueba. Volver a la ficha
+99336: 65 TCH, 579,15 t en tabla y último corte 02/01/2026.
+La opción de recuperar generación anterior restaura shared y N/D explícito.
+
+QA repetible en contexto desechable (detiene si hay evidencias sin archivar):
+
+```powershell
+$env:NODE_PATH='C:/Users/ctije/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules'
+$env:CASUR_CHROME_EXECUTABLE='C:/Users/ctije/AppData/Local/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-win64/chrome-headless-shell.exe'
+./tools/run-operational-qa.ps1 -Stage Aforo -ExtractFile 'RUTA/AforosZ2026_27_v05151026_OP.xlsx' -PreviewUrl 'http://127.0.0.1:4313/'
+```
+
+Sin cambios a datasets oficiales, Histórico ejecutado, GEO, GPS, TCH,
+fórmulas de edad, schema IndexedDB, SW o lógica de exportadores.
+Solo se renuevan hashes de archivos runtime modificados/eliminados.
+No se acredita teléfono físico ni suite Python GEO (geopandas no disponible).
+No hay merge, despliegue ni cambios a main o al perfil real del usuario.

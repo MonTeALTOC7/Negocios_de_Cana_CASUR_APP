@@ -11,6 +11,13 @@ function read(objects=[row()],{name='Cualquier nombre',fields=headers,extraSheet
  return {sheets,inspected,candidate,parsed:candidate?E.parseCandidate(sheets,candidate,{file:'synthetic.xlsx',season:'26/27',sha256:'synthetic'}):null};
 }
 const prepare=(parsed,previous=[])=>E.prepareUpdate(previous,parsed,{dataVersion:'2026.10.24-aforo.1'});
+
+test('fecha prevista explícita conserva tipo, zafra y procedencia sin reutilizar calendario Plan 601K',()=>{
+ const a=read([row({'Fecha prevista de cosecha':'2027-01-10','Fecha propuesta (Plan 601K)':'2027-02-01'})],{fields:[...headers,'Fecha prevista de cosecha']});
+ const r=prepare(a.parsed).catalog[0];assert.equal(r.harvestDate.date,'2027-01-10');assert.equal(r.harvestDate.type,'harvest');
+ assert.equal(r.harvestDate.season,'26/27');assert.equal(r.harvestDate.provenance.header,'Fecha prevista de cosecha');
+ assert.equal(r.plan.date.iso,'2027-02-01');assert.equal(prepare(read([row({'Fecha propuesta (Plan 601K)':'2027-02-01'})]).parsed).catalog[0].harvestDate,null);
+});
 test('nombres de hoja y orden de columnas no determinan el esquema; una hoja puede contener tres perfiles',()=>{
  const a=read(),b=read(undefined,{name:'Zafra futura distinta',fields:[...headers].reverse()});
  assert.deepEqual(a.candidate.profiles,['cronologico','estimados','plan']);assert.equal(b.parsed.records[0].key,'81001A');assert.equal(prepare(a.parsed).totals.millingTons,prepare(b.parsed).totals.millingTons);

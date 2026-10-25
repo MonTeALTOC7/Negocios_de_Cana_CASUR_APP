@@ -2,10 +2,8 @@ import '../../../core/imports/operational-import.js';
 import {workbookSheets} from '../../../core/imports/workbook-reader.js';
 import {loadProduccionDataset,loadOperationalPrevious,commitOperationalDataset,restoreOperationalPrevious} from '../../../core/shared-data/master-store.js';
 import {buildMaestroCentralFromReportRows,parseMaestroVersion} from '../../../master/adapters/master-to-riego-adapter.js';
-import {mountOperationalAnalysis} from './operational-analysis-ui.js';
 
 const engine=globalThis.CASUR_OPERATIONAL_IMPORT,esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-mountOperationalAnalysis();
 const section=document.getElementById('masterUpdateSection');
 const fmt=v=>v==null?'N/D':Number(v).toLocaleString('es-NI',{minimumFractionDigits:2,maximumFractionDigits:2});
 let sheets=[],inspection=null,source=null,proposal=null,base=null,basePayload=null,expectedVersion=null,revision=0,busy=false,stagingDirty=false;

@@ -1,9 +1,10 @@
 # Etapa B2 · propuesta funcional para aprobación
 
-Actualización 25-oct-2026: el usuario aprobó la primera entrega de consulta y
-análisis sin edición. La implementación y sus reglas están documentadas en
-`CONSULTA_ESTIMADOS_PLAN_B2.md`. Este archivo conserva la propuesta previa;
-la edición de planes y la programación efectiva siguen sin autorización.
+**Propuesta histórica sustituida el 25-oct-2026.** El usuario descartó el
+panel separado y excluyó Plan 600K/601K de la B2 operativa. El alcance vigente
+es aforo integrado en las tarjetas existentes, documentado en
+`CONSULTA_ESTIMADOS_PLAN_B2.md`. Este archivo solo conserva el antecedente;
+no autoriza implementar sus pantallas ni utilizar sus metas/calendarios.
 
 Solo análisis y propuesta. No se crea otro módulo ni se implementan pantallas.
 Depende de la aprobación de A/B1 y de la corrección de participación cronológica.

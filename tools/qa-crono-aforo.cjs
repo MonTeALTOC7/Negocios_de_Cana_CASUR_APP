@@ -1,4 +1,4 @@
-// Isolated Chromium QA. AD aforo only; BP/BQ and all plan values are excluded from the view.
+// Isolated Chromium QA. AD/AE aforo; BP/BQ authorize proposed harvest date/type only.
 // No proposed plan tonnage, target or fractional line is used in estimates.
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),assert=require('assert/strict'),crypto=require('crypto');
 const X=require('../master/convertidor/js/vendor/xlsx.full.min.js');
@@ -9,7 +9,7 @@ if(fs.readdirSync(out).some(n=>!['run-metadata.json','run.log'].includes(n)))thr
 const bytes=sharedOnly?null:fs.readFileSync(file),sha=bytes?crypto.createHash('sha256').update(bytes).digest('hex'):null;
 const completeSource=['716d374c63aa0e990f18cbabee9f391eee3d54d50fd8395488a8357e5bbcbbae','849e3bac1fa0ff6abd49c690f25ab0910b18282674ddea833283c79d6d46fc04'].includes(sha);
 if(!sharedOnly){
-assert.ok(completeSource||sha==='82cd45c03b8c80ddda6ebc6078289df4f63b6a380403da6f103f2a52fa30e069','Source must match an authorized snapshot');
+assert.ok(completeSource||['82cd45c03b8c80ddda6ebc6078289df4f63b6a380403da6f103f2a52fa30e069','aa9ab25b863dc399d5a6d445c0efe7907ca8956ef868429f308a404a46267fc6'].includes(sha),'Source must match an authorized snapshot');
 const book=X.read(bytes,{type:'buffer'}),sheetName=completeSource?'Cronologico':'Estimados_2627',sheet=book.Sheets[sheetName];
 const areaColumn=Object.keys(sheet).find(k=>/^[A-Z]+3$/.test(k)&&/area.*ha/i.test(String(sheet[k].v)))?.replace(/3$/,'');
 const source={sha256:sha,sheet:sheetName,row:1020,area:sheet[areaColumn+'1020']?.v,tch:sheet.AD1020?.v,
@@ -61,7 +61,7 @@ const cronoUrl=new URL('modules/produccion/',base).href,version='2026.10.25-afor
    await lot();assert.equal(await page.evaluate(()=>CRONO_DATA.meta.dataVersion),'2026.09.06-siagri.1415');
    const texts=await cards();assert.equal(texts.length,6);assert.match(texts[2],/N\/D.*Aforo autorizado no cargado\/aplicado/s);
    assert.match(texts[0],/8.91 ha/);assert.match(texts[1],/67.15/);assert.match(texts[3],/9.72 meses/);assert.match(texts[4],/7.37 km/);
-   assert.match(texts[5],/Último corte.*02\/01\/2026/s);assert.equal(await page.locator('#operationalAnalysis').count(),0);
+   assert.match(texts[5],/Fecha propuesta de cosecha.*N\/D/s);assert.equal(await page.locator('#operationalAnalysis').count(),0);
    assert.ok(!(await page.locator('body').innerText()).includes('Estimados y plan de cosecha · Consulta'));
    write('A-cards.json',texts);await capture('A-compartidos');
   });
@@ -95,23 +95,37 @@ const cronoUrl=new URL('modules/produccion/',base).href,version='2026.10.25-afor
    assert.equal(await page.evaluate(()=>JSON.stringify(APP_DATA)),history);write('reconciliation-applied.json',state);
    await page.evaluate(()=>{window.__qaReadWrites=[];window.__qaPut=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(v,...args){window.__qaReadWrites.push({store:this.name,key:v?.key});return window.__qaPut.call(this,v,...args);};window.__qaDataBefore=JSON.stringify(CRONO_DATA);});
   });
-  await check('B: 99336 shows AD TCH 65, 579.15 tons, real last cut; BP/BQ excluded',async()=>{
-   await lot();const texts=await cards();assert.equal(texts.length,6);assert.match(texts[2],/65.00.*Aforo autorizado/s);assert.match(texts[5],/Último corte.*02\/01\/2026.*Último corte real acreditado/s);
+  await check('B: 99336 shows 65 TCH, 579.15 tons, proposed 24-dic-2026 and Corte mecánico',async()=>{
+   await lot();const texts=await cards();assert.equal(texts.length,6);assert.match(texts[2],/65.00.*Aforo autorizado/s);assert.match(texts[5],/Fecha propuesta de cosecha.*24-dic-2026.*Corte mecánico/s);
    const row=await page.locator('#cronoPrintPanel table tbody tr').innerText();assert.match(row,/65.00/);assert.match(row,/579.15 t/);
    const metadata=await page.locator('[data-crono-date]').getAttribute('data-date-metadata');const d=JSON.parse(metadata);
-   assert.equal(d.type,'last-cut');assert.equal(d.provenance.row,1020);assert.equal(d.provenance.column,15);assert.equal(d.source.sha256,sha);
-   assert.match(row,/CP 72-2086/);assert.match(row,/02\/enero\/2026/);assert.doesNotMatch(row,/CORTE MECANICO|24\/12\/2026/);assert.equal(await page.locator('#operationalAnalysis').count(),0);
+   assert.equal(d.type,'proposed');assert.equal(d.provenance.row,1020);assert.equal(d.provenance.column,68);assert.equal(d.cutProvenance.column,69);assert.equal(d.cutType,'CORTE MECANICO');assert.equal(d.dataVersion,version);assert.equal(d.source.sha256,sha);
+   assert.match(row,/CP 72-2086/);assert.match(row,/02-ene-2026/);assert.match(row,/24-dic-2026.*Corte mecánico/s);assert.doesNotMatch(row,/601,000|36,641/);assert.equal(await page.locator('#operationalAnalysis').count(),0);
    write('B-cards.json',texts);write('date-evidence-99336.json',d);await capture('B-aforo-aplicado');await exports('B-suerte-99336');
+  });
+  await check('Manual, past/missing proposal, missing/unknown BQ; original record remains unchanged',async()=>{
+   const samples=await page.evaluate(()=>{
+    const api=CASUR_CRONO_PARTICIPATION,all=CRONO_DATA.producers.flatMap(p=>p.details),r=all.find(r=>r.codLote==='99336'),before=JSON.stringify(r);
+    const manual=all.find(r=>r.plan?.date?.iso&&r.plan?.cut==='MANUAL');
+    const variant=(date,cut)=>api.dateSummary([{...r,plan:{...r.plan,date:{iso:date},cut}}]);
+    return {manual:manual?{code:manual.code,lot:manual.suerte,model:api.dateSummary([manual])}:null,
+     past:variant('2020-04-11','MANUAL'),missing:variant(null,'MANUAL'),missingType:variant('2026-12-24',null),unknown:variant('2026-12-24','COD-X'),unchanged:before===JSON.stringify(r)};
+   });
+   assert.ok(samples.manual);assert.equal(samples.manual.model.detail,'Manual');assert.equal(samples.past.display,'11-abr-2020');assert.equal(samples.past.type,'proposed');
+   assert.equal(samples.missing.display,'N/D');assert.equal(samples.missingType.detail,'Tipo de corte N/D');assert.equal(samples.unknown.detail,'COD-X · requiere interpretación');assert.equal(samples.unchanged,true);
+   write('date-edge-cases.json',{...samples,note:'Manual uses official row; edge cases are detached in-memory models, never imported or persisted'});
+   await page.evaluate(({code,lot})=>selectCronoSuerteSuggestion(code,lot),samples.manual);
+   assert.match((await cards())[5],/Manual/);await page.locator('#cronoContent').screenshot({path:path.join(out,'B-corte-manual.png')});
   });
   await check('changing lot, farm and multiple selection uses the same valid milling denominator',async()=>{
    await page.evaluate(()=>selectCronoSuerteSuggestion('20','03'));assert.match((await cards())[2],/0.00.*Estimado cero/s);
    await page.evaluate(()=>selectCronoSuerteSuggestion('19','27'));assert.match((await cards())[2],/70.00/);
    await page.evaluate(()=>renderCronoProducer('993'));assert.equal(await page.locator('#cronoProducerSelect').inputValue(),'993');
    const farm=await page.evaluate(()=>{const p=CRONO_DATA.producers.find(p=>p.code==='993');return {stored:p.estimateTch,summary:CASUR_CRONO_PARTICIPATION.summary(p.details)};});
-   near(farm.stored,farm.summary.estimateTch,'farm TCH');write('reconciliation-finca-993.json',farm);await page.locator('#cronoContent').screenshot({path:path.join(out,'B-finca-993.png')});await exports('B-finca-993');
+   near(farm.stored,farm.summary.estimateTch,'farm TCH');assert.match((await cards())[5],/Varias fechas/);write('reconciliation-finca-993.json',farm);await page.locator('#cronoContent').screenshot({path:path.join(out,'B-finca-993.png')});await exports('B-finca-993');
    await page.evaluate(()=>{clearCronoMultiSelection();toggleCronoSuerteSelection('993::36',true);toggleCronoSuerteSelection('19::27',true);toggleCronoSuerteSelection('20::03',true);renderCronoMultiSummary();});
    const multi=await page.locator('#cronoContent').innerText();const tch=(579.15+430.5)/(8.91+6.15);
-   assert.match(multi,new RegExp(tch.toFixed(2)));assert.match(multi,/1,009.65 t/);assert.match(multi,/15.06 ha/);
+   assert.match(multi,new RegExp(tch.toFixed(2)));assert.match(multi,/1,009.65 t/);assert.match(multi,/15.06 ha/);assert.match(multi,/Cosecha propuesta: Varias fechas/);assert.match(multi,/Propuesta: 24-dic-2026 · Corte mecánico/);
    await page.locator('#cronoContent').screenshot({path:path.join(out,'B-seleccion-multiple.png')});await exports('B-multiple','cronologico-multiple');
    write('reconciliation-selection.json',{keys:['99336','1927','2003'],tons:1009.65,validArea:15.06,tch,seedExcluded:10.95});
    await page.evaluate(()=>{clearCronoMultiSelection();document.querySelector('#zoneMainSection').open=true;goCronoZoneModule();});
@@ -128,6 +142,8 @@ const cronoUrl=new URL('modules/produccion/',base).href,version='2026.10.25-afor
     if(r.tch===null)assert.equal(r.shown.estimateTch,null);else near(r.shown.estimateTch,Math.round(r.tch*100)/100,r.code+' TCH');
     if(r.area)near(r.shown.estimateTons,Math.round(r.tons*100)/100,r.code+' tons');}
    write('reconciliation-all-farms.json',reconciled);
+   const archive=await page.evaluate(async v=>{const store=await import('../../core/shared-data/master-store.js');const versions=await store.listOperationalGenerations(),entry=versions.find(r=>r.dataVersion===v),r=entry?.operationalDataset?.cronologico?.producers.flatMap(p=>p.details).find(r=>r.codLote==='99336');return {count:versions.length,version:entry?.dataVersion,model:CASUR_CRONO_PARTICIPATION.dateSummary(r?[r]:[]),activeVersion:CRONO_DATA.meta.dataVersion};},version);
+   assert.equal(archive.version,version);assert.equal(archive.activeVersion,version);assert.equal(archive.model.display,'24-dic-2026');write('archived-generation.json',archive);
    assert.deepEqual(await page.evaluate(()=>window.__qaReadWrites),[]);
    assert.equal(await page.evaluate(()=>JSON.stringify(CRONO_DATA)===window.__qaDataBefore),true);
    await page.evaluate(()=>{IDBObjectStore.prototype.put=window.__qaPut;});
@@ -136,7 +152,7 @@ const cronoUrl=new URL('modules/produccion/',base).href,version='2026.10.25-afor
    await context.setOffline(true);await page.close();page=await context.newPage();
    await page.addInitScript(()=>sessionStorage.setItem('casurAdminUnlockedAt',String(Date.now())));
    await page.goto(cronoUrl);await page.waitForFunction(v=>window.CRONO_DATA?.meta?.dataVersion===v,version,{timeout:60000});
-   await lot();assert.match((await cards())[2],/65.00/);assert.match((await cards())[5],/02\/01\/2026/);
+   await lot();assert.match((await cards())[2],/65.00/);assert.match((await cards())[5],/24-dic-2026/);
    assert.equal(await page.evaluate(()=>JSON.stringify(APP_DATA)),history);write('offline.json',await page.evaluate(async()=>({version:CRONO_DATA.meta.dataVersion,controller:navigator.serviceWorker.controller?.scriptURL,caches:await caches.keys(),cards:[...document.querySelectorAll('#cronoPrintPanel .kpi')].map(e=>e.innerText)})));
    await page.locator('#cronoContent').screenshot({path:path.join(out,'B-offline-ficha.png')});
   });
@@ -144,7 +160,7 @@ const cronoUrl=new URL('modules/produccion/',base).href,version='2026.10.25-afor
    await page.evaluate(()=>document.querySelector('#masterUpdateSection').open=true);page.once('dialog',d=>d.accept());await page.locator('#operationalRestore').click();
    await page.getByText(/Versión anterior recuperada/).waitFor({timeout:60000});await lot();
    assert.equal(await page.evaluate(()=>CRONO_DATA.meta.dataVersion),'2026.09.06-siagri.1415');assert.match((await cards())[2],/N\/D.*no cargado\/aplicado/s);
-   assert.match((await cards())[5],/02\/01\/2026/);assert.equal(await page.locator('#operationalAnalysis').count(),0);
+   assert.match((await cards())[5],/Fecha propuesta de cosecha.*N\/D/s);assert.equal(await page.locator('#operationalAnalysis').count(),0);
    assert.equal(await page.evaluate(()=>JSON.stringify(APP_DATA)),history);await page.locator('#cronoContent').screenshot({path:path.join(out,'rollback-ficha.png')});
   });
   await check('no browser exceptions and source workbook unchanged',async()=>{assert.deepEqual(exceptions,[]);assert.deepEqual(consoleErrors,[]);assert.equal(crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),sha);});

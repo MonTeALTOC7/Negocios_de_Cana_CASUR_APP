@@ -24,11 +24,10 @@
     estimateTons:['Toneladas','Ton_Estimadas_Z2627','Ton estimadas'],
     previousTch:['Tch.Ant','TCH_Z2526','TCH anterior'],variety:['Variedad'],cut:['NC','#_de_Corte','NumeroCorte'],
     sowing:['F. Siembra','Fecha siembra'],lastCut:['F. Ult. Cte','Fecha ultimo corte'],
-    harvestDate:['Fecha prevista de cosecha','Fecha prevista de corte'],
     km:['Km','Dt'],spacing:['Surco'],texture:['Nombre Textura','Textura'],zone:['Zona'],
     irrigation:['TipoRiego','Tipo_de_Riego','Tipo de riego'],irrigationCount:['NR','#_de_Riegos'],
     tenure:['Tn','Tenencia'],erp:['ERP'],cropType:['Nombre Tipo de Cultivo','TipoCultivo'],age:['Edad'],
-    proposedDate:['Fecha propuesta (Plan 601K)','Fecha propuesta'],proposedCut:['Tipo de Corte (Plan 601K)','Tipo de Corte'],
+    proposedDate:['Fecha propuesta de Cosecha','Fecha propuesta (Plan 601K)','Fecha propuesta','Fecha prevista de cosecha','Fecha prevista de corte'],proposedCut:['Tipo de Corte (Plan 601K)','Tipo de Corte'],
     baseDate:['Fecha-maestro','Fecha base'],projectedAge:['Edad corte (meses)','Edad proyectada'],
     lineId:['ID Línea'],fraction:['% de la suerte'],split:['Fraccionada'],lineTons:['Ton propuesta'],
     season:['Zafra'],historicalTons:['Ton'],katm:['KATM','Rto'],
@@ -128,7 +127,7 @@
       if(classification==='Sin Caña'&&fields.area>0)issue('warning','no-cane-area','Sin Caña con área inventariada positiva: no suma área activa.');
       if(fields.area!==null&&fields.estimateTch!==null&&fields.estimateTons!==null&&Math.abs(fields.area*fields.estimateTch-fields.estimateTons)>0.02)issue('warning','tonnage','Toneladas de origen difieren de área × TCH.');
       const dates={};
-      for(const field of ['sowing','lastCut','harvestDate','proposedDate','baseDate']){
+      for(const field of ['sowing','lastCut','proposedDate','baseDate']){
         dates[field]=dateValue(fields[field]);if(fields[field]!=null&&text(fields[field])!==''&&!dates[field].iso)issue('warning','date',`Fecha no interpretable: ${field}`,field);
       }
       const projected=projectedAgeMonths(dates.proposedDate.iso,dates.baseDate.iso);
@@ -244,7 +243,6 @@
         millingEstimatedTons:milling&&incoming.fields.estimateTch!==null?incoming.fields.area*incoming.fields.estimateTch:null,
         dataVersion,plan:incoming.plan,source:incoming.source,provenance:incoming.provenance,inherited,
         forecast:{season:parsed.source.season||null,area:incoming.fields.area,tch:incoming.fields.estimateTch,tons:incoming.fields.estimateTons,classification,source:incoming.source},
-        harvestDate:incoming.dates.harvestDate?.iso?{date:incoming.dates.harvestDate.iso,type:'harvest',source:incoming.source,season:parsed.source.season,provenance:incoming.provenance.harvestDate}:null,
         fBase:record.renovacion?record.fSiembra||null:[record.fSiembra,record.fUltCte].filter(Boolean).sort().at(-1)||null,
         changeHistory:[...(prev?.changeHistory||[]),{dataVersion,importedAt,fromVersion:prev?.dataVersion||'baseline',previousArea:prev?.inventoryArea??prev?.area??null,area:incoming.fields.area,classification}],
       },decisions);

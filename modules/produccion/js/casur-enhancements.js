@@ -9,9 +9,12 @@
   // 849e...: saved Aforos snapshot, Cronologico rows reconciled to the extraction
   // audit (1,046 rows, zero value differences); see docs/CONSULTA_ESTIMADOS_PLAN_B2.md.
   // Expected identity/area/classification/TCH checks below remain mandatory.
+  // aa9a...: restored extraction, audited separately (BP/BQ renamed; BT/BV
+  // auxiliary values changed). A matching file name never grants trust.
   const decisionSources = ['82cd45c03b8c80ddda6ebc6078289df4f63b6a380403da6f103f2a52fa30e069',
     '716d374c63aa0e990f18cbabee9f391eee3d54d50fd8395488a8357e5bbcbbae',
-    '849e3bac1fa0ff6abd49c690f25ab0910b18282674ddea833283c79d6d46fc04'];
+    '849e3bac1fa0ff6abd49c690f25ab0910b18282674ddea833283c79d6d46fc04',
+    'aa9ab25b863dc399d5a6d445c0efe7907ca8956ef868429f308a404a46267fc6'];
   window.CASUR_OPERATIONAL_DECISIONS = Object.freeze([
     { id:'CASUR-2026-10-25-2003',key:'2003',season:'26/27',destination:'Semilla',approvedAt:'2026-10-25',
       reason:'Decisión expresa del usuario CASUR: Semilla activa, fuera de molienda.',sourceHashes:decisionSources,
@@ -80,32 +83,36 @@
       reason: tch === null ? 'Sin estimado en la fuente' : tch === 0 ? 'Estimado cero en la fuente' : 'Aforo autorizado',
       participation: p, season, source };
   }
-  function referenceDate(record, today = new Date().toLocaleDateString('sv-SE')) {
-    const valid = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') &&
-      window.CASUR_OPERATIONAL_IMPORT.dateValue(value).iso === value;
-    const source = record?.source;
-    const future = record?.harvestDate;
-    if (forecastForRow(record).state !== 'not-applied' && future?.type === 'harvest' &&
-        aforoSources.includes(future.source?.sha256) && future.source.sha256 === source?.sha256 &&
-        future.season === record.forecast?.season && valid(future.date) && future.date > today &&
-        ['fechaprevistadecosecha','fechaprevistadecorte'].includes(normal(future.provenance?.header))) {
-      return { label: 'Fecha prevista de cosecha', type: 'harvest', date: future.date,
-        source: future.source, season: future.season, provenance: future.provenance };
-    }
-    for (const [field, key, label, type] of [['fUltCte','lastCut','Último corte','last-cut']]) {
-      if (valid(record?.[field]) && record[field] <= today) return { label, type, date: record[field],
-        source: record.inherited?.[field] ? { dataVersion: record.inherited[field].fromVersion } : (record.source || { file: 'Cronológico SIAGRI', dataVersion: window.CRONO_DATA?.meta?.dataVersion }),
-        season: record.inherited?.[field] ? null : record.forecast?.season || null, provenance: record.provenance?.[key] || null };
-    }
-    return { label: 'Fecha de corte', type: 'missing', date: null, source: null, season: null, reason: 'Sin fecha de corte acreditada' };
+  function formatCronoDate(value) {
+    const iso = window.CASUR_OPERATIONAL_IMPORT.dateValue(value).iso;
+    if (!iso) return '—';
+    const [year, month, day] = iso.split('-');
+    return `${day}-${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][Number(month)-1]}-${year}`;
   }
-  function dateSummary(rows, today) {
-    const dates = (rows || []).map(r => referenceDate(r, today));
-    const found = dates.filter(d => d.date), same = found.length && new Set(found.map(d => d.type + d.date)).size === 1;
-    if (dates.length === 1) return { ...dates[0], display: dates[0].date ? formatDate(dates[0].date) : 'N/D', detail: dates[0].detail || dates[0].reason || (dates[0].type === 'last-cut' ? 'Último corte real acreditado' : 'Fecha prevista acreditada') };
-    return { label: 'Fecha de corte', type: 'scope', date: same && found.length === dates.length ? found[0].date : null,
-      display: !found.length ? 'N/D' : same && found.length === dates.length ? formatDate(found[0].date) : 'Varias fechas',
-      detail: found.length ? `${found.length}/${dates.length} suertes con fecha · detalle en tabla` : 'Sin fechas acreditadas', dates };
+  function cutTypeText(value) {
+    const original = text(value), key = normal(original);
+    return !original ? 'Tipo de corte N/D' : key === 'manual' ? 'Manual' : key === 'cortemecanico' ? 'Corte mecánico' : `${original} · requiere interpretación`;
+  }
+  function referenceDate(record) {
+    const plan = record?.plan, source = record?.source, provenance = record?.provenance?.proposedDate;
+    const date = window.CASUR_OPERATIONAL_IMPORT.dateValue(plan?.date?.iso).iso;
+    const authorized = forecastForRow(record).state !== 'not-applied' &&
+      window.CASUR_OPERATIONAL_IMPORT.aliases.proposedDate.some(header => normal(header) === normal(provenance?.header));
+    const base = { label: 'Fecha propuesta de cosecha', type: 'proposed', source: source || null,
+      season: record?.forecast?.season || null, dataVersion: record?.dataVersion || null,
+      provenance: provenance || null, cutProvenance: record?.provenance?.proposedCut || null };
+    if (!authorized || !date) return { ...base, date: null, type: 'missing',
+      detail: authorized ? 'Sin fecha propuesta válida en la fuente' : 'Generación autorizada no cargada/aplicada' };
+    // A proposal stays a proposal even when its date has passed. Never infer execution.
+    return { ...base, date, cutType: text(plan.cut) || null, detail: cutTypeText(plan.cut) };
+  }
+  function dateSummary(rows) {
+    const dates = (rows || []).map(r => referenceDate(r));
+    const found = dates.filter(d => d.date), same = found.length && new Set(found.map(d => d.date)).size === 1;
+    if (dates.length === 1) return { ...dates[0], display: dates[0].date ? formatCronoDate(dates[0].date) : 'N/D' };
+    return { label: 'Fecha propuesta de cosecha', type: 'scope', date: same && found.length === dates.length ? found[0].date : null,
+      display: !found.length ? 'N/D' : same && found.length === dates.length ? formatCronoDate(found[0].date) : 'Varias fechas',
+      detail: found.length ? `${found.length}/${dates.length} suertes con propuesta · detalle por suerte` : 'Sin fechas propuestas válidas', dates };
   }
   const estimateSummary = (rows) => {
     const all = rows || [];
@@ -315,7 +322,7 @@
       if (actions && !actions.querySelector(".casur-estimate-badge")) {
         const hasEstimate = finite(estimateValue) !== null;
         const estimateDate=window.CRONO_DATA?.meta?.operationalContract?window.CRONO_DATA.meta.tchEst2627EffectiveDate:ESTIMATE_DATE;
-        actions.insertAdjacentHTML("afterbegin", `<span class="casur-estimate-badge ${hasEstimate ? "" : "is-empty"}">${esc(season)}: ${hasEstimate ? fmt(estimateValue) + ' TCH' : 'N/D'}${hasEstimate ? (estimateDate ? ` · ${formatDate(estimateDate)}` : "") : ' · ' + esc(sourceLabel)}</span>`);
+        actions.insertAdjacentHTML("afterbegin", `<span class="casur-estimate-badge ${hasEstimate ? "" : "is-empty"}">${esc(season)}: ${hasEstimate ? fmt(estimateValue) + ' TCH' : 'N/D'}${hasEstimate ? (estimateDate ? ` · ${formatCronoDate(estimateDate)}` : "") : ' · ' + esc(sourceLabel)}</span>`);
       }
       content.querySelectorAll("#cronoPrintPanel table").forEach((table) => {
         if (table.dataset.casurEstimate === "1") return;
@@ -343,6 +350,12 @@
           const stateCell = document.createElement("td"); stateCell.className = "casur-master-state";
           stateCell.textContent = participation ? (participation.reason.startsWith(text(record.classification)) ? participation.reason : `${record.classification} · ${participation.reason}`) : text(record?.estado) || "—";
           const noteCell = document.createElement("td"); noteCell.className = "casur-master-note"; noteCell.textContent = text(record?.observacion) || "—";
+          const proposed = referenceDate(record);
+          if (proposed.date) {
+            const detail = document.createElement('small'); detail.style.display = 'block';
+            detail.textContent = `Cosecha propuesta: ${formatCronoDate(proposed.date)} · ${proposed.detail}`;
+            noteCell.append(detail);
+          }
           row.append(stateCell, noteCell);
         });
         table.dataset.casurEstimate = "1";
@@ -1876,7 +1889,7 @@
   window.CASUR_BUILD_CRONO_DATA = buildCronoData;
   window.CASUR_REFRESH_OPERATIONAL_VIEW = refreshOperationalView;
   window.CASUR_CRONO_PARTICIPATION = Object.freeze({summary: estimateSummary, coverageText: estimateCoverageText,
-    forecastForRow, referenceDate, dateSummary, dateKpi});
+    forecastForRow, referenceDate, dateSummary, dateKpi, formatDate: formatCronoDate, cutTypeText});
 
   function openModuleContext(context) {
     if (!context || context.kind !== "lot") return { ok: false, status: "invalid-context" };

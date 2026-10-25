@@ -2786,7 +2786,7 @@ const C = window.CRONO_DATA || {options:[],producers:[],global:{},groups:{}};
 let currentCronoProducer = null;
 function ce(id){return document.getElementById(id);}
 function safe(v){return String(v ?? '—').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function num(v){const n=Number(v);return Number.isFinite(n)?n:null;}
+function num(v){if(v==null||String(v).trim()==='')return null;const n=Number(v);return Number.isFinite(n)?n:null;}
 function fmt(v,suf=''){const n=num(v);return n===null?'—':n.toLocaleString('es-NI',{minimumFractionDigits:2,maximumFractionDigits:2})+suf;}
 function fmt0(v,suf=''){const n=num(v);return n===null?'—':Math.round(n).toLocaleString('es-NI')+suf;}
 function tone(t){t=num(t); if(t===null)return 'warn'; return t>=70?'good':(t<45?'bad':'warn');}
@@ -3045,9 +3045,7 @@ function summarizeCronoRows(rows,p){
     code:p?p.code:'', name:p?p.name:'', zone:dominantArea(rows,'zona')||(p&&p.zone)||'—', tenencia:dominantArea(rows,'tenencia')||(p&&p.tenencia)||'—', destino:dominantArea(rows,'destino')||(p&&p.destino)||'—',
     area:+area.toFixed(2), tch:den?+(tchNum/den).toFixed(2):null, suertes:rows.length, areaBajoTch:+bajo.toFixed(2), areaMedioTch:+medio.toFixed(2), areaAltoTch:+alto.toFixed(2), areaRiego:+riego.toFixed(2), areaSecano:+secano.toFixed(2), areaSinDatoRiego:+sin.toFixed(2),
     riegoDom:dominantArea(rows,'tipoRiego'), variedadDom:dominantArea(rows,'variedad'), texturaDom:dominantArea(rows,'textura'),distance,
-    ...(C.meta?.operationalContract===1?{inventoryArea:+rows.filter(r=>r.sourcePresence==='present').reduce((n,r)=>n+(Number(r.inventoryArea)||0),0).toFixed(2),
-      activeLots:rows.filter(r=>r.participatesCurrentArea).length,millingArea:+rows.reduce((n,r)=>n+(Number(r.millingArea)||0),0).toFixed(2),
-      absentLots:rows.filter(r=>r.sourcePresence==='absent').length}:{}),
+    ...(C.meta?.operationalContract===1?window.CASUR_CRONO_PARTICIPATION.summary(rows):{}),
   };
 }
 function cronoDistanceCell(r,index){
@@ -3061,7 +3059,7 @@ function renderCronoHome(){
   const html='<div class="kpis" style="margin-top:12px">'+[
     kpi(operational?'Área activa':'Área total',fmt(g.area,' ha'),operational?'Inventario '+fmt(g.inventoryArea,' ha')+' · Molienda '+fmt(g.millingArea,' ha'):'Cronológico',true),
     kpi(operational?'TCH anterior':'TCH ponderado',fmt(g.tch),operational?'Referencia · área activa':'TCH 25/26'),
-    kpi('Suertes',fmt0(g.suertes),operational?fmt0(g.activeLots)+' activas · '+fmt0(g.absentLots)+' ausentes':''),
+    kpi(operational?'Suertes activas':'Suertes',fmt0(operational?g.activeLots:g.suertes),operational?fmt0(g.suertes)+' catálogo · '+fmt0(g.absentLots)+' ausentes':''),
     kpi('Haciendas',fmt0(g.productores),'')
   ].join('')+'</div>'+`<div class="crono-summary-grid"><div class="crono-box"><h3>Área por zona</h3>${hbar((C.groups||{}).zona,8,'green')}</div><div class="crono-box"><h3>Área por riego</h3>${hbar((C.groups||{}).riego,8,'blue')}</div><div class="crono-box"><h3>Área por tenencia</h3>${hbar((C.groups||{}).tenencia,8,'gold')}</div><div class="crono-box"><h3>Área por Destino Cultivo</h3>${hbar((C.groups||{}).destino,8,'green')}</div></div>`;
   const cont=ce('cronoContent'); if(cont){cont.innerHTML=html; cont.dataset.ready='1';}
@@ -3219,18 +3217,18 @@ window.addEventListener('load',setupCrono);
   let currentCronoZone = null;
   function byId(id){return document.getElementById(id);}
   function esc(v){return String(v ?? '—').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-  function num(v){const n=Number(v); return Number.isFinite(n)?n:null;}
+  function num(v){if(v==null||String(v).trim()==='')return null;const n=Number(v); return Number.isFinite(n)?n:null;}
   function fmt(v,suf=''){const n=num(v); if(n===null)return '—'; return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+suf;}
   function fmt0(v,suf=''){const n=num(v); if(n===null)return '—'; return Math.round(n).toLocaleString('en-US')+suf;}
   function norm(v){return String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();}
-  function tone(t){t=Number(t); if(!Number.isFinite(t))return 'neu'; if(t<45)return 'bad'; if(t<70)return 'warn'; return 'good';}
-  function status(t){t=Number(t); if(!Number.isFinite(t))return 'Sin dato'; if(t<45)return 'Crítico'; if(t<70)return 'Medio'; return 'Alto';}
+  function tone(t){t=num(t); if(t===null)return 'neu'; if(t<45)return 'bad'; if(t<70)return 'warn'; return 'good';}
+  function status(t){t=num(t); if(t===null)return 'Sin dato'; if(t<45)return 'Crítico'; if(t<70)return 'Medio'; return 'Alto';}
   function kpi(label,value,sub='',main=false,extraClass=''){return '<div class="kpi '+(main?'main ':'')+esc(extraClass)+'"><span class="label">'+esc(label)+'</span><strong>'+value+'</strong>'+(sub?'<em>'+esc(sub)+'</em>':'')+'</div>';}
   function estimateNum(v){if(v===null||v===undefined||String(v).trim()==='')return null;const n=Number(v);return Number.isFinite(n)?n:null;}
   function estimateFmt(v,suf=''){const n=estimateNum(v);return n===null?'—':n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+suf;}
   function estimateSeason(){return C.meta?.operationalContract===1?(C.meta.estimateSeason||'—'):'26/27';}
-  function estimateForRow(r){return C.meta?.operationalContract===1?(r.participatesMilling&&r.forecast?.season===estimateSeason()?estimateNum(r.forecast.tch):null):estimateNum(r.tchEst2627);}
-  function tonsForRow(r){return C.meta?.operationalContract===1?estimateNum(r.millingEstimatedTons):estimateNum(r.tonEst2627);}
+  function estimateForRow(r){return C.meta?.operationalContract===1?(r.forecast?.season===estimateSeason()?window.CASUR_OPERATIONAL_IMPORT.participation(r).estimateTch:null):estimateNum(r.tchEst2627);}
+  function tonsForRow(r){return C.meta?.operationalContract===1?window.CASUR_OPERATIONAL_IMPORT.participation(r).estimatedTons:estimateNum(r.tonEst2627);}
   function parseISO(s){if(!s)return null; const d=new Date(String(s)+'T00:00:00'); return Number.isNaN(d.getTime())?null:d;}
   function baseAgeDate(r){const corte=parseISO(r&&r.fUltCte), siembra=parseISO(r&&r.fSiembra), fallback=parseISO(r&&r.fBase); if(corte&&siembra)return siembra.getTime()>corte.getTime()?siembra:corte; return siembra||corte||fallback||null;}
   function ageMonths(r){if(r&&r.renovacion&&!r.fSiembra)return 0; const d=baseAgeDate(r); if(!d)return null; const now0=new Date(); const now=new Date(now0.getFullYear(),now0.getMonth(),now0.getDate()); return Math.max(0,((now-d)/(1000*60*60*24))/30.4375);}
@@ -3283,7 +3281,9 @@ window.addEventListener('load',setupCrono);
       if(est!==null&&a>0){const ton=tonsForRow(r);estNum+=a*est;estDen+=a;estArea+=a;estTon+=ton===null?a*est:ton;estCount++;}
       const tr=norm(r.tipoRiego); if(tr.includes('secano'))secano+=a; else if(tr)riego+=a;
     });
-    return {area:+area.toFixed(2),tch:den?+(numT/den).toFixed(2):null,suertes:rows.length,units:units.size,edad:weightedAge(rows),bajo:+bajo.toFixed(2),medio:+medio.toFixed(2),alto:+alto.toFixed(2),riego:+riego.toFixed(2),secano:+secano.toFixed(2),crit,tchEst2627:estDen?+(estNum/estDen).toFixed(2):null,tonEst2627:estCount?+estTon.toFixed(2):null,areaEstimado2627:+estArea.toFixed(2),suertesEstimado2627:estCount,coberturaEstimadoAreaPct:area?+(estArea/area*100).toFixed(2):0,coberturaEstimadoSuertesPct:rows.length?+(estCount/rows.length*100).toFixed(2):0};
+    const participation=C.meta?.operationalContract===1?window.CASUR_CRONO_PARTICIPATION.summary(rows):null;
+    return {area:+area.toFixed(2),tch:den?+(numT/den).toFixed(2):null,suertes:rows.length,units:units.size,edad:weightedAge(rows),bajo:+bajo.toFixed(2),medio:+medio.toFixed(2),alto:+alto.toFixed(2),riego:+riego.toFixed(2),secano:+secano.toFixed(2),crit,tchEst2627:estDen?+(estNum/estDen).toFixed(2):null,tonEst2627:estCount?+estTon.toFixed(2):null,areaEstimado2627:+estArea.toFixed(2),suertesEstimado2627:estCount,coberturaEstimadoAreaPct:area?+(estArea/area*100).toFixed(2):0,coberturaEstimadoSuertesPct:rows.length?+(estCount/rows.length*100).toFixed(2):0,
+      ...(participation?{...participation,suertes:participation.activeLots,tchEst2627:participation.estimateTch,tonEst2627:participation.estimateTons}:{})};
   }
   function paletteRGB(palette){return palette==='blue'?'0,91,170':(palette==='gold'?'206,139,15':'11,127,58');}
   function hbarZone(rows,limit=7,palette='green',value='area',scopeTotal=null){
@@ -3310,9 +3310,9 @@ window.addEventListener('load',setupCrono);
     const map={};
     (rows||[]).forEach(r=>{
       const key=(r.producerCode||'')+'|'+(r.producerName||r.name||'Sin dato');
-      if(!map[key])map[key]={code:r.producerCode||r.code||'',name:r.producerName||r.name||'Sin dato',area:0,suertes:0,numT:0,denT:0,numD:0,denD:0,numEst:0,denEst:0,tonEst:0,areaEst:0,suertesEst:0,riegoMap:{}};
+      if(!map[key])map[key]={code:r.producerCode||r.code||'',name:r.producerName||r.name||'Sin dato',area:0,suertes:0,catalogLots:0,numT:0,denT:0,numD:0,denD:0,numEst:0,denEst:0,tonEst:0,areaEst:0,suertesEst:0,riegoMap:{}};
       const o=map[key], a=Number(r.area)||0, t=num(r.tch), est=estimateForRow(r), d=num(r.distancia), rg=r.tipoRiego||'Sin dato';
-      o.area+=a; o.suertes++;
+      o.area+=a; o.catalogLots++; o.suertes+=C.meta?.operationalContract===1?Number(window.CASUR_OPERATIONAL_IMPORT.participation(r).active):1;
       if(t!==null&&a>0){o.numT+=a*t; o.denT+=a;}
       if(est!==null&&a>0){const ton=tonsForRow(r);o.numEst+=a*est;o.denEst+=a;o.areaEst+=a;o.tonEst+=ton===null?a*est:ton;o.suertesEst++;}
       if(d!==null&&a>0){o.numD+=a*d; o.denD+=a;}
@@ -3329,12 +3329,12 @@ window.addEventListener('load',setupCrono);
       coberturaEstPct:o.area?+(o.areaEst/o.area*100).toFixed(2):0,
       riego:Object.entries(o.riegoMap).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—',
       dist:o.denD?+(o.numD/o.denD).toFixed(2):null,
-      suertes:o.suertes
+      suertes:o.suertes,catalogLots:o.catalogLots
     })).sort((a,b)=>(b.area||0)-(a.area||0));
   }
   function haciendaTable(rows){
     if(!rows.length)return '<div class="empty">Sin datos de haciendas.</div>';
-    return '<div class="table-wrap"><table class="hacienda-zone-table"><thead><tr><th>#</th><th>Código</th><th>Hacienda / productor</th><th>Área</th><th>'+(C.meta?.operationalContract===1?'TCH anterior':'TCH real 25/26')+'</th><th>TCH est. '+esc(estimateSeason())+'</th><th>Ton. est. '+esc(estimateSeason())+'</th><th>Riego</th><th>Dist. pond.</th><th>Suertes</th></tr></thead><tbody>'+rows.map((r,i)=>{
+    return '<div class="table-wrap"><table class="hacienda-zone-table"><thead><tr><th>#</th><th>Código</th><th>Hacienda / productor</th><th>Área</th><th>'+(C.meta?.operationalContract===1?'TCH anterior':'TCH real 25/26')+'</th><th>TCH est. '+esc(estimateSeason())+'</th><th>Ton. est. '+esc(estimateSeason())+'</th><th>Riego</th><th>Dist. pond.</th><th>'+(C.meta?.operationalContract===1?'Suertes activas':'Suertes')+'</th></tr></thead><tbody>'+rows.map((r,i)=>{
       const tc=tone(r.tch), cls=tc==='good'?'good':(tc==='bad'?'bad':'warn');
       return '<tr><td><b>'+fmt0(i+1)+'</b></td><td><b>'+esc(r.code)+'</b></td><td>'+esc(r.name)+'</td><td>'+fmt(r.area,' ha')+'</td><td><span class="tch-val '+cls+'">'+fmt(r.tch)+'</span></td><td class="casur-estimate-cell">'+estimateFmt(r.tchEst2627)+'</td><td class="casur-estimate-cell">'+estimateFmt(r.tonEst2627,' t')+'</td><td>'+esc(r.riego)+'</td><td>'+fmt(r.dist,' km')+'</td><td>'+fmt0(r.suertes)+'</td></tr>';
     }).join('')+'</tbody></table></div>';
@@ -3353,9 +3353,9 @@ window.addEventListener('load',setupCrono);
     const html='<div class="kpis" style="margin-top:12px">'+[
       kpi(C.meta?.operationalContract===1?'Área activa':'Área total',fmt(g.area,' ha'),C.meta?.operationalContract===1?'Inventario '+fmt(g.inventoryArea,' ha')+' · Molienda '+fmt(g.millingArea,' ha'):'Cronológico',true),
       kpi(C.meta?.operationalContract===1?'TCH anterior':'TCH real 25/26',fmt(g.tch),C.meta?.operationalContract===1?'Referencia · área activa':'Ponderado por área'),
-      kpi('TCH estimado '+estimateSeason(),estimateFmt(C.meta?.operationalContract===1?g.estimateTch:g.tchEst2627),C.meta?.operationalContract===1?'Generación local aprobada':'Estimado oficial',false,'estimate'),
+      kpi('TCH estimado '+estimateSeason(),estimateFmt(C.meta?.operationalContract===1?g.estimateTch:g.tchEst2627),C.meta?.operationalContract===1?window.CASUR_CRONO_PARTICIPATION.coverageText(g):'Estimado oficial',false,'estimate'),
       kpi('Ton. estimadas '+estimateSeason(),estimateFmt(C.meta?.operationalContract===1?g.estimateTons:g.tonEst2627,' t'),'Área estimada × TCH',false,'estimate'),
-      kpi('Suertes',fmt0(g.suertes),C.meta?.operationalContract===1?fmt0(g.activeLots)+' activas · '+fmt0(g.absentLots)+' ausentes':''),
+      kpi(C.meta?.operationalContract===1?'Suertes activas':'Suertes',fmt0(C.meta?.operationalContract===1?g.activeLots:g.suertes),C.meta?.operationalContract===1?fmt0(g.suertes)+' catálogo · '+fmt0(g.absentLots)+' ausentes':''),
       kpi('Haciendas',fmt0(g.productores),''),
       kpi('Bajo 45 TCH',fmt(g.areaBajoTch,' ha'),''),
       kpi('45–70 TCH',fmt(g.areaMedioTch,' ha'),''),
@@ -3387,9 +3387,9 @@ window.addEventListener('load',setupCrono);
     const kpis='<div class="kpis" style="margin-top:12px">'+[
       kpi(C.meta?.operationalContract===1?'Área activa':'Área total',fmt(a.area,' ha'),zone,true),
       kpi(C.meta?.operationalContract===1?'TCH anterior':'TCH real 25/26','<span class="tch-val '+tone(a.tch)+'">'+fmt(a.tch)+'</span>',C.meta?.operationalContract===1?'Referencia · área activa':'Ponderado por área'),
-      kpi('TCH estimado '+estimateSeason(),estimateFmt(a.tchEst2627),C.meta?.operationalContract===1?'Generación local aprobada':'Estimado oficial',false,'estimate'),
+      kpi('TCH estimado '+estimateSeason(),estimateFmt(a.tchEst2627),C.meta?.operationalContract===1?window.CASUR_CRONO_PARTICIPATION.coverageText(a):'Estimado oficial',false,'estimate'),
       kpi('Ton. estimadas '+estimateSeason(),estimateFmt(a.tonEst2627,' t'),'Área estimada × TCH',false,'estimate'),
-      kpi('Suertes',fmt0(a.suertes),''),
+      kpi(C.meta?.operationalContract===1?'Suertes activas':'Suertes',fmt0(a.suertes),C.meta?.operationalContract===1?fmt0(a.catalogLots)+' catálogo · '+fmt0(a.seedLots)+' semilla · '+fmt0(a.millingLots)+' molienda':''),
       kpi('Haciendas',fmt0(a.units),''),
       kpi('Edad pond.',fmt(a.edad,' m'),''),
       kpi('Bajo 45 TCH',fmt(a.bajo,' ha'),''),
@@ -4596,6 +4596,7 @@ function selectedScope(){return (byId('masterScopeSelect')||{}).value||'__all__'
       if(payload?.operationalDataset?.contractVersion===1){
         var operational=payload.operationalDataset,approvedData=operational.cronologico;
         if(!approvedData?.producers?.length||!operational.catalog?.length||approvedData.meta?.dataVersion!==payload.dataVersion)return {applied:false,error:'Generación operativa incompleta'};
+        approvedData=window.CASUR_REFRESH_OPERATIONAL_VIEW?.(approvedData)||approvedData;
         window.CASUR_OPERATIONAL_LOCAL=!operational.baseline;
         window.CASUR_ADMIN_DATA=approvedData;
         if(window.CRONO_DATA){Object.keys(window.CRONO_DATA).forEach(function(k){delete window.CRONO_DATA[k];});Object.assign(window.CRONO_DATA,approvedData);}
@@ -5271,7 +5272,8 @@ async function renderCanvas(kind,variant){
     var scale=Math.min(2,16000/width,16000/height);
     var canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
     var ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    var safeBreaks=kind==='historico-multiple'?qa('[data-pdf-break],.hist-multi-results-table tbody tr',cloneNode).map(function(el){return Math.ceil((el.getBoundingClientRect().bottom-reportRect.top+2)*scale);}).filter(function(y){return y>0&&y<canvas.height;}):[];
+    var safeSelector=kind==='cronologico'?'.table-wrap tbody tr':kind==='historico-multiple'?'[data-pdf-break],.hist-multi-results-table tbody tr':null;
+    var safeBreaks=safeSelector?qa(safeSelector,cloneNode).map(function(el){return Math.ceil((el.getBoundingClientRect().bottom-reportRect.top+2)*scale);}).filter(function(y){return y>0&&y<canvas.height;}):[];
     var forcedBreaks=qa('[data-pdf-new-page]',cloneNode).map(function(el){return Math.floor((el.getBoundingClientRect().top-reportRect.top-5)*scale);}).filter(function(y){return y>0&&y<canvas.height;});
     return{canvas:canvas,node:node,width:width,height:height,clone:cloneNode,safeBreaks:safeBreaks,forcedBreaks:forcedBreaks};
   }finally{remove(host);}

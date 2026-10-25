@@ -5,6 +5,17 @@
   const PASSWORD_HASH = "6315700c5446173c02844f5fcc514d3b52e8da0ad4b31f6126049d2d8709ad34";
   const UNLOCK_MINUTES = 30;
   const historicalEngine = window.CASUR_HISTORICAL_ENGINE;
+  // User-approved decisions for these exact source snapshots and season only.
+  const decisionSources = ['82cd45c03b8c80ddda6ebc6078289df4f63b6a380403da6f103f2a52fa30e069',
+    '716d374c63aa0e990f18cbabee9f391eee3d54d50fd8395488a8357e5bbcbbae'];
+  window.CASUR_OPERATIONAL_DECISIONS = Object.freeze([
+    { id:'CASUR-2026-10-25-2003',key:'2003',season:'26/27',destination:'Semilla',approvedAt:'2026-10-25',
+      reason:'Decisión expresa del usuario CASUR: Semilla activa, fuera de molienda.',sourceHashes:decisionSources,
+      expectedSource:{classification:'Molienda',destination:'Semilla',area:10.95,tch:0} },
+    { id:'CASUR-2026-10-25-1927',key:'1927',season:'26/27',destination:'Molienda',approvedAt:'2026-10-25',
+      reason:'Decisión expresa del usuario CASUR: Molienda activa; discrepancia original conservada.',sourceHashes:decisionSources,
+      expectedSource:{classification:'Molienda',destination:'Semilla',area:6.15,tch:70} },
+  ]);
   const $ = (id) => document.getElementById(id);
   const nf = new Intl.NumberFormat("es-NI", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const nf0 = new Intl.NumberFormat("es-NI", { maximumFractionDigits: 0 });
@@ -53,6 +64,22 @@
     const all = rows || [];
     const operational = all.some((row) => row.sourcePresence === 'present' || row.sourcePresence === 'absent');
     const season = operational ? all.find((row) => row.sourcePresence === 'present' && row.forecast?.season)?.forecast.season : '26/27';
+    if (operational) {
+      const totals = window.CASUR_OPERATIONAL_IMPORT.totals(all);
+      const tch = totals.validMillingArea ? round(totals.millingTch) : null;
+      const tons = totals.usable ? round(totals.millingTons) : null;
+      return { estimateSeason: season || null, estimateTch: tch, estimateTons: tons,
+        estimateArea: round(totals.validMillingArea), estimateLots: totals.usable,
+        tchEst2627: season === '26/27' ? tch : null, tonEst2627: season === '26/27' ? tons : null,
+        areaEstimado2627: season === '26/27' ? round(totals.validMillingArea) : 0,
+        suertesEstimado2627: season === '26/27' ? totals.usable : 0,
+        coberturaEstimadoAreaPct: totals.millingCoverage === null ? null : round(totals.millingCoverage * 100),
+        coberturaEstimadoSuertesPct: totals.milling ? round(totals.usable / totals.milling * 100) : null,
+        inventoryArea: round(totals.inventoryArea), activeLots: totals.active, seedLots: totals.seed, seedArea:round(totals.seedArea),
+        millingArea: round(totals.millingArea), millingLots: totals.milling, catalogLots: totals.catalog,
+        pendingMillingArea: round(totals.pendingMillingArea), pendingMillingLots: totals.pendingMillingLots,
+        inactiveLots: totals.inactive, absentLots: totals.absent, conflictLots: totals.conflicts };
+    }
     const estimate = (row) => operational ? finite(row.forecast?.season === season ? row.forecast.tch : null) : finite(row.tchEst2627);
     const covered = all.filter((row) => (!operational || row.participatesMilling) && finite(row.area) > 0 && estimate(row) !== null);
     const totalArea = all.reduce((sum, row) => sum + (operational ? (finite(row.millingArea) || 0) : (finite(row.area) || 0)), 0);
@@ -98,6 +125,13 @@
   }
 
   function buildCronoData(records, source = "Edición manual interna") {
+    records = records.map((original) => {
+      const r = original.sourcePresence ? window.CASUR_OPERATIONAL_IMPORT.applyDecisions(original, window.CASUR_OPERATIONAL_DECISIONS) : original;
+      if (!r.sourcePresence) return r;
+      const p = window.CASUR_OPERATIONAL_IMPORT.participation(r);
+      return { ...r, area: p.activeArea, millingArea: p.millingArea,
+        participatesCurrentArea: p.active, participatesMilling: p.milling, millingEstimatedTons: p.estimatedTons };
+    });
     const farms = new Map();
     records.forEach((record) => {
       const key = text(record.code) || text(record.name) || "SIN_CODIGO";
@@ -119,7 +153,7 @@
       rows.forEach((row) => {
         const area = finite(row.area) || 0;
         const tch = finite(row.tch);
-        if (tch !== null && tch > 0 && tch < 60) { summary.areaBajoTch += area; summary.suertesCriticas += 1; }
+        if (area > 0 && tch !== null && tch > 0 && tch < 60) { summary.areaBajoTch += area; summary.suertesCriticas += 1; }
         else if (tch !== null && tch < 70) summary.areaMedioTch += area;
         else if (tch !== null) summary.areaAltoTch += area;
         const irrigation = normal(row.tipoRiego);
@@ -189,6 +223,21 @@
     return { rows: producer.details || [], summary: { ...producer, ...estimateSummary(producer.details || []) }, producer };
   }
 
+  function estimateCoverageText(summary) {
+    if (summary.millingLots === undefined) return 'Estimado oficial';
+    if (!summary.millingLots) return 'Sin participación en molienda';
+    return `${summary.estimateLots}/${summary.millingLots} molienda · ${fmt(summary.coberturaEstimadoAreaPct, '% área')}` +
+      (summary.pendingMillingLots ? ` · Pendiente ${fmt(summary.pendingMillingArea, ' ha')}` : '');
+  }
+
+  function refreshOperationalView(data) {
+    if (data?.meta?.operationalContract !== 1) return data;
+    const derived = buildCronoData(allCronoRecords(data), data.meta.source);
+    // Recompute the presentation of saved generations without rewriting their IDB snapshots.
+    return { ...data, ...derived, meta: { ...data.meta }, operational: { ...data.operational,
+      totals: window.CASUR_OPERATIONAL_IMPORT.totals(derived.producers.flatMap(p => p.details)) } };
+  }
+
   function estimateKpi(label, value, sub) {
     return `<div class="kpi casur-estimate-kpi" data-casur-estimate="1"><span class="label">${esc(label)}</span><strong>${value}</strong><em>${esc(sub)}</em></div>`;
   }
@@ -205,16 +254,24 @@
       const operational = window.CRONO_DATA?.meta?.operationalContract === 1;
       const season = operational ? (window.CRONO_DATA.meta.estimateSeason || summary.estimateSeason || '—') : '26/27';
       const estimateValue = operational ? summary.estimateTch : summary.tchEst2627;
-      const sourceLabel = operational ? 'Generación local aprobada' : 'Estimado oficial';
+      const sourceLabel = operational ? estimateCoverageText(summary) : 'Estimado oficial';
       const kpis = content.querySelector(".kpis");
       if (kpis && !kpis.querySelector("[data-casur-estimate]")) {
         const estimate = finite(estimateValue);
-        const card = estimateKpi(`TCH estimado ${season}`, estimate === null ? "N/D" : fmt(estimate), estimate === null ? "Sin estimado" : sourceLabel);
+        const card = estimateKpi(`TCH estimado ${season}`, estimate === null ? "N/D" : fmt(estimate), operational ? sourceLabel : (estimate === null ? "Sin estimado" : sourceLabel));
         const realTch = kpis.children[1];
         if (realTch) realTch.insertAdjacentHTML("afterend", card);
         else kpis.insertAdjacentHTML("beforeend", card);
       }
       const actions = content.querySelector(".ficha-actions");
+      const detailTitle = content.querySelector('#cronoPrintPanel > .section-title > div');
+      if (operational && detailTitle && !detailTitle.dataset.participationScope) {
+        const s = estimateSummary(scope.rows);
+        detailTitle.dataset.participationScope = '1';
+        detailTitle.style.minWidth = '0';
+        const heading = detailTitle.querySelector('h3');
+        if (heading) heading.textContent = `Detalle por suerte · ${s.activeLots} activas · ${s.catalogLots} catálogo`;
+      }
       if (actions && !actions.querySelector(".casur-estimate-badge")) {
         const hasEstimate = finite(estimateValue) !== null;
         const estimateDate=window.CRONO_DATA?.meta?.operationalContract?window.CRONO_DATA.meta.tchEst2627EffectiveDate:ESTIMATE_DATE;
@@ -235,14 +292,15 @@
         [...(table.tBodies[0]?.rows || [])].forEach((row, index) => {
           const lotCode = text(row.cells[0]?.querySelector("b")?.textContent);
           const record = scope.rows.find((item) => [text(item.codLote), `${scope.producer?.code || item.code}${item.suerte}`].includes(lotCode)) || scope.rows[index];
-          const estimate = operational ? finite(record?.participatesMilling && record?.forecast?.season === season ? record.forecast.tch : null) : finite(record?.tchEst2627);
+          const participation = operational && record ? window.CASUR_OPERATIONAL_IMPORT.participation(record) : null;
+          const estimate = operational ? (record?.forecast?.season === season ? participation?.estimateTch : null) : finite(record?.tchEst2627);
           const estCell = document.createElement("td"); estCell.className = estimate === null ? "casur-no-estimate" : "casur-estimate-cell";
           estCell.textContent = estimate === null ? "—" : fmt(estimate);
           const tonCell = document.createElement("td"); tonCell.className = estimate === null ? "casur-no-estimate" : "casur-estimate-cell";
-          tonCell.textContent = estimate === null ? "—" : fmt(operational ? record.millingEstimatedTons : (record.tonEst2627 ?? ((finite(record.area) || 0) * estimate)), " t");
+          tonCell.textContent = estimate === null ? "—" : fmt(operational ? participation.estimatedTons : (record.tonEst2627 ?? ((finite(record.area) || 0) * estimate)), " t");
           row.cells[2].after(tonCell); row.cells[2].after(estCell);
           const stateCell = document.createElement("td"); stateCell.className = "casur-master-state";
-          stateCell.textContent = [text(record?.classification),text(record?.estado)].filter((value,index,list) => value && list.indexOf(value) === index).join(" · ") || "—";
+          stateCell.textContent = participation ? (participation.reason.startsWith(text(record.classification)) ? participation.reason : `${record.classification} · ${participation.reason}`) : text(record?.estado) || "—";
           const noteCell = document.createElement("td"); noteCell.className = "casur-master-note"; noteCell.textContent = text(record?.observacion) || "—";
           row.append(stateCell, noteCell);
         });
@@ -904,7 +962,7 @@
     const productivity = record ? [
       [operational ? "TCH anterior" : "TCH 25/26", geoMetric(record.tch)],
       ["TCH hist. pond.", history?.hasData ? geoMetric(history.allHistory.tch) : "N/D"],
-      [`Est. ${estimateSeason}`, geoMetric(operational ? (record.participatesMilling && record.forecast?.season === estimateSeason ? record.forecast.tch : null) : record.tchEst2627)],
+      [`Est. ${estimateSeason}`, geoMetric(operational ? (record.forecast?.season === estimateSeason ? window.CASUR_OPERATIONAL_IMPORT.participation(record).estimateTch : null) : record.tchEst2627)],
       ["N.º riegos", geoCount(record.numeroRiegos)],
     ] : [];
     return `
@@ -1775,6 +1833,8 @@
      Producción. Reutiliza downloadDataUpdate() sin duplicar su lógica. */
   window.CASUR_GENERATE_GITHUB_DATA_PACKAGE = downloadDataUpdate;
   window.CASUR_BUILD_CRONO_DATA = buildCronoData;
+  window.CASUR_REFRESH_OPERATIONAL_VIEW = refreshOperationalView;
+  window.CASUR_CRONO_PARTICIPATION = Object.freeze({summary: estimateSummary, coverageText: estimateCoverageText});
 
   function openModuleContext(context) {
     if (!context || context.kind !== "lot") return { ok: false, status: "invalid-context" };

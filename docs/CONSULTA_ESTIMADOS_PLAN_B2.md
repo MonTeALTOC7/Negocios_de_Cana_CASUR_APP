@@ -81,7 +81,7 @@ Variedad sigue en tabla/datos. No vuelve el panel duplicado.
   incluida consulta, badge, tabla y la misma vista clonada para PDF/PNG.
   Fechas internas permanecen ISO. Fechas de Histórico y GIS no se cambian.
 - Fincas con fechas diferentes muestran `Varias fechas`, nunca promedios.
-  El detalle de propuesta/tipo se incluye como texto en Observación, sin otra tabla.
+  La propuesta/tipo sigue en el KPI y los datos; Observación presenta solo el campo de origen.
   Selección múltiple conserva sus cálculos/estructura; el texto del resumen
   muestra la diversidad de fechas y cada fila conserva su propuesta/tipo.
 - La clasificación productiva es independiente de BP/BQ. No se consumen
@@ -169,3 +169,102 @@ validar producción global/fincas, 2003/1927, múltiple, PDF/PNG, offline/rollba
 y cero escrituras IDB al consultar/exportar. Mismo origen de datos auditado.
 Las entregas anteriores se conservan en `archive/01245e0-approved` y
 `archive/ac54ec8-approved`; el diagnóstico de margen está en `diagnostics`.
+
+
+## Ajuste de estructura posterior a 22c7b18 (vigente)
+
+La sexta tarjeta se titula exactamente **Fecha para cosecha**. Solo cambia
+la etiqueta visible: se conserva el tipo interno de propuesta, BP/BQ, ISO,
+formato español, faltantes y la independencia del último corte ejecutado.
+
+### Detalle por suerte: orden exacto en suerte y finca
+
+1. Suerte
+2. Área
+3. # de Corte
+4. Fecha corte/siembra
+5. Destino Cultivo
+6. Textura
+7. Tipo de riego
+8. Surco
+9. Distancia (km)
+10. Zona
+11. Variedad
+12. TCH
+13. TCH est. 26/27
+14. Ton. est. 26/27
+15. Tenencia
+16. Estado TCH 25/26
+17. Estado maestro
+18. Observación
+
+Se reordenan los nodos existentes, conservando filas, clase de estado, datos,
+scroll y selección. La tabla de finca aporta Destino/Tenencia desde sus mismas
+filas; Edad permanece en datos/KPI, sin una columna adicional en este detalle.
+La observación vacía es `—`; se retira el texto de calendario añadido allí por
+presentación. No se altera la observación almacenada. Tenencias CV/CA/PR se
+presentan como Compra Venta/Arriendo/Propio, conservando el código original.
+La selección múltiple mantiene su tabla previa y sus cálculos, fuera de este
+selector `#cronoPrintPanel`. PDF/PNG heredan el orden del DOM sin otro builder.
+
+En 99336: 99336 / Suerte 36; 8,91 ha; corte 8; 02-ene-2026;
+Molienda; Pesado; Gravedad; 1,65; 7,37 km; 5-Productores; CP 72-2086;
+67,15; 65,00; 579,15 t; Compra Venta; Medio; estado maestro de la generación
+aplicada; observación vacía. El estado compartido muestra Mantener activo;
+el aplicado conserva Molienda / Estimado utilizable, sin reescribir su origen.
+
+### KPI con tamaño natural
+
+El CSS se limita a `.single-suerte-kpis` en la ficha cronológica de suerte.
+Se elimina el mínimo heredado de 104 px; padding 10×12 px, valor 22 px,
+título 10,5 px, subtexto 11 px, gap 9 px y alineación al inicio del grid.
+Se conserva el grid responsive y el gráfico sin cambios. Medidas PC 1440:
+área/estimado 95,25 px; TCH anterior/fecha 81,50 px; edad/variedad 63,75 px.
+No se encoge el gráfico, no se cambian cifras ni fórmulas. Sigue Aforo autorizado
+con 12-oct-2026; distancia continúa en la tabla y no vuelve al KPI individual.
+
+### Recuperación: diagnóstico comprobado, sin cambio a la persistencia
+
+El `<head>` lee `casur_master_data/datasets/produccion_current` por transacción
+readonly. El bridge aplica `CASUR_MASTER_OVERLAY` o el evento posterior
+`casur-master-overlay`. La bandera y franja se derivan de la generación aplicada.
+No es necesario elegir otra vez Excel si el snapshot ya existe en ese origen.
+
+Prueba real con perfil persistente controlado, separado del usuario:
+`%LOCALAPPDATA%/CASUR/QA/profiles/pr45-cronologico`.
+
+- Aplicar y aprobar en http://127.0.0.1:4317.
+- Offline/rollback siguen funcionando; recuperar de nuevo la generación
+  aprobada mediante el control existente, cerrar TODO Chromium y reabrir
+  el mismo perfil: carga automáticamente 2026.10.25-aforo.1101 y marca local.
+- Mismo perfil en http://127.0.0.1:4313: carga datos compartidos 2026.09.06-siagri.1415.
+- Perfil nuevo en http://127.0.0.1:4317: también carga compartidos.
+
+Evidencia: `origin-profile-recovery.json` y `approved-after-browser-restart.png`.
+No se reprodujo un fallo del cargador en el mismo origen/perfil. Un cambio de
+puerto o perfil explica el retorno a compartidos observado en los previews:
+son almacenes distintos. No se introduce copia entre orígenes, importación
+automática, limpieza de cachés/IDB ni un nuevo sistema. El perfil QA conserva
+su generación aprobada; el fallido previo se preservó en `profiles/diagnostics`.
+
+Desde esta entrega se mantiene **4317**, sin seguir creando puertos. Para
+reutilizar una aprobación del usuario, volver al mismo navegador/perfil y
+puerto donde se aprobó. Una aprobación en 4316 no aparece en 4317. Si se elige
+4317 por primera vez, debe aprobarse una generación allí mediante el flujo
+existente. No se transfiere el perfil de QA al perfil real.
+
+Límite: no se pudo inspeccionar el perfil IAB del usuario porque Work reportó
+`Local browser use is disabled`. El diagnóstico se acredita con pruebas
+reproducibles aisladas y lectura del bridge, no con inspección de ese perfil.
+
+### QA de este ajuste
+
+Producción 22 controles + 199 tests; Shell/GEO 63; TCH validate/test 91.
+Chromium: 11 grupos con perfil QA persistente. Comparación exacta de 18
+cabeceras/18 celdas en suerte compartida, suerte aplicada y finca; estimados
+65/579,15 o guiones según generación; Tenencia de origen conservada; seis KPI
+con altura menor a 104 px; nombre/botones sin recorte en PC/tableta/móvil;
+múltiple, lectura de archivos, cero escrituras IDB en consulta/exportación,
+offline, rollback y cierre/reinicio completo del navegador. Cifras globales,
+2003 y 1927 sin cambios. PDF/PNG descargados y cuatro páginas revisadas.
+Entrega anterior conservada en `archive/22c7b18-approved`.

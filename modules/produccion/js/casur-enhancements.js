@@ -98,7 +98,7 @@
     const date = window.CASUR_OPERATIONAL_IMPORT.dateValue(plan?.date?.iso).iso;
     const authorized = forecastForRow(record).state !== 'not-applied' &&
       window.CASUR_OPERATIONAL_IMPORT.aliases.proposedDate.some(header => normal(header) === normal(provenance?.header));
-    const base = { label: 'Fecha propuesta de cosecha', type: 'proposed', source: source || null,
+    const base = { label: 'Fecha para cosecha', type: 'proposed', source: source || null,
       season: record?.forecast?.season || null, dataVersion: record?.dataVersion || null,
       provenance: provenance || null, cutProvenance: record?.provenance?.proposedCut || null };
     if (!authorized || !date) return { ...base, date: null, type: 'missing',
@@ -110,7 +110,7 @@
     const dates = (rows || []).map(r => referenceDate(r));
     const found = dates.filter(d => d.date), same = found.length && new Set(found.map(d => d.date)).size === 1;
     if (dates.length === 1) return { ...dates[0], display: dates[0].date ? formatCronoDate(dates[0].date) : 'N/D' };
-    return { label: 'Fecha propuesta de cosecha', type: 'scope', date: same && found.length === dates.length ? found[0].date : null,
+    return { label: 'Fecha para cosecha', type: 'scope', date: same && found.length === dates.length ? found[0].date : null,
       display: !found.length ? 'N/D' : same && found.length === dates.length ? formatCronoDate(found[0].date) : 'Varias fechas',
       detail: found.length ? `${found.length}/${dates.length} suertes con propuesta · detalle por suerte` : 'Sin fechas propuestas válidas', dates };
   }
@@ -287,6 +287,38 @@
     const date = window.CASUR_OPERATIONAL_IMPORT.dateValue(sourceDate).iso;
     return reason + (date ? `\n${formatCronoDate(date)}` : '');
   }
+  function detailColumns(season) {
+    return ['Suerte','Área','# de Corte','Fecha corte/siembra','Destino Cultivo','Textura','Tipo de riego',
+      'Surco','Distancia (km)','Zona','Variedad','TCH',`TCH est. ${season}`,`Ton. est. ${season}`,
+      'Tenencia','Estado TCH 25/26','Estado maestro','Observación'];
+  }
+  function reorderCronoDetail(table, records, season) {
+    const header = table.tHead.rows[0], original = [...header.cells];
+    const index = new Map(original.map((cell, i) => [normal(cell.textContent), i]));
+    if (!index.has(normal('# de Corte'))) index.set(normal('# de Corte'), index.get(normal('Corte')));
+    const columns = detailColumns(season).map(label => ({ label, index: index.get(normal(label)) }));
+    // This is the existing chronological detail, never a generic or multiple-selection table.
+    if (columns.some(column => column.index === undefined && !['Tenencia','Destino Cultivo'].includes(column.label))) return;
+    const headers = columns.map(column => {
+      const cell = original[column.index] || document.createElement('th');
+      cell.textContent = column.label; return cell;
+    });
+    [...table.tBodies[0].rows].forEach((row, i) => {
+      const cells = [...row.cells], id = text(cells[0]?.querySelector('b')?.textContent);
+      const record = records.find(r => text(r.codLote || `${r.code}${r.suerte}`) === id) || records[i];
+      const ordered = columns.map(column => {
+        const cell = cells[column.index] || document.createElement('td');
+        if (column.label === 'Tenencia') {
+          const value = text(record?.tenencia);
+          cell.textContent = ({ CV:'Compra Venta', CA:'Arriendo', PR:'Propio' })[value.toUpperCase()] || value || '—';
+        }
+        if (column.label === 'Destino Cultivo' && column.index === undefined) cell.textContent = text(record?.destino) || '—';
+        return cell;
+      });
+      row.replaceChildren(...ordered);
+    });
+    header.replaceChildren(...headers);
+  }
   function dateKpi(rows) {
     const d = dateSummary(rows);
     return `<div class="kpi" data-crono-date="${esc(d.type)}" data-date-metadata="${esc(JSON.stringify(d))}"><span class="label">${esc(d.label)}</span><strong>${esc(d.display)}</strong><em>${esc(d.detail)}</em></div>`;
@@ -358,14 +390,9 @@
           const stateCell = document.createElement("td"); stateCell.className = "casur-master-state";
           stateCell.textContent = participation ? (participation.reason.startsWith(text(record.classification)) ? participation.reason : `${record.classification} · ${participation.reason}`) : text(record?.estado) || "—";
           const noteCell = document.createElement("td"); noteCell.className = "casur-master-note"; noteCell.textContent = text(record?.observacion) || "—";
-          const proposed = referenceDate(record);
-          if (proposed.date) {
-            const detail = document.createElement('small'); detail.style.display = 'block';
-            detail.textContent = `Cosecha propuesta: ${formatCronoDate(proposed.date)} · ${proposed.detail}`;
-            noteCell.append(detail);
-          }
           row.append(stateCell, noteCell);
         });
+        reorderCronoDetail(table, scope.rows, season);
         table.dataset.casurEstimate = "1";
       });
     } finally { enhancing = false; }
@@ -1897,7 +1924,7 @@
   window.CASUR_BUILD_CRONO_DATA = buildCronoData;
   window.CASUR_REFRESH_OPERATIONAL_VIEW = refreshOperationalView;
   window.CASUR_CRONO_PARTICIPATION = Object.freeze({summary: estimateSummary, coverageText: estimateCoverageText,
-    forecastForRow, referenceDate, dateSummary, dateKpi, formatDate: formatCronoDate, cutTypeText, estimateCaption});
+    forecastForRow, referenceDate, dateSummary, dateKpi, formatDate: formatCronoDate, cutTypeText, estimateCaption, detailColumns});
 
   function openModuleContext(context) {
     if (!context || context.kind !== "lot") return { ok: false, status: "invalid-context" };

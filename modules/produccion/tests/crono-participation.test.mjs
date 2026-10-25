@@ -47,7 +47,7 @@ const proposed=(changes={})=>record('36',{code:'993',codLote:'99336',source:{...
 
 test('sexta tarjeta muestra propuesta y tipo; conserva el último corte y no usa toneladas del plan',()=>{
  const api=view().CASUR_CRONO_PARTICIPATION,r=proposed(),before=JSON.stringify(r),d=api.referenceDate(r);
- assert.equal(d.label,'Fecha propuesta de cosecha');assert.equal(d.type,'proposed');assert.equal(d.date,'2026-12-24');
+ assert.equal(d.label,'Fecha para cosecha');assert.equal(d.type,'proposed');assert.equal(d.date,'2026-12-24');
  assert.equal(d.detail,'Corte mecánico');assert.equal(d.cutType,'CORTE MECANICO');assert.equal(d.provenance.row,1020);assert.equal(d.provenance.column,68);
  assert.equal(d.cutProvenance.column,69);assert.equal(d.dataVersion,'test-generation');assert.equal(d.season,'26/27');assert.equal(d.source.sha256,approvedSource.sha256);
  assert.equal(api.dateSummary([r]).display,'24-dic-2026');assert.match(api.dateKpi([r]),/Corte mecánico/);

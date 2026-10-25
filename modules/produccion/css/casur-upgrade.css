@@ -180,3 +180,11 @@ body.casur-geo-open{overflow:hidden}
  #cronoContent[data-geo-scope="lot"] .ficha-band{flex-direction:column;align-items:stretch;padding:12px;gap:10px}
  #cronoContent[data-geo-scope="lot"] .ficha-actions{width:100%;align-items:stretch}
 }
+
+/* Natural-sized KPIs: keep the lot grid and chart, remove the inherited 104px minimum. */
+#cronoContent[data-geo-scope="lot"] .single-suerte-kpis{align-items:start;gap:9px!important}
+#cronoContent[data-geo-scope="lot"] .single-suerte-kpis .kpi{min-height:0!important;padding:10px 12px!important}
+#cronoContent[data-geo-scope="lot"] .single-suerte-kpis .kpi .label{font-size:10.5px;line-height:1.25}
+#cronoContent[data-geo-scope="lot"] .single-suerte-kpis .kpi strong{font-size:22px!important;line-height:1.12!important;margin-top:4px!important}
+#cronoContent[data-geo-scope="lot"] .single-suerte-kpis .kpi em{font-size:11px;line-height:1.25;margin-top:4px}
+#cronoContent[data-geo-scope="lot"] .single-suerte-kpis .kpi em:empty{display:none}

@@ -1,5 +1,43 @@
 # Cronológico · participación operativa y cobertura de estimados
 
+## Decisión definitiva CASUR · 25-oct-2026
+
+Esta actualización sustituye el criterio provisional documentado más abajo para
+2003 y confirma expresamente la participación de 1927. 2003 es Semilla activa:
+conserva 10,95 ha activas y TCH original cero; deja de ser molienda pendiente.
+1927 conserva Molienda activa, 6,15 ha y 430,50 t; el destino de origen Semilla
+permanece documentado sin llamarlo error de captura.
+
+El contrato genérico acepta decisiones explícitas. Su configuración CASUR se
+mantiene en el módulo: ID, fecha, motivo, identidad, valores de origen esperados,
+zafra 26/27 y los SHA-256 de los dos Excel exactos aprobados. Al aplicar o consultar
+se vincula a la versión de generación; no se hereda a fuentes/campañas nuevas.
+Los valores originales, procedencia y estado administrativo no se sustituyen.
+La decisión queda en `operationalDecision` y en el historial de la generación.
+
+Resultado recalculado: 1.053 catálogo, 1.046 presentes, 995 activas; Semilla
+operativa **47 / 459,01 ha**; Molienda operativa **948 / 9.115,65 ha**; estimados
+utilizables **948**, pendientes de molienda **0 ha**, cobertura **100%**.
+Se conservan 9.672,13 ha de inventario, 9.574,66 ha activas y
+563.187,9696909501 t; TCH 61,7825354957. El origen sigue conteniendo 949
+clasificadas Molienda y 46 Semilla: no confundir origen con decisión operativa.
+
+San Lucas: 14 activas, 10 Molienda / 66,68 ha y 4 Semilla / 34,55 ha;
+5.684,80 t, TCH 85,2549490102. San Fernando conserva 33 Molienda / 253,48 ha,
+incluida 1927. Las otras diez contradicciones requieren validación. Persisten
+12 discrepancias de origen, con dos decisiones operativas trazadas.
+
+QA de esta actualización: Producción 22 controles + 173 tests; 11 grupos de
+Chromium, incluido offline y rollback, mediante `tools/run-operational-qa.ps1`
+con salida fija `%LOCALAPPDATA%/CASUR/QA/work/Cronologico/current`. La evidencia
+previa B1 no se reemplaza. La implementación B2 se desarrolla después, en PR hijo.
+
+## Auditoría de la primera revisión (HEAD fa22e02)
+
+Las secciones siguientes conservan el diagnóstico y la comparación anterior.
+Las cifras de 10,95 ha pendientes y cobertura 99,88% describen esa primera
+revisión y quedan sustituidas por la decisión definitiva anterior.
+
 Base: PR #43, `3e510035cc4017b175758c9b967f447935351228`.
 Rama hija: `codex/cronologico-participacion-operativa`. A/B1 se conserva.
 No publica datos ni resuelve clasificaciones administrativas.

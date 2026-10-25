@@ -85,3 +85,21 @@ test('los formateadores cronológicos conservan N/D y distinguen un cero observa
   const num=vm.runInNewContext('('+source+')');assert.equal(num(null),null);assert.equal(num(''),null);assert.equal(num(undefined),null);assert.equal(num(0),0);assert.equal(num(50),50);
  }
 });
+
+test('decisiones CASUR de 2003/1927 preservan el origen y se limitan a fuente, zafra y generación',()=>{
+ const decisions=JSON.parse(JSON.stringify(view().CASUR_OPERATIONAL_DECISIONS));
+ const source={sha256:decisions[0].sourceHashes[0]};
+ const raw2003=record('03',{code:'20',codLote:'2003',inventoryArea:10.95,destino:'Semilla',source,dataVersion:'g1',forecast:forecast(0)});
+ const raw1927=record('27',{code:'19',codLote:'1927',inventoryArea:6.15,destino:'Semilla',source,dataVersion:'g1',forecast:forecast(70)});
+ const a=E.applyDecisions(raw2003,decisions),b=E.applyDecisions(raw1927,decisions),p=E.participation(a);
+ assert.equal(p.active,true);assert.equal(p.milling,false);assert.equal(p.operationalDestination,'Semilla');assert.equal(p.status,'seed');
+ assert.equal(a.classification,'Molienda');assert.equal(a.destino,'Semilla');assert.equal(a.forecast.tch,0);assert.equal(raw2003.operationalDecision,undefined);
+ assert.equal(E.participation(b).estimatedTons,430.5);assert.equal(E.participation(b).milling,true);
+ const totals=E.totals([a,b]);assert.equal(totals.seed,1);assert.equal(totals.milling,1);assert.equal(totals.pendingMillingArea,0);assert.equal(totals.pendingConflicts,0);
+ for(const altered of [{...raw2003,source:{sha256:'otra'}},{...raw2003,forecast:{season:'27/28',tch:0}},{...raw2003,inventoryArea:11}])assert.equal(E.applyDecisions(altered,decisions).operationalDecision,undefined);
+ assert.equal(E.participation({...a,dataVersion:'otra-generacion'}).decision,null);
+});
+
+test('semilla positiva no se vuelve Molienda por el valor de TCH',()=>{
+ const p=E.participation(record('01',{classification:'Semilla',destino:'Semilla',forecast:forecast(70)}));assert.equal(p.active,true);assert.equal(p.milling,false);assert.equal(p.estimatedTons,null);
+});

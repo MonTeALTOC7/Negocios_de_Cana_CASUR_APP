@@ -5,6 +5,17 @@
   const PASSWORD_HASH = "6315700c5446173c02844f5fcc514d3b52e8da0ad4b31f6126049d2d8709ad34";
   const UNLOCK_MINUTES = 30;
   const historicalEngine = window.CASUR_HISTORICAL_ENGINE;
+  // User-approved decisions for these exact source snapshots and season only.
+  const decisionSources = ['82cd45c03b8c80ddda6ebc6078289df4f63b6a380403da6f103f2a52fa30e069',
+    '716d374c63aa0e990f18cbabee9f391eee3d54d50fd8395488a8357e5bbcbbae'];
+  window.CASUR_OPERATIONAL_DECISIONS = Object.freeze([
+    { id:'CASUR-2026-10-25-2003',key:'2003',season:'26/27',destination:'Semilla',approvedAt:'2026-10-25',
+      reason:'Decisión expresa del usuario CASUR: Semilla activa, fuera de molienda.',sourceHashes:decisionSources,
+      expectedSource:{classification:'Molienda',destination:'Semilla',area:10.95,tch:0} },
+    { id:'CASUR-2026-10-25-1927',key:'1927',season:'26/27',destination:'Molienda',approvedAt:'2026-10-25',
+      reason:'Decisión expresa del usuario CASUR: Molienda activa; discrepancia original conservada.',sourceHashes:decisionSources,
+      expectedSource:{classification:'Molienda',destination:'Semilla',area:6.15,tch:70} },
+  ]);
   const $ = (id) => document.getElementById(id);
   const nf = new Intl.NumberFormat("es-NI", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const nf0 = new Intl.NumberFormat("es-NI", { maximumFractionDigits: 0 });
@@ -64,7 +75,7 @@
         suertesEstimado2627: season === '26/27' ? totals.usable : 0,
         coberturaEstimadoAreaPct: totals.millingCoverage === null ? null : round(totals.millingCoverage * 100),
         coberturaEstimadoSuertesPct: totals.milling ? round(totals.usable / totals.milling * 100) : null,
-        inventoryArea: round(totals.inventoryArea), activeLots: totals.active, seedLots: totals.seed,
+        inventoryArea: round(totals.inventoryArea), activeLots: totals.active, seedLots: totals.seed, seedArea:round(totals.seedArea),
         millingArea: round(totals.millingArea), millingLots: totals.milling, catalogLots: totals.catalog,
         pendingMillingArea: round(totals.pendingMillingArea), pendingMillingLots: totals.pendingMillingLots,
         inactiveLots: totals.inactive, absentLots: totals.absent, conflictLots: totals.conflicts };
@@ -114,7 +125,8 @@
   }
 
   function buildCronoData(records, source = "Edición manual interna") {
-    records = records.map((r) => {
+    records = records.map((original) => {
+      const r = original.sourcePresence ? window.CASUR_OPERATIONAL_IMPORT.applyDecisions(original, window.CASUR_OPERATIONAL_DECISIONS) : original;
       if (!r.sourcePresence) return r;
       const p = window.CASUR_OPERATIONAL_IMPORT.participation(r);
       return { ...r, area: p.activeArea, millingArea: p.millingArea,

@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import vm from 'node:vm';
 import {createRequire} from 'node:module';
 import {workbookSheets} from '../core/imports/workbook-reader.js';
 const require=createRequire(import.meta.url),X=require('../master/convertidor/js/vendor/xlsx.full.min.js');
@@ -15,17 +16,22 @@ if(!path.relative(root,path.resolve(out)).startsWith('..'))throw Error('Audit ou
 fs.mkdirSync(out,{recursive:true});
 const baseline=JSON.parse(fs.readFileSync(path.join(root,'modules/produccion/data/cronologico.json')));
 const previous=baseline.producers.flatMap(p=>p.details.map(r=>({...r,code:r.code||p.code,name:r.name||p.name})));
+const auditWindow={CASUR_OPERATIONAL_IMPORT:E,CRONO_DATA:baseline,addEventListener(){}};
+vm.runInNewContext(fs.readFileSync(path.join(root,'modules/produccion/js/casur-enhancements.js'),'utf8'),{window:auditWindow,document:{getElementById(){return null;}},console});
+const decisions=JSON.parse(JSON.stringify(auditWindow.CASUR_OPERATIONAL_DECISIONS));
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
 const destinationClass=v=>{const n=E.norm(v);return n.startsWith('semilla')?'Semilla':n==='molienda'?'Molienda':n==='sincana'?'Sin Caña':n==='bajarentabilidad'?'Baja rentabilidad':n==='investigacion'?'Investigación':null;};
 function proposed(r){
  const present=r.sourcePresence==='present',retired=r.operationalState==='Baja definitiva';
- const active=present&&!retired&&r.inventoryArea>0&&['Molienda','Semilla'].includes(r.classification);
- const milling=active&&r.classification==='Molienda',tch=r.forecast?.tch??null,dc=destinationClass(r.destino);
+ const operationalDestination=r.operationalDecision?.destination||r.classification;
+ const active=present&&!retired&&r.inventoryArea>0&&['Molienda','Semilla'].includes(operationalDestination);
+ const milling=active&&operationalDestination==='Molienda',tch=r.forecast?.tch??null,dc=destinationClass(r.destino);
  const conflict=!!(dc&&r.classification&&dc!==r.classification);
- const status=!present?'absent':retired?'retired':!active?'excluded':r.classification==='Semilla'?'seed':tch===null?'missing':tch===0?'zero':tch>0?'usable':'invalid';
- return {active,milling,conflict,status,usable:status==='usable',area:active?r.inventoryArea:0,validArea:status==='usable'?r.inventoryArea:0};
+ const status=!present?'absent':retired?'retired':!active?'excluded':operationalDestination==='Semilla'?'seed':tch===null?'missing':tch===0?'zero':tch>0?'usable':'invalid';
+ return {active,milling,conflict,status,operationalDestination,decision:r.operationalDecision||null,usable:status==='usable',area:active?r.inventoryArea:0,validArea:status==='usable'?r.inventoryArea:0};
 }
 const sources=[];let matrix;
+const canonicalRow=({sourceRow,...r})=>({...r,proposed:{...r.proposed,decision:r.proposed.decision?.id||null}});
 for(const file of [extract,complete]){
  const bytes=fs.readFileSync(file),sheets=workbookSheets(X.read(bytes,{type:'buffer',cellNF:true,cellFormula:true}),X);
  const candidates=E.inspectSheets(sheets).candidates.filter(c=>c.inventory);
@@ -33,12 +39,12 @@ for(const file of [extract,complete]){
  const candidate=candidates.find(c=>c.rows===1046&&c.mapping.estimateTch>=0&&c.mapping.classification>=0);
  if(!candidate)throw Error('Official inventory not uniquely identifiable: '+file);
  const parsed=E.parseCandidate(sheets,candidate,{file:path.basename(file),sha256:sha(bytes),season:'26/27'});
- const generation=E.prepareUpdate(previous,parsed,{dataVersion:'2026.10.24-aforo.9001',importedAt:'2026-10-25T00:00:00Z'});
+ const generation=E.prepareUpdate(previous,parsed,{dataVersion:'2026.10.24-aforo.9001',importedAt:'2026-10-25T00:00:00Z',decisions});
  const rows=generation.catalog.map(r=>({id:r.codLote,code:r.code,lot:r.suerte,name:r.name,zone:r.zona,classification:r.classification,
   destination:r.destino,area:r.inventoryArea,estimateTch:r.forecast?.tch??null,previousTch:r.tch,administrativeState:r.operationalState,
   sourcePresence:r.sourcePresence,sourceRow:r.source?.row,previous:{active:r.participatesCurrentArea,milling:r.participatesMilling,tons:r.millingEstimatedTons},proposed:proposed(r)}));
- const canonical=rows.map(({sourceRow,...r})=>r);
- if(matrix&&JSON.stringify(matrix.map(({sourceRow,...r})=>r))!==JSON.stringify(canonical))throw Error('Official workbooks differ in the participation matrix.');
+ const canonical=rows.map(canonicalRow);
+ if(matrix&&JSON.stringify(matrix.map(canonicalRow))!==JSON.stringify(canonical))throw Error('Official workbooks differ in the participation matrix.');
  matrix=rows;
  sources.push({file,sha256:sha(bytes),sheet:candidate.sheetName,headerRow:candidate.headerRow+1,totals:generation.totals,
   issues:generation.issues.filter(i=>['destination-conflict','no-cane-area'].includes(i.code))});
@@ -47,7 +53,7 @@ function summarize(rows){
  const t={catalog:rows.length,inventory:0,active:0,seed:0,milling:0,usable:0,missing:0,zero:0,conflict:0,excludedMilling:0,
   inventoryArea:0,activeArea:0,seedArea:0,millingArea:0,validArea:0,pendingArea:0,excludedMillingArea:0,tons:0,zeroArea:0,zeroTch:0,missingTch:0};
  for(const r of rows){const p=r.proposed;if(r.sourcePresence==='present'){t.inventory++;t.inventoryArea+=r.area;t.zeroArea+=Number(r.area===0);t.zeroTch+=Number(r.estimateTch===0);t.missingTch+=Number(r.estimateTch===null);}
-  if(p.active){t.active++;t.activeArea+=p.area;}if(p.active&&r.classification==='Semilla'){t.seed++;t.seedArea+=p.area;}
+  if(p.active){t.active++;t.activeArea+=p.area;}if(p.active&&p.operationalDestination==='Semilla'){t.seed++;t.seedArea+=p.area;}
   if(p.conflict)t.conflict++;
   if(p.milling){t.milling++;t.millingArea+=p.area;if(p.status==='missing')t.missing++;if(p.status==='zero')t.zero++;
    if(p.usable){t.usable++;t.validArea+=p.area;t.tons+=p.area*r.estimateTch;}else t.pendingArea+=p.area;

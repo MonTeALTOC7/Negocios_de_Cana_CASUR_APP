@@ -47,10 +47,11 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    await page.locator('#operationalApproval').check();await page.locator('#operationalApply').click();
    await page.getByText(/Generación aprobada aplicada/).waitFor({timeout:90000});
    const state=await page.evaluate(()=>({meta:CRONO_DATA.meta,total:CRONO_DATA.operational.totals,lines:CRONO_DATA.operational.harvestLines.length,
-    special:CRONO_DATA.producers.flatMap(p=>p.details).filter(r=>['49404A','2003','14710A'].includes(r.codLote))}));
+    special:CRONO_DATA.producers.flatMap(p=>p.details).filter(r=>['49404A','2003','1927','14710A'].includes(r.codLote))}));
    assert.equal(state.total.catalog,1053);assert.equal(state.total.inventoried,1046);assert.equal(state.total.absent,7);assert.equal(state.lines,1050);
-   for(const [key,value] of Object.entries({inventoryArea:9672.13,activeArea:9574.66,millingArea:9126.6,validMillingArea:9115.65,pendingMillingArea:10.95,millingTons:563187.9696909501,millingTch:563187.9696909501/9115.65}))assert.ok(Math.abs(state.total[key]-value)<0.000001,key);
-   assert.equal(state.total.usable,948);assert.equal(state.total.zero,1);assert.equal(state.total.conflicts,12);
+   for(const [key,value] of Object.entries({inventoryArea:9672.13,activeArea:9574.66,millingArea:9115.65,seedArea:459.01,validMillingArea:9115.65,pendingMillingArea:0,millingTons:563187.9696909501,millingTch:563187.9696909501/9115.65}))assert.ok(Math.abs(state.total[key]-value)<0.000001,key);
+   assert.equal(state.total.usable,948);assert.equal(state.total.milling,948);assert.equal(state.total.seed,47);assert.equal(state.total.zero,0);assert.equal(state.total.conflicts,12);assert.equal(state.total.pendingConflicts,10);assert.equal(state.total.decisions,2);
+   assert.equal(state.special.find(r=>r.codLote==='2003').operationalDecision.destination,'Semilla');assert.equal(state.special.find(r=>r.codLote==='2003').participatesMilling,false);assert.equal(state.special.find(r=>r.codLote==='1927').millingEstimatedTons,430.5);
    assert.equal(state.special.find(r=>r.codLote==='49404A').area,0);assert.equal(state.special.find(r=>r.codLote==='2003').destino,'Semilla');assert.equal(state.special.find(r=>r.codLote==='2003').classification,'Molienda');assert.equal(state.special.find(r=>r.codLote==='14710A').sourcePresence,'absent');
    assert.equal(state.meta.generated,'2026-10-12');assert.equal(await page.evaluate(()=>JSON.stringify(APP_DATA)),historicalHash);
    assert.equal(await page.evaluate(async()=>(await CASUR_MODULE_BRIDGE.checkpoint('pwa-update')).ok),true);
@@ -59,7 +60,7 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
   await check('B1: chronological home, producer, lot and zone use the approved universes',async()=>{
    const model=await page.evaluate(()=>({global:CRONO_DATA.global,producers:CRONO_DATA.producers.length,options:document.querySelector('#cronoProducerSelect').options.length,
     farm:CRONO_DATA.producers.find(p=>p.code==='993'),lot:CRONO_DATA.producers.flatMap(p=>p.details).find(r=>r.codLote==='49404A')}));
-   assert.equal(model.global.area,9574.66);assert.equal(model.global.inventoryArea,9672.13);assert.equal(model.global.millingArea,9126.6);
+   assert.equal(model.global.area,9574.66);assert.equal(model.global.inventoryArea,9672.13);assert.equal(model.global.millingArea,9115.65);
    assert.equal(model.global.activeLots,995);assert.equal(model.global.absentLots,7);assert.equal(model.options,model.producers+1);
    assert.ok(Math.abs(model.global.estimateTons-563187.97)<0.001);assert.equal(model.lot.classification,'Sin Caña');
    assert.equal(model.lot.operationalState,'Baja definitiva');
@@ -67,7 +68,7 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    assert.match(await page.locator('.casur-release-strip').innerText(),/Generación local aprobada · versión 2026\.10\.24-aforo\.1001/);
    assert.match(await page.locator('#cronoContent').innerText(),/Área activa[\s\S]*9,574\.66 ha[\s\S]*Inventario 9,672\.13 ha/i);
    assert.match(await page.locator('#cronoContent').innerText(),/Suertes activas[\s\S]*995[\s\S]*1,053 catálogo/i);
-   assert.match(await page.locator('#cronoContent').innerText(),/948\/949 molienda[\s\S]*99\.88% área[\s\S]*Pendiente 10\.95 ha/);
+   assert.match(await page.locator('#cronoContent').innerText(),/948\/948 molienda[\s\S]*100\.00% área/);
    await page.locator('#cronoContent').scrollIntoViewIfNeeded();await page.waitForTimeout(450);await page.screenshot({path:path.join(out,'b1-home-1440.png')});
    await page.evaluate(()=>renderCronoProducer('993'));
    assert.match(await page.locator('#cronoContent').innerText(),/Área activa/i);
@@ -90,19 +91,19 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    assert.equal(await page.locator('#cronoZoneContent').isVisible(),true);
    await page.locator('#cronoZoneContent').screenshot({path:path.join(out,'b1-zone-1440.png')});
   });
-  await check('participation: zero/conflict stays active, positive conflict is flagged, inactive farm stays consultable',async()=>{
+  await check('participation: 2003 confirmed Semilla, 1927 confirmed Molienda, inactive farm stays consultable',async()=>{
    await page.evaluate(()=>selectCronoSuerteSuggestion('20','03'));
    assert.equal(await page.locator('[data-casur-estimate] strong').innerText(),'N/D');
-   assert.match(await page.locator('#cronoContent').innerText(),/Estimado cero · Requiere revisión/);
-   assert.match(await page.locator('#cronoContent').innerText(),/Clasificación\/destino por validar/);
-   assert.match(await page.locator('#cronoContent').innerText(),/Pendiente 10\.95 ha/);
+   assert.match(await page.locator('#cronoContent').innerText(),/Semilla · Fuera del universo de molienda · Decisión operativa CASUR/);
+   assert.match(await page.locator('#cronoContent').innerText(),/Sin participación en molienda/);
+   assert.doesNotMatch(await page.locator('#cronoContent').innerText(),/Pendiente 10\.95 ha/);
    await page.locator('#cronoContent').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,'participation-2003-desktop.png')});
    await page.setViewportSize({width:390,height:844});await page.locator('#cronoContent').scrollIntoViewIfNeeded();
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
    await page.screenshot({path:path.join(out,'participation-2003-mobile.png')});await page.setViewportSize({width:1440,height:900});
    await page.evaluate(()=>selectCronoSuerteSuggestion('19','27'));
    assert.match(await page.locator('[data-casur-estimate] strong').innerText(),/70\.00/);
-   assert.match(await page.locator('#cronoContent').innerText(),/Clasificación\/destino por validar/);
+   assert.match(await page.locator('#cronoContent').innerText(),/Decisión operativa CASUR/);
    await page.evaluate(()=>renderCronoProducer('63'));
    const empty=await page.evaluate(()=>CRONO_DATA.producers.find(p=>p.code==='63'));
    assert.equal(empty.activeLots,0);assert.equal(empty.estimateTch,null);assert.ok(empty.details.length>0);

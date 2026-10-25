@@ -151,41 +151,59 @@
     return {contractVersion:1,profiles:kinds,isPlan,records,issues,source,sourceTotals,mapping};
   }
   const destinationClass=value=>norm(value).startsWith('semilla')?'Semilla':classes[norm(value)]||null;
+  function decisionMatches(r,d){
+    const expected=d?.expectedSource;
+    return !!(expected&&r.sourcePresence==='present'&&d.key===r.codLote&&d.season===r.forecast?.season&&
+      d.sourceSha256===r.source?.sha256&&d.dataVersion===r.dataVersion&&['Molienda','Semilla'].includes(d.destination)&&
+      expected.classification===r.classification&&expected.destination===r.destino&&
+      Math.abs(expected.area-(number(r.inventoryArea)??-1))<0.000001&&expected.tch===number(r.forecast?.tch));
+  }
+  function applyDecisions(r,decisions=[]){
+    const candidates=decisions.filter(d=>d.key===r.codLote&&d.season===r.forecast?.season&&d.sourceHashes?.includes(r.source?.sha256))
+      .map(d=>({...clone(d),sourceSha256:r.source.sha256,dataVersion:r.dataVersion})).filter(d=>decisionMatches(r,d));
+    if(candidates.length>1)throw Error('Decisiones operativas ambiguas: '+r.codLote);
+    const next={...r};delete next.operationalDecision;
+    if(candidates.length)next.operationalDecision=candidates[0];
+    return next;
+  }
   // Participation is derived; neither the source classification nor its zero/null is changed.
   function participation(r){
     const present=r.sourcePresence==='present',inventoryArea=number(r.inventoryArea)??number(r.area)??0;
     const retired=(r.operationalState||r.estado)==='Baja definitiva';
-    const active=present&&!retired&&inventoryArea>0&&['Molienda','Semilla'].includes(r.classification);
-    const milling=active&&r.classification==='Molienda',tch=number(r.forecast?.tch);
+    const decision=decisionMatches(r,r.operationalDecision)?r.operationalDecision:null;
+    const operationalDestination=decision?.destination||r.classification;
+    const active=present&&!retired&&inventoryArea>0&&['Molienda','Semilla'].includes(operationalDestination);
+    const milling=active&&operationalDestination==='Molienda',tch=number(r.forecast?.tch);
     const destination=destinationClass(r.destino),conflict=!!(destination&&r.classification&&destination!==r.classification);
     const usable=milling&&tch>0;
     const status=!present?'absent':retired?'retired':!active?'excluded':!milling?'seed':tch===null?'missing':tch===0?'zero':tch<0?'invalid':'usable';
     const reason=({absent:'Ausente del inventario actual · Solo referencia',retired:'Baja definitiva · No participa',
       excluded:(r.classification||'Fuera de producción')+' · No participa en molienda',seed:'Semilla · Fuera del universo de molienda',
       missing:'Pendiente de estimado · Requiere revisión',zero:'Estimado cero · Requiere revisión',invalid:'Estimado inválido · Requiere revisión',
-      usable:'Molienda · Estimado utilizable'})[status]+(conflict?' · Clasificación/destino por validar':'');
-    return {active,milling,usable,status,reason,conflict,inventoryArea:present?inventoryArea:0,
+      usable:'Molienda · Estimado utilizable'})[status]+(decision?' · Decisión operativa CASUR':conflict?' · Clasificación/destino por validar':'');
+    return {active,milling,usable,status,reason,conflict,decision,operationalDestination,inventoryArea:present?inventoryArea:0,
       activeArea:active?inventoryArea:0,millingArea:milling?inventoryArea:0,validArea:usable?inventoryArea:0,
       estimateTch:usable?tch:null,estimatedTons:usable?inventoryArea*tch:null};
   }
   function totals(catalog){
     const byClass={};let inventoryArea=0,activeArea=0,millingArea=0,millingTons=0,validMillingArea=0;
-    let active=0,milling=0,seed=0,usable=0,missing=0,zero=0,conflicts=0;
+    let active=0,milling=0,seed=0,usable=0,missing=0,zero=0,conflicts=0,seedArea=0,pendingConflicts=0,decisions=0;
     for(const r of catalog){
       const p=participation(r);active+=Number(p.active);milling+=Number(p.milling);seed+=Number(p.active&&!p.milling);
       usable+=Number(p.usable);missing+=Number(p.status==='missing');zero+=Number(p.status==='zero');conflicts+=Number(p.conflict);
+      seedArea+=p.active&&!p.milling?p.activeArea:0;pendingConflicts+=Number(p.conflict&&!p.decision);decisions+=Number(!!p.decision);
       const group=byClass[r.classification||r.operationalState]??={count:0,area:0,tons:0};group.count++;
       inventoryArea+=p.inventoryArea;group.area+=p.inventoryArea;
       activeArea+=p.activeArea;millingArea+=p.millingArea;
       if(p.usable){millingTons+=p.estimatedTons;validMillingArea+=p.validArea;group.tons+=p.estimatedTons;}
     }
     return {catalog:catalog.length,inventoried:catalog.filter(r=>r.sourcePresence==='present').length,
-      active,milling,seed,usable,missing,zero,conflicts,pendingMillingArea:millingArea-validMillingArea,
+      active,milling,seed,seedArea,usable,missing,zero,conflicts,pendingConflicts,decisions,pendingMillingArea:millingArea-validMillingArea,
       pendingMillingLots:milling-usable,inactive:catalog.length-active,absent:catalog.filter(r=>r.sourcePresence==='absent').length,
       inventoryArea,activeArea,millingArea,millingTons,validMillingArea,millingTch:validMillingArea?millingTons/validMillingArea:null,
       millingCoverage:millingArea?validMillingArea/millingArea:null,byClass};
   }
-  function prepareUpdate(previous,parsed,{dataVersion,importedAt=new Date().toISOString()}={}){
+  function prepareUpdate(previous,parsed,{dataVersion,importedAt=new Date().toISOString(),decisions=[]}={}){
     if(!dataVersion||parsed.isPlan||parsed.profiles.includes('historico'))throw Error('Se requiere versión de datos e inventario; no aplicar plan/histórico como inventario.');
     if(parsed.issues.some(i=>i.level==='error'))throw Error('Importación con errores críticos.');
     const old=new Map(),combined=new Map();
@@ -212,7 +230,7 @@
       const productive=!retired&&['Molienda','Semilla'].includes(classification)&&incoming.fields.area>0;
       const milling=productive&&classification==='Molienda';
       const compatible=parsed.source.season==='26/27';
-      const next={...record,code:incoming.code,suerte:incoming.lot,codLote:incoming.key,permanentIdentity:{code:incoming.code,lot:incoming.lot},
+      const next=applyDecisions({...record,code:incoming.code,suerte:incoming.lot,codLote:incoming.key,permanentIdentity:{code:incoming.code,lot:incoming.lot},
         inventoryArea:incoming.fields.area,area:productive?incoming.fields.area:0,millingArea:milling?incoming.fields.area:0,
         participatesCurrentArea:productive,participatesMilling:milling,sourcePresence:'present',classification,
         operationalState:retired?'Baja definitiva':classification,estado:retired?'Baja definitiva':classification,
@@ -223,11 +241,14 @@
         forecast:{season:parsed.source.season||null,area:incoming.fields.area,tch:incoming.fields.estimateTch,tons:incoming.fields.estimateTons,classification,source:incoming.source},
         fBase:record.renovacion?record.fSiembra||null:[record.fSiembra,record.fUltCte].filter(Boolean).sort().at(-1)||null,
         changeHistory:[...(prev?.changeHistory||[]),{dataVersion,importedAt,fromVersion:prev?.dataVersion||'baseline',previousArea:prev?.inventoryArea??prev?.area??null,area:incoming.fields.area,classification}],
-      };
+      },decisions);
       const participationState=participation(next);
+      next.area=participationState.activeArea;next.millingArea=participationState.millingArea;
+      next.participatesCurrentArea=participationState.active;next.participatesMilling=participationState.milling;
       next.millingEstimatedTons=participationState.estimatedTons;
       next.tonEst2627=compatible?participationState.estimatedTons:null;
-      if(milling&&!participationState.usable)issues.push({level:'warning',code:'milling-estimate-pending',key:incoming.key,message:participationState.reason});
+      if(participationState.milling&&!participationState.usable)issues.push({level:'warning',code:'milling-estimate-pending',key:incoming.key,message:participationState.reason});
+      if(participationState.decision)next.changeHistory.push({kind:'operational-decision',dataVersion,decision:clone(participationState.decision)});
       if(prev?.sourcePresence==='absent')differences.push({key:incoming.key,kind:'reactivated'});
       if(!prev)differences.push({key:incoming.key,kind:'new'});
       if(prev)for(const field of ['inventoryArea','name','classification','tchEst2627','tch','destino','variedad','zona','corte','tipoRiego','distancia','tenencia','fSiembra','fUltCte']){
@@ -276,7 +297,7 @@
     generation.planAudit={lines:lines.length,identities:groups.size,split,area,proposedTons:validTons===lines.length&&lines.length?tons:null};
     return generation;
   }
-  const api={contractVersion:1,aliases,norm,number,identity,keyOf,dateValue,profiles,inspectSheets,parseCandidate,prepareUpdate,participation,totals,validateGeneration,attachHarvestPlan};
+  const api={contractVersion:1,aliases,norm,number,identity,keyOf,dateValue,profiles,inspectSheets,parseCandidate,prepareUpdate,applyDecisions,participation,totals,validateGeneration,attachHarvestPlan};
   root.CASUR_OPERATIONAL_IMPORT=Object.freeze(api);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

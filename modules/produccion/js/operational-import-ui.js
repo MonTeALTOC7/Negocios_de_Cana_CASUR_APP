@@ -81,7 +81,7 @@ function reconcile(){
   }
   const errors=parsed.issues.filter(i=>i.level==='error');
   if(errors.length){renderIssues(parsed.issues);throw Error(`${errors.length} errores críticos. Corrija el mapeo o el archivo; no se puede aplicar.`);}
-  proposal=engine.prepareUpdate(base,parsed,{dataVersion:version});
+  proposal=engine.prepareUpdate(base,parsed,{dataVersion:version,decisions:window.CASUR_OPERATIONAL_DECISIONS});
   engine.attachHarvestPlan(proposal,extraPlan?.records||[]);
   const crono=window.CASUR_BUILD_CRONO_DATA(proposal.catalog,source.file);
   crono.meta={...crono.meta,source:source.file,sheet:c.sheetName,rows:proposal.catalog.length,rawRows:parsed.records.length,sourceProfiles:parsed.profiles,
@@ -96,11 +96,11 @@ function reconcile(){
   document.getElementById('operationalResults').innerHTML=`<p><b>${t.inventoried} inventariadas · ${t.catalog} en catálogo · ${t.active} activas · ${t.absent} ausentes</b></p>
     <p>Área inventariada: <b>${fmt(t.inventoryArea)} ha</b> · Área activa: <b>${fmt(t.activeArea)} ha</b> · Molienda: <b>${fmt(t.millingArea)} ha</b></p>
     <p>Toneladas con estimado utilizable: <b>${t.usable?fmt(t.millingTons):'N/D'} t</b> · TCH: <b>${fmt(t.millingTch)}</b> · Cobertura área válida: <b>${fmt(t.millingCoverage==null?null:t.millingCoverage*100)}%</b></p>
-    <p>${t.usable}/${t.milling} suertes de molienda con estimado · ${fmt(t.validMillingArea)} ha utilizables · ${fmt(t.pendingMillingArea)} ha pendientes (${t.missing} sin estimado, ${t.zero} con cero explícito). ${t.conflicts} contradicciones de clasificación/destino por validar.</p>
+    <p>${t.usable}/${t.milling} suertes de molienda con estimado · ${fmt(t.validMillingArea)} ha utilizables · ${fmt(t.pendingMillingArea)} ha pendientes (${t.missing} sin estimado, ${t.zero} con cero explícito). Semilla operativa: ${t.seed} suertes · ${fmt(t.seedArea)} ha. ${t.pendingConflicts} contradicciones pendientes; ${t.decisions} decisiones operativas trazables.</p>
     <p>${counts('new')} altas · ${counts('reactivated')} reincorporaciones · ${counts('change')} suertes modificadas (${proposal.differences.filter(d=>d.field==='inventoryArea').length} cambios de área). ${proposal.harvestLines.length} líneas de plan de referencia; no suman otra vez el inventario.</p>
     <small>Deslice la tabla horizontalmente para ver todas las columnas.</small>
     <div class="operational-scroll" tabindex="0" aria-label="Deslice para revisar la conciliación"><table><thead><tr><th>CodSuerte</th><th>Clase</th><th>Área origen ha</th><th>Área activa ha</th><th>Estado</th></tr></thead><tbody>${proposal.catalog.map(r=>`<tr><td>${esc(r.codLote)}</td><td>${esc(r.classification||'N/D')}</td><td>${fmt(r.inventoryArea)}</td><td>${fmt(r.area)}</td><td>${esc(r.operationalState)}</td></tr>`).join('')}</tbody></table></div>
-    <details><summary>Calidad, diferencias y procedencia (${proposal.issues.length} avisos)</summary><div id="operationalIssues"></div><pre>${esc(JSON.stringify({source,planAudit:proposal.planAudit,differences:proposal.differences},null,2))}</pre></details>`;
+    <details><summary>Calidad, diferencias y procedencia (${proposal.issues.length} avisos)</summary><div id="operationalIssues"></div><pre>${esc(JSON.stringify({source,decisions:proposal.catalog.filter(r=>r.operationalDecision).map(r=>r.operationalDecision),planAudit:proposal.planAudit,differences:proposal.differences},null,2))}</pre></details>`;
   renderIssues(proposal.issues);message('Conciliación lista. Revise clases, ausencias y advertencias antes de aprobar. Los totales calculados no son una publicación oficial.');
 }
 function renderIssues(issues){

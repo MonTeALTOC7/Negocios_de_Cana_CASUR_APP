@@ -44,9 +44,9 @@ test('una columna numérica o fuente no es aceptada solo por parecido del nombre
  const s=[{name:'falso',rows:[['Cod','Suerte','Area probable','actTCH_2627','Clasificacion'],['810','01',10,50,'Molienda']]}];assert.equal(E.inspectSheets(s).candidates.length,0);
  const p=read([row({'Area Ha':'no numérico'})]).parsed;assert.equal(p,null);
 });
-test('cero verdadero se conserva; área o estimado ausentes bloquean sin imputar',()=>{
- const zero=prepare(read([row({actTCH_2627:0,Toneladas:0})]).parsed);assert.equal(zero.totals.millingTch,0);assert.equal(zero.totals.validMillingArea,10);
- const p=read([row({actTCH_2627:null,Toneladas:null})]).parsed;assert.throws(()=>prepare(p),/Molienda sin estimado/);
+test('cero y estimado ausente se conservan separados; no son denominador utilizable ni inactividad',()=>{
+ const zero=prepare(read([row({actTCH_2627:0,Toneladas:0})]).parsed);assert.equal(zero.catalog[0].forecast.tch,0);assert.equal(zero.totals.millingTch,null);assert.equal(zero.totals.validMillingArea,0);assert.equal(zero.totals.zero,1);assert.equal(zero.totals.activeArea,10);
+ const p=prepare(read([row({actTCH_2627:null,Toneladas:null})]).parsed);assert.equal(p.catalog[0].forecast.tch,null);assert.equal(p.totals.missing,1);assert.equal(p.totals.pendingMillingArea,10);assert.equal(p.catalog[0].millingEstimatedTons,null);
  assert.equal(E.number(''),null);assert.equal(E.number(0),0);
 });
 test('fuentes excluidas y clasificación desconocida bloquean',()=>{
@@ -61,6 +61,7 @@ test('Sin Caña 49404A conserva identidad, área cero y ejecutado; no inventa GP
 test('2003 conserva Semilla operativa y Molienda de zafra sin eliminar TCH estimado cero',()=>{
  const g=prepare(read([row({'Cod. Hacienda':'20',Ste:'03','Nombre Destino del Cultivo':'Semilla',actTCH_2627:0,Toneladas:0})]).parsed);
  assert.equal(g.catalog[0].codLote,'2003');assert.equal(g.catalog[0].destino,'Semilla');assert.equal(g.catalog[0].classification,'Molienda');assert.equal(g.catalog[0].tchEst2627,0);assert.ok(g.issues.some(i=>i.code==='destination-conflict'));
+ assert.equal(g.catalog[0].millingEstimatedTons,null);assert.equal(g.totals.validMillingArea,0);assert.equal(g.totals.pendingMillingArea,10);assert.equal(E.participation(g.catalog[0]).conflict,true);
 });
 test('inventario, área activa y molienda son universos independientes',()=>{
  const g=prepare(read([row(),row({Ste:'02',Clasificacion:'Semilla',actTCH_2627:0,Toneladas:0}),row({Ste:'03',Clasificacion:'Investigacion',actTCH_2627:60,Toneladas:600}),row({Ste:'04',Clasificacion:'Baja rentabilidad',actTCH_2627:0,Toneladas:0})]).parsed);

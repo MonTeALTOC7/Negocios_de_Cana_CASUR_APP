@@ -123,7 +123,7 @@
       if(fields.area===null||fields.area<0)issue('error','area','Área operativa obligatoria; vacío no equivale a cero.','area');
       const classification=classes[norm(fields.classification)]||null;
       if(kinds.includes('estimados')&&!classification)issue('error','classification','Clasificación de zafra desconocida.','classification');
-      if(classification&&classes[norm(fields.destination)]&&classes[norm(fields.destination)]!==classification)issue('warning','destination-conflict','Destino operativo y clasificación de zafra difieren.');
+      if(classification&&destinationClass(fields.destination)&&destinationClass(fields.destination)!==classification)issue('warning','destination-conflict','Destino operativo y clasificación de zafra difieren.');
       if(classification==='Sin Caña'&&fields.area>0)issue('warning','no-cane-area','Sin Caña con área inventariada positiva: no suma área activa.');
       if(fields.area!==null&&fields.estimateTch!==null&&fields.estimateTons!==null&&Math.abs(fields.area*fields.estimateTch-fields.estimateTons)>0.02)issue('warning','tonnage','Toneladas de origen difieren de área × TCH.');
       const dates={};
@@ -150,17 +150,38 @@
     }
     return {contractVersion:1,profiles:kinds,isPlan,records,issues,source,sourceTotals,mapping};
   }
+  const destinationClass=value=>norm(value).startsWith('semilla')?'Semilla':classes[norm(value)]||null;
+  // Participation is derived; neither the source classification nor its zero/null is changed.
+  function participation(r){
+    const present=r.sourcePresence==='present',inventoryArea=number(r.inventoryArea)??number(r.area)??0;
+    const retired=(r.operationalState||r.estado)==='Baja definitiva';
+    const active=present&&!retired&&inventoryArea>0&&['Molienda','Semilla'].includes(r.classification);
+    const milling=active&&r.classification==='Molienda',tch=number(r.forecast?.tch);
+    const destination=destinationClass(r.destino),conflict=!!(destination&&r.classification&&destination!==r.classification);
+    const usable=milling&&tch>0;
+    const status=!present?'absent':retired?'retired':!active?'excluded':!milling?'seed':tch===null?'missing':tch===0?'zero':tch<0?'invalid':'usable';
+    const reason=({absent:'Ausente del inventario actual · Solo referencia',retired:'Baja definitiva · No participa',
+      excluded:(r.classification||'Fuera de producción')+' · No participa en molienda',seed:'Semilla · Fuera del universo de molienda',
+      missing:'Pendiente de estimado · Requiere revisión',zero:'Estimado cero · Requiere revisión',invalid:'Estimado inválido · Requiere revisión',
+      usable:'Molienda · Estimado utilizable'})[status]+(conflict?' · Clasificación/destino por validar':'');
+    return {active,milling,usable,status,reason,conflict,inventoryArea:present?inventoryArea:0,
+      activeArea:active?inventoryArea:0,millingArea:milling?inventoryArea:0,validArea:usable?inventoryArea:0,
+      estimateTch:usable?tch:null,estimatedTons:usable?inventoryArea*tch:null};
+  }
   function totals(catalog){
     const byClass={};let inventoryArea=0,activeArea=0,millingArea=0,millingTons=0,validMillingArea=0;
+    let active=0,milling=0,seed=0,usable=0,missing=0,zero=0,conflicts=0;
     for(const r of catalog){
+      const p=participation(r);active+=Number(p.active);milling+=Number(p.milling);seed+=Number(p.active&&!p.milling);
+      usable+=Number(p.usable);missing+=Number(p.status==='missing');zero+=Number(p.status==='zero');conflicts+=Number(p.conflict);
       const group=byClass[r.classification||r.operationalState]??={count:0,area:0,tons:0};group.count++;
-      if(r.sourcePresence==='present'){inventoryArea+=r.inventoryArea??0;group.area+=r.inventoryArea??0;}
-      activeArea+=r.area||0;millingArea+=r.millingArea||0;
-      const estimated=Object.hasOwn(r,'millingEstimatedTons')?r.millingEstimatedTons:r.tonEst2627;
-      if(estimated!==null&&estimated!==undefined){millingTons+=estimated;validMillingArea+=r.millingArea||0;group.tons+=estimated;}
+      inventoryArea+=p.inventoryArea;group.area+=p.inventoryArea;
+      activeArea+=p.activeArea;millingArea+=p.millingArea;
+      if(p.usable){millingTons+=p.estimatedTons;validMillingArea+=p.validArea;group.tons+=p.estimatedTons;}
     }
     return {catalog:catalog.length,inventoried:catalog.filter(r=>r.sourcePresence==='present').length,
-      active:catalog.filter(r=>r.participatesCurrentArea).length,absent:catalog.filter(r=>r.sourcePresence==='absent').length,
+      active,milling,seed,usable,missing,zero,conflicts,pendingMillingArea:millingArea-validMillingArea,
+      pendingMillingLots:milling-usable,inactive:catalog.length-active,absent:catalog.filter(r=>r.sourcePresence==='absent').length,
       inventoryArea,activeArea,millingArea,millingTons,validMillingArea,millingTch:validMillingArea?millingTons/validMillingArea:null,
       millingCoverage:millingArea?validMillingArea/millingArea:null,byClass};
   }
@@ -191,7 +212,6 @@
       const productive=!retired&&['Molienda','Semilla'].includes(classification)&&incoming.fields.area>0;
       const milling=productive&&classification==='Molienda';
       const compatible=parsed.source.season==='26/27';
-      if(milling&&incoming.fields.estimateTch===null&&parsed.profiles.includes('estimados'))throw Error('Molienda sin estimado válido: '+incoming.key);
       const next={...record,code:incoming.code,suerte:incoming.lot,codLote:incoming.key,permanentIdentity:{code:incoming.code,lot:incoming.lot},
         inventoryArea:incoming.fields.area,area:productive?incoming.fields.area:0,millingArea:milling?incoming.fields.area:0,
         participatesCurrentArea:productive,participatesMilling:milling,sourcePresence:'present',classification,
@@ -204,6 +224,10 @@
         fBase:record.renovacion?record.fSiembra||null:[record.fSiembra,record.fUltCte].filter(Boolean).sort().at(-1)||null,
         changeHistory:[...(prev?.changeHistory||[]),{dataVersion,importedAt,fromVersion:prev?.dataVersion||'baseline',previousArea:prev?.inventoryArea??prev?.area??null,area:incoming.fields.area,classification}],
       };
+      const participationState=participation(next);
+      next.millingEstimatedTons=participationState.estimatedTons;
+      next.tonEst2627=compatible?participationState.estimatedTons:null;
+      if(milling&&!participationState.usable)issues.push({level:'warning',code:'milling-estimate-pending',key:incoming.key,message:participationState.reason});
       if(prev?.sourcePresence==='absent')differences.push({key:incoming.key,kind:'reactivated'});
       if(!prev)differences.push({key:incoming.key,kind:'new'});
       if(prev)for(const field of ['inventoryArea','name','classification','tchEst2627','tch','destino','variedad','zona','corte','tipoRiego','distancia','tenencia','fSiembra','fUltCte']){
@@ -252,7 +276,7 @@
     generation.planAudit={lines:lines.length,identities:groups.size,split,area,proposedTons:validTons===lines.length&&lines.length?tons:null};
     return generation;
   }
-  const api={contractVersion:1,aliases,norm,number,identity,keyOf,dateValue,profiles,inspectSheets,parseCandidate,prepareUpdate,totals,validateGeneration,attachHarvestPlan};
+  const api={contractVersion:1,aliases,norm,number,identity,keyOf,dateValue,profiles,inspectSheets,parseCandidate,prepareUpdate,participation,totals,validateGeneration,attachHarvestPlan};
   root.CASUR_OPERATIONAL_IMPORT=Object.freeze(api);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

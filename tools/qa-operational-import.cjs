@@ -3,6 +3,7 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
 const X=require('../master/convertidor/js/vendor/xlsx.full.min.js');
 const root=path.resolve(__dirname,'..'),out=process.env.CASUR_QA_OUT,base=process.env.CASUR_PREVIEW_URL||'http://127.0.0.1:4313/';
 const [extractFile,completeFile]=process.argv.slice(2);if(!out||!extractFile||!completeFile)throw Error('CASUR_QA_OUT and two workbook paths required');fs.mkdirSync(out,{recursive:true});
+if(fs.readdirSync(out).some(name=>!['run-metadata.json','run.log'].includes(name)))throw Error('QA output already contains evidence; review/archive before reuse. No files overwritten.');
 const hashes=[extractFile,completeFile].map(file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'));
 const results=[];async function check(name,fn){await fn();results.push({name,passed:true});fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(results,null,2));console.log('PASS',name);}
 const book=X.read(fs.readFileSync(extractFile),{type:'buffer'}),sheet=book.Sheets[book.SheetNames[0]],range=X.utils.decode_range(sheet['!ref']);
@@ -48,7 +49,8 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    const state=await page.evaluate(()=>({meta:CRONO_DATA.meta,total:CRONO_DATA.operational.totals,lines:CRONO_DATA.operational.harvestLines.length,
     special:CRONO_DATA.producers.flatMap(p=>p.details).filter(r=>['49404A','2003','14710A'].includes(r.codLote))}));
    assert.equal(state.total.catalog,1053);assert.equal(state.total.inventoried,1046);assert.equal(state.total.absent,7);assert.equal(state.lines,1050);
-   for(const [key,value] of Object.entries({inventoryArea:9672.13,activeArea:9574.66,millingArea:9126.6,millingTons:563187.9696909501,millingTch:61.708409450501826}))assert.ok(Math.abs(state.total[key]-value)<0.000001,key);
+   for(const [key,value] of Object.entries({inventoryArea:9672.13,activeArea:9574.66,millingArea:9126.6,validMillingArea:9115.65,pendingMillingArea:10.95,millingTons:563187.9696909501,millingTch:563187.9696909501/9115.65}))assert.ok(Math.abs(state.total[key]-value)<0.000001,key);
+   assert.equal(state.total.usable,948);assert.equal(state.total.zero,1);assert.equal(state.total.conflicts,12);
    assert.equal(state.special.find(r=>r.codLote==='49404A').area,0);assert.equal(state.special.find(r=>r.codLote==='2003').destino,'Semilla');assert.equal(state.special.find(r=>r.codLote==='2003').classification,'Molienda');assert.equal(state.special.find(r=>r.codLote==='14710A').sourcePresence,'absent');
    assert.equal(state.meta.generated,'2026-10-12');assert.equal(await page.evaluate(()=>JSON.stringify(APP_DATA)),historicalHash);
    assert.equal(await page.evaluate(async()=>(await CASUR_MODULE_BRIDGE.checkpoint('pwa-update')).ok),true);
@@ -64,6 +66,8 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    await page.evaluate(()=>{document.querySelector('#cronoSection').open=true;renderCronoHome();});
    assert.match(await page.locator('.casur-release-strip').innerText(),/Generación local aprobada · versión 2026\.10\.24-aforo\.1001/);
    assert.match(await page.locator('#cronoContent').innerText(),/Área activa[\s\S]*9,574\.66 ha[\s\S]*Inventario 9,672\.13 ha/i);
+   assert.match(await page.locator('#cronoContent').innerText(),/Suertes activas[\s\S]*995[\s\S]*1,053 catálogo/i);
+   assert.match(await page.locator('#cronoContent').innerText(),/948\/949 molienda[\s\S]*99\.88% área[\s\S]*Pendiente 10\.95 ha/);
    await page.locator('#cronoContent').scrollIntoViewIfNeeded();await page.waitForTimeout(450);await page.screenshot({path:path.join(out,'b1-home-1440.png')});
    await page.evaluate(()=>renderCronoProducer('993'));
    assert.match(await page.locator('#cronoContent').innerText(),/Área activa/i);
@@ -76,7 +80,8 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    assert.match(await page.locator('#cronoContent').innerText(),/Semilla/);
    assert.match(await page.locator('#cronoContent').innerText(),/Molienda/);
    await page.evaluate(()=>selectCronoSuerteSuggestion('147','10A'));
-   assert.match(await page.locator('#cronoContent').innerText(),/Ausente de la fuente/);
+   assert.match(await page.locator('#cronoContent').innerText(),/Ausente del inventario actual · Solo referencia/);
+   assert.match(await page.locator('#cronoContent').innerText(),/TCH ANTERIOR\s*—/);
    await page.evaluate(()=>{document.querySelector('#zoneMainSection').open=true;goCronoZoneModule();});
    assert.match(await page.locator('#cronoZoneContent').textContent(),/9,574\.66 ha/);
    assert.match(await page.locator('#cronoZoneContent').textContent(),/563,187\.97 t/);
@@ -85,14 +90,40 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    assert.equal(await page.locator('#cronoZoneContent').isVisible(),true);
    await page.locator('#cronoZoneContent').screenshot({path:path.join(out,'b1-zone-1440.png')});
   });
+  await check('participation: zero/conflict stays active, positive conflict is flagged, inactive farm stays consultable',async()=>{
+   await page.evaluate(()=>selectCronoSuerteSuggestion('20','03'));
+   assert.equal(await page.locator('[data-casur-estimate] strong').innerText(),'N/D');
+   assert.match(await page.locator('#cronoContent').innerText(),/Estimado cero · Requiere revisión/);
+   assert.match(await page.locator('#cronoContent').innerText(),/Clasificación\/destino por validar/);
+   assert.match(await page.locator('#cronoContent').innerText(),/Pendiente 10\.95 ha/);
+   await page.locator('#cronoContent').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,'participation-2003-desktop.png')});
+   await page.setViewportSize({width:390,height:844});await page.locator('#cronoContent').scrollIntoViewIfNeeded();
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+   await page.screenshot({path:path.join(out,'participation-2003-mobile.png')});await page.setViewportSize({width:1440,height:900});
+   await page.evaluate(()=>selectCronoSuerteSuggestion('19','27'));
+   assert.match(await page.locator('[data-casur-estimate] strong').innerText(),/70\.00/);
+   assert.match(await page.locator('#cronoContent').innerText(),/Clasificación\/destino por validar/);
+   await page.evaluate(()=>renderCronoProducer('63'));
+   const empty=await page.evaluate(()=>CRONO_DATA.producers.find(p=>p.code==='63'));
+   assert.equal(empty.activeLots,0);assert.equal(empty.estimateTch,null);assert.ok(empty.details.length>0);
+   assert.equal(await page.locator('[data-casur-estimate] strong').innerText(),'N/D');
+   assert.match(await page.locator('#cronoContent').innerText(),/No participa en molienda/);
+   await page.locator('#cronoContent').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,'participation-farm-63.png')});
+   // Export the affected farm, not only a farm whose denominator did not change.
+   await page.evaluate(()=>renderCronoProducer('20'));
+   const download=page.waitForEvent('download');await page.locator('[data-casur-export-kind="cronologico"] .pdf').click();await(await download).saveAs(path.join(out,'participation-farm-20.pdf'));
+  });
   await check('B1: tablet/mobile and chronological PDF/PNG keep existing layout',async()=>{
    await page.evaluate(()=>renderCronoProducer('993'));
    await page.waitForSelector('[data-casur-export-kind="cronologico"] .pdf',{timeout:10000});
+   const rowBreaks=await page.evaluate(async()=>{const render=await CASUR_VISUAL_EXPORT.renderCanvas('cronologico');return render.safeBreaks.length;});assert.equal(rowBreaks,49,'chronological export keeps all 49 row boundaries');
    const pdfPromise=page.waitForEvent('download');await page.locator('[data-casur-export-kind="cronologico"] .pdf').click();const pdf=await pdfPromise;await pdf.saveAs(path.join(out,'b1-cronologico-993.pdf'));
    const pngPromise=page.waitForEvent('download');await page.locator('[data-casur-export-kind="cronologico"] .image').click();const png=await pngPromise;await png.saveAs(path.join(out,'b1-cronologico-993.png'));
    for(const [width,height,name] of [[768,1024,'b1-farm-768.png'],[390,844,'b1-farm-390.png']]){
-    await page.setViewportSize({width,height});await page.locator('#cronoContent').scrollIntoViewIfNeeded();await page.waitForTimeout(450);
+    await page.setViewportSize({width,height});await page.evaluate(()=>document.querySelector('#cronoContent').scrollIntoView({block:'start',inline:'nearest'}));await page.waitForTimeout(450);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${width} overflow`);
+    const layout=await page.evaluate(()=>['#cronoContent','.ficha-band','#cronoPrintPanel .kpis'].map(selector=>{const el=document.querySelector(selector),r=el.getBoundingClientRect();return {selector,left:r.left,right:r.right,width:r.width,viewport:innerWidth};}));
+    fs.writeFileSync(path.join(out,`layout-${width}.json`),JSON.stringify(layout,null,2));assert.ok(layout.every(r=>r.left>=0&&r.right<=r.viewport),`${width} content bounds`);
     await page.screenshot({path:path.join(out,name)});
    }
    await page.setViewportSize({width:1440,height:900});

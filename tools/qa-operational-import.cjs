@@ -116,19 +116,23 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
   });
   await check('B1: tablet/mobile and chronological PDF/PNG keep existing layout',async()=>{
    await page.evaluate(()=>renderCronoProducer('993'));
+   if(process.env.CASUR_QA_STAGE==='B2')assert.equal(await page.evaluate(()=>{const c=document.querySelector('#cronoContent>.ficha-card');c.scrollLeft=15;return c.scrollLeft;}),0,'chronological card cannot accidentally pan');
    await page.waitForSelector('[data-casur-export-kind="cronologico"] .pdf',{timeout:10000});
    const rowBreaks=await page.evaluate(async()=>{const render=await CASUR_VISUAL_EXPORT.renderCanvas('cronologico');return render.safeBreaks.length;});assert.equal(rowBreaks,49,'chronological export keeps all 49 row boundaries');
    const pdfPromise=page.waitForEvent('download');await page.locator('[data-casur-export-kind="cronologico"] .pdf').click();const pdf=await pdfPromise;await pdf.saveAs(path.join(out,'b1-cronologico-993.pdf'));
    const pngPromise=page.waitForEvent('download');await page.locator('[data-casur-export-kind="cronologico"] .image').click();const png=await pngPromise;await png.saveAs(path.join(out,'b1-cronologico-993.png'));
    for(const [width,height,name] of [[768,1024,'b1-farm-768.png'],[390,844,'b1-farm-390.png']]){
-    await page.setViewportSize({width,height});await page.evaluate(()=>document.querySelector('#cronoContent').scrollIntoView({block:'start',inline:'nearest'}));await page.waitForTimeout(450);
+    await page.setViewportSize({width,height});await page.evaluate(()=>document.querySelector('#cronoContent').scrollIntoView({block:'start',inline:'nearest',behavior:'instant'}));await page.waitForTimeout(450);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${width} overflow`);
     const layout=await page.evaluate(()=>['#cronoContent','.ficha-band','#cronoPrintPanel .kpis'].map(selector=>{const el=document.querySelector(selector),r=el.getBoundingClientRect();return {selector,left:r.left,right:r.right,width:r.width,viewport:innerWidth};}));
+    fs.writeFileSync(path.join(out,`layout-parents-${width}.json`),JSON.stringify(await page.evaluate(()=>{let el=document.querySelector('#cronoContent .ficha-band'),a=[];while(el){const r=el.getBoundingClientRect(),s=getComputedStyle(el);a.push({id:el.id,class:el.className,left:r.left,width:r.width,scrollLeft:el.scrollLeft,scrollWidth:el.scrollWidth,clientWidth:el.clientWidth,overflowX:s.overflowX});el=el.parentElement;}return a;}),null,2));
+    if(layout.some(r=>r.left<0||r.right>r.viewport))await page.screenshot({path:path.join(out,`layout-problem-${width}.png`)});
     fs.writeFileSync(path.join(out,`layout-${width}.json`),JSON.stringify(layout,null,2));assert.ok(layout.every(r=>r.left>=0&&r.right<=r.viewport),`${width} content bounds`);
     await page.screenshot({path:path.join(out,name)});
    }
    await page.setViewportSize({width:1440,height:900});
   });
+  if(process.env.CASUR_QA_STAGE==='B2')await require('./qa-operational-b2.cjs')({phase:'live',page,context,out,check});
   await check('failed transaction after staging previous version rolls back all writes',async()=>{
    const outcome=await page.evaluate(async()=>{
     const store=await import('../../core/shared-data/master-store.js'),before=await store.loadProduccionDataset(),payload=structuredClone(before.payload);
@@ -145,6 +149,7 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    await reopen.goto(new URL('modules/produccion/',base).href);
    await reopen.waitForFunction(()=>window.CRONO_DATA?.meta?.dataVersion==='2026.10.24-aforo.1001',{},{timeout:60000});
    assert.equal(await reopen.evaluate(()=>CRONO_DATA.operational.totals.inventoried),1046);assert.equal(await reopen.evaluate(()=>JSON.stringify(APP_DATA)),historicalHash);
+   if(process.env.CASUR_QA_STAGE==='B2')await require('./qa-operational-b2.cjs')({phase:'offline',page:reopen,context,out,check});
    await reopen.setViewportSize({width:390,height:844});await reopen.evaluate(()=>{document.querySelector('#masterUpdateSection').open=true;});
    await reopen.locator('.operational-import').scrollIntoViewIfNeeded();assert.equal(await reopen.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
    await reopen.screenshot({path:path.join(out,'offline-mobile.png')});
@@ -178,5 +183,6 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    fs.writeFileSync(path.join(out,'source-sha256.json'),JSON.stringify(hashes,null,2));
    fs.writeFileSync(path.join(out,'page-exceptions.json'),JSON.stringify(exceptions,null,2));assert.deepEqual(exceptions,[]);
   });
+  if(process.env.CASUR_QA_STAGE==='B2')await require('./qa-operational-b2.cjs')({phase:'archive',page:p,context,out,check});
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);fs.writeFileSync(path.join(out,'error.txt'),String(e.stack));process.exitCode=1;});

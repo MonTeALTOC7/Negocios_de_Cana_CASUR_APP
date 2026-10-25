@@ -1,5 +1,10 @@
 # Etapa B2 · propuesta funcional para aprobación
 
+Actualización 25-oct-2026: el usuario aprobó la primera entrega de consulta y
+análisis sin edición. La implementación y sus reglas están documentadas en
+`CONSULTA_ESTIMADOS_PLAN_B2.md`. Este archivo conserva la propuesta previa;
+la edición de planes y la programación efectiva siguen sin autorización.
+
 Solo análisis y propuesta. No se crea otro módulo ni se implementan pantallas.
 Depende de la aprobación de A/B1 y de la corrección de participación cronológica.
 

@@ -1,0 +1,106 @@
+// QA only. Workbook paths are supplied locally; originals are never copied to the repo.
+const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),assert=require('assert/strict'),crypto=require('crypto');
+const X=require('../master/convertidor/js/vendor/xlsx.full.min.js');
+const root=path.resolve(__dirname,'..'),out=process.env.CASUR_QA_OUT,base=process.env.CASUR_PREVIEW_URL||'http://127.0.0.1:4313/';
+const [extractFile,completeFile]=process.argv.slice(2);if(!out||!extractFile||!completeFile)throw Error('CASUR_QA_OUT and two workbook paths required');fs.mkdirSync(out,{recursive:true});
+const hashes=[extractFile,completeFile].map(file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'));
+const results=[];async function check(name,fn){await fn();results.push({name,passed:true});fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(results,null,2));console.log('PASS',name);}
+const book=X.read(fs.readFileSync(extractFile),{type:'buffer'}),sheet=book.Sheets[book.SheetNames[0]],range=X.utils.decode_range(sheet['!ref']);
+const source=X.utils.sheet_to_json(sheet,{header:1,raw:true,defval:null,range:{s:{r:0,c:0},e:range.e}});
+const reordered=source.map(row=>[...row].reverse());
+reordered[2]=reordered[2].map(h=>h==='Cod. Hacienda'?'Código finca':h==='Ste'?'Suerte':h==='Area Ha'?'ÁREA':h);
+const fixture=X.utils.book_new();X.utils.book_append_sheet(fixture,X.utils.aoa_to_sheet(reordered),'Nombre completamente diferente');
+const renamedFile=path.join(out,'qa-renombrado-reordenado.xlsx');fs.writeFileSync(renamedFile,X.write(fixture,{type:'buffer',bookType:'xlsx'}));
+const invalid=X.utils.book_new();X.utils.book_append_sheet(invalid,X.utils.aoa_to_sheet([['Cod','Suerte','Area','Clasificacion','actTCH','Nombre Hacienda','Tch.Ant'],['810','01',10,'Molienda',50,'Sintético',40],['810','01',10,'Molienda',50,'Sintético',40]]),'ambiguo');
+const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(invalidFile,X.write(invalid,{type:'buffer',bookType:'xlsx'}));
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.CASUR_CHROME_EXECUTABLE});const context=await browser.newContext({viewport:{width:1440,height:900},acceptDownloads:true});
+ const exceptions=[];context.on('page',p=>p.on('pageerror',e=>exceptions.push(e.message)));const page=await context.newPage();
+ try{
+  await page.goto(base);await page.waitForFunction(()=>!!navigator.serviceWorker.controller,{},{timeout:90000});
+  await page.goto(new URL('modules/produccion/',base).href);await page.waitForFunction(()=>!!window.CASUR_READ_OPERATIONAL_WORKBOOK);
+  const historicalHash=await page.evaluate(()=>JSON.stringify(window.APP_DATA));
+  await check('permissions: locked import rejected before reading or changing data',async()=>{
+   const result=await page.evaluate(async()=>{try{await CASUR_READ_OPERATIONAL_WORKBOOK(new File([''],'dummy.xlsx'));return 'unexpected';}catch(e){return e.message;}});assert.match(result,/Desbloquee/);
+   assert.equal(await page.evaluate(()=>CRONO_DATA.global.suertes),1053);
+  });
+  // Only the isolated test profile is marked unlocked. Production permission code is unchanged.
+  await page.evaluate(()=>sessionStorage.setItem('casurAdminUnlockedAt',String(Date.now())));await page.reload();await page.waitForFunction(()=>!!window.CASUR_READ_OPERATIONAL_WORKBOOK);
+  await page.evaluate(()=>{document.querySelector('#masterUpdateSection').open=true;});
+  await check('complete workbook detected by content, inventory explicitly selected, optional split plan kept separate',async()=>{
+   await page.locator('#operationalFile').setInputFiles(completeFile);
+   await page.waitForFunction(()=>[...document.querySelector('#operationalSheet').options].some(o=>/Cronologico/.test(o.textContent)),{},{timeout:90000});
+   const inventory=await page.locator('#operationalSheet option').evaluateAll(options=>options.find(o=>/Cronologico/.test(o.textContent)).value);await page.locator('#operationalSheet').selectOption(inventory);
+   const plan=await page.locator('#operationalPlan option').evaluateAll(options=>options.find(o=>/1050 líneas/.test(o.textContent))?.value);assert.ok(plan);await page.locator('#operationalPlan').selectOption(plan);
+   await page.locator('#operationalVersion').fill('2026.10.24-aforo.1001');await page.locator('#operationalReconcile').click();
+   await page.getByText('1046 inventariadas · 1053 en catálogo · 995 activas · 7 ausentes',{exact:true}).waitFor({timeout:90000});
+   assert.equal(await page.evaluate(()=>CRONO_DATA.global.area),10030.65);assert.equal(await page.locator('#operationalApply').isDisabled(),true);
+   assert.equal(await page.evaluate(async()=>(await CASUR_MODULE_BRIDGE.checkpoint('pwa-update')).ok),false);
+   await page.locator('.operational-import').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,'preview-desktop.png'),fullPage:false});
+   await page.locator('#operationalResults > details').evaluate(el=>{el.open=true;});
+   await page.locator('#operationalIssues').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,'quality-desktop.png')});
+   await page.locator('#operationalResults > details').evaluate(el=>{el.open=false;});
+   await page.getByRole('cell',{name:'49404A',exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,'inactive-49404A.png')});
+  });
+  await check('explicit approval applies atomically with reconciled figures and permanent inactive identities',async()=>{
+   await page.locator('#operationalApproval').check();await page.locator('#operationalApply').click();
+   await page.getByText(/Generación aprobada aplicada/).waitFor({timeout:90000});
+   const state=await page.evaluate(()=>({meta:CRONO_DATA.meta,total:CRONO_DATA.operational.totals,lines:CRONO_DATA.operational.harvestLines.length,
+    special:CRONO_DATA.producers.flatMap(p=>p.details).filter(r=>['49404A','2003','14710A'].includes(r.codLote))}));
+   assert.equal(state.total.catalog,1053);assert.equal(state.total.inventoried,1046);assert.equal(state.total.absent,7);assert.equal(state.lines,1050);
+   for(const [key,value] of Object.entries({inventoryArea:9672.13,activeArea:9574.66,millingArea:9126.6,millingTons:563187.9696909501,millingTch:61.708409450501826}))assert.ok(Math.abs(state.total[key]-value)<0.000001,key);
+   assert.equal(state.special.find(r=>r.codLote==='49404A').area,0);assert.equal(state.special.find(r=>r.codLote==='2003').destino,'Semilla');assert.equal(state.special.find(r=>r.codLote==='2003').classification,'Molienda');assert.equal(state.special.find(r=>r.codLote==='14710A').sourcePresence,'absent');
+   assert.equal(state.meta.generated,'2026-10-12');assert.equal(await page.evaluate(()=>JSON.stringify(APP_DATA)),historicalHash);
+   assert.equal(await page.evaluate(async()=>(await CASUR_MODULE_BRIDGE.checkpoint('pwa-update')).ok),true);
+   fs.writeFileSync(path.join(out,'reconciliation-applied.json'),JSON.stringify(state,null,2));await page.screenshot({path:path.join(out,'applied-desktop.png')});
+  });
+  await check('failed transaction after staging previous version rolls back all writes',async()=>{
+   const outcome=await page.evaluate(async()=>{
+    const store=await import('../../core/shared-data/master-store.js'),before=await store.loadProduccionDataset(),payload=structuredClone(before.payload);
+    payload.dataVersion='2026.10.24-aforo.9999';payload.operationalDataset.dataVersion=payload.dataVersion;payload.operationalDataset.cronologico.meta.dataVersion=payload.dataVersion;
+    const central=structuredClone((await store.loadMaestroSuertes()).payload);central.version=payload.dataVersion;
+    const original=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(value,...args){if(value.key==='produccion_current')throw Error('simulated storage failure');return original.call(this,value,...args);};
+    let error;try{await store.commitOperationalDataset(payload,{approved:true,expectedVersion:before.payload.dataVersion,maestro:central});}catch(e){error=e.message;}finally{IDBObjectStore.prototype.put=original;}
+    return {error,version:(await store.loadProduccionDataset()).payload.dataVersion};
+   });assert.match(outcome.error,/storage failure/);assert.equal(outcome.version,'2026.10.24-aforo.1001');
+  });
+  await check('offline reopen restores full generation, plan and unchanged historical data',async()=>{
+   await context.setOffline(true);await page.close();const reopen=await context.newPage();
+   await reopen.addInitScript(()=>sessionStorage.setItem('casurAdminUnlockedAt',String(Date.now())));
+   await reopen.goto(new URL('modules/produccion/',base).href);
+   await reopen.waitForFunction(()=>window.CRONO_DATA?.meta?.dataVersion==='2026.10.24-aforo.1001',{},{timeout:60000});
+   assert.equal(await reopen.evaluate(()=>CRONO_DATA.operational.totals.inventoried),1046);assert.equal(await reopen.evaluate(()=>JSON.stringify(APP_DATA)),historicalHash);
+   await reopen.setViewportSize({width:390,height:844});await reopen.evaluate(()=>{document.querySelector('#masterUpdateSection').open=true;});
+   await reopen.locator('.operational-import').scrollIntoViewIfNeeded();assert.equal(await reopen.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+   await reopen.screenshot({path:path.join(out,'offline-mobile.png')});
+   await context.setOffline(false);
+   reopen.on('dialog',d=>d.accept());await reopen.locator('#operationalRestore').click();await reopen.getByText(/Versión anterior recuperada/).waitFor();
+   assert.equal(await reopen.evaluate(()=>CRONO_DATA.global.area),10030.65);assert.equal(await reopen.evaluate(()=>JSON.stringify(APP_DATA)),historicalHash);
+   await reopen.screenshot({path:path.join(out,'rollback-mobile.png')});
+   // Move the remaining tests to the reopened page without losing the isolated origin state.
+   globalThis.reopen=reopen;
+  });
+  const p=globalThis.reopen;
+  await check('duplicate import rejected with previous dataset and saved generation unchanged',async()=>{
+   await p.locator('#operationalFile').setInputFiles(invalidFile);await p.waitForFunction(()=>document.querySelector('#operationalMessage').textContent.includes('Revise los campos'));
+   await p.locator('#operationalSeason').fill('26/27');await p.locator('#operationalVersion').fill('2026.10.24-aforo.1002');await p.locator('#operationalReconcile').click();await p.getByText(/errores críticos\. Corrija/).waitFor();
+   assert.equal(await p.locator('#operationalApply').isDisabled(),true);assert.equal(await p.evaluate(()=>CRONO_DATA.global.area),10030.65);
+   assert.equal(await p.evaluate(async()=>(await(await import('../../core/shared-data/master-store.js')).loadProduccionDataset()).payload.dataVersion),'2026.09.06-siagri.1415');
+   await p.locator('#operationalCancel').click();assert.equal(await p.evaluate(async()=>(await CASUR_MODULE_BRIDGE.checkpoint('pwa-update')).ok),true);
+  });
+  await check('renamed sheet, shuffled columns and alternate headers preserve official reconciliation',async()=>{
+   await p.locator('#masterCronoFile').setInputFiles(renamedFile);await p.waitForFunction(()=>document.querySelector('#operationalMessage').textContent.includes('Revise los campos'));
+   await p.locator('#operationalVersion').fill('2026.10.24-aforo.1003');await p.locator('#operationalReconcile').click();
+   await p.getByText('1046 inventariadas · 1053 en catálogo · 995 activas · 7 ausentes',{exact:true}).waitFor();
+   await p.locator('#operationalResults').scrollIntoViewIfNeeded();await p.screenshot({path:path.join(out,'preview-mobile-renamed.png')});
+   await p.locator('#operationalApproval').check();await p.locator('#operationalApply').click();await p.getByText(/Generación aprobada aplicada/).waitFor();
+   assert.ok(Math.abs(await p.evaluate(()=>CRONO_DATA.operational.totals.millingTons)-563187.9696909501)<0.000001);
+   assert.equal(await p.evaluate(()=>JSON.stringify(APP_DATA)),historicalHash);
+  });
+  await check('protected files unchanged on disk and no original workbook included in code',async()=>{
+   for(let i=0;i<2;i++)assert.equal(crypto.createHash('sha256').update(fs.readFileSync([extractFile,completeFile][i])).digest('hex'),hashes[i]);
+   fs.writeFileSync(path.join(out,'source-sha256.json'),JSON.stringify(hashes,null,2));
+   fs.writeFileSync(path.join(out,'page-exceptions.json'),JSON.stringify(exceptions,null,2));assert.deepEqual(exceptions,[]);
+  });
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);fs.writeFileSync(path.join(out,'error.txt'),String(e.stack));process.exitCode=1;});

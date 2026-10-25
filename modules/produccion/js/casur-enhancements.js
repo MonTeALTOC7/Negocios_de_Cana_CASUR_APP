@@ -200,7 +200,8 @@
       const actions = content.querySelector(".ficha-actions");
       if (actions && !actions.querySelector(".casur-estimate-badge")) {
         const hasEstimate = finite(summary.tchEst2627) !== null;
-        actions.insertAdjacentHTML("afterbegin", `<span class="casur-estimate-badge ${hasEstimate ? "" : "is-empty"}">26/27: ${fmt(summary.tchEst2627)} TCH${hasEstimate ? ` · ${formatDate(ESTIMATE_DATE)}` : " · sin estimado"}</span>`);
+        const estimateDate=window.CRONO_DATA?.meta?.operationalContract?window.CRONO_DATA.meta.tchEst2627EffectiveDate:ESTIMATE_DATE;
+        actions.insertAdjacentHTML("afterbegin", `<span class="casur-estimate-badge ${hasEstimate ? "" : "is-empty"}">26/27: ${fmt(summary.tchEst2627)} TCH${hasEstimate ? ` · ${formatDate(estimateDate)}` : " · sin estimado"}</span>`);
       }
       content.querySelectorAll("#cronoPrintPanel table").forEach((table) => {
         if (table.dataset.casurEstimate === "1") return;
@@ -500,7 +501,7 @@
       cronologico.meta = { ...cronologico.meta, dataVersion: version, publishedAt: new Date().toISOString() };
       historico.meta = { ...historico.meta, dataVersion: version, publishedAt: new Date().toISOString() };
       const release = { version, publishedAt: new Date().toISOString(), source: cronologico.meta?.source || "Centro Maestro",
-        sheet: "REPORTE", tchEst2627EffectiveDate: ESTIMATE_DATE, cronologicoRows: cronologico.global?.suertes || 0,
+        sheet: cronologico.meta?.sheet||"REPORTE", tchEst2627EffectiveDate: cronologico.meta?.operationalContract?cronologico.meta.tchEst2627EffectiveDate:ESTIMATE_DATE, cronologicoRows: cronologico.global?.suertes || 0,
         historicoRows: historico.meta?.rows || 0 };
       const JSZip = await ensureJsZip();
       const zip = new JSZip();
@@ -1673,6 +1674,9 @@
      recargar coincide con lo esperado (nunca un toast de éxito falso). */
   async function checkForDataUpdate(force = false) {
     if (location.protocol === "file:") return;
+    // An approved local generation remains explicit until replaced/restored by its owner.
+    // The shared LKG still operates normally; this only prevents silently replacing the local view.
+    if (window.CASUR_OPERATIONAL_LOCAL) { updateSyncPill('Generación local aprobada · '+text(window.CRONO_DATA?.meta?.dataVersion), ''); return; }
     if (dataSyncInProgress) return;
     try {
       const response = await fetch(`data/version.json?ts=${Date.now()}`, { cache: "no-store" });

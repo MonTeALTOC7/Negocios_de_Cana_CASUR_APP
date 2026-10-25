@@ -98,7 +98,8 @@ check("TCH 26/27 en fichas y tabla", () => {
 });
 
 check("fecha del estimado visible una sola vez en la ficha", () => {
-  assert.equal((enhancement.match(/formatDate\(ESTIMATE_DATE\)/g) || []).length, 1);
+  assert.equal((enhancement.match(/formatDate\(estimateDate\)/g) || []).length, 1);
+  assert.ok(enhancement.includes('operationalContract?window.CRONO_DATA.meta.tchEst2627EffectiveDate:ESTIMATE_DATE'));
   assert.equal(enhancement.includes("Fecha efectiva ${formatDate(ESTIMATE_DATE)}"), false);
   assert.equal(enhancement.includes("formatDate(record.tchEst2627Fecha || ESTIMATE_DATE)"), false);
   assert.ok(enhancement.includes("casur-estimate-badge"));

@@ -100,8 +100,8 @@ test("la suerte 75907 conserva identidad canónica y área de la App", () => {
   assert.equal(feature?.properties?.fragmentCount, 2);
   assert.equal(feature?.properties?.anchor?.length, 2);
   assert.match(enhancements, /geoRecordForLot/);
-  assert.match(enhancements, /\["TCH 25\/26"/);
-  assert.match(enhancements, /\["Est\. 26\/27"/);
+  assert.match(enhancements, /operational \? "TCH anterior" : "TCH 25\/26"/);
+  assert.match(enhancements, /`Est\. \$\{estimateSeason\}`/);
   assert.match(enhancements, /<b>Coordenada de referencia<\/b>/);
   assert.doesNotMatch(enhancements, /<b>Anchor<\/b>/);
 });

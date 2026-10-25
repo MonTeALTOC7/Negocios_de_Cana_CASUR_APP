@@ -559,7 +559,7 @@ test("CAP1 conserva seis KPI junto al gráfico TCH legible y sin tarjeta princip
   }
   assert.match(crono, /fmt\(ageMonths\(rows\[0\]\),' meses'\)/);
   assert.ok(!crono.includes("Ton. estimadas 26/27"));
-  assert.match(enhancements, /estimateKpi\("TCH estimado 26\/27"/);
+  assert.match(enhancements, /estimateKpi\(`TCH estimado \$\{season\}`/);
   assert.match(enhancements, /estimate === null \? "N\/D"/);
   assert.ok(!enhancements.includes('estimateKpi("Ton. estimadas 26/27"'));
   assert.match(index, /function showCronoTrendTooltip\(point\)/);

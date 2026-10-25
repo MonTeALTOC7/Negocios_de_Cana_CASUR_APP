@@ -51,16 +51,28 @@
   };
   const estimateSummary = (rows) => {
     const all = rows || [];
-    const covered = all.filter((row) => finite(row.tchEst2627) !== null);
-    const totalArea = all.reduce((sum, row) => sum + (finite(row.area) || 0), 0);
+    const operational = all.some((row) => row.sourcePresence === 'present' || row.sourcePresence === 'absent');
+    const season = operational ? all.find((row) => row.sourcePresence === 'present' && row.forecast?.season)?.forecast.season : '26/27';
+    const estimate = (row) => operational ? finite(row.forecast?.season === season ? row.forecast.tch : null) : finite(row.tchEst2627);
+    const covered = all.filter((row) => (!operational || row.participatesMilling) && finite(row.area) > 0 && estimate(row) !== null);
+    const totalArea = all.reduce((sum, row) => sum + (operational ? (finite(row.millingArea) || 0) : (finite(row.area) || 0)), 0);
     const area = covered.reduce((sum, row) => sum + (finite(row.area) || 0), 0);
+    const tons = covered.reduce((sum, row) => sum + (operational ? (finite(row.millingEstimatedTons) ?? row.area * estimate(row)) :
+      (finite(row.tonEst2627) ?? row.area * estimate(row))), 0);
+    const tch = weighted(covered.map((row) => ({ ...row, estimate: estimate(row) })), 'estimate');
     return {
-      tchEst2627: weighted(covered, "tchEst2627"),
-      tonEst2627: round(covered.reduce((sum, row) => sum + (finite(row.tonEst2627) ?? ((finite(row.area) || 0) * (finite(row.tchEst2627) || 0))), 0)) || 0,
-      areaEstimado2627: round(area) || 0,
-      suertesEstimado2627: covered.length,
+      estimateSeason: season || null, estimateTch: tch, estimateTons: covered.length ? round(tons) : null,
+      estimateArea: round(area) || 0, estimateLots: covered.length,
+      tchEst2627: season === '26/27' ? tch : null,
+      tonEst2627: season === '26/27' && covered.length ? round(tons) : null,
+      areaEstimado2627: season === '26/27' ? round(area) || 0 : 0,
+      suertesEstimado2627: season === '26/27' ? covered.length : 0,
       coberturaEstimadoAreaPct: totalArea ? round(area / totalArea * 100) : 0,
       coberturaEstimadoSuertesPct: all.length ? round(covered.length / all.length * 100) : 0,
+      ...(operational ? { inventoryArea: round(all.filter((row) => row.sourcePresence === 'present').reduce((sum, row) => sum + (finite(row.inventoryArea) || 0), 0)) || 0,
+        activeLots: all.filter((row) => row.participatesCurrentArea).length,
+        millingArea: round(totalArea) || 0, millingLots: all.filter((row) => row.participatesMilling).length,
+        absentLots: all.filter((row) => row.sourcePresence === 'absent').length } : {}),
     };
   };
   const groupRows = (rows, field) => {
@@ -136,7 +148,8 @@
         generated: null, tchEst2627EffectiveDate: ESTIMATE_DATE, manualChanges: true },
       global,
       options: producers.map((producer) => ({ code: producer.code, name: producer.name, zone: producer.zone,
-        area: producer.area, tch: producer.tch, tchEst2627: producer.tchEst2627, label: `${producer.code} · ${producer.name}` })),
+        area: producer.area, tch: producer.tch, tchEst2627: producer.tchEst2627,
+        estimateTch: producer.estimateTch, estimateTons: producer.estimateTons, label: `${producer.code} · ${producer.name}` })),
       producers,
       groups: { zona: groupRows(rows, "zona"), riego: groupRows(rows, "tipoRiego"), tenencia: groupRows(rows, "tenencia"),
         tipoCultivo: groupRows(rows, "tipoCultivo"), destino: groupRows(rows, "destino"), variedad: groupRows(rows, "variedad"),
@@ -189,26 +202,30 @@
     try {
       const scope = currentCronoScope();
       const summary = scope.summary || estimateSummary(scope.rows);
+      const operational = window.CRONO_DATA?.meta?.operationalContract === 1;
+      const season = operational ? (window.CRONO_DATA.meta.estimateSeason || summary.estimateSeason || '—') : '26/27';
+      const estimateValue = operational ? summary.estimateTch : summary.tchEst2627;
+      const sourceLabel = operational ? 'Generación local aprobada' : 'Estimado oficial';
       const kpis = content.querySelector(".kpis");
       if (kpis && !kpis.querySelector("[data-casur-estimate]")) {
-        const estimate = finite(summary.tchEst2627);
-        const card = estimateKpi("TCH estimado 26/27", estimate === null ? "N/D" : fmt(estimate), estimate === null ? "Sin estimado oficial" : "Estimado oficial");
+        const estimate = finite(estimateValue);
+        const card = estimateKpi(`TCH estimado ${season}`, estimate === null ? "N/D" : fmt(estimate), estimate === null ? "Sin estimado" : sourceLabel);
         const realTch = kpis.children[1];
         if (realTch) realTch.insertAdjacentHTML("afterend", card);
         else kpis.insertAdjacentHTML("beforeend", card);
       }
       const actions = content.querySelector(".ficha-actions");
       if (actions && !actions.querySelector(".casur-estimate-badge")) {
-        const hasEstimate = finite(summary.tchEst2627) !== null;
+        const hasEstimate = finite(estimateValue) !== null;
         const estimateDate=window.CRONO_DATA?.meta?.operationalContract?window.CRONO_DATA.meta.tchEst2627EffectiveDate:ESTIMATE_DATE;
-        actions.insertAdjacentHTML("afterbegin", `<span class="casur-estimate-badge ${hasEstimate ? "" : "is-empty"}">26/27: ${fmt(summary.tchEst2627)} TCH${hasEstimate ? ` · ${formatDate(estimateDate)}` : " · sin estimado"}</span>`);
+        actions.insertAdjacentHTML("afterbegin", `<span class="casur-estimate-badge ${hasEstimate ? "" : "is-empty"}">${esc(season)}: ${fmt(estimateValue)} TCH${hasEstimate ? (estimateDate ? ` · ${formatDate(estimateDate)}` : "") : " · sin estimado"}</span>`);
       }
       content.querySelectorAll("#cronoPrintPanel table").forEach((table) => {
         if (table.dataset.casurEstimate === "1") return;
         const header = table.tHead?.rows?.[0];
         if (!header || header.cells.length < 3 || !normal(header.cells[2].textContent).includes("tch")) return;
-        const estHeader = document.createElement("th"); estHeader.textContent = "TCH est. 26/27";
-        const tonHeader = document.createElement("th"); tonHeader.textContent = "Ton. est. 26/27";
+        const estHeader = document.createElement("th"); estHeader.textContent = `TCH est. ${season}`;
+        const tonHeader = document.createElement("th"); tonHeader.textContent = `Ton. est. ${season}`;
         header.cells[2].after(tonHeader); header.cells[2].after(estHeader);
         const oldState = [...header.cells].find((cell) => normal(cell.textContent) === "estado");
         if (oldState) oldState.textContent = "Estado TCH 25/26";
@@ -218,13 +235,14 @@
         [...(table.tBodies[0]?.rows || [])].forEach((row, index) => {
           const lotCode = text(row.cells[0]?.querySelector("b")?.textContent);
           const record = scope.rows.find((item) => [text(item.codLote), `${scope.producer?.code || item.code}${item.suerte}`].includes(lotCode)) || scope.rows[index];
-          const estimate = finite(record?.tchEst2627);
+          const estimate = operational ? finite(record?.participatesMilling && record?.forecast?.season === season ? record.forecast.tch : null) : finite(record?.tchEst2627);
           const estCell = document.createElement("td"); estCell.className = estimate === null ? "casur-no-estimate" : "casur-estimate-cell";
           estCell.textContent = estimate === null ? "—" : fmt(estimate);
           const tonCell = document.createElement("td"); tonCell.className = estimate === null ? "casur-no-estimate" : "casur-estimate-cell";
-          tonCell.textContent = estimate === null ? "—" : fmt(record.tonEst2627 ?? ((finite(record.area) || 0) * estimate), " t");
+          tonCell.textContent = estimate === null ? "—" : fmt(operational ? record.millingEstimatedTons : (record.tonEst2627 ?? ((finite(record.area) || 0) * estimate)), " t");
           row.cells[2].after(tonCell); row.cells[2].after(estCell);
-          const stateCell = document.createElement("td"); stateCell.className = "casur-master-state"; stateCell.textContent = text(record?.estado) || "—";
+          const stateCell = document.createElement("td"); stateCell.className = "casur-master-state";
+          stateCell.textContent = [text(record?.classification),text(record?.estado)].filter((value,index,list) => value && list.indexOf(value) === index).join(" · ") || "—";
           const noteCell = document.createElement("td"); noteCell.className = "casur-master-note"; noteCell.textContent = text(record?.observacion) || "—";
           row.append(stateCell, noteCell);
         });
@@ -244,8 +262,18 @@
     const section = $("cronoSection")?.querySelector(".accordion-body");
     if (!section || section.querySelector(".casur-release-strip")) return;
     const release = window.CASUR_RELEASE || {};
-    section.insertAdjacentHTML("afterbegin", `<div class="casur-release-strip"><span><i class="casur-release-dot"></i><b>Datos compartidos</b> · versión ${esc(release.version || "integrada")}</span><span class="casur-sync-pill" id="casurSyncPill">Actualización automática al abrir</span></div>`);
+    section.insertAdjacentHTML("afterbegin", `<div class="casur-release-strip"><span><i class="casur-release-dot"></i><b id="casurReleaseKind">Datos compartidos</b> · versión <span id="casurReleaseVersion">${esc(release.version || "integrada")}</span></span><span class="casur-sync-pill" id="casurSyncPill">Actualización automática al abrir</span></div>`);
+    refreshReleaseStrip();
   }
+  function refreshReleaseStrip() {
+    const local = window.CASUR_OPERATIONAL_LOCAL && window.CRONO_DATA?.meta?.operationalContract === 1;
+    const version = local ? window.CRONO_DATA.meta.dataVersion : window.CASUR_RELEASE?.version;
+    if ($("casurReleaseKind")) $("casurReleaseKind").textContent = local ? "Generación local aprobada" : "Datos compartidos";
+    if ($("casurReleaseVersion")) $("casurReleaseVersion").textContent = text(version) || "integrada";
+    if (local) updateSyncPill(`Generación local aprobada · ${text(version)}`, "");
+    else updateSyncPill(`Datos compartidos · versión ${text(version) || "integrada"}`, "");
+  }
+  if (typeof document.addEventListener === 'function') document.addEventListener('casur-crono-effective-change', refreshReleaseStrip);
 
   async function sha256(value) {
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
@@ -835,16 +863,18 @@
 
   function geoChronologicalCardMarkup(context, lotId = "", interactive = true) {
     const selected = geoLotId(lotId);
+    const operational = window.CRONO_DATA?.meta?.operationalContract === 1;
+    const estimateSeason = operational ? (window.CRONO_DATA.meta.estimateSeason || '—') : '26/27';
     if (!selected) {
       const producer = geoCronoProducer(context?.farmCode);
       const rows = context?.currentRows || [];
       const estimate = estimateSummary(rows);
       const area = finite(producer?.area) ?? rows.reduce((sum, row) => sum + (finite(row?.area) || 0), 0);
       const fields = [
-        ["Área actual", geoMetric(area, " ha")],
-        ["TCH 25/26", geoMetric(finite(producer?.tch) ?? weighted(rows, "tch"))],
-        ["Est. 26/27", geoMetric(estimate.tchEst2627)],
-        ["Suertes actuales", geoCount(rows.length)],
+        [operational ? "Área activa" : "Área actual", geoMetric(area, " ha")],
+        [operational ? "TCH anterior" : "TCH 25/26", geoMetric(finite(producer?.tch) ?? weighted(rows, "tch"))],
+        [`Est. ${estimateSeason}`, geoMetric(operational ? estimate.estimateTch : estimate.tchEst2627)],
+        [operational ? "Suertes activas" : "Suertes actuales", geoCount(operational ? rows.filter(row => row.participatesCurrentArea).length : rows.length)],
         ["Destino dom.", dominant(rows, "destino") || "N/D"],
       ];
       return `<div class="casur-geo-card-head"><div><span>Cronológico vigente</span><strong>Finca ${esc(context?.farmCode || "N/D")}</strong></div><em>${esc(context?.name || "")}</em></div>${geoFieldsMarkup(fields)}<p class="casur-geo-card-note">Seleccione una suerte para consultar su ficha operativa actual.</p>`;
@@ -869,11 +899,12 @@
       ["Distancia surcos", geoMetric(record.surco, " m")],
       ["Riego / secano", text(record.tipoRiego) || "N/D"],
       ["Destino", text(record.destino) || "N/D"],
+      ...(operational ? [["Estado", [text(record.classification),text(record.operationalState)].filter((value,index,list) => value && list.indexOf(value) === index).join(" · ") || "N/D"]] : []),
     ] : [];
     const productivity = record ? [
-      ["TCH 25/26", geoMetric(record.tch)],
+      [operational ? "TCH anterior" : "TCH 25/26", geoMetric(record.tch)],
       ["TCH hist. pond.", history?.hasData ? geoMetric(history.allHistory.tch) : "N/D"],
-      ["Est. 26/27", geoMetric(record.tchEst2627)],
+      [`Est. ${estimateSeason}`, geoMetric(operational ? (record.participatesMilling && record.forecast?.season === estimateSeason ? record.forecast.tch : null) : record.tchEst2627)],
       ["N.º riegos", geoCount(record.numeroRiegos)],
     ] : [];
     return `

@@ -89,10 +89,11 @@ check("acceso técnico compacto, seguro y adaptable", () => {
   assert.ok(index.includes("!text.includes('id=\"masterAdminLauncher\"')"));
 });
 
-check("TCH 26/27 en fichas y tabla", () => {
-  assert.ok(enhancement.includes("TCH estimado 26/27"));
-  assert.ok(enhancement.includes("TCH est. 26/27"));
-  assert.ok(enhancement.includes("Ton. est. 26/27"));
+check("estimado de la zafra de origen en fichas y tabla", () => {
+  assert.ok(enhancement.includes('`TCH estimado ${season}`'));
+  assert.ok(enhancement.includes('`TCH est. ${season}`'));
+  assert.ok(enhancement.includes('`Ton. est. ${season}`'));
+  assert.ok(enhancement.includes('record?.participatesMilling'));
   assert.ok(enhancement.includes("Estado maestro"));
   assert.ok(enhancement.includes("#cronoPrintPanel table"));
 });
@@ -151,8 +152,8 @@ check("exportación de hacienda es gráfica y paginada", () => {
 });
 
 check("TCH estimado y porcentajes depurados por alcance", () => {
-  assert.ok(index.includes("TCH estimado 26/27 por zona"));
-  assert.ok(index.includes("TCH est. 26/27</th><th>Ton. est. 26/27"));
+  assert.ok(index.includes("TCH estimado '+esc(estimateSeason())+' por zona"));
+  assert.ok(index.includes("TCH est. '+esc(estimateSeason())+'</th><th>Ton. est. '+esc(estimateSeason())"));
   assert.equal(index.includes("Porcentaje sobre el área seleccionada."), false);
   assert.equal(index.includes("kpi('Cobertura estimado',f2(coverage"), false);
   assert.ok(index.includes("czhshare"));

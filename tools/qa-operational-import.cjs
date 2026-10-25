@@ -54,6 +54,49 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    assert.equal(await page.evaluate(async()=>(await CASUR_MODULE_BRIDGE.checkpoint('pwa-update')).ok),true);
    fs.writeFileSync(path.join(out,'reconciliation-applied.json'),JSON.stringify(state,null,2));await page.screenshot({path:path.join(out,'applied-desktop.png')});
   });
+  await check('B1: chronological home, producer, lot and zone use the approved universes',async()=>{
+   const model=await page.evaluate(()=>({global:CRONO_DATA.global,producers:CRONO_DATA.producers.length,options:document.querySelector('#cronoProducerSelect').options.length,
+    farm:CRONO_DATA.producers.find(p=>p.code==='993'),lot:CRONO_DATA.producers.flatMap(p=>p.details).find(r=>r.codLote==='49404A')}));
+   assert.equal(model.global.area,9574.66);assert.equal(model.global.inventoryArea,9672.13);assert.equal(model.global.millingArea,9126.6);
+   assert.equal(model.global.activeLots,995);assert.equal(model.global.absentLots,7);assert.equal(model.options,model.producers+1);
+   assert.ok(Math.abs(model.global.estimateTons-563187.97)<0.001);assert.equal(model.lot.classification,'Sin Caña');
+   assert.equal(model.lot.operationalState,'Baja definitiva');
+   await page.evaluate(()=>{document.querySelector('#cronoSection').open=true;renderCronoHome();});
+   assert.match(await page.locator('.casur-release-strip').innerText(),/Generación local aprobada · versión 2026\.10\.24-aforo\.1001/);
+   assert.match(await page.locator('#cronoContent').innerText(),/Área activa[\s\S]*9,574\.66 ha[\s\S]*Inventario 9,672\.13 ha/i);
+   await page.locator('#cronoContent').scrollIntoViewIfNeeded();await page.waitForTimeout(450);await page.screenshot({path:path.join(out,'b1-home-1440.png')});
+   await page.evaluate(()=>renderCronoProducer('993'));
+   assert.match(await page.locator('#cronoContent').innerText(),/Área activa/i);
+   assert.equal(await page.locator('#cronoProducerSelect').inputValue(),'993');
+   await page.locator('#cronoContent').scrollIntoViewIfNeeded();await page.waitForTimeout(450);await page.screenshot({path:path.join(out,'b1-farm-1440.png')});
+   await page.evaluate(()=>selectCronoSuerteSuggestion('494','04A'));
+   assert.match(await page.locator('#cronoContent').innerText(),/Sin Caña/);
+   assert.match(await page.locator('#cronoContent').innerText(),/0\.00 ha/);
+   await page.evaluate(()=>selectCronoSuerteSuggestion('20','03'));
+   assert.match(await page.locator('#cronoContent').innerText(),/Semilla/);
+   assert.match(await page.locator('#cronoContent').innerText(),/Molienda/);
+   await page.evaluate(()=>selectCronoSuerteSuggestion('147','10A'));
+   assert.match(await page.locator('#cronoContent').innerText(),/Ausente de la fuente/);
+   await page.evaluate(()=>{document.querySelector('#zoneMainSection').open=true;goCronoZoneModule();});
+   assert.match(await page.locator('#cronoZoneContent').textContent(),/9,574\.66 ha/);
+   assert.match(await page.locator('#cronoZoneContent').textContent(),/563,187\.97 t/);
+   await page.evaluate(()=>selectCronoZone('5-Productores'));
+   assert.match(await page.locator('#cronoZoneContent').textContent(),/TCH estimado 26\/27/);
+   assert.equal(await page.locator('#cronoZoneContent').isVisible(),true);
+   await page.locator('#cronoZoneContent').screenshot({path:path.join(out,'b1-zone-1440.png')});
+  });
+  await check('B1: tablet/mobile and chronological PDF/PNG keep existing layout',async()=>{
+   await page.evaluate(()=>renderCronoProducer('993'));
+   await page.waitForSelector('[data-casur-export-kind="cronologico"] .pdf',{timeout:10000});
+   const pdfPromise=page.waitForEvent('download');await page.locator('[data-casur-export-kind="cronologico"] .pdf').click();const pdf=await pdfPromise;await pdf.saveAs(path.join(out,'b1-cronologico-993.pdf'));
+   const pngPromise=page.waitForEvent('download');await page.locator('[data-casur-export-kind="cronologico"] .image').click();const png=await pngPromise;await png.saveAs(path.join(out,'b1-cronologico-993.png'));
+   for(const [width,height,name] of [[768,1024,'b1-farm-768.png'],[390,844,'b1-farm-390.png']]){
+    await page.setViewportSize({width,height});await page.locator('#cronoContent').scrollIntoViewIfNeeded();await page.waitForTimeout(450);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${width} overflow`);
+    await page.screenshot({path:path.join(out,name)});
+   }
+   await page.setViewportSize({width:1440,height:900});
+  });
   await check('failed transaction after staging previous version rolls back all writes',async()=>{
    const outcome=await page.evaluate(async()=>{
     const store=await import('../../core/shared-data/master-store.js'),before=await store.loadProduccionDataset(),payload=structuredClone(before.payload);
@@ -76,6 +119,7 @@ const invalidFile=path.join(out,'qa-duplicado-sintetico.xlsx');fs.writeFileSync(
    await context.setOffline(false);
    reopen.on('dialog',d=>d.accept());await reopen.locator('#operationalRestore').click();await reopen.getByText(/Versión anterior recuperada/).waitFor();
    assert.equal(await reopen.evaluate(()=>CRONO_DATA.global.area),10030.65);assert.equal(await reopen.evaluate(()=>JSON.stringify(APP_DATA)),historicalHash);
+   assert.match(await reopen.locator('.casur-release-strip').textContent(),/Datos compartidos/);
    await reopen.screenshot({path:path.join(out,'rollback-mobile.png')});
    // Move the remaining tests to the reopened page without losing the isolated origin state.
    globalThis.reopen=reopen;

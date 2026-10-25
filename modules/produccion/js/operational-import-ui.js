@@ -86,10 +86,11 @@ function reconcile(){
   const crono=window.CASUR_BUILD_CRONO_DATA(proposal.catalog,source.file);
   crono.meta={...crono.meta,source:source.file,sheet:c.sheetName,rows:proposal.catalog.length,rawRows:parsed.records.length,sourceProfiles:parsed.profiles,
     rule:'Catálogo permanente; área activa de Molienda/Semilla; estimado de molienda separado del TCH ejecutado.',
-    tchEst2627EffectiveDate:source.sourceDate,dataVersion:version,sourceSha256:source.sha256,generated:source.sourceDate,publishedAt:null,
+    tchEst2627EffectiveDate:source.season==='26/27'?source.sourceDate:null,estimateSeason:source.season,
+    dataVersion:version,sourceSha256:source.sha256,generated:source.sourceDate,publishedAt:null,
     importedAt:proposal.importedAt,operationalContract:1,previousDataVersion:basePayload.dataVersion,manualChanges:false};
   crono.operational={totals:proposal.totals,harvestLines:proposal.harvestLines,planAudit:proposal.planAudit};
-  proposal.catalog.forEach(r=>{r.tchEst2627Fecha=source.sourceDate;r.tchEst2627Fuente=source.file;});
+  proposal.catalog.forEach(r=>{r.tchEst2627Fecha=r.tchEst2627!==null?source.sourceDate:null;r.tchEst2627Fuente=r.tchEst2627!==null?source.file:null;});
   proposal.cronologico=crono;
   const t=proposal.totals,counts=kind=>new Set(proposal.differences.filter(d=>d.kind===kind).map(d=>d.key)).size;
   document.getElementById('operationalResults').innerHTML=`<p><b>${t.inventoried} inventariadas · ${t.catalog} en catálogo · ${t.active} activas · ${t.absent} ausentes</b></p>

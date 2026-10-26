@@ -285,7 +285,7 @@
   }
   function estimateCaption(reason, sourceDate) {
     const date = window.CASUR_OPERATIONAL_IMPORT.dateValue(sourceDate).iso;
-    return reason + (date ? `\n${formatCronoDate(date)}` : '');
+    return (reason === 'Aforo autorizado' ? 'Último Aforo' : reason) + (date ? `\n${formatCronoDate(date)}` : '');
   }
   function detailColumns(season) {
     return ['Suerte','Área','# de Corte','Fecha corte/siembra','Destino Cultivo','Textura','Tipo de riego',
@@ -343,7 +343,8 @@
       const kpis = content.querySelector(".kpis");
       if (kpis && !kpis.querySelector("[data-casur-estimate]")) {
         const estimate = finite(estimateValue);
-        const card = estimateKpi(`TCH estimado ${season}`, estimate === null ? "N/D" : fmt(estimate), estimateCaption(sourceLabel, aforoDate));
+        const caption = scope.producer ? estimateCaption(sourceLabel, aforoDate) : '';
+        const card = estimateKpi(`TCH estimado ${season}`, estimate === null ? "N/D" : fmt(estimate), caption);
         const realTch = kpis.children[1];
         if (realTch) realTch.insertAdjacentHTML("afterend", card);
         else kpis.insertAdjacentHTML("beforeend", card);

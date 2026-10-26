@@ -5,9 +5,16 @@ import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
-import {PREVIEW_BRANCH, assertPreviewContext, buildPreview} from '../tools/build-pages-preview.mjs';
+import {PREVIEW_BRANCH, assertPreviewContext, buildPreview, insertPreviewBootstrap} from '../tools/build-pages-preview.mjs';
 
 const head = '8e7d4e775ee1338909f7326ced5c2233adf23154';
+test('preview bootstrap follows the document scripts, preserving body tags inside export templates', () => {
+  const original = '<body><script>const exportHtml = `<body>PDF</body>`;</script></body></html>';
+  const result = insertPreviewBootstrap(original, 'window.preview = true;');
+  assert.ok(result.includes('<script>const exportHtml = `<body>PDF</body>`;</script>'));
+  assert.ok(result.endsWith('<script>\nwindow.preview = true;\n</script>\n</body></html>'));
+  assert.throws(() => insertPreviewBootstrap('<html></html>', ''), /insertion point/);
+});
 test('preview refuses main, unverified Access and mismatched commits', () => {
   assert.throws(() => assertPreviewContext({branch:'main', head}), /authorized/);
   assert.throws(() => assertPreviewContext({branch:PREVIEW_BRANCH, head, cloudBuild:true}), /Access/);

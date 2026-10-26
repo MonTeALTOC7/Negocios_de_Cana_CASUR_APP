@@ -3059,8 +3059,8 @@ function renderCronoHome(){
   const g=C.global||{};
   const operational=C.meta?.operationalContract===1;
   const html='<div class="kpis" style="margin-top:12px">'+[
-    kpi(operational?'Área activa':'Área total',fmt(g.area,' ha'),operational?'Inventario '+fmt(g.inventoryArea,' ha')+' · Molienda '+fmt(g.millingArea,' ha'):'Cronológico',true),
-    kpi(operational?'TCH anterior':'TCH ponderado',fmt(g.tch),operational?'Referencia · área activa':'TCH 25/26'),
+    kpi(operational?'Área activa':'Área total',fmt(g.area,' ha'),operational?'':'Cronológico',true),
+    kpi(operational?'TCH anterior':'TCH ponderado',fmt(g.tch),operational?'':'TCH 25/26'),
     kpi(operational?'Suertes activas':'Suertes',fmt0(operational?g.activeLots:g.suertes),operational?fmt0(g.suertes)+' catálogo · '+fmt0(g.absentLots)+' ausentes':''),
     kpi('Haciendas',fmt0(g.productores),'')
   ].join('')+'</div>'+`<div class="crono-summary-grid"><div class="crono-box"><h3>Área por zona</h3>${hbar((C.groups||{}).zona,8,'green')}</div><div class="crono-box"><h3>Área por riego</h3>${hbar((C.groups||{}).riego,8,'blue')}</div><div class="crono-box"><h3>Área por tenencia</h3>${hbar((C.groups||{}).tenencia,8,'gold')}</div><div class="crono-box"><h3>Área por Destino Cultivo</h3>${hbar((C.groups||{}).destino,8,'green')}</div></div>`;
@@ -3155,8 +3155,8 @@ function renderCronoScope(code,suerte){
   const singleAge=suerte?(rows[0].renovacion&&!rows[0].fSiembra?'Renovación':fmt(ageMonths(rows[0]),' meses')):fmt(pAge,' meses');
   const distanceValue=suerte?(individualDistance.km==null?'N/D':fmt(individualDistance.km,' km')):(ssum.distance.kmWeighted==null?'N/D':fmt(ssum.distance.kmWeighted,' km'));
   const kpis=[
-    kpi(C.meta?.operationalContract===1?'Área activa':'Área total',fmt(ssum.area,' ha'),C.meta?.operationalContract===1?'Inventario '+fmt(ssum.inventoryArea,' ha')+' · Molienda '+fmt(ssum.millingArea,' ha'):(suerte?'Suerte seleccionada':'Suma de suertes'),true),
-    kpi(suerte?'TCH anterior Z25/26':(C.meta?.operationalContract===1?'TCH anterior':'TCH/Z 25-26'),`<span class="tch-val ${t}">${fmt(ssum.tch)}</span>`,C.meta?.operationalContract===1?'Referencia · área activa':''),
+    kpi(C.meta?.operationalContract===1?'Área activa':'Área total',fmt(ssum.area,' ha'),C.meta?.operationalContract===1?(suerte?'':'Inventario '+fmt(ssum.inventoryArea,' ha')+' · Molienda '+fmt(ssum.millingArea,' ha')):(suerte?'Suerte seleccionada':'Suma de suertes'),true),
+    kpi(suerte?'TCH anterior Z25/26':(C.meta?.operationalContract===1?'TCH anterior':'TCH/Z 25-26'),`<span class="tch-val ${t}">${fmt(ssum.tch)}</span>`,C.meta?.operationalContract===1&&!suerte?'Referencia · área activa':''),
     kpi(suerte?'Edad actual':'Edad ponderada',safe(singleAge||'—'),''),
     kpi(suerte?'Variedad':'Distancia ponderada (km)',suerte?safe(rows[0]?.variedad||'—'):distanceValue,''),
     window.CASUR_CRONO_PARTICIPATION.dateKpi(rows)

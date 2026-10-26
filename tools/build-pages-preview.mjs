@@ -23,6 +23,12 @@ const dataFiles = [
   'shared/geo/data/zona-5-productores.geojson',
 ];
 
+export function insertPreviewBootstrap(html, bootstrap) {
+  const bodyEnd = html.lastIndexOf('</body>');
+  if (bodyEnd < 0) throw Error('Preview bootstrap insertion point missing');
+  return html.slice(0, bodyEnd) + `<script>\n${bootstrap}\n</script>\n` + html.slice(bodyEnd);
+}
+
 export function assertPreviewContext({branch, head, reportedHead, cloudBuild, accessConfirmed}) {
   if (branch !== PREVIEW_BRANCH) throw Error('Only the authorized PR45 preview branch can be built');
   if (!/^[a-f0-9]{40}$/.test(head) || (reportedHead && reportedHead !== head)) throw Error('Preview commit mismatch');
@@ -56,8 +62,7 @@ export function buildPreview(output, env = process.env, aforo = null) {
     const htmlPath = 'modules/produccion/index.html';
     const bootstrap = fs.readFileSync(new URL('./preview-bootstrap.js', import.meta.url), 'utf8');
     const html = bytesByPath.get(htmlPath).toString('utf8');
-    if (!html.includes('</body>')) throw Error('Preview bootstrap insertion point missing');
-    bytesByPath.set(htmlPath, Buffer.from(html.replace('</body>', `<script>\n${bootstrap}\n</script>\n</body>`)));
+    bytesByPath.set(htmlPath, Buffer.from(insertPreviewBootstrap(html, bootstrap)));
     // Rehash the derived HTML; all 163 runtime resources remain verified at install.
     const derivedManifest = structuredClone(manifest);
     for (const file of Object.keys(derivedManifest.assets)) {

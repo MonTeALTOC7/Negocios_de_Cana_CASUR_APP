@@ -98,9 +98,9 @@ test('formato Cronológico dd-mmm-aaaa deja ISO intacto y no modifica otras fech
 
 test('subtexto del estimado usa fecha de aforo explícita, sin inferir cosecha ni completar faltantes',()=>{
  const api=view().CASUR_CRONO_PARTICIPATION;
- assert.equal(api.estimateCaption('Aforo autorizado','2026-10-12'),'Aforo autorizado\n12-oct-2026');
+ assert.equal(api.estimateCaption('Aforo autorizado','2026-10-12'),'Último Aforo\n12-oct-2026');
  assert.equal(api.estimateCaption('Sin estimado en la fuente',null),'Sin estimado en la fuente');
- assert.equal(api.estimateCaption('Aforo autorizado','2026-02-30'),'Aforo autorizado');
+ assert.equal(api.estimateCaption('Aforo autorizado','2026-02-30'),'Último Aforo');
  assert.doesNotMatch(api.estimateCaption('Aforo autorizado','2026-10-12'),/24-dic/);
 });
 

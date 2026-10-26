@@ -12,6 +12,13 @@ const read = file => fs.readFileSync(path.join(directory, file));
 const json = file => JSON.parse(read(file));
 const metadata = json('__preview.json');
 const manifest = json('core/versions/runtime-assets.json');
+// Check the actual derived document, including bootstrap placement, before upload.
+const derivedHtml = read('modules/produccion/index.html').toString();
+let inlineScripts = 0;
+for (const match of derivedHtml.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+  if (/\bsrc\s*=|type\s*=\s*["']module["']/i.test(match[1]) || !match[2].trim()) continue;
+  new vm.Script(match[2], {filename:`preview-inline-${++inlineScripts}.js`});
+}
 for (const [file, expected] of Object.entries(metadata.files)) {
   assert.equal(createHash('sha256').update(read(file)).digest('hex'), expected, file);
 }
@@ -80,7 +87,7 @@ assert.equal((await evaluate('resolveGeneration()')).version, AFORO_VERSION);
 offline = false; oldNetwork = true;
 assert.equal((await evaluate('resolveGeneration()')).version, AFORO_VERSION);
 console.log(JSON.stringify({head:metadata.head, verifiedFiles:Object.keys(metadata.files).length,
-  runtimeAssets:Object.keys(manifest.assets).length, dataVersion:crono.meta.dataVersion,
+  runtimeAssets:Object.keys(manifest.assets).length, inlineScripts, dataVersion:crono.meta.dataVersion,
   historicalRowsUnchanged:true, lot99336:{area:lot.area,tchPrevious:lot.tch,tchEstimated:65,tons:lot.tonEst2627,
     sourceDate:lot.source.sourceDate,harvest:api.dateSummary([lot]).display,cut:api.referenceDate(lot).detail},
   global:refreshed.operational.totals, columns:18,

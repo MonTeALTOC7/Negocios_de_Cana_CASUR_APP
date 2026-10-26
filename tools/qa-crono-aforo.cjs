@@ -113,7 +113,7 @@ const cronoUrl=new URL('modules/produccion/',base).href,version='2026.10.25-afor
    await page.evaluate(()=>{window.__qaReadWrites=[];window.__qaPut=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(v,...args){window.__qaReadWrites.push({store:this.name,key:v?.key});return window.__qaPut.call(this,v,...args);};window.__qaDataBefore=JSON.stringify(CRONO_DATA);});
   });
   await check('B: 99336 shows 65 TCH, 579.15 tons, proposed 24-dic-2026 and Corte mecánico',async()=>{
-   await lot();const texts=await cards();assert.equal(texts.length,6);assert.match(texts[2],/65.00.*Aforo autorizado.*12-oct-2026/s);assert.match(texts[1],/TCH anterior Z25\/26/);assert.match(texts[3],/Edad actual/);assert.match(texts[4],/Variedad.*CP 72-2086/s);assert.match(texts[5],/Fecha para cosecha.*24-dic-2026.*Corte mecánico/s);
+   await lot();const texts=await cards();assert.equal(texts.length,6);assert.match(texts[2],/65.00.*Último Aforo.*12-oct-2026/s);assert.match(texts[1],/TCH anterior Z25\/26/);assert.match(texts[3],/Edad actual/);assert.match(texts[4],/Variedad.*CP 72-2086/s);assert.match(texts[5],/Fecha para cosecha.*24-dic-2026.*Corte mecánico/s);
    const row=await page.locator('#cronoPrintPanel table tbody tr').innerText();assert.match(row,/65.00/);assert.match(row,/579.15 t/);
    const metadata=await page.locator('[data-crono-date]').getAttribute('data-date-metadata');const d=JSON.parse(metadata);
    assert.equal(d.type,'proposed');assert.equal(d.provenance.row,1020);assert.equal(d.provenance.column,68);assert.equal(d.cutProvenance.column,69);assert.equal(d.cutType,'CORTE MECANICO');assert.equal(d.dataVersion,version);assert.equal(d.source.sha256,sha);

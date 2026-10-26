@@ -16,8 +16,10 @@ const manifest = json('core/versions/runtime-assets.json');
 const derivedHtml = read('modules/produccion/index.html').toString();
 let inlineScripts = 0;
 for (const match of derivedHtml.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
-  if (/\bsrc\s*=|type\s*=\s*["']module["']/i.test(match[1]) || !match[2].trim()) continue;
-  new vm.Script(match[2], {filename:`preview-inline-${++inlineScripts}.js`});
+  const type = /\btype\s*=\s*["']([^"']+)/i.exec(match[1])?.[1];
+  if (/\bsrc\s*=/i.test(match[1]) || (type && !['text/javascript','application/javascript'].includes(type)) || !match[2].trim()) continue;
+  try { new vm.Script(match[2], {filename:`preview-inline-${++inlineScripts}.js`}); }
+  catch (error) { throw Error(`Invalid executable inline script ${inlineScripts}: ${error.message}`); }
 }
 for (const [file, expected] of Object.entries(metadata.files)) {
   assert.equal(createHash('sha256').update(read(file)).digest('hex'), expected, file);

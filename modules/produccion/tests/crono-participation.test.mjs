@@ -106,7 +106,7 @@ test('subtexto del estimado usa fecha de aforo explícita, sin inferir cosecha n
 
 test('ficha compacta conserva variedad, edad y distancia; usa título coherente de zafra pasada',()=>{
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'),css=fs.readFileSync(new URL('../css/casur-upgrade.css',import.meta.url),'utf8');
- assert.ok(html.includes("kpi('TCH zafra pasada 25/26'"));assert.ok(html.includes("suerte?'Edad actual'"));assert.ok(html.includes("suerte?kpi('Variedad'"));assert.ok(html.includes("kpi('Distancia ponderada (km)'"));
+ assert.ok(html.includes("kpi('TCH Z Ant. 25/26'"));assert.ok(html.includes("suerte?'Edad actual'"));assert.ok(html.includes("suerte?kpi('Variedad'"));assert.ok(html.includes("kpi('Distancia ponderada (km)'"));
  assert.ok(html.includes('cronoDistanceCell(r,distanceIndex)'));
  assert.ok(css.includes('#cronoContent[data-geo-scope="lot"] .ficha-band'));
  assert.ok(html.includes(".crono-kpi em{white-space:pre-line!important"));
@@ -247,7 +247,7 @@ test('panel general reemplaza contadores por toneladas autorizadas y edad, sin a
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const normalized=html.replaceAll('\r\n','\n');
  const home=normalized.slice(normalized.indexOf('function renderCronoHome(){\n  setupCrono();'),normalized.indexOf('function renderCronoProducer(code){renderCronoScope'));
- assert.match(home,/TCH zafra pasada 25\/26/);assert.match(home,/estimate\.estimateTons/);
+ assert.match(home,/TCH Z Ant\. 25\/26/);assert.match(home,/estimate\.estimateTons/);
  assert.match(home,/currentAgeKpi\(rows,ageMonths\)/);assert.doesNotMatch(home,/kpi\('Haciendas'|Suertes activas/);
  assert.match(normalized,/suerte\?'Edad actual'/);assert.match(normalized,/suerte\?kpi\('Variedad'/);
 });
@@ -286,7 +286,20 @@ test('paneles de área incluyen todas las categorías y sin clasificar, con tota
  const panel=api.areaPanel(rows,'zona','Área por zona',groups=>{chartGroups=groups;return 'chart'});
  assert.equal(chartGroups.length,10);assert.equal(chartGroups.reduce((s,g)=>s+g.area,0),55);
  assert.equal(chartGroups.find(g=>g.key==='Sin clasificar').area,10);assert.match(panel,/data-area-total="55"/);assert.match(panel,/55.00 ha/);
+ assert.doesNotMatch(panel,/>TOTAL\s*</);assert.match(panel,/aria-label="Total de área por zona"/);
  assert.deepEqual(Array.from(api.agronomicGroups([],'zona')),[]);
+});
+
+test('resumen compacto conserva cinco KPI y agrupa paneles por ámbito sin métricas nuevas',()=>{
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').replaceAll('\r\n','\n');
+ const home=html.slice(html.indexOf('function renderCronoHome(){\n  setupCrono();'),html.indexOf('function renderCronoProducer(code){renderCronoScope'));
+ assert.match(home,/kpis crono-general-kpis/);assert.match(home,/Ton\. Estim\. Z/);
+ assert.equal((home.match(/class="crono-analysis-column"/g)||[]).length,3);
+ for(const text of [' por zona',' por riego',' · Plantilla / Soca'])assert.ok(home.includes("'TCH Estim. Z'+(season||'—')+'"+text+"'"));
+ assert.equal((home.match(/\.estimatedTchPanel\(/g)||[]).length,3);
+ assert.equal((home.match(/\.areaPanel\(/g)||[]).length,4);
+ const js=fs.readFileSync(new URL('../js/casur-enhancements.js',import.meta.url),'utf8');
+ assert.match(js,/estimateKpi\(`TCH Estim\. Z\$\{season\}`/);
 });
 
 test('gráficos mantienen N/D y denominadores auditables ante fuentes no aplicadas o generaciones mixtas',()=>{

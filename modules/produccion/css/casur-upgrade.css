@@ -192,9 +192,34 @@ body.casur-geo-open{overflow:hidden}
 #cronoContent[data-geo-scope="lot"] .single-suerte-kpis .kpi em:empty{display:none}
 
 /* PR45: reuse the existing compact summary panels; each area grouping is exhaustive. */
-#cronoContent .crono-area-total{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #dbe7df;margin-top:10px;padding-top:8px;font-size:11px;font-weight:850;color:#17412a}
+#cronoContent .crono-area-total{display:flex;justify-content:flex-end;border-top:1px solid #dbe7df;margin-top:9px;padding-top:7px;font-size:12px;font-weight:850;color:#17412a}
 #cronoContent .crono-estimate-analysis .htrack{background:#e4eae9}
 #cronoContent .crono-estimate-analysis .hfill{background:#1f4e5c}
 #cronoContent .crono-estimate-analysis .hval{color:#1f4e5c}
 #cronoContent .crono-estimate-analysis .hrow:focus-visible{outline:2px solid #1f4e5c;outline-offset:3px;border-radius:4px}
 #cronoContent .crono-general-analysis .crono-box{min-width:0}
+
+/* PR45: use the full summary width; natural-height columns remove stretched cards. */
+#cronoContent > .crono-general-kpis{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:10px!important;align-items:stretch}
+#cronoContent > .crono-general-kpis .kpi{min-height:0!important;padding:10px 12px!important}
+#cronoContent > .crono-general-kpis .kpi .label{font-size:10.5px!important;line-height:1.25;letter-spacing:.15px}
+#cronoContent > .crono-general-kpis .kpi strong{font-size:23px!important;line-height:1.15!important;white-space:nowrap;margin-top:5px!important}
+#cronoContent > .crono-summary-grid.crono-general-analysis{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:start!important;gap:12px!important}
+#cronoContent .crono-analysis-column{display:grid;gap:12px;align-content:start;min-width:0}
+#cronoContent > .crono-general-analysis .crono-box{padding:12px 14px!important;min-height:0!important}
+#cronoContent > .crono-general-analysis .crono-box h3{font-size:13px!important;line-height:1.25!important;margin-bottom:9px!important}
+#cronoContent > .crono-general-analysis .hchart{gap:7px!important}
+#cronoContent[data-geo-scope="farm"] #cronoPrintPanel > .kpis .kpi{min-height:0!important;padding:10px 12px!important}
+#cronoContent[data-geo-scope="farm"] #cronoPrintPanel > .kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:10px!important}
+#cronoContent[data-geo-scope="farm"] #cronoPrintPanel > .kpis .label{font-size:10.5px!important;line-height:1.25;letter-spacing:.15px}
+#cronoContent[data-geo-scope="farm"] #cronoPrintPanel > .kpis strong{font-size:22px!important;line-height:1.15!important}
+#cronoContent .casur-proposal-kpi em{font-size:12px!important;font-weight:800!important;line-height:1.35!important;color:#30393d!important}
+@media(max-width:1079px){
+ #cronoContent > .crono-summary-grid.crono-general-analysis{grid-template-columns:1fr!important}
+ #cronoContent[data-geo-scope="farm"] #cronoPrintPanel > .kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(max-width:760px){
+ #cronoContent > .crono-general-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+ #cronoContent > .crono-general-kpis .kpi strong{font-size:21px!important}
+ #cronoContent[data-geo-scope="farm"] #cronoPrintPanel > .kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}

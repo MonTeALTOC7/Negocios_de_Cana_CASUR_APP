@@ -90,7 +90,7 @@ check("acceso técnico compacto, seguro y adaptable", () => {
 });
 
 check("estimado de la zafra de origen en fichas y tabla", () => {
-  assert.ok(enhancement.includes('`TCH estimado ${season}`'));
+  assert.ok(enhancement.includes('`TCH Estim. Z${season}`'));
   assert.ok(enhancement.includes('`TCH est. ${season}`'));
   assert.ok(enhancement.includes('`Ton. est. ${season}`'));
   assert.ok(enhancement.includes('window.CASUR_OPERATIONAL_IMPORT.participation(record)'));

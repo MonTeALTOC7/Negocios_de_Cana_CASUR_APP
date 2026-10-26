@@ -339,7 +339,7 @@
   }
   function areaPanel(rows, field, title, chart) {
     const groups = agronomicGroups(rows, field), total = groups.reduce((sum, group) => sum + group.area, 0);
-    return `<div class="crono-box" data-crono-area-group="${esc(field)}" data-area-total="${total}"><h3>${esc(title)}</h3>${chart(groups)}<div class="crono-area-total">TOTAL <strong>${fmt(total,' ha')}</strong></div></div>`;
+    return `<div class="crono-box" data-crono-area-group="${esc(field)}" data-area-total="${total}"><h3>${esc(title)}</h3>${chart(groups)}<div class="crono-area-total" role="group" aria-label="Total de ${esc(title.toLowerCase())}"><strong>${fmt(total,' ha')}</strong></div></div>`;
   }
   function estimatedTchPanel(rows, field, title) {
     const groups = agronomicGroups(rows, field), max = Math.max(1, ...groups.map(g => g.estimateTch || 0));
@@ -407,7 +407,7 @@
       if (kpis && !kpis.querySelector("[data-casur-estimate]")) {
         const estimate = finite(estimateValue);
         const caption = scope.producer ? estimateCaption(operational && summary.estimateState === 'applied' ? 'Aforo autorizado' : sourceLabel, aforoDate) : '';
-        const card = estimateKpi(`TCH estimado ${season}`, estimate === null ? "N/D" : fmt(estimate), caption);
+        const card = estimateKpi(`TCH Estim. Z${season}`, estimate === null ? "N/D" : fmt(estimate), caption);
         const before = scope.producer ? kpis.querySelector('[data-crono-date]') : kpis.children[2];
         if (before) before.insertAdjacentHTML("beforebegin", card);
         else kpis.insertAdjacentHTML("beforeend", card);

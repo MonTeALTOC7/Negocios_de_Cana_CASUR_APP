@@ -3058,12 +3058,12 @@ function renderCronoHome(){
   const operational=C.meta?.operationalContract===1;
   const rows=(C.producers||[]).flatMap(p=>p.details||[]),aforo=window.CASUR_CRONO_PARTICIPATION;
   const estimate=aforo.summary(rows),season=C.meta?.estimateSeason||estimate.estimateSeason;
-  const html='<div class="kpis" style="margin-top:12px">'+[
+  const html='<div class="kpis crono-general-kpis" style="margin-top:12px">'+[
     kpi(operational?'Área activa':'Área total',fmt(g.area,' ha'),operational?'':'Cronológico',true),
-    kpi('TCH zafra pasada 25/26',fmt(g.tch),''),
-    kpi('Ton. estimadas '+(season||'—'),estimate.estimateTons===null?'N/D':fmt(estimate.estimateTons,' t'),''),
+    kpi('TCH Z Ant. 25/26',fmt(g.tch),''),
+    kpi('Ton. Estim. Z'+(season||'—'),estimate.estimateTons===null?'N/D':fmt(estimate.estimateTons,' t'),''),
     aforo.currentAgeKpi(rows,ageMonths)
-  ].join('')+'</div>'+`<div class="crono-summary-grid crono-general-analysis">${aforo.estimatedTchPanel(rows,'zona','TCH estimado por zona')}${aforo.estimatedTchPanel(rows,'tipoRiego','TCH estimado por riego')}${aforo.estimatedTchPanel(rows,'stage','TCH estimado · Plantilla / Soca')}${aforo.areaPanel(rows,'zona','Área por zona',groups=>hbar(groups,groups.length,'green'))}${aforo.areaPanel(rows,'tipoRiego','Área por riego',groups=>hbar(groups,groups.length,'blue'))}${aforo.areaPanel(rows,'tenencia','Área por tenencia',groups=>hbar(groups,groups.length,'gold'))}${aforo.areaPanel(rows,'destino','Área por destino del cultivo',groups=>hbar(groups,groups.length,'green'))}</div>`;
+  ].join('')+'</div>'+`<div class="crono-summary-grid crono-general-analysis"><div class="crono-analysis-column">${aforo.estimatedTchPanel(rows,'zona','TCH Estim. Z'+(season||'—')+' por zona')}${aforo.areaPanel(rows,'zona','Área por zona',groups=>hbar(groups,groups.length,'green'))}</div><div class="crono-analysis-column">${aforo.estimatedTchPanel(rows,'tipoRiego','TCH Estim. Z'+(season||'—')+' por riego')}${aforo.areaPanel(rows,'tipoRiego','Área por riego',groups=>hbar(groups,groups.length,'blue'))}</div><div class="crono-analysis-column">${aforo.estimatedTchPanel(rows,'stage','TCH Estim. Z'+(season||'—')+' · Plantilla / Soca')}${aforo.areaPanel(rows,'tenencia','Área por tenencia',groups=>hbar(groups,groups.length,'gold'))}${aforo.areaPanel(rows,'destino','Área por destino del cultivo',groups=>hbar(groups,groups.length,'green'))}</div></div>`;
   const cont=ce('cronoContent'); if(cont){cont.innerHTML=html; cont.dataset.ready='1'; cont.dataset.geoScope=''; cont.dataset.geoLotId='';}
   const sel=ce('cronoProducerSelect'); if(sel)sel.value='';
   const q=ce('cronoQ'); if(q)q.value='';
@@ -3157,7 +3157,7 @@ function renderCronoScope(code,suerte){
   const ageCard=kpi(suerte?'Edad actual':'Edad ponderada',safe(singleAge||'—'),'');
   const kpis=[
     kpi(C.meta?.operationalContract===1?'Área activa':'Área total',fmt(ssum.area,' ha'),'',true),
-    kpi('TCH zafra pasada 25/26',`<span class="tch-val ${t}">${fmt(ssum.tch)}</span>`,''),
+    kpi('TCH Z Ant. 25/26',`<span class="tch-val ${t}">${fmt(ssum.tch)}</span>`,''),
     suerte?kpi('Variedad',safe(rows[0]?.variedad||'—'),''):ageCard,
     suerte?ageCard:kpi('Distancia ponderada (km)',distanceValue,''),
     window.CASUR_CRONO_PARTICIPATION.dateKpi(rows)

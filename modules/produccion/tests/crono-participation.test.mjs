@@ -104,9 +104,9 @@ test('subtexto del estimado usa fecha de aforo explícita, sin inferir cosecha n
  assert.doesNotMatch(api.estimateCaption('Aforo autorizado','2026-10-12'),/24-dic/);
 });
 
-test('pulido visual queda acotado a ficha de suerte y mantiene distancia en detalle',()=>{
+test('ficha compacta conserva variedad, edad y distancia; usa título coherente de zafra pasada',()=>{
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'),css=fs.readFileSync(new URL('../css/casur-upgrade.css',import.meta.url),'utf8');
- assert.ok(html.includes("suerte?'TCH anterior Z25/26'"));assert.ok(html.includes("suerte?'Edad actual'"));assert.ok(html.includes("suerte?'Variedad':'Distancia ponderada (km)'"));
+ assert.ok(html.includes("kpi('TCH zafra pasada 25/26'"));assert.ok(html.includes("suerte?'Edad actual'"));assert.ok(html.includes("suerte?kpi('Variedad'"));assert.ok(html.includes("kpi('Distancia ponderada (km)'"));
  assert.ok(html.includes('cronoDistanceCell(r,distanceIndex)'));
  assert.ok(css.includes('#cronoContent[data-geo-scope="lot"] .ficha-band'));
  assert.ok(html.includes(".crono-kpi em{white-space:pre-line!important"));
@@ -249,5 +249,50 @@ test('panel general reemplaza contadores por toneladas autorizadas y edad, sin a
  const home=normalized.slice(normalized.indexOf('function renderCronoHome(){\n  setupCrono();'),normalized.indexOf('function renderCronoProducer(code){renderCronoScope'));
  assert.match(home,/TCH zafra pasada 25\/26/);assert.match(home,/estimate\.estimateTons/);
  assert.match(home,/currentAgeKpi\(rows,ageMonths\)/);assert.doesNotMatch(home,/kpi\('Haciendas'|Suertes activas/);
- assert.match(normalized,/suerte\?'Edad actual'/);assert.match(normalized,/suerte\?'Variedad'/);
+ assert.match(normalized,/suerte\?'Edad actual'/);assert.match(normalized,/suerte\?kpi\('Variedad'/);
+});
+
+test('análisis agronómico reutiliza toneladas/área de molienda: no promedio simple, semilla ni plan',()=>{
+ const api=view().CASUR_CRONO_PARTICIPATION,rows=[
+  record('01',{inventoryArea:2,zona:'Norte',tipoRiego:'Gravedad',forecast:forecast(100),plan:{tons:600000}}),
+  record('02',{inventoryArea:8,zona:'Norte',tipoRiego:'Gravedad',forecast:forecast(50)}),
+  record('03',{inventoryArea:5,zona:'Norte',classification:'Semilla',forecast:forecast(99)}),
+  record('04',{inventoryArea:20,zona:'Sur',classification:'Sin Caña'}),
+  record('05',{inventoryArea:5,zona:'Sur',forecast:forecast(null)}),
+  record('06',{inventoryArea:3,zona:'Norte',sourcePresence:'absent'})];
+ const before=JSON.stringify(rows),groups=api.agronomicGroups(rows,'zona'),north=groups.find(g=>g.key==='Norte'),south=groups.find(g=>g.key==='Sur');
+ assert.equal(north.area,15);assert.equal(north.estimateTons,600);assert.equal(north.estimateArea,10);
+ assert.equal(north.estimateTch,60);assert.equal(north.coveragePct,100);
+ assert.equal(south.area,5);assert.equal(south.estimateTch,null);assert.equal(south.estimateArea,0);assert.equal(south.coveragePct,0);
+ assert.equal(api.agronomicGroups(rows,'tipoRiego').find(g=>g.key==='Gravedad').estimateTch,60);
+ assert.equal(JSON.stringify(rows),before);
+});
+
+test('etapa exige número de corte acreditado; edad y tipo propuesto no acreditan Plantilla/Soca',()=>{
+ const api=view().CASUR_CRONO_PARTICIPATION;
+ const cut=(c,header='NC',raw=c)=>record('01',{corte:c,provenance:{cut:{header,raw}},edadExcel:1,plan:{cut:'MANUAL'}});
+ assert.equal(api.cropStage(cut('1')),'Plantilla');assert.equal(api.cropStage(cut(2)),'Soca');
+ assert.equal(api.cropStage(cut('12','#_de_Corte')),'Soca');
+ for(const r of [cut(null),cut('R'),cut('MANUAL'),cut(0),cut(-1),cut(1.5),cut(1,'Edad'),cut(1,'NC',2),record('02',{corte:1})])assert.equal(api.cropStage(r),'Sin clasificar');
+ const groups=api.agronomicGroups([cut(1),cut(2),cut(null)],'stage');
+ assert.equal(groups.length,3);assert.equal(groups.reduce((n,g)=>n+g.area,0),30);
+ assert.equal(groups.find(g=>g.key==='Sin clasificar').estimateTch,50);
+});
+
+test('paneles de área incluyen todas las categorías y sin clasificar, con total de la misma área activa',()=>{
+ const api=view().CASUR_CRONO_PARTICIPATION,rows=Array.from({length:10},(_,i)=>record(String(i),{zona:i===9?'':'Zona '+i,inventoryArea:i+1}));
+ rows.push(record('11',{classification:'Sin Caña',inventoryArea:999}),record('12',{sourcePresence:'absent',inventoryArea:999}));
+ let chartGroups;
+ const panel=api.areaPanel(rows,'zona','Área por zona',groups=>{chartGroups=groups;return 'chart'});
+ assert.equal(chartGroups.length,10);assert.equal(chartGroups.reduce((s,g)=>s+g.area,0),55);
+ assert.equal(chartGroups.find(g=>g.key==='Sin clasificar').area,10);assert.match(panel,/data-area-total="55"/);assert.match(panel,/55.00 ha/);
+ assert.deepEqual(Array.from(api.agronomicGroups([],'zona')),[]);
+});
+
+test('gráficos mantienen N/D y denominadores auditables ante fuentes no aplicadas o generaciones mixtas',()=>{
+ const api=view().CASUR_CRONO_PARTICIPATION,rows=[record('01',{zona:'A'}),record('02',{zona:'B',dataVersion:'otra'})];
+ assert.ok(api.agronomicGroups(rows,'zona').every(g=>g.estimateTch===null));
+ const panel=api.estimatedTchPanel(rows,'zona','TCH estimado por zona');
+ assert.match(panel,/data-group-audit/);assert.match(panel,/N\/D/);assert.match(panel,/ha válidas/);assert.match(panel,/Cobertura/);
+ assert.doesNotMatch(panel,/>0.00<\/div>/);
 });

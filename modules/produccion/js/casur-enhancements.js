@@ -312,6 +312,43 @@
       (audit.reason ? ` · ${audit.reason}` : '');
     return `<div class="kpi" data-crono-current-age="${esc(JSON.stringify(audit))}" tabindex="0" title="${esc(detail)}" aria-label="Edad ponderada actual: ${audit.months === null ? 'N/D' : fmt(audit.months, ' meses')}. ${esc(detail)}"><span class="label">Edad ponderada actual</span><strong>${audit.months === null ? 'N/D' : fmt(audit.months, ' meses')}</strong></div>`;
   }
+  function activeAreaForRow(row) {
+    return row.sourcePresence ? window.CASUR_OPERATIONAL_IMPORT.participation(row).activeArea : finite(row.area);
+  }
+  function cropStage(row) {
+    const cut = finite(row.corte), origin = row.provenance?.cut;
+    const verified = window.CASUR_OPERATIONAL_IMPORT.aliases.cut.some(header => normal(header) === normal(origin?.header)) &&
+      finite(origin?.raw) === cut;
+    return verified && Number.isInteger(cut) && cut > 0 ? (cut === 1 ? 'Plantilla' : 'Soca') : 'Sin clasificar';
+  }
+  function agronomicGroups(rows, field) {
+    const groups = new Map(), applied = estimateSummary(rows).estimateState === 'applied';
+    for (const row of rows || []) {
+      const area = activeAreaForRow(row);
+      if (!(area > 0)) continue;
+      const key = field === 'stage' ? cropStage(row) : text(row[field]) || 'Sin clasificar';
+      if (!groups.has(key)) groups.set(key, {key, area:0, rows:[]});
+      const group = groups.get(key); group.area += area; group.rows.push(row);
+    }
+    return [...groups.values()].map(({key, area, rows: members}) => {
+      const estimate = estimateSummary(members);
+      return {key, area, estimateTch:applied ? estimate.estimateTch : null,
+        estimateTons:applied ? estimate.estimateTons : null, estimateArea:applied ? estimate.estimateArea : 0,
+        millingArea:estimate.millingArea || 0, coveragePct:applied ? estimate.coberturaEstimadoAreaPct : null};
+    }).sort((a,b) => b.area - a.area || a.key.localeCompare(b.key,'es'));
+  }
+  function areaPanel(rows, field, title, chart) {
+    const groups = agronomicGroups(rows, field), total = groups.reduce((sum, group) => sum + group.area, 0);
+    return `<div class="crono-box" data-crono-area-group="${esc(field)}" data-area-total="${total}"><h3>${esc(title)}</h3>${chart(groups)}<div class="crono-area-total">TOTAL <strong>${fmt(total,' ha')}</strong></div></div>`;
+  }
+  function estimatedTchPanel(rows, field, title) {
+    const groups = agronomicGroups(rows, field), max = Math.max(1, ...groups.map(g => g.estimateTch || 0));
+    return `<div class="crono-box crono-estimate-analysis" data-crono-estimate-group="${esc(field)}" data-group-audit="${esc(JSON.stringify(groups))}"><h3>${esc(title)}</h3>` +
+      (!groups.length ? '<div class="empty">Sin datos.</div>' : '<div class="hchart">' + groups.map(g => {
+        const detail = `Molienda: ${fmt(g.estimateTons,' t')} / ${fmt(g.estimateArea,' ha válidas')} · Cobertura: ${fmt(g.coveragePct,'%')}`;
+        return `<div class="hrow" tabindex="0" title="${esc(detail)}" aria-label="${esc(g.key)}: ${g.estimateTch === null ? 'N/D' : fmt(g.estimateTch)+' TCH'}. ${esc(detail)}"><div class="hlabel">${esc(g.key)}</div><div class="htrack"><div class="hfill" style="width:${g.estimateTch === null ? 0 : Math.max(4,g.estimateTch/max*100)}%"></div></div><div class="hval">${g.estimateTch === null ? 'N/D' : fmt(g.estimateTch)}</div></div>`;
+      }).join('')+'</div>')+'</div>';
+  }
   function detailColumns(season) {
     return ['Suerte','Área','# de Corte','Fecha corte/siembra','Destino Cultivo','Textura','Tipo de riego',
       'Surco','Distancia (km)','Zona','Variedad','TCH',`TCH est. ${season}`,`Ton. est. ${season}`,
@@ -346,7 +383,8 @@
   }
   function dateKpi(rows) {
     const d = dateSummary(rows);
-    return `<div class="kpi" data-crono-date="${esc(d.type)}" data-date-metadata="${esc(JSON.stringify(d))}"><span class="label">${esc(d.label)}</span><strong>${esc(d.display)}</strong><em>${esc(d.detail)}</em></div>`;
+    const caption = rows.length > 1 ? (d.dates?.some(date => date.date) ? 'Detalle por suerte' : '') : d.detail;
+    return `<div class="kpi casur-proposal-kpi" data-crono-date="${esc(d.type)}" data-date-metadata="${esc(JSON.stringify(d))}"><span class="label">${esc(d.label)}</span><strong>${esc(d.display)}</strong><em>${esc(caption)}</em></div>`;
   }
 
   let enhancing = false;
@@ -368,27 +406,19 @@
       const kpis = content.querySelector(".kpis");
       if (kpis && !kpis.querySelector("[data-casur-estimate]")) {
         const estimate = finite(estimateValue);
-        const caption = scope.producer ? estimateCaption(sourceLabel, aforoDate) : '';
+        const caption = scope.producer ? estimateCaption(operational && summary.estimateState === 'applied' ? 'Aforo autorizado' : sourceLabel, aforoDate) : '';
         const card = estimateKpi(`TCH estimado ${season}`, estimate === null ? "N/D" : fmt(estimate), caption);
-        const realTch = kpis.children[1];
-        if (realTch) realTch.insertAdjacentHTML("afterend", card);
+        const before = scope.producer ? kpis.querySelector('[data-crono-date]') : kpis.children[2];
+        if (before) before.insertAdjacentHTML("beforebegin", card);
         else kpis.insertAdjacentHTML("beforeend", card);
       }
       const actions = content.querySelector(".ficha-actions");
-      const lotFicha = content.dataset.geoScope === 'lot';
-      if (lotFicha) actions?.querySelectorAll('.status-pill,.casur-estimate-badge').forEach(node => node.remove());
+      actions?.querySelectorAll('.status-pill,.casur-estimate-badge').forEach(node => node.remove());
       const detailTitle = content.querySelector('#cronoPrintPanel > .section-title > div');
       if (operational && detailTitle && !detailTitle.dataset.participationScope) {
-        const s = estimateSummary(scope.rows);
         detailTitle.dataset.participationScope = '1';
-        detailTitle.style.minWidth = '0';
         const heading = detailTitle.querySelector('h3');
-        if (heading) heading.textContent = `Detalle por suerte · ${s.activeLots} activas · ${s.catalogLots} catálogo`;
-      }
-      if (!lotFicha && actions && !actions.querySelector(".casur-estimate-badge")) {
-        const hasEstimate = finite(estimateValue) !== null;
-        const estimateDate=window.CRONO_DATA?.meta?.operationalContract?window.CRONO_DATA.meta.tchEst2627EffectiveDate:ESTIMATE_DATE;
-        actions.insertAdjacentHTML("afterbegin", `<span class="casur-estimate-badge ${hasEstimate ? "" : "is-empty"}">${esc(season)}: ${hasEstimate ? fmt(estimateValue) + ' TCH' : 'N/D'}${hasEstimate ? (estimateDate ? ` · ${formatCronoDate(estimateDate)}` : "") : ' · ' + esc(sourceLabel)}</span>`);
+        if (heading) heading.textContent = 'Detalle por suerte';
       }
       content.querySelectorAll("#cronoPrintPanel table").forEach((table) => {
         if (table.dataset.casurEstimate === "1") return;
@@ -1951,7 +1981,7 @@
   window.CASUR_REFRESH_OPERATIONAL_VIEW = refreshOperationalView;
   window.CASUR_CRONO_PARTICIPATION = Object.freeze({summary: estimateSummary, coverageText: estimateCoverageText,
     forecastForRow, referenceDate, dateSummary, dateKpi, formatDate: formatCronoDate, cutTypeText, estimateCaption, detailColumns,
-    currentAgeSummary, currentAgeKpi});
+    currentAgeSummary, currentAgeKpi, cropStage, agronomicGroups, areaPanel, estimatedTchPanel});
 
   function openModuleContext(context) {
     if (!context || context.kind !== "lot") return { ok: false, status: "invalid-context" };

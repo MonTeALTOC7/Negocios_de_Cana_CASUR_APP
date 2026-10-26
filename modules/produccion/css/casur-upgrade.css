@@ -18,9 +18,11 @@
 .casur-sync-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:#fff;border:1px solid #d8e6dc;color:#475569;font-size:10px;font-weight:950}
 .casur-sync-pill.is-update{background:#fff8df;border-color:#f4c542;color:#805b00}
 
-.casur-estimate-kpi{border-left-color:var(--casur-est)!important;background:linear-gradient(145deg,#f0fdfa,#fff)!important}
-.casur-estimate-kpi .value,.casur-estimate-kpi strong{color:#0f766e!important}
-.casur-estimate-kpi small,.casur-estimate-kpi em{color:#4b6b66!important}
+.casur-estimate-kpi,.casur-proposal-kpi{border-color:#86a0aa!important;background:#e4eae9!important}
+.casur-estimate-kpi:before,.casur-proposal-kpi:before{background:#86a0aa!important}
+.casur-estimate-kpi .value,.casur-estimate-kpi strong,.casur-proposal-kpi strong{color:#1f4e5c!important}
+.casur-estimate-kpi small,.casur-estimate-kpi em,.casur-proposal-kpi em{color:#30393d!important}
+.casur-estimate-kpi .label,.casur-proposal-kpi .label{color:#1f4e5c!important}
 .casur-estimate-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #99f6e4;border-radius:999px;padding:7px 10px;background:#ecfdf5;color:#0f766e;font-size:10.5px;font-weight:950;white-space:nowrap}
 .casur-estimate-badge.is-empty{border-color:#dbe4e0;background:#f8fafc;color:#64748b}
 .casur-estimate-cell{background:#f0fdfa;color:#0f766e;font-weight:950}
@@ -182,9 +184,17 @@ body.casur-geo-open{overflow:hidden}
 }
 
 /* Natural-sized KPIs: keep the lot grid and chart, remove the inherited 104px minimum. */
-#cronoContent[data-geo-scope="lot"] .single-suerte-kpis{align-items:start;gap:9px!important}
+#cronoContent[data-geo-scope="lot"] .single-suerte-kpis{align-items:stretch;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
 #cronoContent[data-geo-scope="lot"] .single-suerte-kpis .kpi{min-height:0!important;padding:10px 12px!important}
 #cronoContent[data-geo-scope="lot"] .single-suerte-kpis .kpi .label{font-size:10.5px;line-height:1.25}
 #cronoContent[data-geo-scope="lot"] .single-suerte-kpis .kpi strong{font-size:22px!important;line-height:1.12!important;margin-top:4px!important}
 #cronoContent[data-geo-scope="lot"] .single-suerte-kpis .kpi em{font-size:11px;line-height:1.25;margin-top:4px}
 #cronoContent[data-geo-scope="lot"] .single-suerte-kpis .kpi em:empty{display:none}
+
+/* PR45: reuse the existing compact summary panels; each area grouping is exhaustive. */
+#cronoContent .crono-area-total{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #dbe7df;margin-top:10px;padding-top:8px;font-size:11px;font-weight:850;color:#17412a}
+#cronoContent .crono-estimate-analysis .htrack{background:#e4eae9}
+#cronoContent .crono-estimate-analysis .hfill{background:#1f4e5c}
+#cronoContent .crono-estimate-analysis .hval{color:#1f4e5c}
+#cronoContent .crono-estimate-analysis .hrow:focus-visible{outline:2px solid #1f4e5c;outline-offset:3px;border-radius:4px}
+#cronoContent .crono-general-analysis .crono-box{min-width:0}

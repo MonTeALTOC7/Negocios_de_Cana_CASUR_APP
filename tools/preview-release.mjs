@@ -22,6 +22,11 @@ export function derivePreviewWorker(source, {appVersion, head}) {
   replace("return {ok:true, version:APP_VERSION};", "return {ok:true, version:PREVIEW_RELEASE_ID};");
   replace("postMessage({version:APP_VERSION, ready:await releaseReady(), previous});",
     "postMessage({version:PREVIEW_RELEASE_ID, appVersion:APP_VERSION, head:PREVIEW_HEAD, shellCache:SHELL_CACHE, ready:await releaseReady(), previous});");
+  // Cache.keys() does not retain the original credential mode in Chromium.
+  // Revalidate same-origin cached resources with the current Access session.
+  // Keep URL/query, existing integrity/activation gates and foreign requests unchanged.
+  replace("if (!(await cache.match(request))) await cache.add(request);",
+    "if (!(await cache.match(request))) await cache.add(url.origin === self.location.origin ? new Request(request, {credentials:'same-origin'}) : request);");
   // This diagnostic URL must not fall back to the app shell on navigation.
   // Network-first when online; its last response belongs to this code cache.
   replace("  // 2) Navegaciones: network-first con fallback al index CORRECTO.",

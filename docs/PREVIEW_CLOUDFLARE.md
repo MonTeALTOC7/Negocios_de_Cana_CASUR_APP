@@ -100,6 +100,16 @@ existente detecta la diferencia incluso si APP_VERSION sigue siendo 1.4.0.
 «Más tarde» conserva el código instalado. No se requiere Ctrl+F5 ni borrar datos.
 El identificador visible de versión de la app continúa siendo el oficial.
 
+La recuperación de recursos no ejecutables desde una caché de código anterior
+reconstruye únicamente las peticiones del mismo origen con
+`new Request(request, {credentials:'same-origin'})`. Chromium devuelve claves de
+Cache Storage con credenciales omitidas; repetir directamente ese Request
+impedía terminar install tras haber utilizado el JSON versionado de TCH, porque
+Access respondía con su login. Se mantienen URL/query, validación íntegra,
+checkpoint, cachés anteriores y peticiones de otros orígenes sin cambios.
+La sesión la aporta el navegador: no se incrustan cookies ni tokens. No cambia
+el SW fuente de producción ni se modifica Access.
+
 `__preview.json` tiene una excepción de diagnóstico network-first dentro del SW
 de preview, antes del fallback de navegación, y conserva su última respuesta en
 la caché de ese código para consulta offline. No habilita acceso sin Access.

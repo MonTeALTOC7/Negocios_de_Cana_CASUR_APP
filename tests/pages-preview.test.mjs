@@ -6,6 +6,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {PREVIEW_BRANCH, assertPreviewContext, buildPreview, insertPreviewBootstrap} from '../tools/build-pages-preview.mjs';
+import {derivePreviewWorker, previewReleaseId} from '../tools/preview-release.mjs';
 
 const head = '8e7d4e775ee1338909f7326ced5c2233adf23154';
 test('preview bootstrap follows the document scripts, preserving body tags inside export templates', () => {
@@ -33,7 +34,10 @@ test('preview copies verified runtime and explicit datasets, never financial wor
     assert.ok(metadata.files['shared/geo/data/zona-1-sur.geojson']);
     assert.ok(metadata.files['modules/produccion/data/cronologico.json']);
     const originalSW = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-    assert.equal(fs.readFileSync(path.join(output, 'sw.js'), 'utf8'), originalSW + '\n/* Cloudflare preview HTML routing compatibility v1. */\n');
+    assert.equal(metadata.previewReleaseId, previewReleaseId(manifest.appVersion, metadata.head));
+    assert.equal(fs.readFileSync(path.join(output, 'sw.js'), 'utf8'), derivePreviewWorker(originalSW,
+      {appVersion:manifest.appVersion,head:metadata.head}) + '\n/* Cloudflare preview HTML routing compatibility v1. */\n');
+    assert.equal(JSON.parse(fs.readFileSync(path.join(output,'core/versions/runtime-assets.json'))).previewReleaseId, metadata.previewReleaseId);
     const routes = fs.readFileSync(path.join(output, '_redirects'), 'utf8').trim().split('\n');
     assert.ok(routes.includes('/index.html / 200'));
     assert.ok(routes.includes('/modules/produccion/index.html /modules/produccion/ 200'));

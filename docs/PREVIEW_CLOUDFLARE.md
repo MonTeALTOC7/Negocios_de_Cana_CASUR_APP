@@ -85,6 +85,33 @@ recibe la misma versión que Cronológico/version para la promoción atómica LK
 cambia: asciende de septiembre al aforo y rechaza un downgrade posterior.
 El comentario de hosting del SW derivado identifica el hash del snapshot.
 
+## Identidad de código por HEAD y actualización real
+
+Cada artefacto declara `previewReleaseId = APP_VERSION + "-preview." + HEAD`.
+Su SW usa una caché de código independiente `casur_master_shell_v<previewReleaseId>`.
+El manifiesto runtime y el marcador de preparación deben coincidir con esa
+identidad además de verificar todos los hashes. El SW de producción, su versión,
+GEO, LKG y las bases IndexedDB no se modifican. Las cachés anteriores se conservan.
+
+El worker preparado comunica esa identidad mediante `CASUR_UPDATE_INFO`, junto
+con HEAD, APP_VERSION y nombre de caché. El controlador de actualizaciones
+existente detecta la diferencia incluso si APP_VERSION sigue siendo 1.4.0.
+«Actualizar ahora» utiliza el checkpoint multiventana y activa/reload una vez;
+«Más tarde» conserva el código instalado. No se requiere Ctrl+F5 ni borrar datos.
+El identificador visible de versión de la app continúa siendo el oficial.
+
+`__preview.json` tiene una excepción de diagnóstico network-first dentro del SW
+de preview, antes del fallback de navegación, y conserva su última respuesta en
+la caché de ese código para consulta offline. No habilita acceso sin Access.
+
+La ausencia de gráfico observada en la instalación anterior se reprodujo con
+11598 registros históricos efectivos y 10 registros agregados de 99336 presentes,
+pero `lotByCode` indefinido: el HTML cacheado tenía el bootstrap dentro de una
+plantilla de exportación y el script del Histórico no terminaba de inicializar.
+La corrección de inserción ya publicada se vuelve efectiva al instalar la nueva
+generación completa de código. La validación compara Histórico JSON/JS y los
+ocho valores originales 18/19–25/26; no reconstruye ni altera registros.
+
 El build ejecuta `tools/verify-preview-aforo.mjs`: verifica los 163 hashes de
 runtime, 185 archivos, conciliación y 99336; prueba el gate SW real en memoria
 con caché septiembre, promoción, reinicio offline simulado y rechazo de datos

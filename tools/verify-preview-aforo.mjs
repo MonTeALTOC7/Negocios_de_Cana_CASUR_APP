@@ -12,6 +12,8 @@ const read = file => fs.readFileSync(path.join(directory, file));
 const json = file => JSON.parse(read(file));
 const metadata = json('__preview.json');
 const manifest = json('core/versions/runtime-assets.json');
+assert.equal(manifest.previewReleaseId, metadata.previewReleaseId);
+assert.equal(metadata.shellCache, 'casur_master_shell_v' + metadata.previewReleaseId);
 // Check the actual derived document, including bootstrap placement, before upload.
 const derivedHtml = read('modules/produccion/index.html').toString();
 let inlineScripts = 0;
@@ -33,6 +35,14 @@ const crono = json('modules/produccion/data/cronologico.json');
 const history = json('modules/produccion/data/historico.json');
 const originalHistory = JSON.parse(fs.readFileSync(new URL('../modules/produccion/data/historico.json', import.meta.url)));
 assert.deepEqual({...history, meta:originalHistory.meta}, originalHistory);
+const historicalScript = {window:{}};
+vm.runInNewContext(read('modules/produccion/data/historico.js').toString(),historicalScript);
+assert.equal(JSON.stringify(historicalScript.window.CASUR_REMOTE_HISTORICO),JSON.stringify(history));
+const historicalLot = history.lotCompact.find(lot => String(lot[0]) === '99336');
+assert.ok(historicalLot);
+const expectedTrend = [[1819,21.39],[1920,86.13],[2021,113.64],[2122,72.1],
+  [2223,72.68],[2324,82.73],[2425,85.53],[2526,67.15]];
+assert.deepEqual(historicalLot[11].slice(-8).map(row => [row[0],row[3]]),expectedTrend);
 assert.equal(crono.meta.sourceSha256, AFORO_SOURCE_SHA);
 assert.equal(crono.meta.dataVersion, AFORO_VERSION);
 assert.equal(json('modules/produccion/data/version.json').version, AFORO_VERSION);
@@ -89,7 +99,8 @@ assert.equal((await evaluate('resolveGeneration()')).version, AFORO_VERSION);
 offline = false; oldNetwork = true;
 assert.equal((await evaluate('resolveGeneration()')).version, AFORO_VERSION);
 console.log(JSON.stringify({head:metadata.head, verifiedFiles:Object.keys(metadata.files).length,
-  runtimeAssets:Object.keys(manifest.assets).length, inlineScripts, dataVersion:crono.meta.dataVersion,
+  runtimeAssets:Object.keys(manifest.assets).length, inlineScripts, previewReleaseId:metadata.previewReleaseId,
+  shellCache:metadata.shellCache, historicalTrend99336:expectedTrend, dataVersion:crono.meta.dataVersion,
   historicalRowsUnchanged:true, lot99336:{area:lot.area,tchPrevious:lot.tch,tchEstimated:65,tons:lot.tonEst2627,
     sourceDate:lot.source.sourceDate,harvest:api.dateSummary([lot]).display,cut:api.referenceDate(lot).detail},
   global:refreshed.operational.totals, columns:18,

@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {readPreviewAforo, previewProductionFiles} from './preview-aforo.mjs';
+import {derivePreviewWorker, previewReleaseId} from './preview-release.mjs';
 
 export const PREVIEW_BRANCH = 'codex/estimados-plan-consulta-b2';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -63,13 +64,13 @@ export function buildPreview(output, env = process.env, aforo = null) {
     const bootstrap = fs.readFileSync(new URL('./preview-bootstrap.js', import.meta.url), 'utf8');
     const html = bytesByPath.get(htmlPath).toString('utf8');
     bytesByPath.set(htmlPath, Buffer.from(insertPreviewBootstrap(html, bootstrap)));
-    // Rehash the derived HTML; all 163 runtime resources remain verified at install.
-    const derivedManifest = structuredClone(manifest);
-    for (const file of Object.keys(derivedManifest.assets)) {
-      derivedManifest.assets[file] = digest(normalized(file, bytesByPath.get(file)));
-    }
-    bytesByPath.set('core/versions/runtime-assets.json', Buffer.from(JSON.stringify(derivedManifest, null, 2) + '\n'));
   }
+  // A different HEAD always installs into an independent, fully verified cache.
+  // The previous worker continues serving only its own immutable code snapshot.
+  const releaseId = previewReleaseId(manifest.appVersion, head);
+  const derivedManifest = {...structuredClone(manifest), previewReleaseId:releaseId};
+  for (const file of Object.keys(derivedManifest.assets)) derivedManifest.assets[file] = digest(normalized(file, bytesByPath.get(file)));
+  bytesByPath.set('core/versions/runtime-assets.json', Buffer.from(JSON.stringify(derivedManifest, null, 2) + '\n'));
   // A build is never allowed to replace an existing artifact or the working tree.
   const destination = path.resolve(output);
   if (destination === root || root.startsWith(destination + path.sep)) throw Error('Unsafe preview output');
@@ -87,14 +88,15 @@ export function buildPreview(output, env = process.env, aforo = null) {
     return `/${file} ${target} 200`;
   });
   fs.writeFileSync(path.join(destination, '_redirects'), htmlRoutes.join('\n') + '\n');
-  // A fixed hosting marker triggers one normal SW reinstall for previews that
-  // cached the initial redirected HTML. Logic, version, data and caches survive.
+  // Each preview worker has a HEAD identity and its own code cache. Activation
+  // still requires the existing prepared-resource and multiwindow checkpoint gate.
   const hostingMarker = '\n/* Cloudflare preview HTML routing compatibility v1. */\n' +
     (aforo ? `/* Approved preview snapshot ${aforo.manifest.snapshotSha256} */\n` : '');
-  const swBytes = Buffer.concat([bytesByPath.get('sw.js'), Buffer.from(hostingMarker)]);
+  const swBytes = Buffer.from(derivePreviewWorker(bytesByPath.get('sw.js').toString(), {appVersion:manifest.appVersion, head}) + hostingMarker);
   fs.writeFileSync(path.join(destination, 'sw.js'), swBytes);
   bytesByPath.set('sw.js', swBytes);
   const metadata = {project:'casur-negocios-preview', branch, head, appVersion:manifest.appVersion,
+    previewReleaseId:releaseId, shellCache:'casur_master_shell_v' + releaseId,
     ...(aforo ? {aforo:{dataVersion:aforo.snapshot.production.dataVersion, sourceSha256:aforo.manifest.sourceSha256,
       snapshotSha256:aforo.manifest.snapshotSha256, sourceDate:aforo.manifest.sourceDate}} : {}),
     files:Object.fromEntries([...bytesByPath].map(([file, bytes]) => [file, digest(bytes)]))};

@@ -3058,11 +3058,13 @@ function renderCronoHome(){
   setupCrono(); currentCronoProducer=null;
   const g=C.global||{};
   const operational=C.meta?.operationalContract===1;
+  const rows=(C.producers||[]).flatMap(p=>p.details||[]),aforo=window.CASUR_CRONO_PARTICIPATION;
+  const estimate=aforo.summary(rows),season=C.meta?.estimateSeason||estimate.estimateSeason;
   const html='<div class="kpis" style="margin-top:12px">'+[
     kpi(operational?'Área activa':'Área total',fmt(g.area,' ha'),operational?'':'Cronológico',true),
-    kpi(operational?'TCH anterior':'TCH ponderado',fmt(g.tch),operational?'':'TCH 25/26'),
-    kpi(operational?'Suertes activas':'Suertes',fmt0(operational?g.activeLots:g.suertes),operational?fmt0(g.suertes)+' catálogo · '+fmt0(g.absentLots)+' ausentes':''),
-    kpi('Haciendas',fmt0(g.productores),'')
+    kpi('TCH zafra pasada 25/26',fmt(g.tch),''),
+    kpi('Ton. estimadas '+(season||'—'),estimate.estimateTons===null?'N/D':fmt(estimate.estimateTons,' t'),''),
+    aforo.currentAgeKpi(rows,ageMonths)
   ].join('')+'</div>'+`<div class="crono-summary-grid"><div class="crono-box"><h3>Área por zona</h3>${hbar((C.groups||{}).zona,8,'green')}</div><div class="crono-box"><h3>Área por riego</h3>${hbar((C.groups||{}).riego,8,'blue')}</div><div class="crono-box"><h3>Área por tenencia</h3>${hbar((C.groups||{}).tenencia,8,'gold')}</div><div class="crono-box"><h3>Área por Destino Cultivo</h3>${hbar((C.groups||{}).destino,8,'green')}</div></div>`;
   const cont=ce('cronoContent'); if(cont){cont.innerHTML=html; cont.dataset.ready='1';}
   const sel=ce('cronoProducerSelect'); if(sel)sel.value='';

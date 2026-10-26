@@ -287,6 +287,31 @@
     const date = window.CASUR_OPERATIONAL_IMPORT.dateValue(sourceDate).iso;
     return (reason === 'Aforo autorizado' ? 'Último Aforo' : reason) + (date ? `\n${formatCronoDate(date)}` : '');
   }
+  // Presentation audit only: reuse the individual view's current-age function.
+  // A partial mean is not presented as the age of the whole active inventory.
+  function currentAgeSummary(rows, ageForRow) {
+    let activeArea = 0, validArea = 0, numerator = 0, activeLots = 0, validLots = 0;
+    for (const row of rows || []) {
+      const area = row.sourcePresence
+        ? window.CASUR_OPERATIONAL_IMPORT.participation(row).activeArea : finite(row.area);
+      if (!(area > 0)) continue;
+      activeArea += area; activeLots++;
+      // Renewal without a planting date is a status, not an observed age of zero.
+      const age = row.renovacion && !row.fSiembra ? null : finite(ageForRow(row));
+      if (age === null || age < 0) continue;
+      validArea += area; numerator += area * age; validLots++;
+    }
+    const complete = activeArea > 0 && Math.abs(activeArea - validArea) < 1e-7;
+    return { months: complete ? numerator / validArea : null, numerator, validArea, activeArea,
+      coveragePct: activeArea > 0 ? 100 * validArea / activeArea : null, activeLots, validLots,
+      reason: !activeArea ? 'Sin área activa' : !complete ? 'Cobertura de edad incompleta' : null };
+  }
+  function currentAgeKpi(rows, ageForRow) {
+    const audit = currentAgeSummary(rows, ageForRow);
+    const detail = `Área con edad válida: ${fmt(audit.validArea)} / ${fmt(audit.activeArea)} ha · Cobertura: ${fmt(audit.coveragePct, '%')}` +
+      (audit.reason ? ` · ${audit.reason}` : '');
+    return `<div class="kpi" data-crono-current-age="${esc(JSON.stringify(audit))}" tabindex="0" title="${esc(detail)}" aria-label="Edad ponderada actual: ${audit.months === null ? 'N/D' : fmt(audit.months, ' meses')}. ${esc(detail)}"><span class="label">Edad ponderada actual</span><strong>${audit.months === null ? 'N/D' : fmt(audit.months, ' meses')}</strong></div>`;
+  }
   function detailColumns(season) {
     return ['Suerte','Área','# de Corte','Fecha corte/siembra','Destino Cultivo','Textura','Tipo de riego',
       'Surco','Distancia (km)','Zona','Variedad','TCH',`TCH est. ${season}`,`Ton. est. ${season}`,
@@ -1925,7 +1950,8 @@
   window.CASUR_BUILD_CRONO_DATA = buildCronoData;
   window.CASUR_REFRESH_OPERATIONAL_VIEW = refreshOperationalView;
   window.CASUR_CRONO_PARTICIPATION = Object.freeze({summary: estimateSummary, coverageText: estimateCoverageText,
-    forecastForRow, referenceDate, dateSummary, dateKpi, formatDate: formatCronoDate, cutTypeText, estimateCaption, detailColumns});
+    forecastForRow, referenceDate, dateSummary, dateKpi, formatDate: formatCronoDate, cutTypeText, estimateCaption, detailColumns,
+    currentAgeSummary, currentAgeKpi});
 
   function openModuleContext(context) {
     if (!context || context.kind !== "lot") return { ok: false, status: "invalid-context" };

@@ -216,3 +216,38 @@ test('decisiones CASUR de 2003/1927 preservan el origen y se limitan a fuente, z
 test('semilla positiva no se vuelve Molienda por el valor de TCH',()=>{
  const p=E.participation(record('01',{classification:'Semilla',destino:'Semilla',forecast:forecast(70)}));assert.equal(p.active,true);assert.equal(p.milling,false);assert.equal(p.estimatedTons,null);
 });
+
+test('edad general pondera el cálculo individual por área activa y audita cobertura sin imputar faltantes',()=>{
+ const api=view().CASUR_CRONO_PARTICIPATION;
+ const rows=[record('01',{inventoryArea:10,months:6}),record('02',{inventoryArea:30,months:12}),
+   record('03',{inventoryArea:5,classification:'Semilla',months:9}),
+   record('04',{classification:'Sin Caña',months:90}),record('05',{sourcePresence:'absent',months:90})];
+ const before=JSON.stringify(rows),s=api.currentAgeSummary(rows,r=>r.months);
+ assert.equal(s.months,465/45);assert.equal(s.numerator,465);assert.equal(s.validArea,45);
+ assert.equal(s.activeArea,45);assert.equal(s.coveragePct,100);assert.equal(s.validLots,3);
+ assert.equal(JSON.stringify(rows),before);
+ const missing=api.currentAgeSummary([...rows,record('06',{inventoryArea:5,months:null})],r=>r.months);
+ assert.equal(missing.months,null);assert.equal(missing.validArea,45);assert.equal(missing.activeArea,50);
+ assert.equal(missing.numerator,465);assert.equal(missing.coveragePct,90);assert.equal(missing.reason,'Cobertura de edad incompleta');
+ for(const months of [undefined,'',NaN,-1])assert.equal(api.currentAgeSummary([record('07',{months})],r=>r.months).months,null);
+ assert.equal(api.currentAgeSummary([record('08',{renovacion:true,fSiembra:null})],()=>0).validArea,0);
+ assert.equal(api.currentAgeSummary([record('09')],()=>0).months,0);
+ assert.equal(api.currentAgeSummary([],()=>99).coveragePct,null);
+ const html=api.currentAgeKpi([record('10',{months:null})],r=>r.months);
+ assert.match(html,/>N\/D</);assert.match(html,/Cobertura: 0.00%/);assert.doesNotMatch(html,/<em>/);
+});
+
+test('panel general reemplaza contadores por toneladas autorizadas y edad, sin alterar ficha ni redondear TCH global',()=>{
+ const api=view().CASUR_CRONO_PARTICIPATION;
+ const rows=[record('01',{inventoryArea:3,forecast:forecast(70.12345)}),
+   record('02',{inventoryArea:7,forecast:forecast(80.98765)}),
+   record('03',{classification:'Semilla',forecast:forecast(999)}),
+   record('04',{classification:'Sin Caña',forecast:forecast(999)})];
+ assert.equal(api.summary(rows).estimateTons,777.28);
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const normalized=html.replaceAll('\r\n','\n');
+ const home=normalized.slice(normalized.indexOf('function renderCronoHome(){\n  setupCrono();'),normalized.indexOf('function renderCronoProducer(code){renderCronoScope'));
+ assert.match(home,/TCH zafra pasada 25\/26/);assert.match(home,/estimate\.estimateTons/);
+ assert.match(home,/currentAgeKpi\(rows,ageMonths\)/);assert.doesNotMatch(home,/kpi\('Haciendas'|Suertes activas/);
+ assert.match(normalized,/suerte\?'Edad actual'/);assert.match(normalized,/suerte\?'Variedad'/);
+});

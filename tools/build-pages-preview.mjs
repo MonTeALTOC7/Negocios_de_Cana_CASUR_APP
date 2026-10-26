@@ -3,6 +3,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {readPreviewAforo, previewProductionFiles} from './preview-aforo.mjs';
 
 export const PREVIEW_BRANCH = 'codex/estimados-plan-consulta-b2';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -28,12 +29,13 @@ export function assertPreviewContext({branch, head, reportedHead, cloudBuild, ac
   if (cloudBuild && accessConfirmed !== 'true') throw Error('Cloudflare Access must be verified before enabling deployment');
 }
 
-export function buildPreview(output, env = process.env) {
+export function buildPreview(output, env = process.env, aforo = null) {
   const git = (...args) => execFileSync('git', args, {cwd:root, encoding:'utf8'}).trim();
   const head = git('rev-parse', 'HEAD');
   const branch = env.CF_PAGES_BRANCH || git('branch', '--show-current');
   assertPreviewContext({branch, head, reportedHead:env.CF_PAGES_COMMIT_SHA,
     cloudBuild:env.CF_PAGES === '1', accessConfirmed:env.CASUR_PREVIEW_ACCESS_CONFIRMED});
+  if (env.CF_PAGES === '1') aforo = readPreviewAforo(env.CASUR_PREVIEW_SNAPSHOT_KEY);
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'core/versions/runtime-assets.json'), 'utf8'));
   const tracked = new Set(execFileSync('git', ['ls-files', '-z'], {cwd:root, encoding:'utf8'}).split('\0'));
   // Preserve every verified executable asset. Never copy a directory recursively.
@@ -47,6 +49,21 @@ export function buildPreview(output, env = process.env) {
     const bytes = fs.readFileSync(source);
     if (manifest.assets[file] && digest(normalized(file, bytes)) !== manifest.assets[file]) throw Error(`Runtime hash mismatch: ${file}`);
     bytesByPath.set(file, bytes);
+  }
+  if (aforo) {
+    const history = JSON.parse(bytesByPath.get('modules/produccion/data/historico.json'));
+    for (const [file, bytes] of previewProductionFiles(aforo.snapshot, history)) bytesByPath.set(file, bytes);
+    const htmlPath = 'modules/produccion/index.html';
+    const bootstrap = fs.readFileSync(new URL('./preview-bootstrap.js', import.meta.url), 'utf8');
+    const html = bytesByPath.get(htmlPath).toString('utf8');
+    if (!html.includes('</body>')) throw Error('Preview bootstrap insertion point missing');
+    bytesByPath.set(htmlPath, Buffer.from(html.replace('</body>', `<script>\n${bootstrap}\n</script>\n</body>`)));
+    // Rehash the derived HTML; all 163 runtime resources remain verified at install.
+    const derivedManifest = structuredClone(manifest);
+    for (const file of Object.keys(derivedManifest.assets)) {
+      derivedManifest.assets[file] = digest(normalized(file, bytesByPath.get(file)));
+    }
+    bytesByPath.set('core/versions/runtime-assets.json', Buffer.from(JSON.stringify(derivedManifest, null, 2) + '\n'));
   }
   // A build is never allowed to replace an existing artifact or the working tree.
   const destination = path.resolve(output);
@@ -67,10 +84,14 @@ export function buildPreview(output, env = process.env) {
   fs.writeFileSync(path.join(destination, '_redirects'), htmlRoutes.join('\n') + '\n');
   // A fixed hosting marker triggers one normal SW reinstall for previews that
   // cached the initial redirected HTML. Logic, version, data and caches survive.
-  const swBytes = Buffer.concat([bytesByPath.get('sw.js'), Buffer.from('\n/* Cloudflare preview HTML routing compatibility v1. */\n')]);
+  const hostingMarker = '\n/* Cloudflare preview HTML routing compatibility v1. */\n' +
+    (aforo ? `/* Approved preview snapshot ${aforo.manifest.snapshotSha256} */\n` : '');
+  const swBytes = Buffer.concat([bytesByPath.get('sw.js'), Buffer.from(hostingMarker)]);
   fs.writeFileSync(path.join(destination, 'sw.js'), swBytes);
   bytesByPath.set('sw.js', swBytes);
   const metadata = {project:'casur-negocios-preview', branch, head, appVersion:manifest.appVersion,
+    ...(aforo ? {aforo:{dataVersion:aforo.snapshot.production.dataVersion, sourceSha256:aforo.manifest.sourceSha256,
+      snapshotSha256:aforo.manifest.snapshotSha256, sourceDate:aforo.manifest.sourceDate}} : {}),
     files:Object.fromEntries([...bytesByPath].map(([file, bytes]) => [file, digest(bytes)]))};
   fs.writeFileSync(path.join(destination, '__preview.json'), JSON.stringify(metadata, null, 2) + '\n');
   fs.writeFileSync(path.join(destination, '_headers'), '/*\n  X-Robots-Tag: noindex, nofollow\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n/sw.js\n  Cache-Control: no-cache\n/core/versions/runtime-assets.json\n  Cache-Control: no-cache\n/__preview.json\n  Cache-Control: no-store\n');
@@ -79,5 +100,7 @@ export function buildPreview(output, env = process.env) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  buildPreview(process.argv[2] || path.join(root, 'preview-dist'));
+  const output = process.argv[2] || path.join(root, 'preview-dist');
+  buildPreview(output, process.env, readPreviewAforo(process.env.CASUR_PREVIEW_SNAPSHOT_KEY));
+  execFileSync(process.execPath, [path.join(root, 'tools/verify-preview-aforo.mjs'), output], {cwd:root, stdio:'inherit'});
 }

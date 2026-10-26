@@ -43,10 +43,52 @@ manifiesto de código se conservan y el hash del SW derivado queda en `__preview
 ## Datos locales y aceptación
 
 Usar el alias HTTPS estable de rama en el mismo navegador/perfil. La URL por
-despliegue tiene otro origen y no comparte IndexedDB. Importar el Excel autorizado
-localmente y aprobar mediante el flujo existente; nunca subirlo a Pages.
+despliegue tiene otro origen y no comparte IndexedDB. La preview incluye ahora
+la generación aprobada `2026.10.25-aforo.1101`: no requiere importar Excel.
+Una generación personal ya existente conserva prioridad y no se sobrescribe.
 Comprobar 99336, seis KPI, 18 columnas, PDF/PNG, reapertura, rollback y offline.
 Access limita la red, no borra copias offline ya autorizadas.
+
+## Recuperación del aforo aprobado
+
+Se recuperó el registro `operational_generation:2026.10.25-aforo.1101` de una
+copia aislada del blob del perfil Chromium QA `pr45-cronologico`, origen 4317.
+El perfil original no se abrió ni escribió. La copia conserva el hash del blob
+original. Se descomprimió Snappy y se leyó el contenido V8 compatible con objetos
+JSON; el byte de versión de serialización se adaptó 16→15 solo en memoria para
+el lector Node, sin modificar valores ni bytes originales.
+
+El snapshot conserva Producción (catálogo, Cronológico, REPORTE, procedencia,
+decisiones y plan) y Maestro asociado: 1.053 identidades en ambos. Su SHA de
+fuente registrado coincide con la auditoría aprobada: `aa9ab25b863dc399d5a6d445c0efe7907ca8956ef868429f308a404a46267fc6`.
+No se afirma haber recuperado ni vuelto a calcular los bytes del Excel original.
+El archivo Excel actualmente disponible tiene otro hash y no se utiliza.
+
+`tools/preview-data/aforo-1101.enc` contiene exclusivamente el snapshot derivado,
+comprimido y cifrado AES-256-GCM. El manifiesto documenta hashes del blob,
+snapshot y cifrado, fecha de archivo y conciliación. La clave vive exclusivamente
+en la variable secreta de build **preview** `CASUR_PREVIEW_SNAPSHOT_KEY` del
+proyecto `casur-negocios-preview`; nunca en Git, HTML, metadatos o logs.
+Sin clave válida, SHA íntegro, procedencia exacta y conciliación, el build falla:
+no sustituye el aforo por septiembre ni autoriza otra fuente por nombre.
+
+El builder deriva únicamente los seis archivos de datos del artefacto, añade
+un bootstrap inline al HTML de preview y recalcula su manifiesto de runtime.
+La aplicación usa su helper canónico para presentar la generación y muestra
+«Preview · Aforo 26/27 aprobado». No escribe el snapshot en IndexedDB ni cambia
+el Maestro compartido de los otros módulos. El Maestro recuperado se valida
+contra el catálogo y permanece dentro del snapshot cifrado.
+
+El Histórico conserva íntegramente sus registros. Solo su envolvente de paquete
+recibe la misma versión que Cronológico/version para la promoción atómica LKG;
+`sourceDataVersion` documenta su versión histórica original. La lógica SW no
+cambia: asciende de septiembre al aforo y rechaza un downgrade posterior.
+El comentario de hosting del SW derivado identifica el hash del snapshot.
+
+El build ejecuta `tools/verify-preview-aforo.mjs`: verifica los 163 hashes de
+runtime, 185 archivos, conciliación y 99336; prueba el gate SW real en memoria
+con caché septiembre, promoción, reinicio offline simulado y rechazo de datos
+antiguos. Esto no sustituye el QA visual de navegador ni una prueba física móvil.
 
 Conservar producción deshabilitada al revertir. Un rollback de código no debe
 borrar IndexedDB, GEO, LKG ni datos del usuario. El proyecto de preview puede

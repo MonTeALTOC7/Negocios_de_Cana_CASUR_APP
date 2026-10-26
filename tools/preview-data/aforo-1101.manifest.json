@@ -1,0 +1,71 @@
+{
+  "generation": "2026.10.25-aforo.1101",
+  "sourceSha256": "aa9ab25b863dc399d5a6d445c0efe7907ca8956ef868429f308a404a46267fc6",
+  "sourceDate": "2026-10-12",
+  "archivedAt": "2026-10-25T22:45:10.554Z",
+  "archiveBlobSha256": "b89ce434b9bd272ae30cf4adc3d0594d18fa4c0e203d4c2e5ac3f42d8d174973",
+  "snapshotSha256": "6b07e209e4b157bfd78557ae0857f823311722d0e27e78448703322d195f2221",
+  "encryptedSha256": "9e6b3ee28c2bf1d8e1b39817b6d2efaf57c47401fac89e998249f11484bf8acb",
+  "catalog": 1053,
+  "inventoried": 1046,
+  "active": 995,
+  "master": 1053,
+  "totals": {
+    "catalog": 1053,
+    "inventoried": 1046,
+    "active": 995,
+    "milling": 948,
+    "seed": 47,
+    "seedArea": 459.0099999999999,
+    "usable": 948,
+    "missing": 0,
+    "zero": 0,
+    "conflicts": 12,
+    "pendingConflicts": 10,
+    "decisions": 2,
+    "pendingMillingArea": 0,
+    "pendingMillingLots": 0,
+    "inactive": 58,
+    "absent": 7,
+    "inventoryArea": 9672.130000000005,
+    "activeArea": 9574.660000000003,
+    "millingArea": 9115.650000000001,
+    "millingTons": 563187.9696909501,
+    "validMillingArea": 9115.650000000001,
+    "millingTch": 61.782535495653086,
+    "millingCoverage": 1,
+    "byClass": {
+      "Molienda": {
+        "count": 949,
+        "area": 9126.600000000002,
+        "tons": 563187.9696909501
+      },
+      "Semilla": {
+        "count": 46,
+        "area": 448.0599999999999,
+        "tons": 0
+      },
+      "Investigación": {
+        "count": 2,
+        "area": 3.08,
+        "tons": 0
+      },
+      "Sin Caña": {
+        "count": 34,
+        "area": 0,
+        "tons": 0
+      },
+      "Baja rentabilidad": {
+        "count": 15,
+        "area": 94.39,
+        "tons": 0
+      },
+      "Ausente de la fuente": {
+        "count": 7,
+        "area": 0,
+        "tons": 0
+      }
+    }
+  },
+  "recovery": "Read-only copy of QA IndexedDB blob; Snappy decompressed; V8 JSON-compatible envelope decoded with version header 16->15 in memory only; original bytes unchanged."
+}

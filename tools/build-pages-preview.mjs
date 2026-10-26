@@ -57,6 +57,19 @@ export function buildPreview(output, env = process.env) {
     const target = path.join(destination, file);
     fs.mkdirSync(path.dirname(target), {recursive:true}); fs.writeFileSync(target, bytes);
   }
+  // Pages canonicalizes .html with HTTP redirects. A redirected cached Response
+  // cannot be returned for a browser navigation by the existing service worker.
+  const htmlRoutes = files.filter(file => file.endsWith('.html')).map(file => {
+    const target = file === 'index.html' ? '/' : file.endsWith('/index.html')
+      ? '/' + file.slice(0, -10) : '/' + file.slice(0, -5);
+    return `/${file} ${target} 200`;
+  });
+  fs.writeFileSync(path.join(destination, '_redirects'), htmlRoutes.join('\n') + '\n');
+  // A fixed hosting marker triggers one normal SW reinstall for previews that
+  // cached the initial redirected HTML. Logic, version, data and caches survive.
+  const swBytes = Buffer.concat([bytesByPath.get('sw.js'), Buffer.from('\n/* Cloudflare preview HTML routing compatibility v1. */\n')]);
+  fs.writeFileSync(path.join(destination, 'sw.js'), swBytes);
+  bytesByPath.set('sw.js', swBytes);
   const metadata = {project:'casur-negocios-preview', branch, head, appVersion:manifest.appVersion,
     files:Object.fromEntries([...bytesByPath].map(([file, bytes]) => [file, digest(bytes)]))};
   fs.writeFileSync(path.join(destination, '__preview.json'), JSON.stringify(metadata, null, 2) + '\n');

@@ -23,7 +23,7 @@ No utiliza proyectos, dominios ni reglas de GeoStudio.
    hasta abrirlas desde una red externa y el navegador del usuario.
 
 El builder copia los activos del manifiesto de integridad y una lista explícita
-de datos operativos compartidos. No reconstruye motores ni modifica el SW, datos,
+de datos operativos compartidos. No reconstruye motores ni modifica el SW fuente, datos,
 versiones o manifiesto. Incluye todos los ejecutables requeridos por el SW,
 incluso el HTML de redirección privado; este no contiene datos financieros y
 queda sujeto a Access. No habilitarlo como una nueva aplicación financiera.
@@ -32,6 +32,13 @@ Nunca se copian Excel, datos locales aprobados, perfiles de navegador, respaldos
 carpetas de QA, credenciales, documentación interna ni archivos Git. Labores tiene
 rutas heredadas que esperan Excel excluidos: no se acredita ese flujo financiero
 en esta preview. Riego conserva su backend existente; no realizar pruebas de escritura.
+
+Pages redirige normalmente los HTML a sus rutas canónicas. El builder genera
+reglas de proxy HTTP 200 por HTML para impedir respuestas redirigidas en la caché
+de navegación. Solo en el artefacto añade un comentario fijo al SW para provocar
+una reinstalación normal en previews que ya cachearon el redirect inicial; no
+cambia su lógica, versión, fuente Git ni borra cachés/IndexedDB. Los hashes del
+manifiesto de código se conservan y el hash del SW derivado queda en `__preview.json`.
 
 ## Datos locales y aceptación
 

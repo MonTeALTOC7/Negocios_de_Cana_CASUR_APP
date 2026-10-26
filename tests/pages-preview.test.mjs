@@ -25,7 +25,13 @@ test('preview copies verified runtime and explicit datasets, never financial wor
     for (const file of Object.keys(manifest.assets)) assert.ok(fs.existsSync(path.join(output, file)), file);
     assert.ok(metadata.files['shared/geo/data/zona-1-sur.geojson']);
     assert.ok(metadata.files['modules/produccion/data/cronologico.json']);
-    assert.deepEqual(fs.readFileSync(path.join(output, 'sw.js')), fs.readFileSync(path.join(root, 'sw.js')));
+    const originalSW = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+    assert.equal(fs.readFileSync(path.join(output, 'sw.js'), 'utf8'), originalSW + '\n/* Cloudflare preview HTML routing compatibility v1. */\n');
+    const routes = fs.readFileSync(path.join(output, '_redirects'), 'utf8').trim().split('\n');
+    assert.ok(routes.includes('/index.html / 200'));
+    assert.ok(routes.includes('/modules/produccion/index.html /modules/produccion/ 200'));
+    assert.ok(routes.includes('/modules/tch/index.html /modules/tch/ 200'));
+    assert.equal(routes.length, Object.keys(manifest.assets).filter(file => file.endsWith('.html')).length);
     for (const file of Object.keys(metadata.files)) {
       assert.ok(!/(?:^|\/)(?:\.git|docs|tools|tests|node_modules)\/|\.(?:xlsx?|zip|env|bak)$/i.test(file), file);
       const hash = createHash('sha256').update(fs.readFileSync(path.join(output, file))).digest('hex');

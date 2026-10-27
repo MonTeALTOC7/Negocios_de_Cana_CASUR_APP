@@ -90,7 +90,7 @@ check("acceso técnico compacto, seguro y adaptable", () => {
 });
 
 check("estimado de la zafra de origen en fichas y tabla", () => {
-  assert.ok(enhancement.includes('`TCH estimado ${season}`'));
+  assert.ok(enhancement.includes('`TCH Estim. Z${season}`'));
   assert.ok(enhancement.includes('`TCH est. ${season}`'));
   assert.ok(enhancement.includes('`Ton. est. ${season}`'));
   assert.ok(enhancement.includes('window.CASUR_OPERATIONAL_IMPORT.participation(record)'));
@@ -99,11 +99,12 @@ check("estimado de la zafra de origen en fichas y tabla", () => {
 });
 
 check("fecha del estimado visible una sola vez en la ficha", () => {
-  assert.equal((enhancement.match(/formatDate\(estimateDate\)/g) || []).length, 1);
-  assert.ok(enhancement.includes('operationalContract?window.CRONO_DATA.meta.tchEst2627EffectiveDate:ESTIMATE_DATE'));
+  assert.equal((enhancement.match(/formatCronoDate\(date\)/g) || []).length, 1);
+  assert.ok(enhancement.includes('estimateCaption('));
+  assert.ok(enhancement.includes("reason === 'Aforo autorizado' ? 'Último Aforo'"));
   assert.equal(enhancement.includes("Fecha efectiva ${formatDate(ESTIMATE_DATE)}"), false);
   assert.equal(enhancement.includes("formatDate(record.tchEst2627Fecha || ESTIMATE_DATE)"), false);
-  assert.ok(enhancement.includes("casur-estimate-badge"));
+  assert.equal(enhancement.includes('actions.insertAdjacentHTML("afterbegin"'),false);
 });
 
 check("exportadores preservados", () => {

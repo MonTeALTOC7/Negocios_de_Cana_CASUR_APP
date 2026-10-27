@@ -6,8 +6,15 @@
   const UNLOCK_MINUTES = 30;
   const historicalEngine = window.CASUR_HISTORICAL_ENGINE;
   // User-approved decisions for these exact source snapshots and season only.
+  // 849e...: saved Aforos snapshot, Cronologico rows reconciled to the extraction
+  // audit (1,046 rows, zero value differences); see docs/CONSULTA_ESTIMADOS_PLAN_B2.md.
+  // Expected identity/area/classification/TCH checks below remain mandatory.
+  // aa9a...: restored extraction, audited separately (BP/BQ renamed; BT/BV
+  // auxiliary values changed). A matching file name never grants trust.
   const decisionSources = ['82cd45c03b8c80ddda6ebc6078289df4f63b6a380403da6f103f2a52fa30e069',
-    '716d374c63aa0e990f18cbabee9f391eee3d54d50fd8395488a8357e5bbcbbae'];
+    '716d374c63aa0e990f18cbabee9f391eee3d54d50fd8395488a8357e5bbcbbae',
+    '849e3bac1fa0ff6abd49c690f25ab0910b18282674ddea833283c79d6d46fc04',
+    'aa9ab25b863dc399d5a6d445c0efe7907ca8956ef868429f308a404a46267fc6'];
   window.CASUR_OPERATIONAL_DECISIONS = Object.freeze([
     { id:'CASUR-2026-10-25-2003',key:'2003',season:'26/27',destination:'Semilla',approvedAt:'2026-10-25',
       reason:'Decisión expresa del usuario CASUR: Semilla activa, fuera de molienda.',sourceHashes:decisionSources,
@@ -60,47 +67,81 @@
     });
     return [...totals].sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
   };
+  // Audited snapshots authorized by CASUR; changing a file name cannot grant trust.
+  const aforoSources = decisionSources;
+  function forecastForRow(record, season = window.CRONO_DATA?.meta?.estimateSeason || '26/27') {
+    const source = record?.forecast?.source || record?.source;
+    const authorized = record?.sourcePresence === 'present' && record?.dataVersion && season === '26/27' &&
+      record.forecast?.season === season && aforoSources.includes(source?.sha256) && record.source?.sha256 === source?.sha256;
+    if (!authorized) return { state: 'not-applied', tch: null, tons: null, usable: false,
+      reason: 'Aforo autorizado no cargado/aplicado', season, source: null };
+    const p = window.CASUR_OPERATIONAL_IMPORT.participation(record);
+    const value = finite(record.forecast.tch);
+    const tch = value !== null && value >= 0 ? value : null;
+    return { state: tch === null ? 'missing' : tch === 0 ? 'zero' : 'available', tch,
+      tons: p.milling && tch !== null ? p.millingArea * tch : null, usable: p.usable && tch !== null,
+      reason: tch === null ? 'Sin estimado en la fuente' : tch === 0 ? 'Estimado cero en la fuente' : 'Aforo autorizado',
+      participation: p, season, source };
+  }
+  function formatCronoDate(value) {
+    const iso = window.CASUR_OPERATIONAL_IMPORT.dateValue(value).iso;
+    if (!iso) return '—';
+    const [year, month, day] = iso.split('-');
+    return `${day}-${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][Number(month)-1]}-${year}`;
+  }
+  function cutTypeText(value) {
+    const original = text(value), key = normal(original);
+    return !original ? 'Tipo de corte N/D' : key === 'manual' ? 'Manual' : key === 'cortemecanico' ? 'Corte mecánico' : `${original} · requiere interpretación`;
+  }
+  function referenceDate(record) {
+    const plan = record?.plan, source = record?.source, provenance = record?.provenance?.proposedDate;
+    const date = window.CASUR_OPERATIONAL_IMPORT.dateValue(plan?.date?.iso).iso;
+    const authorized = forecastForRow(record).state !== 'not-applied' &&
+      window.CASUR_OPERATIONAL_IMPORT.aliases.proposedDate.some(header => normal(header) === normal(provenance?.header));
+    const base = { label: 'Fecha para cosecha', type: 'proposed', source: source || null,
+      season: record?.forecast?.season || null, dataVersion: record?.dataVersion || null,
+      provenance: provenance || null, cutProvenance: record?.provenance?.proposedCut || null };
+    if (!authorized || !date) return { ...base, date: null, type: 'missing',
+      detail: authorized ? 'Sin fecha propuesta válida en la fuente' : 'Generación autorizada no cargada/aplicada' };
+    // A proposal stays a proposal even when its date has passed. Never infer execution.
+    return { ...base, date, cutType: text(plan.cut) || null, detail: cutTypeText(plan.cut) };
+  }
+  function dateSummary(rows) {
+    const dates = (rows || []).map(r => referenceDate(r));
+    const found = dates.filter(d => d.date), same = found.length && new Set(found.map(d => d.date)).size === 1;
+    if (dates.length === 1) return { ...dates[0], display: dates[0].date ? formatCronoDate(dates[0].date) : 'N/D' };
+    return { label: 'Fecha para cosecha', type: 'scope', date: same && found.length === dates.length ? found[0].date : null,
+      display: !found.length ? 'N/D' : same && found.length === dates.length ? formatCronoDate(found[0].date) : 'Varias fechas',
+      detail: found.length ? `${found.length}/${dates.length} suertes con propuesta · detalle por suerte` : 'Sin fechas propuestas válidas', dates };
+  }
   const estimateSummary = (rows) => {
     const all = rows || [];
     const operational = all.some((row) => row.sourcePresence === 'present' || row.sourcePresence === 'absent');
     const season = operational ? all.find((row) => row.sourcePresence === 'present' && row.forecast?.season)?.forecast.season : '26/27';
     if (operational) {
       const totals = window.CASUR_OPERATIONAL_IMPORT.totals(all);
-      const tch = totals.validMillingArea ? round(totals.millingTch) : null;
-      const tons = totals.usable ? round(totals.millingTons) : null;
+      const oneGeneration = new Set(all.filter(r => r.sourcePresence === 'present').map(r => r.dataVersion)).size === 1;
+      const covered = oneGeneration ? all.map(r => ({ r, f: forecastForRow(r, season) })).filter(({ f }) => f.usable) : [];
+      const validArea = covered.reduce((sum, { f }) => sum + f.participation.millingArea, 0);
+      const validTons = covered.reduce((sum, { f }) => sum + f.tons, 0);
+      const tch = validArea ? round(validTons / validArea) : null;
+      const tons = covered.length ? round(validTons) : null;
       return { estimateSeason: season || null, estimateTch: tch, estimateTons: tons,
-        estimateArea: round(totals.validMillingArea), estimateLots: totals.usable,
+        estimateArea: round(validArea), estimateLots: covered.length,
         tchEst2627: season === '26/27' ? tch : null, tonEst2627: season === '26/27' ? tons : null,
-        areaEstimado2627: season === '26/27' ? round(totals.validMillingArea) : 0,
-        suertesEstimado2627: season === '26/27' ? totals.usable : 0,
-        coberturaEstimadoAreaPct: totals.millingCoverage === null ? null : round(totals.millingCoverage * 100),
-        coberturaEstimadoSuertesPct: totals.milling ? round(totals.usable / totals.milling * 100) : null,
+        areaEstimado2627: season === '26/27' ? round(validArea) : 0,
+        suertesEstimado2627: season === '26/27' ? covered.length : 0,
+        estimateState: oneGeneration && all.some(r => forecastForRow(r, season).state !== 'not-applied') ? 'applied' : 'not-applied',
+        coberturaEstimadoAreaPct: totals.millingArea ? round(validArea / totals.millingArea * 100) : null,
+        coberturaEstimadoSuertesPct: totals.milling ? round(covered.length / totals.milling * 100) : null,
         inventoryArea: round(totals.inventoryArea), activeLots: totals.active, seedLots: totals.seed, seedArea:round(totals.seedArea),
         millingArea: round(totals.millingArea), millingLots: totals.milling, catalogLots: totals.catalog,
-        pendingMillingArea: round(totals.pendingMillingArea), pendingMillingLots: totals.pendingMillingLots,
+        pendingMillingArea: round(totals.millingArea - validArea), pendingMillingLots: totals.milling - covered.length,
         inactiveLots: totals.inactive, absentLots: totals.absent, conflictLots: totals.conflicts };
     }
-    const estimate = (row) => operational ? finite(row.forecast?.season === season ? row.forecast.tch : null) : finite(row.tchEst2627);
-    const covered = all.filter((row) => (!operational || row.participatesMilling) && finite(row.area) > 0 && estimate(row) !== null);
-    const totalArea = all.reduce((sum, row) => sum + (operational ? (finite(row.millingArea) || 0) : (finite(row.area) || 0)), 0);
-    const area = covered.reduce((sum, row) => sum + (finite(row.area) || 0), 0);
-    const tons = covered.reduce((sum, row) => sum + (operational ? (finite(row.millingEstimatedTons) ?? row.area * estimate(row)) :
-      (finite(row.tonEst2627) ?? row.area * estimate(row))), 0);
-    const tch = weighted(covered.map((row) => ({ ...row, estimate: estimate(row) })), 'estimate');
-    return {
-      estimateSeason: season || null, estimateTch: tch, estimateTons: covered.length ? round(tons) : null,
-      estimateArea: round(area) || 0, estimateLots: covered.length,
-      tchEst2627: season === '26/27' ? tch : null,
-      tonEst2627: season === '26/27' && covered.length ? round(tons) : null,
-      areaEstimado2627: season === '26/27' ? round(area) || 0 : 0,
-      suertesEstimado2627: season === '26/27' ? covered.length : 0,
-      coberturaEstimadoAreaPct: totalArea ? round(area / totalArea * 100) : 0,
-      coberturaEstimadoSuertesPct: all.length ? round(covered.length / all.length * 100) : 0,
-      ...(operational ? { inventoryArea: round(all.filter((row) => row.sourcePresence === 'present').reduce((sum, row) => sum + (finite(row.inventoryArea) || 0), 0)) || 0,
-        activeLots: all.filter((row) => row.participatesCurrentArea).length,
-        millingArea: round(totalArea) || 0, millingLots: all.filter((row) => row.participatesMilling).length,
-        absentLots: all.filter((row) => row.sourcePresence === 'absent').length } : {}),
-    };
+    return { estimateSeason: '26/27', estimateState: 'not-applied', estimateTch: null, estimateTons: null,
+      estimateArea: 0, estimateLots: 0, tchEst2627: null, tonEst2627: null, areaEstimado2627: 0,
+      suertesEstimado2627: 0, coberturaEstimadoAreaPct: null, coberturaEstimadoSuertesPct: null };
   };
   const groupRows = (rows, field) => {
     const groups = new Map();
@@ -213,7 +254,7 @@
     const query = text($("cronoQ")?.value);
     const code = selectValue || query.split(" · ")[0];
     const producer = (data.producers || []).find((item) => text(item.code) === code);
-    if (!producer) return { rows: allCronoRecords(data), summary: data.global || {}, producer: null };
+    if (!producer) return { rows: allCronoRecords(data), summary: { ...data.global, ...estimateSummary(allCronoRecords(data)) }, producer: null };
     const table = $("cronoContent")?.querySelector("table");
     if (table && table.tBodies[0]?.rows.length === 1) {
       const lotCode = text(table.tBodies[0].rows[0].cells[0]?.querySelector("b")?.textContent);
@@ -224,6 +265,7 @@
   }
 
   function estimateCoverageText(summary) {
+    if (summary.estimateState === 'not-applied') return 'Aforo autorizado no cargado/aplicado';
     if (summary.millingLots === undefined) return 'Estimado oficial';
     if (!summary.millingLots) return 'Sin participación en molienda';
     return `${summary.estimateLots}/${summary.millingLots} molienda · ${fmt(summary.coberturaEstimadoAreaPct, '% área')}` +
@@ -241,6 +283,123 @@
   function estimateKpi(label, value, sub) {
     return `<div class="kpi casur-estimate-kpi" data-casur-estimate="1"><span class="label">${esc(label)}</span><strong>${value}</strong><em>${esc(sub)}</em></div>`;
   }
+  function estimatedTonsKpi(rows, season) {
+    const audit = estimateSummary(rows);
+    const label = `Ton. Estim. Z${season || '—'}`;
+    const detail = estimateCoverageText(audit);
+    return `<div class="kpi casur-tons-kpi" data-crono-tons="${esc(JSON.stringify(audit))}" tabindex="0" title="${esc(detail)}" aria-label="${esc(label)}: ${audit.estimateTons === null ? 'N/D' : fmt(audit.estimateTons,' t')}. ${esc(detail)}"><span class="label">${esc(label)}</span><strong>${audit.estimateTons === null ? 'N/D' : fmt(audit.estimateTons,' t')}</strong></div>`;
+  }
+  function estimateCaption(reason, sourceDate) {
+    const date = window.CASUR_OPERATIONAL_IMPORT.dateValue(sourceDate).iso;
+    return (reason === 'Aforo autorizado' ? 'Último Aforo' : reason) + (date ? `\n${formatCronoDate(date)}` : '');
+  }
+  // Presentation audit only: reuse the individual view's current-age function.
+  // A partial mean is not presented as the age of the whole active inventory.
+  function currentAgeSummary(rows, ageForRow) {
+    let activeArea = 0, validArea = 0, numerator = 0, activeLots = 0, validLots = 0;
+    for (const row of rows || []) {
+      const area = row.sourcePresence
+        ? window.CASUR_OPERATIONAL_IMPORT.participation(row).activeArea : finite(row.area);
+      if (!(area > 0)) continue;
+      activeArea += area; activeLots++;
+      // Renewal without a planting date is a status, not an observed age of zero.
+      const age = row.renovacion && !row.fSiembra ? null : finite(ageForRow(row));
+      if (age === null || age < 0) continue;
+      validArea += area; numerator += area * age; validLots++;
+    }
+    const complete = activeArea > 0 && Math.abs(activeArea - validArea) < 1e-7;
+    return { months: complete ? numerator / validArea : null, numerator, validArea, activeArea,
+      coveragePct: activeArea > 0 ? 100 * validArea / activeArea : null, activeLots, validLots,
+      reason: !activeArea ? 'Sin área activa' : !complete ? 'Cobertura de edad incompleta' : null };
+  }
+  function currentAgeKpi(rows, ageForRow) {
+    const audit = currentAgeSummary(rows, ageForRow);
+    const detail = `Área con edad válida: ${fmt(audit.validArea)} / ${fmt(audit.activeArea)} ha · Cobertura: ${fmt(audit.coveragePct, '%')}` +
+      (audit.reason ? ` · ${audit.reason}` : '');
+    return `<div class="kpi crono-kpi-technical" data-crono-current-age="${esc(JSON.stringify(audit))}" tabindex="0" title="${esc(detail)}" aria-label="Edad ponderada actual: ${audit.months === null ? 'N/D' : fmt(audit.months, ' meses')}. ${esc(detail)}"><span class="label">Edad ponderada actual</span><strong>${audit.months === null ? 'N/D' : fmt(audit.months, ' meses')}</strong></div>`;
+  }
+  function activeAreaForRow(row) {
+    return row.sourcePresence ? window.CASUR_OPERATIONAL_IMPORT.participation(row).activeArea : finite(row.area);
+  }
+  function cropStage(row) {
+    const cut = finite(row.corte), origin = row.provenance?.cut;
+    const verified = window.CASUR_OPERATIONAL_IMPORT.aliases.cut.some(header => normal(header) === normal(origin?.header)) &&
+      finite(origin?.raw) === cut;
+    if (!verified || !Number.isInteger(cut) || cut <= 0) return 'Sin clasificar';
+    return cut === 1 ? 'Plantilla' : cut === 2 ? '2.º corte' : cut <= 4 ? 'Cortes 3–4' : cut <= 6 ? 'Cortes 5–6' : 'Cortes 7+';
+  }
+  function orderAgronomicGroups(groups, metric = 'area') {
+    return groups.slice().sort((a,b) => {
+      const x = finite(a[metric]), y = finite(b[metric]);
+      return (x === null) - (y === null) || (y ?? 0) - (x ?? 0) || a.key.localeCompare(b.key,'es');
+    });
+  }
+  function agronomicGroups(rows, field) {
+    const groups = new Map(), applied = estimateSummary(rows).estimateState === 'applied';
+    for (const row of rows || []) {
+      const area = activeAreaForRow(row);
+      if (!(area > 0)) continue;
+      const key = field === 'stage' ? cropStage(row) : text(row[field]) || 'Sin clasificar';
+      if (!groups.has(key)) groups.set(key, {key, area:0, rows:[]});
+      const group = groups.get(key); group.area += area; group.rows.push(row);
+    }
+    return orderAgronomicGroups([...groups.values()].map(({key, area, rows: members}) => {
+      const estimate = estimateSummary(members);
+      return {key, area, lots:members.length, estimateLots:estimate.estimateLots,
+        estimateTch:applied ? estimate.estimateTch : null,
+        estimateTons:applied ? estimate.estimateTons : null, estimateArea:applied ? estimate.estimateArea : 0,
+        millingArea:estimate.millingArea || 0, coveragePct:applied ? estimate.coberturaEstimadoAreaPct : null};
+    }));
+  }
+  function areaPanel(rows, field, title, chart) {
+    const groups = agronomicGroups(rows, field), total = groups.reduce((sum, group) => sum + group.area, 0);
+    return `<div class="crono-box" data-crono-area-group="${esc(field)}" data-area-total="${total}"><h3>${esc(title)}</h3>${chart(groups)}<div class="crono-area-total" role="group" aria-label="Total de ${esc(title.toLowerCase())}"><strong>${fmt(total,' ha')}</strong></div></div>`;
+  }
+  function estimatedTchPanel(rows, field, title) {
+    const groups = orderAgronomicGroups(agronomicGroups(rows, field),'estimateTch'), max = Math.max(1, ...groups.map(g => g.estimateTch || 0));
+    return `<div class="crono-box crono-estimate-analysis" data-crono-estimate-group="${esc(field)}" data-group-audit="${esc(JSON.stringify(groups))}"><h3>${esc(title)}</h3>` +
+      (!groups.length ? '<div class="empty">Sin datos.</div>' : '<div class="hchart">' + groups.map(g => {
+        const detail = `Molienda: ${fmt(g.estimateTons,' t')} / ${fmt(g.estimateArea,' ha válidas')} · Cobertura: ${fmt(g.coveragePct,'%')}`;
+        return `<div class="hrow" tabindex="0" title="${esc(detail)}" aria-label="${esc(g.key)}: ${g.estimateTch === null ? 'N/D' : fmt(g.estimateTch)+' TCH'}. ${esc(detail)}"><div class="hlabel">${esc(g.key)}</div><div class="htrack"><div class="hfill" style="width:${g.estimateTch === null ? 0 : Math.max(4,g.estimateTch/max*100)}%"></div></div><div class="hval">${g.estimateTch === null ? 'N/D' : fmt(g.estimateTch)}</div></div>`;
+      }).join('')+'</div>')+'</div>';
+  }
+  function detailColumns(season) {
+    return ['Suerte','Área','# de Corte','Fecha corte/siembra','Destino Cultivo','Textura','Tipo de riego',
+      'Surco','Distancia (km)','Zona','Variedad','TCH',`TCH est. ${season}`,`Ton. est. ${season}`,
+      'Tenencia','Estado TCH 25/26','Estado maestro','Observación'];
+  }
+  function reorderCronoDetail(table, records, season) {
+    const header = table.tHead.rows[0], original = [...header.cells];
+    const index = new Map(original.map((cell, i) => [normal(cell.textContent), i]));
+    if (!index.has(normal('# de Corte'))) index.set(normal('# de Corte'), index.get(normal('Corte')));
+    const columns = detailColumns(season).map(label => ({ label, index: index.get(normal(label)) }));
+    // This is the existing chronological detail, never a generic or multiple-selection table.
+    if (columns.some(column => column.index === undefined && !['Tenencia','Destino Cultivo'].includes(column.label))) return;
+    const headers = columns.map(column => {
+      const cell = original[column.index] || document.createElement('th');
+      cell.textContent = column.label; return cell;
+    });
+    [...table.tBodies[0].rows].forEach((row, i) => {
+      const cells = [...row.cells], id = text(cells[0]?.querySelector('b')?.textContent);
+      const record = records.find(r => text(r.codLote || `${r.code}${r.suerte}`) === id) || records[i];
+      const ordered = columns.map(column => {
+        const cell = cells[column.index] || document.createElement('td');
+        if (column.label === 'Tenencia') {
+          const value = text(record?.tenencia);
+          cell.textContent = ({ CV:'Compra Venta', CA:'Arriendo', PR:'Propio' })[value.toUpperCase()] || value || '—';
+        }
+        if (column.label === 'Destino Cultivo' && column.index === undefined) cell.textContent = text(record?.destino) || '—';
+        return cell;
+      });
+      row.replaceChildren(...ordered);
+    });
+    header.replaceChildren(...headers);
+  }
+  function dateKpi(rows) {
+    const d = dateSummary(rows);
+    const caption = rows.length > 1 ? (d.dates?.some(date => date.date) ? 'Detalle por suerte' : '') : d.detail;
+    return `<div class="kpi casur-proposal-kpi" data-crono-date="${esc(d.type)}" data-date-metadata="${esc(JSON.stringify(d))}"><span class="label">${esc(d.label)}</span><strong>${esc(d.display)}</strong><em>${esc(caption)}</em></div>`;
+  }
 
   let enhancing = false;
   function enhanceCronoView() {
@@ -253,29 +412,27 @@
       const summary = scope.summary || estimateSummary(scope.rows);
       const operational = window.CRONO_DATA?.meta?.operationalContract === 1;
       const season = operational ? (window.CRONO_DATA.meta.estimateSeason || summary.estimateSeason || '—') : '26/27';
-      const estimateValue = operational ? summary.estimateTch : summary.tchEst2627;
-      const sourceLabel = operational ? estimateCoverageText(summary) : 'Estimado oficial';
+      const individual = scope.rows.length === 1 ? forecastForRow(scope.rows[0], season) : null;
+      const estimateValue = individual ? individual.tch : summary.estimateTch;
+      const sourceLabel = individual ? individual.reason : estimateCoverageText(summary);
+      const aforoDate = individual?.source?.sourceDate ||
+        (operational && summary.estimateState === 'applied' ? window.CRONO_DATA.meta.tchEst2627EffectiveDate : null);
       const kpis = content.querySelector(".kpis");
       if (kpis && !kpis.querySelector("[data-casur-estimate]")) {
         const estimate = finite(estimateValue);
-        const card = estimateKpi(`TCH estimado ${season}`, estimate === null ? "N/D" : fmt(estimate), operational ? sourceLabel : (estimate === null ? "Sin estimado" : sourceLabel));
-        const realTch = kpis.children[1];
-        if (realTch) realTch.insertAdjacentHTML("afterend", card);
+        const caption = scope.producer ? estimateCaption(operational && summary.estimateState === 'applied' ? 'Aforo autorizado' : sourceLabel, aforoDate) : '';
+        const card = estimateKpi(`TCH Estim. Z${season}`, estimate === null ? "N/D" : fmt(estimate), caption);
+        const before = scope.producer ? kpis.querySelector('[data-crono-date],[data-crono-tons]') : kpis.children[3];
+        if (before) before.insertAdjacentHTML("beforebegin", card);
         else kpis.insertAdjacentHTML("beforeend", card);
       }
       const actions = content.querySelector(".ficha-actions");
+      actions?.querySelectorAll('.status-pill,.casur-estimate-badge').forEach(node => node.remove());
       const detailTitle = content.querySelector('#cronoPrintPanel > .section-title > div');
       if (operational && detailTitle && !detailTitle.dataset.participationScope) {
-        const s = estimateSummary(scope.rows);
         detailTitle.dataset.participationScope = '1';
-        detailTitle.style.minWidth = '0';
         const heading = detailTitle.querySelector('h3');
-        if (heading) heading.textContent = `Detalle por suerte · ${s.activeLots} activas · ${s.catalogLots} catálogo`;
-      }
-      if (actions && !actions.querySelector(".casur-estimate-badge")) {
-        const hasEstimate = finite(estimateValue) !== null;
-        const estimateDate=window.CRONO_DATA?.meta?.operationalContract?window.CRONO_DATA.meta.tchEst2627EffectiveDate:ESTIMATE_DATE;
-        actions.insertAdjacentHTML("afterbegin", `<span class="casur-estimate-badge ${hasEstimate ? "" : "is-empty"}">${esc(season)}: ${fmt(estimateValue)} TCH${hasEstimate ? (estimateDate ? ` · ${formatDate(estimateDate)}` : "") : " · sin estimado"}</span>`);
+        if (heading) heading.textContent = 'Detalle por suerte';
       }
       content.querySelectorAll("#cronoPrintPanel table").forEach((table) => {
         if (table.dataset.casurEstimate === "1") return;
@@ -293,17 +450,19 @@
           const lotCode = text(row.cells[0]?.querySelector("b")?.textContent);
           const record = scope.rows.find((item) => [text(item.codLote), `${scope.producer?.code || item.code}${item.suerte}`].includes(lotCode)) || scope.rows[index];
           const participation = operational && record ? window.CASUR_OPERATIONAL_IMPORT.participation(record) : null;
-          const estimate = operational ? (record?.forecast?.season === season ? participation?.estimateTch : null) : finite(record?.tchEst2627);
+          const forecast = forecastForRow(record, season), estimate = forecast.tch;
           const estCell = document.createElement("td"); estCell.className = estimate === null ? "casur-no-estimate" : "casur-estimate-cell";
           estCell.textContent = estimate === null ? "—" : fmt(estimate);
+          estCell.title = forecast.reason;
           const tonCell = document.createElement("td"); tonCell.className = estimate === null ? "casur-no-estimate" : "casur-estimate-cell";
-          tonCell.textContent = estimate === null ? "—" : fmt(operational ? participation.estimatedTons : (record.tonEst2627 ?? ((finite(record.area) || 0) * estimate)), " t");
+          tonCell.textContent = forecast.tons === null ? "—" : fmt(forecast.tons, " t");
           row.cells[2].after(tonCell); row.cells[2].after(estCell);
           const stateCell = document.createElement("td"); stateCell.className = "casur-master-state";
           stateCell.textContent = participation ? (participation.reason.startsWith(text(record.classification)) ? participation.reason : `${record.classification} · ${participation.reason}`) : text(record?.estado) || "—";
           const noteCell = document.createElement("td"); noteCell.className = "casur-master-note"; noteCell.textContent = text(record?.observacion) || "—";
           row.append(stateCell, noteCell);
         });
+        reorderCronoDetail(table, scope.rows, season);
         table.dataset.casurEstimate = "1";
       });
     } finally { enhancing = false; }
@@ -962,7 +1121,7 @@
     const productivity = record ? [
       [operational ? "TCH anterior" : "TCH 25/26", geoMetric(record.tch)],
       ["TCH hist. pond.", history?.hasData ? geoMetric(history.allHistory.tch) : "N/D"],
-      [`Est. ${estimateSeason}`, geoMetric(operational ? (record.forecast?.season === estimateSeason ? window.CASUR_OPERATIONAL_IMPORT.participation(record).estimateTch : null) : record.tchEst2627)],
+      [`Est. ${estimateSeason}`, geoMetric(forecastForRow(record, estimateSeason).tch)],
       ["N.º riegos", geoCount(record.numeroRiegos)],
     ] : [];
     return `
@@ -1834,7 +1993,9 @@
   window.CASUR_GENERATE_GITHUB_DATA_PACKAGE = downloadDataUpdate;
   window.CASUR_BUILD_CRONO_DATA = buildCronoData;
   window.CASUR_REFRESH_OPERATIONAL_VIEW = refreshOperationalView;
-  window.CASUR_CRONO_PARTICIPATION = Object.freeze({summary: estimateSummary, coverageText: estimateCoverageText});
+  window.CASUR_CRONO_PARTICIPATION = Object.freeze({summary: estimateSummary, coverageText: estimateCoverageText,
+    forecastForRow, referenceDate, dateSummary, dateKpi, formatDate: formatCronoDate, cutTypeText, estimateCaption, detailColumns,
+    currentAgeSummary, currentAgeKpi, cropStage, agronomicGroups, orderAgronomicGroups, areaPanel, estimatedTchPanel, estimatedTonsKpi});
 
   function openModuleContext(context) {
     if (!context || context.kind !== "lot") return { ok: false, status: "invalid-context" };

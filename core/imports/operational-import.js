@@ -27,7 +27,7 @@
     km:['Km','Dt'],spacing:['Surco'],texture:['Nombre Textura','Textura'],zone:['Zona'],
     irrigation:['TipoRiego','Tipo_de_Riego','Tipo de riego'],irrigationCount:['NR','#_de_Riegos'],
     tenure:['Tn','Tenencia'],erp:['ERP'],cropType:['Nombre Tipo de Cultivo','TipoCultivo'],age:['Edad'],
-    proposedDate:['Fecha propuesta (Plan 601K)','Fecha propuesta'],proposedCut:['Tipo de Corte (Plan 601K)','Tipo de Corte'],
+    proposedDate:['Fecha propuesta de Cosecha','Fecha propuesta (Plan 601K)','Fecha propuesta','Fecha prevista de cosecha','Fecha prevista de corte'],proposedCut:['Tipo de Corte (Plan 601K)','Tipo de Corte'],
     baseDate:['Fecha-maestro','Fecha base'],projectedAge:['Edad corte (meses)','Edad proyectada'],
     lineId:['ID Línea'],fraction:['% de la suerte'],split:['Fraccionada'],lineTons:['Ton propuesta'],
     season:['Zafra'],historicalTons:['Ton'],katm:['KATM','Rto'],
@@ -130,7 +130,7 @@
       for(const field of ['sowing','lastCut','proposedDate','baseDate']){
         dates[field]=dateValue(fields[field]);if(fields[field]!=null&&text(fields[field])!==''&&!dates[field].iso)issue('warning','date',`Fecha no interpretable: ${field}`,field);
       }
-      const projected=dates.proposedDate.iso&&dates.baseDate.iso?(Date.parse(dates.proposedDate.iso)-Date.parse(dates.baseDate.iso))/86400000/30.4375:null;
+      const projected=projectedAgeMonths(dates.proposedDate.iso,dates.baseDate.iso);
       if(projected!==null&&(projected<0||(fields.projectedAge!==null&&Math.abs(projected-fields.projectedAge)>0.1)))issue('warning','age','Edad proyectada difiere de la edad aportada o su fecha base.');
       const provenance=Object.fromEntries(Object.entries(mapping).filter(([,col])=>col>=0).map(([field,column])=>[field,{sheet:sheet.name,row:rowNumber,column:column+1,header:candidate.headers[column],raw:read(row,field),type:typeof read(row,field),formula:sheet.formulas?.[`${rowNumber}:${column+1}`]||null}]));
       records.push({key,code:id.code,lot:id.lot,fields,classification,dates,projectedAgeCalculated:projected,
@@ -151,6 +151,10 @@
     return {contractVersion:1,profiles:kinds,isPlan,records,issues,source,sourceTotals,mapping};
   }
   const destinationClass=value=>norm(value).startsWith('semilla')?'Semilla':classes[norm(value)]||null;
+  function projectedAgeMonths(proposed,base){
+    const end=dateValue(proposed).iso,start=dateValue(base).iso;
+    return end&&start?(Date.parse(end)-Date.parse(start))/86400000/30.4375:null;
+  }
   function decisionMatches(r,d){
     const expected=d?.expectedSource;
     return !!(expected&&r.sourcePresence==='present'&&d.key===r.codLote&&d.season===r.forecast?.season&&
@@ -297,7 +301,7 @@
     generation.planAudit={lines:lines.length,identities:groups.size,split,area,proposedTons:validTons===lines.length&&lines.length?tons:null};
     return generation;
   }
-  const api={contractVersion:1,aliases,norm,number,identity,keyOf,dateValue,profiles,inspectSheets,parseCandidate,prepareUpdate,applyDecisions,participation,totals,validateGeneration,attachHarvestPlan};
+  const api={contractVersion:1,aliases,norm,number,identity,keyOf,dateValue,projectedAgeMonths,profiles,inspectSheets,parseCandidate,prepareUpdate,applyDecisions,participation,totals,validateGeneration,attachHarvestPlan};
   root.CASUR_OPERATIONAL_IMPORT=Object.freeze(api);
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -1,5 +1,11 @@
 # Etapa B2 · propuesta funcional para aprobación
 
+**Propuesta histórica sustituida el 25-oct-2026.** El usuario descartó el
+panel separado y excluyó Plan 600K/601K de la B2 operativa. El alcance vigente
+es aforo integrado en las tarjetas existentes, documentado en
+`CONSULTA_ESTIMADOS_PLAN_B2.md`. Este archivo solo conserva el antecedente;
+no autoriza implementar sus pantallas ni utilizar sus metas/calendarios.
+
 Solo análisis y propuesta. No se crea otro módulo ni se implementan pantallas.
 Depende de la aprobación de A/B1 y de la corrección de participación cronológica.
 

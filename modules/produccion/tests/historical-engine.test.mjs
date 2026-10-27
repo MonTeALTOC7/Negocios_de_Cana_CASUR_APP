@@ -550,16 +550,20 @@ test("CAP1 conserva seis KPI junto al gráfico TCH legible y sin tarjeta princip
   assert.match(crono, /single-suerte-kpis/);
   assert.ok(!crono.includes("crono-highlight-metrics"));
   assert.ok(!crono.includes("crono-operational-strip"));
-  const labels = ["Área total", "TCH/Z 25-26", "Edad", "Distancia (km)", "Variedad"];
+  const cards = crono.slice(crono.indexOf('const kpis=['));
+  const labels = ["Área total", "TCH Z Ant. 25/26", "Variedad", "Distancia ponderada (km)"];
   let position = 0;
   for (const label of labels) {
-    const next = crono.indexOf(label, position);
+    const next = cards.indexOf(label, position);
     assert.ok(next >= position, `${label} conserva orden en la ficha`);
     position = next + label.length;
   }
+  assert.match(cards,/suerte\?kpi\('Variedad'.*\):ageCard/);
+  assert.match(cards,/suerte\?ageCard:kpi\('Distancia ponderada/);
+  assert.match(enhancements,/kpis\.querySelector\('\[data-crono-date\],\[data-crono-tons\]'\)/);
   assert.match(crono, /fmt\(ageMonths\(rows\[0\]\),' meses'\)/);
   assert.ok(!crono.includes("Ton. estimadas 26/27"));
-  assert.match(enhancements, /estimateKpi\(`TCH estimado \$\{season\}`/);
+  assert.match(enhancements, /estimateKpi\(`TCH Estim\. Z\$\{season\}`/);
   assert.match(enhancements, /estimate === null \? "N\/D"/);
   assert.ok(!enhancements.includes('estimateKpi("Ton. estimadas 26/27"'));
   assert.match(index, /function showCronoTrendTooltip\(point\)/);

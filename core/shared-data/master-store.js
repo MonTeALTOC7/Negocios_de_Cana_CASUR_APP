@@ -62,6 +62,18 @@ export async function loadProduccionDataset() { return get(KEY_PRODUCCION); }
    the previous generation, current production and central catalog together. */
 const KEY_OPERATIONAL_PREVIOUS = 'operational_previous';
 export async function loadOperationalPrevious() { return get(KEY_OPERATIONAL_PREVIOUS); }
+// B2 query only: archived snapshots are read without activating/restoring any version.
+export async function listOperationalGenerations() {
+  const db=await openDB();
+  try {
+    return await new Promise((resolve,reject)=>{
+      const tx=db.transaction(STORE,'readonly');
+      const request=tx.objectStore(STORE).getAll(IDBKeyRange.bound('operational_generation:','operational_generation:\uffff'));
+      request.onsuccess=()=>resolve(request.result.map(r=>r.payload?.production).filter(Boolean));
+      request.onerror=()=>reject(request.error);
+    });
+  } finally {db.close();}
+}
 export async function commitOperationalDataset(payload, { approved = false, expectedVersion = null, baseline = null, maestro = null, baselineMaestro = null } = {}) {
   if (!approved || payload?.operationalDataset?.contractVersion !== 1 || !payload?.dataVersion || !payload.operationalDataset.catalog?.length || !payload.operationalDataset.cronologico) throw new Error('Importación no aprobada o incompleta');
   globalThis.CASUR_OPERATIONAL_IMPORT.validateGeneration(payload.operationalDataset);

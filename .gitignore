@@ -1,0 +1,3 @@
+.wrangler/
+preview-dist/
+/tools/preview-data/*.enc

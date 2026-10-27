@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.8.1 — Candidata C2, sin publicar
+
+- El checkpoint de la App Maestra rechaza instalación durante captura GPS, escrituras de biometría/visitas/pesajes, procesamiento de fotos, exportación o importación pendiente.
+- Conserva el flush del borrador cuando la sesión está libre; sin cambios de fórmulas, datos ni IndexedDB v3.
+
+
 ## 2.8.0 — 2026-10-11
 
 - La medición biométrica muestra coordenadas GPS copiables por punto y permite abrir un mapa

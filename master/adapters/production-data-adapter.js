@@ -18,6 +18,8 @@
    Centro Maestro de Producción. No se sobreescribe `historico.json`.
    ============================================================ */
 
+import '../../core/imports/operational-import.js';
+
 /* Columnas REPORTE (mismo contrato que el Convertidor y Producción). */
 export const MASTER_COLUMNS = [
   'Hac-Sue', 'Cod', 'Hacienda', 'Suerte', 'Area', 'Variedad', 'Edad',
@@ -29,8 +31,9 @@ export const MASTER_COLUMNS = [
 
 /* Mapeo record → fila REPORTE (equivalente 1:1 a toMasterRow del Convertidor). */
 export function recordToReportRow(r) {
+  const id=globalThis.CASUR_OPERATIONAL_IMPORT.identity(r.cod,r.suerte);
   return {
-    'Hac-Sue': r.hacSue, Cod: r.cod, Hacienda: r.hacienda, Suerte: r.suerte,
+    'Hac-Sue': id.code+id.lot, Cod: id.code, Hacienda: r.hacienda, Suerte: id.lot,
     Area: r.area, Variedad: r.variedad, Edad: r.edad,
     TCH_Z2526: r.tchPrev, TCH_Estimado_Z2627: r.tchEstimate,
     Ton_Estimadas_Z2627: r.tonsEstimate, '#_de_Corte': r.corte,
@@ -50,6 +53,7 @@ function codeNumber(v) {
 
 /* Validaciones críticas ANTES de aplicar. Devuelve { pass, checks[] }. */
 export function validateForProduction(records) {
+  const identityEngine=globalThis.CASUR_OPERATIONAL_IMPORT;
   const checks = [];
   const add = (id, ok, detail) => checks.push({ id, ok, detail });
 
@@ -65,11 +69,13 @@ export function validateForProduction(records) {
   const seen = new Map();
   const dupes = new Set();
   for (const r of records) {
-    const k = String(r.hacSue || '').trim();
+    const k = identityEngine.keyOf(r.cod,r.suerte);
     if (!k) continue;
     if (seen.has(k)) dupes.add(k); else seen.set(k, true);
   }
   add('sin_duplicados', dupes.size === 0, `Llaves duplicadas = ${dupes.size}`);
+  const badKeys=records.filter(r=>identityEngine.keyOf(r.cod,r.suerte)!==String(r.hacSue||'').trim().toUpperCase()).length;
+  add('identidad_compuesta',badKeys===0,`Código/suerte consistentes con Hac-Sue: errores = ${badKeys}`);
 
   /* 4) Integridad de campos críticos usados por Producción */
   const req = ['hacienda', 'suerte', 'area', 'zona'];

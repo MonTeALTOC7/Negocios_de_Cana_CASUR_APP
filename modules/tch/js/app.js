@@ -290,7 +290,9 @@ function captureGps(target, onSuccess = null) {
   });
 }
 
-async function captureBiometryGps(sample, { automatic = false } = {}) {
+let activeCheckpointWork = 0;
+async function captureBiometryGps(...args) { activeCheckpointWork++; try { return await performBiometryGps(...args); } finally { activeCheckpointWork--; } }
+async function performBiometryGps(sample, { automatic = false } = {}) {
   const session = state.biometry;
   const lotId = state.selectedLot?.id;
   if (!session || !lotId || !sample) return;
@@ -445,8 +447,12 @@ window.CASUR_MODULE_BRIDGE = Object.freeze({
     return getActiveModuleContext();
   },
   async checkpoint({ reason } = {}) {
-    void reason;
-    return flushBiometryDraft();
+    if (!window.CASUR_TCH_READY || activeCheckpointWork || state.pendingMaster || state.pendingEstimateImport || state.visit?.saving || state.visit?.photoProcessing) return { ok: false, status: 'operation-active' };
+    const result=await flushBiometryDraft();
+    if(result.ok && reason==='pwa-update' && state.route==='biometry'){
+      try{sessionStorage.setItem('casur-tch-update-context',JSON.stringify({lotId:state.selectedLot?.id,route:state.route}));}catch{/* Draft is already durable; route restoration is best effort. */}
+    }
+    return result;
   },
 });
 
@@ -1370,14 +1376,16 @@ async function labeledVisitFile(visit, photoIndex) {
   return new File([blob], visitPhotoFilename(visit, photoIndex + 1), { type: "image/png" });
 }
 
-async function exportVisits(visits, options = {}) {
+async function exportVisits(...args) { activeCheckpointWork++; try { return await perform_exportVisits(...args); } finally { activeCheckpointWork--; } }
+async function perform_exportVisits(visits, options = {}) {
   notify("Generando PNG etiquetados y carpeta de evidencias…");
   const blob = await createVisitsPackageBlob(visits, options);
   downloadBlob(blob, visitPackageFilename(visits));
   notify("Carpeta ZIP generada correctamente.");
 }
 
-async function saveVisit() {
+async function saveVisit(...args) { activeCheckpointWork++; try { return await perform_saveVisit(...args); } finally { activeCheckpointWork--; } }
+async function perform_saveVisit() {
   const visit = state.visit;
   if (visit.photoProcessing) return notify("Esperá a que terminen de cargar las fotografías.");
   if (visit.saving) return;
@@ -1485,7 +1493,8 @@ function updateActivePointResult() {
   }
 }
 
-async function saveBiometry(download = false) {
+async function saveBiometry(...args) { activeCheckpointWork++; try { return await perform_saveBiometry(...args); } finally { activeCheckpointWork--; } }
+async function perform_saveBiometry(download = false) {
   const b = state.biometry;
   const summary = biometrySummary();
   if (!state.selectedLot) return notify("Seleccioná una suerte antes de guardar.");
@@ -1651,7 +1660,8 @@ function renderWeighing() {
     <section class="result-panel"><div class="result-top"><div><span>RESULTADO HEREDADO POR PESAJE</span><strong><i id="weightResult">${formatNumber(result, 1)}</i> TCH</strong><small>No sustituye la proyección biométrica.</small></div></div><div class="actions"><button class="btn btn-primary" id="saveWeighing">▣ Guardar pesaje</button></div></section>`;
 }
 
-async function saveWeighing() {
+async function saveWeighing(...args) { activeCheckpointWork++; try { return await perform_saveWeighing(...args); } finally { activeCheckpointWork--; } }
+async function perform_saveWeighing() {
   const w = state.weighing;
   const result = weighingResult();
   if (!state.selectedLot) return notify("Seleccioná una suerte.");
@@ -2721,7 +2731,8 @@ document.addEventListener("change", (event) => {
   }
 });
 
-async function handleVisitPhotoFiles(fileList) {
+async function handleVisitPhotoFiles(...args) { activeCheckpointWork++; try { return await perform_handleVisitPhotoFiles(...args); } finally { activeCheckpointWork--; } }
+async function perform_handleVisitPhotoFiles(fileList) {
   const files = snapshotPhotoFiles(fileList);
   if (!files.length) return;
   state.visit.photoProcessing = true;
@@ -2852,6 +2863,12 @@ function updateConnection() {
 //     .catch(() => {});
 // }
 await loadState();
+try{
+  const resume=JSON.parse(sessionStorage.getItem('casur-tch-update-context')||'null');
+  if(resume?.route==='biometry'&&resume.lotId===state.biometryDraft?.lotId&&restoreBiometryDraft())state.route='biometry';
+  sessionStorage.removeItem('casur-tch-update-context');
+}catch{/* A stale route never prevents boot. */}
 updateConnection();
 render();
 updateInstallNotice();
+window.CASUR_TCH_READY=true;

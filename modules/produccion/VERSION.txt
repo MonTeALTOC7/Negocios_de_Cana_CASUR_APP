@@ -1,2 +1,2 @@
-V1.5.1 CASUR · Cronológico e Histórico de Producción de Suertes
+V1.7.1 CASUR · Cronológico e Histórico de Producción de Suertes
 El módulo técnico se abre desde una tarjeta protegida en el Panel Ejecutivo, permanece oculto hasta desbloquearse y desaparece de las exportaciones operativas.

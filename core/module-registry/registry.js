@@ -29,13 +29,13 @@ import { MODULE_VERSIONS } from '../versions/versions.js';
    reemplaza el contenido de esa carpeta, no esta tabla. */
 const BASE_MODULES = [
   { moduleId: 'produccion', name: 'Maestro de Suertes', desc: 'Cronológico e Histórico de suertes CASUR',
-    version: 'V1.5.1', route: 'modules/produccion/index.html', icon: 'produccion',
+    version: 'V1.7.1', route: 'modules/produccion/index.html', icon: 'produccion',
     accent: 'var(--accent-produccion)', enabled: true, visible: true, order: 1,
     requiresOnline: false, usesSupabase: false,
     storageNamespaces: ['cache:casur-suertes-vf54-*'], privacy: 'public' },
 
   { moduleId: 'tch', name: 'Estimador TCH', desc: 'Estimación TCH, biometría, visitas y fotografías',
-    version: '2.8.0', route: 'modules/tch/index.html', icon: 'tch',
+    version: '2.8.1', route: 'modules/tch/index.html', icon: 'tch',
     accent: 'var(--accent-tch)', enabled: true, visible: true, order: 2,
     requiresOnline: false, usesSupabase: false,
     storageNamespaces: ['idb:casur-estimador-tch'], privacy: 'public' },

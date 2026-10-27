@@ -8,6 +8,7 @@
 import * as router from './core/navigation/router.js';
 import { createModuleCheckpointRunner, resolveHistoryNavigation } from './core/navigation/module-checkpoint.js';
 import { installUpdateControl } from './core/updates/pwa-update.js';
+import { protectModuleActivity } from './core/updates/activity-guard.js';
 import * as registry from './core/module-registry/registry.js';
 import * as gate from './core/permissions/gate.js';
 import * as status from './core/sync/status.js';
@@ -96,7 +97,13 @@ async function consumePendingModuleContext(frame, moduleId) {
 async function checkpointActiveModule(reason) {
   const frame = $('#mFrame');
   if (!frame) return { ok: true, status: 'no-frame' };
-  return runActiveModuleCheckpoint(reason);
+  try {
+    const guard=protectModuleActivity(frame.contentWindow);
+    const result=await guard.checkpoint({protocolVersion:1, moduleId:activeModuleBridge()?.moduleId,
+      checkpoint:()=>runActiveModuleCheckpoint(reason)},reason);
+    if(result.ok && reason==='pwa-update')frame.contentWindow.CASUR_SAVE_UPDATE_CONTEXT?.();
+    return result;
+  } catch { return {ok:false,status:'unavailable'}; }
 }
 
 async function navigateFromActiveModule(path, reason, moduleContext = null) {
@@ -450,7 +457,7 @@ function viewModule(id) {
         <button class="icon-btn" id="mReload" type="button" aria-label="Recargar módulo">${icon('refresh')}</button>
       </div>
       <iframe class="module-host__frame" id="mFrame"
-              src="${m.route}"
+              data-casur-src="${m.route}"
               title="${m.name}"
               allow="camera; geolocation; clipboard-read; clipboard-write; fullscreen"
               referrerpolicy="no-referrer"></iframe>
@@ -470,8 +477,16 @@ function viewModule(id) {
   document.body.classList.add('in-module');
   viewEl.innerHTML = '';
   const frame = $('#mFrame', host);
-  frame.addEventListener('load', () => { void consumePendingModuleContext(frame, id); }, { once: true });
+  frame.addEventListener('load', () => { if(frame.contentWindow?.location.href==='about:blank')return; protectModuleActivity(frame.contentWindow); void consumePendingModuleContext(frame, id); });
   viewEl.appendChild(host);
+  // First-use Production scripts must already be behind the verified SW data gate.
+  void (async()=>{
+    if('serviceWorker' in navigator && location.protocol!=='file:'){
+      await navigator.serviceWorker.ready;
+      if(!navigator.serviceWorker.controller)await new Promise(resolve=>navigator.serviceWorker.addEventListener('controllerchange',resolve,{once:true}));
+    }
+    if(frame.isConnected)frame.src=m.route;
+  })();
 
   $('#mBack', host).addEventListener('click', () => { void navigateFromActiveModule('/', 'back-home'); });
   $('#mReload', host).addEventListener('click', () => { void reloadActiveModule(); });
@@ -598,6 +613,8 @@ async function viewCentroMaestro() {
         <div class="stat-grid" id="dataStatus" style="margin-top:10px"></div>
         <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap">
           <button class="btn btn-green" id="updateProduccion" type="button">Actualizar Maestro de Suertes</button>
+          <button class="btn" id="openOperational" type="button">Importar inventario / aforo por contenido</button>
+          <button class="btn" id="restoreLocalProduction" type="button" hidden>Usar generación local guardada</button>
           <button class="btn" id="genPackage" type="button">Generar paquete datos GitHub</button>
         </div>
         <p class="panel__note" style="margin-top:8px; opacity:.8">El paquete de datos (cronologico/historico/version)
@@ -659,6 +676,12 @@ async function viewCentroMaestro() {
   // --- Estado de datos maestros (SIAGRI → Suertes) ---
   renderDataStatus(view);
   $('#updateProduccion', view).addEventListener('click', () => updateProduccionFromSiagri());
+  $('#openOperational', view).addEventListener('click', () => { sessionStorage.setItem('casur-operational-open','1'); router.go('/modulo/produccion'); });
+  $('#restoreLocalProduction', view).addEventListener('click', () => {
+    try { localStorage.setItem('casur-production-source','personal'); }
+    catch { toast('No se pudo guardar la elección. La generación guardada se conserva.'); return; }
+    router.go('/modulo/produccion');
+  });
   $('#genPackage', view).addEventListener('click', () => generateGitHubPackageFromCentro());
 
   // Tarjeta de PIN: SOLO permite cambiarlo si el área privada ya está
@@ -835,12 +858,17 @@ async function renderDataStatus(view) {
     } catch (e) { /* backfill best-effort; no bloquea la vista */ }
   }
   const fmt = (d) => d ? new Date(d).toLocaleDateString('es-NI') : '—';
+  const official = localStorage.getItem('casur-production-source') === 'official';
+  const shared = localStorage.getItem('casur-data-last-shared');
+  $('#restoreLocalProduction', view).hidden = !prod.present || !official;
   box.innerHTML = `
     <div class="stat"><div class="stat__label">Maestro SIAGRI (procesado)</div>
       <div class="stat__value">${siagri ? (siagri.records ? siagri.records.length : '—') + ' suertes' : 'Sin procesar'}</div></div>
     <div class="stat"><div class="stat__label">SIAGRI · fuente</div>
       <div class="stat__value">${siagri && siagri.meta ? (siagri.meta.source || 'SIAGRI') : '—'}</div></div>
-    <div class="stat"><div class="stat__label">Maestro de Suertes · datos</div>
+    <div class="stat"><div class="stat__label">Producción · fuente efectiva</div>
+      <div class="stat__value">${official || !prod.present ? 'Oficial · ' + (shared || 'data/*') : 'Local · ' + (prod.dataVersion || 'guardada')}</div></div>
+    <div class="stat"><div class="stat__label">Maestro de Suertes · generación local guardada</div>
       <div class="stat__value">${prod.present ? (prod.dataVersion || 'aplicado') : 'Sin aplicar (usa data/*)'}</div></div>
     <div class="stat"><div class="stat__label">Aplicado</div>
       <div class="stat__value">${prod.present ? fmt(prod.savedAt) : '—'}</div></div>

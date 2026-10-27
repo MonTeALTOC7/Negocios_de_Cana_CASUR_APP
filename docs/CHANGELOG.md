@@ -2,6 +2,13 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.4.0] / Producción [V1.6.0] — pendiente de publicación · Maestro Etapa A
+- MINOR: importación de inventarios/aforos por encabezados y contenido, sin nombre de hoja obligatorio; elección y mapeo de candidatos ambiguos.
+- Previsualización, conciliación y aprobación explícita; transacción de Producción/Maestro Central con respaldo, archivo de generaciones y recuperación offline. Ausencias conservan identidad, sin imputar bajas definitivas.
+- Inventario, área activa, molienda, ejecutado y estimado separados. Contrato de plan por líneas/fracciones y procedencia por campo. Conflictos y rangos de total incompletos se advierten; datos originales no se corrigen automáticamente.
+- Se conserva PWA 1.3.6 (sin aviso falso al iniciar), fórmulas históricas y exportadores. Solo APP_VERSION del SW cambia; no se sustituyen SIAGRI/GEO ni se incluyen Excel originales.
+- Alcance y resultados: `docs/IMPORTACION_OPERATIVA_ETAPA_A.md` y `docs/QA_IMPORTACION_ETAPA_A.md`.
+
 ## [1.3.6] — pendiente de publicación · notificación de actualización
 - PATCH del shell: al abrir o finalizar una actualización no se muestra confirmación automática. Las cachés anteriores no se interpretan como una actualización reciente.
 - El aviso se ofrece exclusivamente para un SW distinto del controlador instalado, en espera y con recursos preparados. Se conservan Más tarde, checkpoint multiventana, hashes y una recarga segura.

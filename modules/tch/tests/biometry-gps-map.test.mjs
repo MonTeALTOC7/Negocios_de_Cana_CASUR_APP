@@ -8,9 +8,24 @@ import { hasCurrentBiometryGpsEvidence, stampBiometryGpsValidation, validateBiom
 
 const appSource = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
 const gpsFunctionSource = appSource.slice(
-  appSource.indexOf("async function captureBiometryGps("),
+  appSource.indexOf("let activeCheckpointWork = 0;"),
   appSource.indexOf("\nfunction captureActivePointAutomatically()"),
 );
+
+test('el checkpoint rechaza GPS en vuelo hasta terminar también su procesamiento asíncrono', async()=>{
+ let finish,flushes=0;
+ const sample={id:'p01'},state={biometry:{activeSampleId:'p01',samples:[sample]},selectedLot:{id:'99325'},route:'biometry'};
+ const bridgeSource=appSource.slice(appSource.indexOf('window.CASUR_MODULE_BRIDGE ='),appSource.indexOf('\nfunction scheduleBiometryDraftSave'));
+ const api=runInNewContext(`${gpsFunctionSource}\n${bridgeSource}\n({captureBiometryGps,bridge:window.CASUR_MODULE_BRIDGE})`,{
+  state,window:{CASUR_TCH_READY:true},navigator:{geolocation:{}},captureBiometryPoint:()=>new Promise(ok=>{finish=()=>ok({status:'captured'});}),
+  stampBiometryGpsValidation(){},markBiometryDirty(){},render(){},notify(){},sessionStorage:{setItem(){}},
+  flushBiometryDraft:async()=>{flushes++;return{ok:true,status:'saved'};},
+ });
+ const pending=api.captureBiometryGps(sample);
+ assert.equal((await api.bridge.checkpoint({reason:'pwa-update'})).ok,false);assert.equal(flushes,0);
+ finish();await pending;
+ assert.equal((await api.bridge.checkpoint({reason:'pwa-update'})).ok,true);assert.equal(flushes,1);
+});
 
 test("GPS exterior no altera biometría ni coordenada anterior; recaptura interior sí se acepta", async () => {
   const sample = { id: "p01", stalkCount: 15, heightM: 2.4, diameterMm: 22,

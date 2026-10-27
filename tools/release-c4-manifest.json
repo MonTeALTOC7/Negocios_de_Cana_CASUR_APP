@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "baseC3": "2912f643bec9eb2a8123a86e6f76b1ea4f054139",
+  "sourceArchiveSha256": "d3324112d6327d6401fb933c3ec6fe4e9ce15e8353eee4bdd622d1800e11fb77",
+  "dataVersion": "2026.10.25-aforo.1101",
+  "publishedAt": null,
+  "files": {
+    "version.json": "79622022c9d3ad84cbcbeb2d89e6e4c4c66b1b336984a23530e70eda867cb286",
+    "version.js": "f96e255e8bbcb30da7f758edd8ef0942ed5bccb5290338039a2ecf620a0f865c",
+    "cronologico.json": "dd15677735fb9f5f5333ad5baf88dc61895e27c438bcb21d71aa35011c918901",
+    "cronologico.js": "dd016f14b452e6bec8e52a338751225caa7cb450d2c404cff6e22fa32d25f02a",
+    "historico.json": "5a7b94e19ac4391cded1dfd510a063a1c47d1a9043da22afb2bad26559773728",
+    "historico.js": "d9030697a99ef1655a13ce1e6d764ec6cea697190569bc0ed850761c33390af5",
+    "integrity.json": "512f7da970889537d94818f34b9e6ad0f2ba4981f958d0560710c078d1eb869d"
+  }
+}

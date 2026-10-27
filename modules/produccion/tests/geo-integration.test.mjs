@@ -4,6 +4,8 @@ import path from "node:path";
 import test from "node:test";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+const operationalImport = createRequire(import.meta.url)('../../../core/imports/operational-import.js');
 
 const testRoot = path.dirname(fileURLToPath(import.meta.url));
 const read = (relative) => fs.readFileSync(path.join(testRoot, relative), "utf8");
@@ -23,6 +25,7 @@ const historicalEngine = historicalEngineContext.CASUR_HISTORICAL_ENGINE;
 
 function productionGeoApi() {
   const window = {
+    CASUR_OPERATIONAL_IMPORT: operationalImport,
     CASUR_HISTORICAL_ENGINE: historicalEngine,
     APP_DATA: historico,
     CRONO_DATA: crono,
@@ -100,8 +103,8 @@ test("la suerte 75907 conserva identidad canónica y área de la App", () => {
   assert.equal(feature?.properties?.fragmentCount, 2);
   assert.equal(feature?.properties?.anchor?.length, 2);
   assert.match(enhancements, /geoRecordForLot/);
-  assert.match(enhancements, /\["TCH 25\/26"/);
-  assert.match(enhancements, /\["Est\. 26\/27"/);
+  assert.match(enhancements, /operational \? "TCH anterior" : "TCH 25\/26"/);
+  assert.match(enhancements, /`Est\. \$\{estimateSeason\}`/);
   assert.match(enhancements, /<b>Coordenada de referencia<\/b>/);
   assert.doesNotMatch(enhancements, /<b>Anchor<\/b>/);
 });
@@ -194,7 +197,8 @@ test("mapa cronológico 24201 identifica la unidad SIAGRI y muestra ficha sin in
   const context = { source: "cronologico", entityType: "lote", farmCode: "242", name: producer.name, currentRows: producer.details };
   const card = api.chronologicalCardMarkup(context, "24201", true);
   const exportCard = api.chronologicalCardMarkup(context, "24201", false);
-  assert.equal(officialCrono.meta.source, "SIAGRI");
+  const aforo = officialCrono.meta.dataVersion === '2026.10.25-aforo.1101';
+  assert.equal(officialCrono.meta.source, aforo ? "Estimados_para_APP_Z2627.xlsx" : "SIAGRI");
   assert.equal(producer.zone, "5-Productores");
   assert.equal(producer.name, "Agustin Boiorge Acevedo");
   assert.match(index, /name:\['Hacienda_Productor','Hacienda Productor','Hacienda','Productor'/);
@@ -217,7 +221,7 @@ test("mapa cronológico 24201 identifica la unidad SIAGRI y muestra ficha sin in
   assert.match(card, /data-geo-open-selected="24201"/);
   assert.match(card, /Coordenadas no disponibles/, "sin geometría cargada no se inventa una ubicación");
   assert.doesNotMatch(exportCard, /data-geo-center-selected|data-geo-open-selected|data-geo-copy/);
-  assert.match(card, /Est\. 26\/27[\s\S]*?N\/D/);
+  assert.match(card, aforo ? /Est\. 26\/27[\s\S]*?20\.00/ : /Est\. 26\/27[\s\S]*?N\/D/);
   assert.match(enhancements, /geoMapController\?\.fitToLot\?\.\(geoLotId\(center\.dataset\.geoCenterSelected\)\)/);
   assert.match(enhancements, /if \(event\.target\.closest\?\.\("\[data-geo-open-selected\]"\)\) openGeoSelectedDetail\(\)/);
   assert.match(styles, /casur-geo-card--chrono-lot \.casur-geo-card-section dt\{font-size:10px/);
@@ -412,13 +416,13 @@ test("finca y suerte toleran geometrías faltantes sin aproximar otra suerte", (
   assert.doesNotMatch(enhancements, /nearest|aproximad/i);
 });
 
-test("Producción declara V1.5.1 en sus fuentes de versión activas", () => {
+test("Producción declara V1.7.1 en sus fuentes de versión activas", () => {
   const pkg = JSON.parse(read("../package.json"));
   const embedded = JSON.parse(index.match(/<script id="casurEmbeddedPwaAssets"[^>]*>(\{.*?\})<\/script>/s)?.[1] || "{}");
-  assert.equal(pkg.version, "1.5.1");
-  assert.match(read("../README_GITHUB.md"), /^# Producción Suertes CASUR · V1\.5\.1/m);
-  assert.match(read("../VERSION.txt"), /^V1\.5\.1 CASUR/m);
-  assert.match(index, /var VERSION='V1\.5\.1'/);
-  assert.match(Buffer.from(embedded["README_GITHUB.md"], "base64").toString("utf8"), /V1\.5\.1/);
-  assert.match(Buffer.from(embedded["VERSION.txt"], "base64").toString("utf8"), /^V1\.5\.1/);
+  assert.equal(pkg.version, "1.7.1");
+  assert.match(read("../README_GITHUB.md"), /^# Producción Suertes CASUR · V1\.7\.1/m);
+  assert.match(read("../VERSION.txt"), /^V1\.7\.1 CASUR/m);
+  assert.match(index, /var VERSION='V1\.7\.1'/);
+  assert.match(Buffer.from(embedded["README_GITHUB.md"], "base64").toString("utf8"), /V1\.7\.1/);
+  assert.match(Buffer.from(embedded["VERSION.txt"], "base64").toString("utf8"), /^V1\.7\.1/);
 });

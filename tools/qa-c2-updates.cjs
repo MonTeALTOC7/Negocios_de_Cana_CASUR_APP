@@ -2,13 +2,17 @@
 const fs=require('fs'),path=require('path'),http=require('http'),cp=require('child_process'),assert=require('assert/strict'),crypto=require('crypto');
 const {chromium}=require('C:/Users/ctije/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const root=path.resolve(__dirname,'..'),out=path.resolve(process.argv[2]),run='run-'+Date.now(),baseline='74231a1e4cbc7ff4e0207017e104d036d9c8f02e',prefix='/Negocios_de_Cana_CASUR_APP/',aforo='2026.10.25-aforo.1101';
-const packageDir=JSON.parse(fs.readFileSync(path.join(out,'data-package.json'))).path,results=[],errors=[],swErrors=[],requests=[];
+const assembledRelease=process.argv.includes('--assembled-release');
+const packageDir=assembledRelease?root:JSON.parse(fs.readFileSync(path.join(out,'data-package.json'))).path,results=[],errors=[],swErrors=[],requests=[];
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex'),save=(n,v)=>fs.writeFileSync(path.join(out,n+'.json'),JSON.stringify(v,null,2)+'\n');
 let code='1.5.0',data='aforo',broken='',partial='',activationFail=false,dataFault='',ctx,server,origin,base;
 const mime=f=>/\.html$/.test(f)?'text/html':/\.(js|mjs)$/.test(f)?'text/javascript':/\.css$/.test(f)?'text/css':/\.(json|geojson|webmanifest)$/.test(f)?'application/json':/\.png$/.test(f)?'image/png':/\.svg$/.test(f)?'image/svg+xml':'application/octet-stream';
 function resource(f){
  if(code==='1.3.6')return cp.execFileSync('git',['show',baseline+':'+f],{cwd:root,maxBuffer:32e6,stdio:['ignore','pipe','ignore']});
  const isData=/^modules\/produccion\/data\/(version|cronologico|historico)\.(json|js)$/.test(f)||f==='modules/produccion/data/integrity.json';
+ // A final rehearsal serves the candidate's actual seven files. September is
+ // read from Git only for migration scenarios, never from a substituted aforo.
+ if(assembledRelease&&isData&&data==='baseline')return cp.execFileSync('git',['show','2912f643bec9eb2a8123a86e6f76b1ea4f054139:'+f],{cwd:root,maxBuffer:32e6,stdio:['ignore','pipe','ignore']});
  let b=fs.readFileSync(path.join(isData&&data==='aforo'?packageDir:root,f));
  if(isData)b=Buffer.from(b.toString().replace(/\r\n/g,'\n'));
  if(code!=='1.5.0'){

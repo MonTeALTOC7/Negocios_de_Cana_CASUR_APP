@@ -32,10 +32,13 @@ jobs:
           RELEASE_BASE: ${{ github.event.pull_request.base.sha }}
         run: node tools/check-release-policy.mjs "$RELEASE_BASE"
       - name: Verify C3 code-only integration candidate
-        if: github.event_name == 'pull_request' && github.head_ref == 'codex/c3-integracion-casur-candidata'
+        if: github.event_name == 'pull_request' && github.head_ref == 'codex/c3-integracion-casur-candidata' && hashFiles('tools/release-c4-manifest.json') == ''
         env:
           RELEASE_BASE: ${{ github.event.pull_request.base.sha }}
         run: node tools/check-c3-candidate.mjs "$RELEASE_BASE"
+      - name: Verify C4 final release candidate
+        if: hashFiles('tools/release-c4-manifest.json') != '' || startsWith(github.head_ref, 'codex/c4-') || github.head_ref == 'codex/c3-integracion-casur-candidata'
+        run: node tools/check-c4-release.mjs
       - name: Verify shell and data guard
         run: node --test tests/*.test.mjs
       - name: Verify Produccion

@@ -13,7 +13,7 @@ test('HEAD identities differ without changing production version, GEO, LKG or up
   const a = derivePreviewWorker(source,{appVersion:manifest.appVersion,head:'a'.repeat(40)});
   const b = derivePreviewWorker(source,{appVersion:manifest.appVersion,head:'b'.repeat(40)});
   assert.notEqual(a,b);
-  for(const token of ["const APP_VERSION = '1.5.1';", "const PROD_LKG_CACHE = MASTER_PREFIX + 'prod_lkg';",
+  for(const token of ["const APP_VERSION = '1.5.2';", "const PROD_LKG_CACHE = MASTER_PREFIX + 'prod_lkg';",
     "const GEO_DATA_VERSION = '2026-07-24-maestro-26-27-r2';", 'checkpoint', 'await self.skipWaiting()', 'clients.claim()']) assert.ok(a.includes(token));
   assert.ok(a.includes("'shell_v' + PREVIEW_RELEASE_ID"));
   assert.ok(a.includes('manifest.previewReleaseId !== PREVIEW_RELEASE_ID'));

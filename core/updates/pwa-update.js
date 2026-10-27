@@ -42,7 +42,10 @@ export async function installUpdateControl({ version, checkpoint }) {
     if (prepared) { event.ports[0]?.postMessage({ok:false}); return; }
     lock.showModal();
     let result;
-    try { result = await checkpoint('pwa-update'); } catch { result = {ok:false}; }
+    try {
+      const target = await workerRequest(event.source, {type:'CASUR_UPDATE_INFO'});
+      result = await checkpoint('pwa-update', {targetVersion:target.version});
+    } catch { result = {ok:false}; }
     prepared = result?.ok === true;
     if (!prepared) release();
     else unlockTimer = setTimeout(() => { release(); message.hidden=false; message.textContent='La instalación no se completó. La versión anterior sigue disponible; podés reintentar.'; }, 30000);

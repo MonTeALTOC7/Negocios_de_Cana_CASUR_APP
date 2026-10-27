@@ -416,13 +416,13 @@ test("finca y suerte toleran geometrías faltantes sin aproximar otra suerte", (
   assert.doesNotMatch(enhancements, /nearest|aproximad/i);
 });
 
-test("Producción declara V1.7.1 en sus fuentes de versión activas", () => {
+test("Producción declara V1.7.2 en sus fuentes de versión activas", () => {
   const pkg = JSON.parse(read("../package.json"));
   const embedded = JSON.parse(index.match(/<script id="casurEmbeddedPwaAssets"[^>]*>(\{.*?\})<\/script>/s)?.[1] || "{}");
-  assert.equal(pkg.version, "1.7.1");
-  assert.match(read("../README_GITHUB.md"), /^# Producción Suertes CASUR · V1\.7\.1/m);
-  assert.match(read("../VERSION.txt"), /^V1\.7\.1 CASUR/m);
-  assert.match(index, /var VERSION='V1\.7\.1'/);
-  assert.match(Buffer.from(embedded["README_GITHUB.md"], "base64").toString("utf8"), /V1\.7\.1/);
-  assert.match(Buffer.from(embedded["VERSION.txt"], "base64").toString("utf8"), /^V1\.7\.1/);
+  assert.equal(pkg.version, "1.7.2");
+  assert.match(read("../README_GITHUB.md"), /^# Producción Suertes CASUR · V1\.7\.2/m);
+  assert.match(read("../VERSION.txt"), /^V1\.7\.2 CASUR/m);
+  assert.match(index, /var VERSION='V1\.7\.2'/);
+  assert.match(Buffer.from(embedded["README_GITHUB.md"], "base64").toString("utf8"), /V1\.7\.2/);
+  assert.match(Buffer.from(embedded["VERSION.txt"], "base64").toString("utf8"), /^V1\.7\.2/);
 });

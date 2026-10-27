@@ -9,6 +9,7 @@ import * as router from './core/navigation/router.js';
 import { createModuleCheckpointRunner, resolveHistoryNavigation } from './core/navigation/module-checkpoint.js';
 import { installUpdateControl } from './core/updates/pwa-update.js';
 import { protectModuleActivity } from './core/updates/activity-guard.js';
+import {contextStore} from './core/updates/context-store.js';
 import * as registry from './core/module-registry/registry.js';
 import * as gate from './core/permissions/gate.js';
 import * as status from './core/sync/status.js';
@@ -83,6 +84,7 @@ async function consumePendingModuleContext(frame, moduleId) {
   if (pending.targetModuleId !== moduleId) return;
   try {
     const bridge = frame?.contentWindow?.CASUR_MODULE_BRIDGE;
+    frame?.contentWindow?.CASUR_CANCEL_UPDATE_CONTEXT?.();
     if (bridge?.protocolVersion !== 1 || bridge.moduleId !== moduleId || typeof bridge.openContext !== 'function') {
       toast(MODULE_CONTEXT_ERROR);
       return;
@@ -94,14 +96,16 @@ async function consumePendingModuleContext(frame, moduleId) {
   }
 }
 
-async function checkpointActiveModule(reason) {
+async function checkpointActiveModule(reason, update = {}) {
   const frame = $('#mFrame');
   if (!frame) return { ok: true, status: 'no-frame' };
   try {
     const guard=protectModuleActivity(frame.contentWindow);
     const result=await guard.checkpoint({protocolVersion:1, moduleId:activeModuleBridge()?.moduleId,
       checkpoint:()=>runActiveModuleCheckpoint(reason)},reason);
-    if(result.ok && reason==='pwa-update')frame.contentWindow.CASUR_SAVE_UPDATE_CONTEXT?.();
+    if(result.ok && reason!=='pwa-update')frame.contentWindow.CASUR_CANCEL_UPDATE_CONTEXT?.();
+    if(result.ok && reason==='pwa-update' && frame.contentWindow.CASUR_SAVE_UPDATE_CONTEXT &&
+       frame.contentWindow.CASUR_SAVE_UPDATE_CONTEXT({reason,targetVersion:update.targetVersion})===false)return {ok:false,status:'context-not-ready'};
     return result;
   } catch { return {ok:false,status:'unavailable'}; }
 }
@@ -1081,9 +1085,9 @@ function route(r) {
 
 /* ---------------- Service Worker ---------------- */
 function registerSW() {
-  const start = () => installUpdateControl({ version: APP_VERSION, checkpoint: async reason => {
+  const start = () => installUpdateControl({ version: APP_VERSION, checkpoint: async (reason, update) => {
     if (moduleNavigationPending || historyNavigationPending) return {ok:false};
-    return checkpointActiveModule(reason);
+    return checkpointActiveModule(reason, update);
   }}).catch(error => console.warn('Actualización PWA pendiente:', error));
   if (document.readyState === 'complete') void start();
   else window.addEventListener('load', start, {once:true});
@@ -1091,6 +1095,11 @@ function registerSW() {
 
 /* ---------------- Arranque ---------------- */
 function boot() {
+  // Only an unambiguous pending checkpoint for this installed version can recover a cold-start route.
+  if(!location.hash||location.hash==='#/'||location.hash==='#'){
+    const pending=contextStore(sessionStorage,localStorage,APP_VERSION).pending();
+    if(pending.length===1)history.replaceState(null,'',pending[0].record.route);
+  }
   renderHeader();
   router.onChange(route);
   registerSW();

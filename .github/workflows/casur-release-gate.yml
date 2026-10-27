@@ -37,8 +37,11 @@ jobs:
           RELEASE_BASE: ${{ github.event.pull_request.base.sha }}
         run: node tools/check-c3-candidate.mjs "$RELEASE_BASE"
       - name: Verify C4 final release candidate
-        if: hashFiles('tools/release-c4-manifest.json') != '' || startsWith(github.head_ref, 'codex/c4-') || github.head_ref == 'codex/c3-integracion-casur-candidata'
+        if: hashFiles('core/updates/context-store.js') == '' && (hashFiles('tools/release-c4-manifest.json') != '' || startsWith(github.head_ref, 'codex/c4-') || github.head_ref == 'codex/c3-integracion-casur-candidata')
         run: node tools/check-c4-release.mjs
+      - name: Verify context hotfix and unchanged official data
+        if: hashFiles('core/updates/context-store.js') != ''
+        run: node tools/check-context-hotfix.mjs
       - name: Verify shell and data guard
         run: node --test tests/*.test.mjs
       - name: Verify Produccion

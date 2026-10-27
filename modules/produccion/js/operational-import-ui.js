@@ -21,6 +21,10 @@ function applyView(payload){
   if(!result?.applied)throw Error(result?.error||'No se pudo mostrar la generación');
   window.__CRONO_ZONE_ROWS=null;
   window.CASUR_OPERATIONAL_LOCAL=!payload.operationalDataset?.baseline;
+  window.CASUR_SAVED_MASTER_OVERLAY=payload;
+  window.CASUR_MASTER_OVERLAY=payload;
+  // Applying or recovering an approved local generation is an explicit choice.
+  try { localStorage.setItem('casur-production-source','personal'); } catch { /* The saved generation remains intact. */ }
   window.renderCronoHome?.();
   document.dispatchEvent(new CustomEvent('casur-crono-effective-change'));
 }

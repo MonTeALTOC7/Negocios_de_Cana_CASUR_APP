@@ -50,9 +50,26 @@ Excel. No se anuncia como aplicada una generación bloqueada o solo descargada.
 |---|---|
 | Nuevo | Última generación oficial íntegra |
 | Compartidos antiguos, sin trabajo pendiente | Actualización oficial automática |
-| Generación personal aprobada | Se conserva y prevalece; «Usar datos oficiales» requiere acción explícita |
+| Local anterior sin personalización ni elección explícita de conservarla | Oficial más reciente automática, después del checkpoint; la local y su archivo siguen íntegros |
+| Local personalizada, fijada o de procedencia no verificable | Se conserva; «Usar datos oficiales» permite cambiar sin borrar registros |
 | Edición/importación/operación pendiente | Se protege; no se cambia la vista ni se fuerza instalación |
-| Vista oficial con generación personal archivada | Puede volver mediante «Usar generación local guardada» |
+| Vista oficial con generación personal archivada | Puede volver mediante «Usar generación local guardada», también desde Centro Maestro; recuperarla la fija explícitamente |
+| Offline | Mantiene la generación íntegra; al reconectar vuelve a comprobar y espera un checkpoint seguro |
+
+Solo es sustituible automáticamente una importación operativa de contrato 1,
+con `manualChanges: false` explícito en sus metadatos, versión coherente y copia
+archivada de Producción y Maestro idéntica a los registros actuales. Una copia
+ausente, divergente o con personalización explícita se conserva. No se deduce
+la intención por el nombre del archivo. Se usa el comparador de versiones
+existente (fecha y secuencia): una versión igual, anterior o no comparable no
+provoca recarga automática. La comprobación relee el estado después del
+checkpoint para respetar una importación o elección concurrente. Aplicar o
+recuperar una generación local aprobada cuenta como elección explícita.
+
+El cambio de fuente solo escribe la preferencia y el contexto de navegación;
+la consulta de Producción, Maestro y archivo es una transacción IDB de lectura.
+Centro Maestro distingue fuente efectiva y generación local guardada. Su
+recuperación de fuente no ejecuta una restauración de registros históricos.
 
 Elegir datos oficiales no borra ni modifica `produccion_current`, Maestro o su
 archivo de generaciones. La elección no sincroniza los datos locales entre
@@ -68,6 +85,10 @@ El generador de paquetes del Centro Maestro incluye el manifiesto.
 
 CI verifica metadatos, runtime, manifiesto de datos y pruebas. Las pruebas de
 datos restringidos/Chromium se ejecutan localmente con `tools/qa-c2-updates.cjs`.
+El modo `node tools/qa-c2-updates.cjs <QA externa> --source-priority` prueba las
+seis transiciones solicitadas, personalización, igualdad de versión, elección
+concurrente y overlay heredado; compara SHA-256 de todos los registros maestros
+antes y después. `tests/official-source-priority.test.mjs` cubre la regla pura.
 No subir perfiles QA, Excel, paquetes de aforo ni snapshots a Actions públicos.
 
 La integración/publicación sigue pendiente de aprobar el SHA definitivo y los

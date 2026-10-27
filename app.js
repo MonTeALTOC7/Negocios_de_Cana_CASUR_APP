@@ -614,6 +614,7 @@ async function viewCentroMaestro() {
         <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap">
           <button class="btn btn-green" id="updateProduccion" type="button">Actualizar Maestro de Suertes</button>
           <button class="btn" id="openOperational" type="button">Importar inventario / aforo por contenido</button>
+          <button class="btn" id="restoreLocalProduction" type="button" hidden>Usar generación local guardada</button>
           <button class="btn" id="genPackage" type="button">Generar paquete datos GitHub</button>
         </div>
         <p class="panel__note" style="margin-top:8px; opacity:.8">El paquete de datos (cronologico/historico/version)
@@ -676,6 +677,11 @@ async function viewCentroMaestro() {
   renderDataStatus(view);
   $('#updateProduccion', view).addEventListener('click', () => updateProduccionFromSiagri());
   $('#openOperational', view).addEventListener('click', () => { sessionStorage.setItem('casur-operational-open','1'); router.go('/modulo/produccion'); });
+  $('#restoreLocalProduction', view).addEventListener('click', () => {
+    try { localStorage.setItem('casur-production-source','personal'); }
+    catch { toast('No se pudo guardar la elección. La generación guardada se conserva.'); return; }
+    router.go('/modulo/produccion');
+  });
   $('#genPackage', view).addEventListener('click', () => generateGitHubPackageFromCentro());
 
   // Tarjeta de PIN: SOLO permite cambiarlo si el área privada ya está
@@ -852,12 +858,17 @@ async function renderDataStatus(view) {
     } catch (e) { /* backfill best-effort; no bloquea la vista */ }
   }
   const fmt = (d) => d ? new Date(d).toLocaleDateString('es-NI') : '—';
+  const official = localStorage.getItem('casur-production-source') === 'official';
+  const shared = localStorage.getItem('casur-data-last-shared');
+  $('#restoreLocalProduction', view).hidden = !prod.present || !official;
   box.innerHTML = `
     <div class="stat"><div class="stat__label">Maestro SIAGRI (procesado)</div>
       <div class="stat__value">${siagri ? (siagri.records ? siagri.records.length : '—') + ' suertes' : 'Sin procesar'}</div></div>
     <div class="stat"><div class="stat__label">SIAGRI · fuente</div>
       <div class="stat__value">${siagri && siagri.meta ? (siagri.meta.source || 'SIAGRI') : '—'}</div></div>
-    <div class="stat"><div class="stat__label">Maestro de Suertes · datos</div>
+    <div class="stat"><div class="stat__label">Producción · fuente efectiva</div>
+      <div class="stat__value">${official || !prod.present ? 'Oficial · ' + (shared || 'data/*') : 'Local · ' + (prod.dataVersion || 'guardada')}</div></div>
+    <div class="stat"><div class="stat__label">Maestro de Suertes · generación local guardada</div>
       <div class="stat__value">${prod.present ? (prod.dataVersion || 'aplicado') : 'Sin aplicar (usa data/*)'}</div></div>
     <div class="stat"><div class="stat__label">Aplicado</div>
       <div class="stat__value">${prod.present ? fmt(prod.savedAt) : '—'}</div></div>

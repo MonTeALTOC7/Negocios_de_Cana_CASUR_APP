@@ -58,6 +58,29 @@ async function get(key) {
 export async function saveProduccionDataset(payload) { return put(KEY_PRODUCCION, payload); }
 export async function loadProduccionDataset() { return get(KEY_PRODUCCION); }
 
+// Source selection only reads these records in one transaction. It never restores,
+// rewrites or deletes a saved generation to show newer official data.
+export async function loadOperationalSourceSnapshot() {
+  const db=await openDB();
+  try {
+    return await new Promise((resolve,reject)=>{
+      const tx=db.transaction(STORE,'readonly'),store=tx.objectStore(STORE),snapshot={};
+      const current=store.get(KEY_PRODUCCION),central=store.get(KEY_MAESTRO);
+      current.onsuccess=()=>{
+        snapshot.production=current.result?.payload;
+        if(snapshot.production?.dataVersion){
+          const archive=store.get('operational_generation:'+snapshot.production.dataVersion);
+          archive.onsuccess=()=>{snapshot.archive=archive.result?.payload;};
+        }
+      };
+      central.onsuccess=()=>{snapshot.maestro=central.result?.payload;};
+      tx.oncomplete=()=>resolve(snapshot);
+      tx.onerror=()=>reject(tx.error);
+      tx.onabort=()=>reject(tx.error||new Error('Source snapshot aborted'));
+    });
+  } finally {db.close();}
+}
+
 /* Operational imports use this existing store/version. A single transaction saves
    the previous generation, current production and central catalog together. */
 const KEY_OPERATIONAL_PREVIOUS = 'operational_previous';

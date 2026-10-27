@@ -214,7 +214,7 @@ body.casur-geo-open{overflow:hidden}
 #cronoContent .casur-tons-kpi{background:var(--crono-ivory);border-color:var(--crono-sage)}
 #cronoContent .casur-tons-kpi:before{background:var(--crono-sage)}
 #cronoContent .casur-tons-kpi strong{color:var(--crono-petrol)}
-#cronoContent .casur-tons-kpi .label{color:var(--crono-slate)}
+#cronoContent .casur-tons-kpi .label{color:var(--crono-charcoal)}
 
 /* PR45: use the full summary width; natural-height columns remove stretched cards. */
 #cronoContent > .crono-general-kpis{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:10px!important;align-items:stretch}

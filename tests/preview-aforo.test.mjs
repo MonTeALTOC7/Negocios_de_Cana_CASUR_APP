@@ -2,18 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {createHash} from 'node:crypto';
 import {readPreviewAforo, validatePreviewAforo} from '../tools/preview-aforo.mjs';
 
-test('preview aforo is encrypted, pinned to the approved archive and fails closed without its key', () => {
-  const bytes = fs.readFileSync(new URL('../tools/preview-data/aforo-1101.enc', import.meta.url));
+test('official integration excludes the private snapshot and preview cannot fall back to public data', () => {
   const manifest = JSON.parse(fs.readFileSync(new URL('../tools/preview-data/aforo-1101.manifest.json', import.meta.url)));
-  assert.equal(createHash('sha256').update(bytes).digest('hex'), manifest.encryptedSha256);
+  assert.equal(fs.existsSync(new URL('../tools/preview-data/aforo-1101.enc', import.meta.url)), false);
+  assert.match(manifest.encryptedSha256, /^[a-f0-9]{64}$/);
   assert.equal(manifest.sourceSha256, 'aa9ab25b863dc399d5a6d445c0efe7907ca8956ef868429f308a404a46267fc6');
   assert.equal(manifest.catalog, 1053);
-  assert.equal(bytes.includes(Buffer.from('Estimados_para_APP')), false);
   assert.throws(() => readPreviewAforo(), /no baseline fallback/);
-  assert.throws(() => readPreviewAforo('0'.repeat(64)));
+  assert.throws(() => readPreviewAforo('0'.repeat(64)), /ENOENT/);
   assert.throws(() => validatePreviewAforo({production:{}}));
 });
 

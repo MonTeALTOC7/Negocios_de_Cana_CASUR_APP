@@ -1,5 +1,12 @@
 # PR45: preview HTTPS independiente
 
+Nota C3: esta documentación describe la preview histórica de PR #45. La rama
+oficial de integración conserva sus commits, pero excluye el snapshot cifrado
+del árbol final; la copia íntegra se conserva fuera del repositorio en QA.
+La configuración y la rama remota #45 no se modifican. Esta candidata no permite
+reconstruir una preview operativa solo con una clave y no añade bootstrap a la
+instalación oficial. El manifiesto histórico conserva únicamente su trazabilidad.
+
 Proyecto: `casur-negocios-preview`, cuenta `0a51301ab5cb16ce40f6c28316e2a472`.
 Repositorio Git conectado: `MonTeALTOC7/Negocios_de_Cana_CASUR_APP`.
 Única rama autorizada: `codex/estimados-plan-consulta-b2`.

@@ -31,6 +31,11 @@ jobs:
         env:
           RELEASE_BASE: ${{ github.event.pull_request.base.sha }}
         run: node tools/check-release-policy.mjs "$RELEASE_BASE"
+      - name: Verify C3 code-only integration candidate
+        if: github.event_name == 'pull_request' && github.head_ref == 'codex/c3-integracion-casur-candidata'
+        env:
+          RELEASE_BASE: ${{ github.event.pull_request.base.sha }}
+        run: node tools/check-c3-candidate.mjs "$RELEASE_BASE"
       - name: Verify shell and data guard
         run: node --test tests/*.test.mjs
       - name: Verify Produccion

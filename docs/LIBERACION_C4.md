@@ -5,51 +5,68 @@ Rama local: `codex/c4-liberacion-final-local`. No autoriza push, merge ni deploy
 
 ## Estado de preparación
 
-**BLOCKED: el ZIP C3 no está disponible en su ubicación anterior.**
-No hay candidato FINAL, manifiesto definitivo, SHA de publicación ni ensayo
-C4 con los datos oficiales. Los resultados C3 no sustituyen esas verificaciones.
-No reconstruir el paquete desde Excel, una preview o una base personal.
+Los siete archivos oficiales están ensamblados desde el ZIP C3 original,
+verificado por SHA-256 y CRC. Sus bytes son idénticos a C3; no se recalculó
+Excel, una preview ni una base personal. La identidad final y los resultados
+de cierre se registran en el informe externo C4, después de crear el commit
+y el artefacto. Esta documentación no concede autorización de publicación.
 
-Se necesita `CASUR_C3_Z2627_CANDIDATO_LOCAL_ONLY.zip`, cuyo SHA-256 debe ser
+La fuente es `CASUR_C3_Z2627_CANDIDATO_LOCAL_ONLY.zip`, con SHA-256
 `d3324112d6327d6401fb933c3ec6fe4e9ce15e8353eee4bdd622d1800e11fb77`.
 Antes de extraer, verificar el SHA real; comprobar CRC, exactamente siete
 entradas de archivo, rutas canónicas sin traversal y los siete SHA extraídos.
 Copiarlos sin transformaciones a `modules/produccion/data/`.
 Mantener generación `2026.10.25-aforo.1101` y `publishedAt: null`.
 
-El guard `tools/check-c4-release.mjs` requiere el manifiesto definitivo
+El guard `tools/check-c4-release.mjs` comprueba el manifiesto definitivo
 `tools/release-c4-manifest.json`; su ausencia bloquea la liberación.
 El manifiesto debe identificar schemaVersion 1, baseC3, sourceArchiveSha256,
 dataVersion, publishedAt y un mapa files de los siete nombres a SHA-256.
 Solo se crea después de cotejar el ZIP, nunca desde datos sin procedencia.
 Verifica bytes, JSON/JS, totales, casos especiales, Histórico idéntico al C3,
-versiones, 166 recursos runtime, PWA/SW intactos y allowlist del diff C4.
+versiones, 166 recursos runtime, origen/scope conservados y allowlist del diff C4.
 Los seis Excel heredados de C3 se verifican byte por byte; no se permiten
 Excel nuevos, snapshots, perfiles, credenciales o ZIP de QA en el checkout.
 No se eliminaron los controles ni suites existentes.
 
-El Histórico C3 tiene **diez** zafras con registros, de 16/17 a 25/26,
-y 11.598 registros. La solicitud menciona ocho. Conservar todas las temporadas;
-dejar visible la discrepancia sin recortar ni regenerar el Histórico.
+El Histórico C3 conserva **diez** zafras con registros, de 16/17 a 25/26,
+y 11.598 registros. Se verifican las **ocho más recientes**, 18/19 a 25/26,
+que también muestra la gráfica cronológica de la suerte 99336, sin recortar
+las dos anteriores ni regenerar el Histórico. El ensayo `--history-only`
+comprueba su selección y las exportaciones PDF/PNG con ese periodo.
 
-## Cierre técnico pendiente
+## Corrección puntual autorizada
+
+El usuario autorizó corregir el PDF histórico de finca 993, que añadía una
+segunda página casi vacía con el pie. App 1.5.1 y Producción V1.7.1 incorporan
+solo un ajuste proporcional de hasta 4% para desbordamientos mínimos de una
+página, sin recortar píxeles ni ignorar saltos de sección. PNG y datos no
+cambian. Se conservan Histórico V2.9 y TCH 2.8.1. SW solo cambia su identidad
+App; se regeneran metadata derivada y hashes runtime. Los otros 162 recursos
+runtime permanecen idénticos al manifiesto C3. La prueba nueva cubre contenido
+completo, límite de ajuste y saltos forzados; la exportación real se renderiza
+y revisa de nuevo.
+
+## Verificación de cierre
 
 1. Verificar ZIP y siete archivos, crear el manifiesto y ejecutar el guard C4.
-2. Adaptar únicamente los controles de fixtures de septiembre en
-   `modules/produccion/tests/validate-static.mjs` a los contratos oficiales
-   Z26/27, manteniendo ambas validaciones por generación. No alterar runtime.
+2. Mantener los controles de fixtures de septiembre y los contratos Z26/27
+   en validate-static, geo-integration e historical-engine. El aforo conserva
+   precisión original, cero autorizado de Semilla 2003 y las áreas vigentes.
+   El harness GEO debe cargar el motor de participación real. No ampliar el cambio de runtime.
 3. Ejecutar `tools/check-c2-local.ps1` con evidencia externa y las políticas
-   contra main y C3. Datos y controles no requieren subir la versión del runtime
-   aprobado; cualquier cambio de runtime exige revisar versiones y hashes.
+   contra main y C3. La corrección PDF exige App/Producción PATCH, snapshots y notas de release;
+   validar todos los hashes derivados y el contrato PWA.
 4. Ensayar `node tools/qa-c2-updates.cjs <QA externa> --assembled-release` y
-   repetir con `--source-priority`. Este modo usa los siete archivos del árbol
+   repetir con `--source-priority`, `--mobile` y `--history-only` según el grupo.
+   Este modo usa los siete archivos del árbol
    final; solo las fases históricas leen septiembre de Git. No hay bootstrap
    Cloudflare. Perfiles nuevos en QA externa, nunca perfiles reales.
 5. Cubrir instalación nueva, 1.3.6, aviso, instalar, Más tarde, prioridad de
    fuentes, edición/biometría/GPS pendientes, offline, LKG, recuperación y
    PDF/PNG. Revisar capturas PC/móvil de Chromium; no equiparar viewport móvil
    a una prueba física de Android. Conciliar las cifras de la solicitud y las
-   diez temporadas íntegras del Histórico.
+   ocho temporadas recientes y diez temporadas íntegras del Histórico.
 6. Crear commit local final, diff binario exacto contra C3, listado y ZIP
    de publicación desde ese único estado Git. Registrar SHA del ZIP y de los
    siete recursos. Excluir QA/perfiles/credenciales del artefacto; documentar

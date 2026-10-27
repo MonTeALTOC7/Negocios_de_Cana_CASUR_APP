@@ -18,8 +18,11 @@ const body=o=>Object.fromEntries(Object.entries(o).filter(([k])=>k!=='meta'));
 const names=['version.json','version.js','cronologico.json','cronologico.js','historico.json','historico.js','integrity.json'];
 const allowed=new Set([...names.map(n=>directory+n),
  'tools/check-c4-release.mjs','tools/release-c4-manifest.json','tools/qa-c2-updates.cjs',
- 'modules/produccion/tests/validate-static.mjs','.github/workflows/casur-release-gate.yml',
- 'docs/LIBERACION_C4.md']);
+ 'modules/produccion/tests/validate-static.mjs','modules/produccion/tests/geo-integration.test.mjs',
+ 'modules/produccion/tests/historical-engine.test.mjs','.github/workflows/casur-release-gate.yml',
+ 'docs/LIBERACION_C4.md','tests/production-release.test.mjs','tests/app-version.test.mjs','tests/preview-release.test.mjs',
+ 'modules/produccion/index.html','modules/produccion/package.json','modules/produccion/VERSION.txt','modules/produccion/README_GITHUB.md',
+ 'core/versions/versions.js','core/versions/runtime-assets.json','core/module-registry/registry.js','index.html','sw.js']);
 
 git('merge-base','--is-ancestor',c3,'HEAD');
 for(const ref of ['3e510035cc4017b175758c9b967f447935351228','bb04f8f104bdbb421182975d0623c6c6379850ea','6d6c790fec35d53f75da6cca9ff483cd535575cb'])git('merge-base','--is-ancestor',ref,'HEAD');
@@ -48,6 +51,8 @@ assert.deepEqual(Object.keys(manifest.files).sort(),[...names].sort());
 for(const n of names)assert.equal(sha(fs.readFileSync(directory+n)),manifest.files[n],n+' exact bytes');
 const version=read(directory+'version.json'),crono=read(directory+'cronologico.json'),history=read(directory+'historico.json');
 assert.equal(version.version,generation);
+assert.equal(crono.meta.estimateSeason,'26/27');
+assert.equal(crono.global.estimateSeason,'26/27');
 for(const value of [version,crono.meta,history.meta])assert.equal(value.publishedAt,null);
 for(const value of [crono,history])assert.equal(value.meta.dataVersion,generation);
 const globals={version:'CASUR_RELEASE',cronologico:'CASUR_REMOTE_CRONO',historico:'CASUR_REMOTE_HISTORICO'};
@@ -67,6 +72,7 @@ const E=createRequire(import.meta.url)('../core/imports/operational-import.js');
 const rows=crono.producers.flatMap(p=>p.details),totals=E.totals(rows);
 for(const [key,value] of Object.entries({catalog:1053,inventoried:1046,active:995,milling:948,seed:47,activeArea:9574.66,validMillingArea:9115.65,millingTons:563187.9696909501,millingTch:61.782535495653086,pendingConflicts:10}))assert.ok(Math.abs(totals[key]-value)<1e-6,key);
 assert.equal(totals.millingCoverage,1);
+assert.equal(totals.decisions,2);
 assert.ok(rows.every(r=>!r.dataVersion||r.dataVersion===generation));
 const lot=id=>rows.find(r=>r.codLote===id);
 assert.equal(E.participation(lot('2003')).active,true);
@@ -75,15 +81,20 @@ assert.equal(E.participation(lot('1927')).estimatedTons,430.5);
 assert.ok(Math.abs(rows.filter(r=>r.code==='494').reduce((s,r)=>s+(E.participation(r).estimatedTons||0),0)-681.8)<1e-6);
 assert.equal(lot('99336').area,8.91);assert.equal(lot('99336').tchEst2627,65);assert.equal(lot('99336').tonEst2627,579.15);
 assert.equal(lot('99336').source.sourceDate,'2026-10-12');assert.equal(lot('99336').plan.date.iso,'2026-12-24');
-assert.equal(APP_VERSION,'1.5.0');assert.equal(MODULE_VERSIONS.produccion,'V1.7.0');assert.equal(MODULE_VERSIONS.tch,'2.8.1');
+assert.equal(APP_VERSION,'1.5.1');assert.equal(MODULE_VERSIONS.produccion,'V1.7.1');assert.equal(MODULE_VERSIONS.tch,'2.8.1');
 assert.equal(PRODUCTION_RELEASES[0].historicalVersion,'V2.9');
-for(const p of ['core/versions/runtime-assets.json','sw.js','manifest.webmanifest']){
+for(const p of ['manifest.webmanifest']){
  assert.equal(fs.readFileSync(p,'utf8').replace(/\r\n/g,'\n').trim(),git('show',c3+':'+p).replace(/\r\n/g,'\n'),p+' must preserve approved runtime and PWA origin/scope');
 }
 const runtime=read('core/versions/runtime-assets.json');assert.equal(runtime.appVersion,APP_VERSION);
 assert.equal(Object.keys(runtime.assets).length,166);
+const oldRuntime=JSON.parse(git('show',c3+':core/versions/runtime-assets.json'));
+const approvedRuntimeChanges=new Set(['modules/produccion/index.html','core/versions/versions.js','core/module-registry/registry.js','index.html']);
+assert.deepEqual(Object.keys(runtime.assets),Object.keys(oldRuntime.assets));
+for(const [p,h]of Object.entries(oldRuntime.assets))if(!approvedRuntimeChanges.has(p))assert.equal(runtime.assets[p],h,p+' runtime unchanged');
 const sw=fs.readFileSync('sw.js','utf8');
-assert.ok(sw.includes("const APP_VERSION = '1.5.0'"));
+assert.equal(sw.replace("const APP_VERSION = '1.5.1'","const APP_VERSION = '1.5.0'").replace(/\r\n/g,'\n').trim(),git('show',c3+':sw.js').replace(/\r\n/g,'\n'),'SW changes only its approved App version');
+assert.ok(sw.includes("const APP_VERSION = '1.5.1'"));
 for(const contract of ['manifest.dataVersion','declaredVersion(files[k]) !== manifest.dataVersion','integrityRequired:true','compareCasurDataVersions'])assert.ok(sw.includes(contract),'SW generation contract: '+contract);
 // Reuse the existing gates instead of replacing their regressions.
 for(const script of ['tools/sync-versions.mjs','tools/runtime-assets.mjs','tools/production-integrity.mjs'])execFileSync(process.execPath,[script],{stdio:'inherit'});

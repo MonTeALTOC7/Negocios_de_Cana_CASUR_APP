@@ -34,6 +34,7 @@ const {
 
 const historico = JSON.parse(fs.readFileSync(path.join(testRoot, "../data/historico.json"), "utf8"));
 const cronologico = JSON.parse(fs.readFileSync(path.join(testRoot, "../data/cronologico.json"), "utf8"));
+const aforo = cronologico.meta.dataVersion === '2026.10.25-aforo.1101';
 const officialRows = normalizeHistoricalRows(historico.lotCompact);
 const officialDistanceIndex = buildCurrentDistanceIndex(cronologico.producers);
 const isMainRow = (row) => String(row.farmCode) !== "16" && !String(row.zona).toLowerCase().includes("0-maquila");
@@ -489,21 +490,21 @@ test("Km SIAGRI vigente distingue Suerte y CodSuerte en los tres casos oficiales
   }
 });
 
-test("Pansaco 993 pondera 49 suertes vigentes y 409.08 ha, independientemente del Histórico", () => {
+test("Pansaco 993 pondera solo áreas vigentes válidas, independientemente del Histórico", () => {
   const producer = cronologico.producers.find((item) => String(item.code) === "993");
   const result = calculateCurrentFarmWeightedKm(cronologico.producers, "993");
   const expected = Math.round(producer.details.reduce((sum, lot) => sum + lot.distancia * lot.area, 0)
     / producer.details.reduce((sum, lot) => sum + lot.area, 0) * 100) / 100;
   assert.ok(new Set(producer.details.map((lot) => lot.distancia)).size > 1);
   assert.equal(result.kmWeighted, expected);
-  assert.equal(result.kmWeighted, 7.6);
-  assert.equal(result.areaTotal, 409.08);
-  assert.equal(result.areaCovered, 409.08);
+  assert.equal(result.kmWeighted, aforo ? 7.55 : 7.6);
+  assert.equal(result.areaTotal, aforo ? 368.44 : 409.08);
+  assert.equal(result.areaCovered, aforo ? 368.44 : 409.08);
   assert.equal(result.coveragePct, 100);
-  assert.equal(result.lotCount, 49);
-  assert.equal(result.lotCountWithKm, 49);
-  assert.equal(result.status, "complete");
-  assert.equal(result.reason, null);
+  assert.equal(result.lotCount, aforo ? 42 : 49);
+  assert.equal(result.lotCountWithKm, aforo ? 42 : 49);
+  assert.equal(result.status, aforo ? "partial" : "complete");
+  assert.equal(result.reason, aforo ? '7 área(s) inválida(s) excluida(s)' : null);
   assert.equal(currentDistanceForLot(officialDistanceIndex, "99301").km, 8.09);
   assert.equal(currentDistanceForLot(officialDistanceIndex, "99323").km, 6.57);
   assert.equal(currentDistanceForLot(officialDistanceIndex, "99325").km, 7.44);
@@ -517,7 +518,7 @@ test("el ponderado vigente no cambia entre filtros históricos ni por suertes hi
   for (const mode of ["latest", "last3", "last5", "all", "custom"]) {
     const periods = resolvePeriod(rows.map((row) => row.zafra), mode, mode === "custom" ? [2122, 2526] : undefined);
     assert.ok(filterHistoricalRows(rows, null, periods).length > 0);
-    assert.equal(calculateCurrentFarmWeightedKm(cronologico.producers, "993").kmWeighted, 7.6, mode);
+    assert.equal(calculateCurrentFarmWeightedKm(cronologico.producers, "993").kmWeighted, aforo ? 7.55 : 7.6, mode);
   }
 });
 
@@ -661,6 +662,20 @@ test("PDF multifinca corta en límites aprobados y no omite filas entre páginas
   const pdf = vm.runInContext('pdfBlobFromCanvas(canvas,false,[110,220,330])',context);
   assert.match(await pdf.text(), /\/Count 4\b/);
   assert.deepEqual(draws,[{start:0,height:110},{start:110,height:110},{start:220,height:110},{start:330,height:70}]);
+});
+
+test('PDF conserva el pie completo en un desbordamiento mínimo, sin omitir píxeles ni ignorar saltos', async () => {
+  const start=index.indexOf('function bytesFromBase64'),end=index.indexOf('async function runAction',start);
+  for(const [height,forced,pages] of [[133,[],1],[140,[],2],[133,[130],2]]){
+    const draws=[],pixels=new Uint8ClampedArray(100*height*4).fill(255);pixels[(height-1)*100*4]=0;
+    const canvas={width:100,height,getContext:()=>({getImageData:()=>({data:pixels})})};
+    const c=vm.createContext({canvas,forced,atob,Blob,TextEncoder,Uint8Array,document:{createElement:()=>({getContext:()=>({fillRect(){},drawImage(...a){draws.push([a[2],a[4]]);}}),toDataURL:()=> 'data:image/jpeg;base64,AA=='})}});
+    vm.runInContext(index.slice(start,end),c);const pdf=await vm.runInContext('pdfBlobFromCanvas(canvas,false,[],forced)',c).text();
+    assert.match(pdf,new RegExp('/Count '+pages+'\\b'));
+    assert.equal(draws.reduce((sum,[,h])=>sum+h,0),height,'Every content row must survive');
+    assert.equal(draws[0][0],0);for(let i=1;i<draws.length;i++)assert.equal(draws[i][0],draws[i-1][0]+draws[i-1][1]);
+    for(const m of pdf.matchAll(/q\n([\d.]+) 0 0 ([\d.]+)/g)){assert.ok(Number(m[1])<=576);assert.ok(Number(m[2])<=756);}
+  }
 });
 
 test("PDF ejecutivo respeta saltos de sección obligatorios sin omitir contenido ni añadir páginas vacías", async () => {

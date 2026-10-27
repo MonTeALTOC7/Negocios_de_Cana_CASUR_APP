@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "dataVersion": "2026.09.06-siagri.1415",
+  "dataVersion": "2026.10.25-aforo.1101",
   "files": {
-    "version.json": "6b62cfa4f35f678e5fb8d32d1fdfd273241701d61d493dc2d863d76b364ae94e",
-    "version.js": "6735f4b6e19d3e65b71afdd6b75170d5f5fd11aff85b59f7d9d1ee3aef5ad917",
-    "cronologico.json": "d432fa2d8681ee7a5addffbedd07c0c087c6b82bce75b7775e1de4630cc12ad7",
-    "cronologico.js": "92a9eacad0edeab8f27e86faabce9bf5141eeb119a33b0ed30040351885d3254",
-    "historico.json": "e2148bfc9b724d8a8fcb20ed9580a6a281a52237a14d1419b6b42a337ab2588b",
-    "historico.js": "285b7b649c1399666ccdd382c385e41d1490a0d35f110df30b7d32fe7c49bdcb"
+    "version.json": "79622022c9d3ad84cbcbeb2d89e6e4c4c66b1b336984a23530e70eda867cb286",
+    "version.js": "f96e255e8bbcb30da7f758edd8ef0942ed5bccb5290338039a2ecf620a0f865c",
+    "cronologico.json": "dd15677735fb9f5f5333ad5baf88dc61895e27c438bcb21d71aa35011c918901",
+    "cronologico.js": "dd016f14b452e6bec8e52a338751225caa7cb450d2c404cff6e22fa32d25f02a",
+    "historico.json": "5a7b94e19ac4391cded1dfd510a063a1c47d1a9043da22afb2bad26559773728",
+    "historico.js": "d9030697a99ef1655a13ce1e6d764ec6cea697190569bc0ed850761c33390af5"
   }
 }

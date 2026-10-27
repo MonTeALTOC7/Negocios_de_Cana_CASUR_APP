@@ -12,6 +12,8 @@ const index = read("index.html");
 const cronologico = JSON.parse(read("data/cronologico.json"));
 const historico = JSON.parse(read("data/historico.json"));
 const version = JSON.parse(read("data/version.json"));
+const aforo = version.version === '2026.10.25-aforo.1101';
+assert.ok(aforo || version.version === '2026.09.06-siagri.1415', 'Generación oficial conocida');
 const enhancement = read("js/casur-enhancements.js");
 const historicalEngine = read("js/historical-engine.js");
 const serviceWorker = fs.readFileSync(path.join(repositoryRoot, "sw.js"), "utf8");
@@ -24,8 +26,14 @@ const check = (name, callback) => {
 check("base oficial completa", () => {
   assert.equal(cronologico.global.suertes, 1053);
   assert.equal(cronologico.global.productores, 100);
-  assert.equal(cronologico.global.area, 10030.65);
-  assert.equal(cronologico.meta.sheet, "REPORTE");
+  assert.equal(cronologico.global.area, aforo ? 9574.66 : 10030.65);
+  assert.equal(cronologico.meta.sheet, aforo ? "Estimados_2627" : "REPORTE");
+  if (aforo) {
+    assert.equal(cronologico.meta.estimateSeason, '26/27');
+    assert.equal(cronologico.global.estimateLots, 948);
+    assert.equal(cronologico.global.estimateTons, 563187.97);
+    assert.equal(cronologico.global.estimateArea, 9115.65);
+  }
 });
 
 const records = cronologico.producers.flatMap((producer) => producer.details.map((row) => ({ ...row, parentCode: producer.code })));
@@ -41,13 +49,25 @@ check("estimados 26/27 conservan nulos", () => {
   const empty = records.filter((row) => row.tchEst2627 === null);
   assert.equal(valued.length + empty.length, records.length);
   assert.ok(empty.length > 0);
-  assert.equal(valued.some((row) => row.tchEst2627 === 0), false);
-  assert.equal(version.tchEst2627EffectiveDate, "2026-07-17");
+  if (aforo) {
+    // Preserve the approved zero for active Semilla 2003, outside milling.
+    assert.deepEqual(valued.filter(row => row.tchEst2627 === 0).map(row => row.codLote), ['2003']);
+    const seed = valued.find(row => row.codLote === '2003');
+    assert.equal(seed.participatesCurrentArea, true);
+    assert.equal(seed.participatesMilling, false);
+    assert.equal(seed.operationalDecision.destination, 'Semilla');
+  } else assert.equal(valued.some((row) => row.tchEst2627 === 0), false);
+  assert.equal(version.tchEst2627EffectiveDate, aforo ? "2026-10-12" : "2026-07-17");
 });
 
-check("toneladas estimadas recalculadas", () => {
+check("toneladas estimadas coherentes con contrato de generación", () => {
   records.filter((row) => row.tchEst2627 !== null).forEach((row) => {
-    assert.ok(Math.abs(row.tonEst2627 - Math.round(row.area * row.tchEst2627 * 100) / 100) < 0.001, `${row.code}-${row.suerte}`);
+    if (aforo && row.codLote === '2003') assert.equal(row.tonEst2627, null);
+    else {
+      // Official aforo preserves original precision; baseline used two decimals.
+      const expected = aforo ? row.area * row.tchEst2627 : Math.round(row.area * row.tchEst2627 * 100) / 100;
+      assert.ok(Math.abs(row.tonEst2627 - expected) < (aforo ? 1e-6 : 0.001), `${row.code}-${row.suerte}`);
+    }
   });
   records.filter((row) => row.tchEst2627 === null).forEach((row) => assert.equal(row.tonEst2627, null));
 });
@@ -139,7 +159,7 @@ check("selección múltiple móvil está depurada", () => {
   const renewalArea = pansaco.details
     .filter((row) => row.renovacion || ["R", "RE", "1"].includes(String(row.corte).trim().toUpperCase()))
     .reduce((sum, row) => sum + row.area, 0);
-  assert.equal(Math.round(renewalArea * 100) / 100, 17.92);
+  assert.equal(Math.round(renewalArea * 100) / 100, aforo ? 16.24 : 17.92);
 });
 
 check("exportación de hacienda es gráfica y paginada", () => {

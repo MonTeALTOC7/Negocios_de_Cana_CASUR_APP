@@ -5,11 +5,13 @@
    número de un módulo aquí no afecta a los demás.
    ============================================================ */
 
-export const APP_VERSION = '1.5.0';
+export const APP_VERSION = '1.5.1';
 export const APP_CHANNEL = 'GitHub Pages';
 
 // Historial de código instalado, independiente de las publicaciones SIAGRI/GEO.
 export const PRODUCTION_RELEASES = [
+  {id:'produccion',moduleVersion:'V1.7.1',historicalVersion:'V2.9',appVersion:'1.5.1',type:'PATCH',publishedAt:null,
+   changes:['PDF ajusta desbordamientos mínimos de una página sin cortar el pie ni perder contenido.','Liberación conjunta con generación oficial Z26/27 íntegra; fórmulas y decisiones conservadas.']},
   {id:'produccion',moduleVersion:'V1.7.0',historicalVersion:'V2.9',appVersion:'1.5.0',type:'MINOR',publishedAt:null,
    changes:['Generaciones oficiales verificadas por SHA-256 y actualización segura sin importar Excel.','Elección explícita de datos oficiales o generación personal guardada; contexto y ediciones protegidos.']},
   { id:'produccion',moduleVersion:'V1.6.0',historicalVersion:'V2.9',appVersion:'1.4.0',type:'MINOR',publishedAt:null,
@@ -27,7 +29,7 @@ export const PRODUCTION_RELEASES = [
    informativas (placeholders); al integrar cada módulo real se
    confirmarán/leerán de su propio version.json cuando exista. */
 export const MODULE_VERSIONS = {
-  produccion: 'V1.7.0',
+  produccion: 'V1.7.1',
   tch: '2.8.1',
   riego: 'v6',
   insumos: '1.0',
@@ -46,7 +48,7 @@ export function moduleVersion(id) {
    de su fase. El TCH está integrado técnicamente; cámara/GPS/Android
    requieren validación final en dispositivo real tras publicar. */
 export const MODULE_STATUS = {
-  produccion: 'integrado · V1.7.0 (código) · datos oficiales íntegros y generaciones locales conservadas',
+  produccion: 'integrado · V1.7.1 (código) · datos oficiales íntegros y generaciones locales conservadas',
   tch: 'integrado · cámara/GPS: validar en dispositivo',
   riego: 'integrado · fuente/backend Supabase propios',
   insumos: 'integrado · fuente/Maestro propios (conexión al Maestro Central en Fase 5.1)',
@@ -61,6 +63,7 @@ export function moduleStatus(id) {
 }
 
 export const APP_RELEASES = Object.freeze([
+  Object.freeze({id:'shell',version:'1.5.1',type:'PATCH',publishedAt:null,changes:Object.freeze(['Libera el PDF corregido de Producción mediante el mismo protocolo de actualización PWA.','Conserva origen, scope, checkpoint, datos personales y generación oficial verificada.'])}),
   Object.freeze({id:'shell',version:'1.5.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Aviso discreto de actualización preparada, instalación explícita y aplazamiento persistente.','Integridad de datos oficiales, checkpoint de operaciones activas y recuperación de contexto.'])}),
   Object.freeze({id:'shell',version:'1.4.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Contrato común de importación operativa y transacciones con respaldo en Centro Maestro.','Acceso al flujo de aforo y recursos precargados; notificaciones PWA V1.3.6 conservadas.'])}),
   Object.freeze({ id: 'shell', version: '1.3.6', type: 'PATCH', publishedAt: null,

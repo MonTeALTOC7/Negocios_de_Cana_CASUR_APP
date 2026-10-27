@@ -289,7 +289,7 @@ test("expone bridge v1 y su checkpoint espera el flush del borrador", () => {
   assert.match(bridge, /protocolVersion: 1/);
   assert.match(bridge, /moduleId: "tch"/);
   assert.match(bridge, /async checkpoint\(\{ reason \} = \{\}\)/);
-  assert.match(bridge, /return flushBiometryDraft\(\)/);
+  assert.match(bridge, /await flushBiometryDraft\(\)/);
   const flush = sourceBetween(app, "async function flushBiometryDraft", "window.CASUR_MODULE_BRIDGE");
   assert.match(flush, /if \(!state\.biometryDirty\) return \{ ok: true, status: "noop" \}/);
   assert.match(flush, /await persistBiometryDraft\(repository, draft\)/);

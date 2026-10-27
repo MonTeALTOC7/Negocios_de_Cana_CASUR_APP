@@ -1,0 +1,11 @@
+import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';import {createRequire} from 'node:module';import {productionIntegrity} from './production-integrity.mjs';
+const out=path.resolve(process.argv[2]),c1=path.resolve(process.argv[3]),summary=JSON.parse(fs.readFileSync(path.join(c1,'candidate-summary.json'))),target=path.join(out,'package-private'),sha=b=>createHash('sha256').update(b).digest('hex');
+for(let p=out;;p=path.dirname(p)){if(fs.existsSync(path.join(p,'.git')))throw Error('Private data cannot enter a checkout');if(path.dirname(p)===p)break;}
+if(fs.existsSync(target))throw Error('Preserve an existing candidate; use a fresh QA directory');fs.mkdirSync(target,{recursive:true});
+for(const[f,m]of Object.entries(summary.files)){const b=fs.readFileSync(path.join(summary.path,f));if(sha(b)!==m.sha256)throw Error('C1 file SHA mismatch');const dest=path.join(target,f);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,b);}
+const dataDir=path.join(target,'modules/produccion/data'),integrity=productionIntegrity(dataDir);fs.writeFileSync(path.join(dataDir,'integrity.json'),JSON.stringify(integrity,null,2)+'\n');
+const JSZip=createRequire(import.meta.url)('C:/Users/ctije/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/jszip'),zip=new JSZip();
+for(const f of [...Object.keys(summary.files),'modules/produccion/data/integrity.json'])zip.file(f,fs.createReadStream(path.join(target,f)),{date:new Date('2026-10-27T00:00:00Z')});
+const archive=path.join(out,'CASUR_C2_DATOS_Z2627_LOCAL_ONLY.zip');await new Promise((ok,no)=>zip.generateNodeStream({streamFiles:true,compression:'DEFLATE'}).pipe(fs.createWriteStream(archive,{flags:'wx'})).on('finish',ok).on('error',no));
+const h=createHash('sha256');for await(const b of fs.createReadStream(archive))h.update(b);
+fs.writeFileSync(path.join(out,'data-package.json'),JSON.stringify({path:target,version:integrity.dataVersion,sixFiles:summary.files,integritySha256:sha(fs.readFileSync(path.join(dataDir,'integrity.json'))),archive,archiveSha256:h.digest('hex'),sourceC1:summary.packageIdentitySha256,realDataPublicationAuthorized:false},null,2)+'\n');console.log('C2_PRIVATE_DATA_PACKAGE_PASS');

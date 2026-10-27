@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": "2026.09.06-siagri.1415",
+  "files": {
+    "version.json": "6b62cfa4f35f678e5fb8d32d1fdfd273241701d61d493dc2d863d76b364ae94e",
+    "version.js": "6735f4b6e19d3e65b71afdd6b75170d5f5fd11aff85b59f7d9d1ee3aef5ad917",
+    "cronologico.json": "d432fa2d8681ee7a5addffbedd07c0c087c6b82bce75b7775e1de4630cc12ad7",
+    "cronologico.js": "92a9eacad0edeab8f27e86faabce9bf5141eeb119a33b0ed30040351885d3254",
+    "historico.json": "e2148bfc9b724d8a8fcb20ed9580a6a281a52237a14d1419b6b42a337ab2588b",
+    "historico.js": "285b7b649c1399666ccdd382c385e41d1490a0d35f110df30b7d32fe7c49bdcb"
+  }
+}

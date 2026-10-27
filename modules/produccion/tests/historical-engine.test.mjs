@@ -1015,11 +1015,15 @@ test("ninguna función del motor muta lotCompact ni las filas normalizadas", () 
   assert.deepEqual(rows, rowsSnapshot);
 });
 
-test("Producción expone bridge v1 y abre lotes con la ficha canónica existente", () => {
+test("Producción expone bridge v1, protege ediciones en memoria y abre fichas canónicas", async () => {
   assert.match(enhancements, /window\.CASUR_MODULE_BRIDGE = Object\.freeze\(\{/);
   assert.match(enhancements, /protocolVersion: 1/);
   assert.match(enhancements, /moduleId: "produccion"/);
-  assert.match(enhancements, /async checkpoint\(\) \{ return \{ ok: true, status: "noop" \}; \}/);
+  const window={addEventListener(){},CRONO_DATA:{meta:{manualChanges:false}}};
+  vm.runInNewContext(enhancements,{window,document:{},Intl,console});
+  assert.equal((await window.CASUR_MODULE_BRIDGE.checkpoint()).ok,true);
+  window.CRONO_DATA.meta.manualChanges=true;
+  assert.equal((await window.CASUR_MODULE_BRIDGE.checkpoint()).ok,false);
   assert.match(enhancements, /context\.kind !== "lot"/);
   assert.match(enhancements, /window\.lotByCode\(code\)/);
   assert.match(enhancements, /window\.renderEntity\(code\)/);

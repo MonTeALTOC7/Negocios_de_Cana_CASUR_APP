@@ -26,15 +26,15 @@ test('sin worker pendiente: ni cachés previas ni marcador obsoleto generan avis
 test('solo un worker distinto, preparado y con versión diferente puede ofrecer actualización',async()=>{
  for(const options of [{pending:'1.3.6'},{pending:'1.3.7',ready:false},{pending:'1.3.7',sameWorker:true},{pending:'1.3.7',installed:'1.3.7'}])assert.equal((await scenario(options)).notice.hidden,true);
  const result=await scenario({pending:'1.3.7'});assert.equal(result.notice.hidden,false);
- assert.ok(result.elements.some(element=>element.textContent==='Nueva versión de CASUR disponible'));
+ assert.ok(result.elements.some(element=>element.textContent==='Nueva actualización CASUR disponible'));
  assert.ok(result.elements.some(element=>element.textContent==='Versión 1.3.7'));
 });
 test('Más tarde conserva el acceso a la actualización sin recarga',async()=>{
  const result=await scenario({pending:'1.3.7'});
  result.elements.find(element=>element.textContent==='Más tarde').onclick();
  // MessageChannel completes asynchronously; wait until the compact action is available.
- for(let i=0;i<100&&!result.elements.some(element=>element.textContent==='Ver actualización');i++)await new Promise(resolve=>setTimeout(resolve,5));
+ for(let i=0;i<100&&!result.elements.some(element=>element.textContent==='Instalar actualización');i++)await new Promise(resolve=>setTimeout(resolve,5));
  assert.equal(result.session.get('casur-update-later'),'1.3.7');
- const action=result.elements.find(element=>element.textContent==='Ver actualización');assert.ok(action);await action.onclick();
- assert.equal(action.textContent,'Actualizar ahora');
+ const action=result.elements.find(element=>element.textContent==='Instalar actualización');assert.ok(action);await action.onclick();
+ assert.equal(action.textContent,'Instalar actualización');
 });

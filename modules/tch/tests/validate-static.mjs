@@ -14,7 +14,7 @@ const required = [
 required.forEach((file) => assert.ok(fs.existsSync(path.join(root, file)), `Falta ${file}`));
 
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-assert.match(html, /v2\.8\.0/, "La versión TCH debe estar visible dentro del módulo");
+assert.match(html, /v2\.8\.1/, "La versión TCH debe estar visible dentro del módulo");
 assert.match(html, /Manifest propio DESACTIVADO/, "El módulo debe usar la PWA única de la App Maestra");
 assert.match(html, /type="module" src="\.\/js\/app\.js"/);
 assert.match(html, /\.\.\/\.\.\/shared\/vendor\/leaflet\/leaflet\.css/);
@@ -26,8 +26,8 @@ assert.match(html, /visitCameraFile/);
 assert.match(html, /estimateFile/);
 
 const source = fs.readFileSync(path.join(root, "js/app.js"), "utf8");
-assert.equal(JSON.parse(fs.readFileSync(path.join(root, "version.json"), "utf8")).version, "2.8.0");
-assert.equal(JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version, "2.8.0");
+assert.equal(JSON.parse(fs.readFileSync(path.join(root, "version.json"), "utf8")).version, "2.8.1");
+assert.equal(JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version, "2.8.1");
 assert.doesNotMatch(source, /chatgpt-auth|openai\/hosting|api\.openai/i);
 assert.match(source, /MASTER_PASSWORD_HASH/);
 assert.match(source, /syncPublishedMaster/);
@@ -122,4 +122,4 @@ const producers = JSON.parse(fs.readFileSync(path.join(root, "data/productores.j
 assert.equal(producers.length, 262, "productores.json se conserva como compatibilidad de Zona 5");
 assert.ok(producers.every((row) => row.zona === "5-Productores"));
 
-console.log("Estructura estática PWA v2.8.0 validada.");
+console.log("Estructura estática PWA v2.8.1 validada.");

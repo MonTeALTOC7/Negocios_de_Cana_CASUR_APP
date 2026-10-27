@@ -9,7 +9,7 @@
    neutralizados dentro de la Maestra: aquí no se registran.
    ============================================================ */
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;
@@ -23,6 +23,8 @@ const GEO_ACTIVE_KEY = 'https://casur-geo.internal/active';
    cierres/reaperturas de la PWA (Cache Storage es persistente en disco). */
 const PROD_LKG_CACHE = MASTER_PREFIX + 'prod_lkg';
 const PROD_DATA_RE = /\/modules\/produccion\/data\/(version|cronologico|historico)\.(json|js)$/;
+const PROD_KINDS = ['version','cronologico','historico'];
+const clientGenerations = new Map();
 
 /* Cachés que este SW puede administrar/borrar. Nunca fuera de aquí. */
 const OWNED = new Set([SHELL_CACHE, DATA_CACHE, GEO_CACHE, GEO_META_CACHE, PROD_LKG_CACHE]);
@@ -135,11 +137,17 @@ self.addEventListener('activate', (event) => {
 
 /* ---------------- Mensajes (actualización controlada) ---------------- */
 let updateInProgress = false;
-async function releaseReady() {
+async function releaseReady(verifyHashes = false) {
   const cache = await caches.open(SHELL_CACHE);
   const manifestResponse = await cache.match(new URL('./core/versions/runtime-assets.json', self.registration.scope));
   if (!manifestResponse || !(await cache.match(new URL('./__release_ready__', self.registration.scope)))) return false;
   const manifest = await manifestResponse.json();
+  if (verifyHashes) for (const [file,expected] of Object.entries(manifest.assets)) {
+    const response=await cache.match(new URL(file,self.registration.scope));
+    const bytes=/\.(?:html|css|js|mjs|svg)$/.test(file)?new TextEncoder().encode((await response.text()).replace(/\r\n/g,'\n')):await response.arrayBuffer();
+    const actual=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
+    if(actual!==expected)return false;
+  }
   return manifest.appVersion === APP_VERSION && (await Promise.all([...SHELL_ASSETS,...Object.keys(manifest.assets)].map(url => cache.match(new URL(url,self.registration.scope))))).every(Boolean);
 }
 async function coordinateUpdate() {
@@ -147,7 +155,7 @@ async function coordinateUpdate() {
   updateInProgress = true;
   let clients = [];
   try {
-    if (!(await releaseReady())) throw new Error('incomplete');
+    if (!(await releaseReady(true))) throw new Error('incomplete');
     clients = (await self.clients.matchAll({type:'window', includeUncontrolled:true})).filter(client => client.frameType !== 'nested');
     const results = await Promise.all(clients.map(client => new Promise(resolve => {
       const channel = new MessageChannel();
@@ -475,7 +483,7 @@ const LKG_NS = 'https://casur-lkg.internal/';
 const LKG_ACTIVE_KEY = LKG_NS + 'active';
 function genKey(version, kind, ext) { return LKG_NS + 'gen/' + encodeURIComponent(version) + '/' + kind + '.' + ext; }
 
-async function loadGenerationFiles(cache, version) {
+async function loadGenerationFiles(cache, version, {allowLegacy=false} = {}) {
   try {
     const [v, c, h] = await Promise.all([
       cache.match(genKey(version, 'version', 'json')),
@@ -485,18 +493,32 @@ async function loadGenerationFiles(cache, version) {
     // Un marcador de versión NO equivale a un dataset recuperable: si falta
     // cualquiera de los 3 archivos de esta generación, no es recuperable.
     if (!v || !c || !h) return null;
-    return {
+    const files = {
       version: JSON.parse(await v.clone().text()),
       cronologico: JSON.parse(await c.clone().text()),
       historico: JSON.parse(await h.clone().text()),
     };
+    const proofResponse=await cache.match(genKey(version,'integrity','json'));
+    if(!proofResponse&&!allowLegacy)return null;
+    if(proofResponse){
+      const proof=await proofResponse.json();
+      for(const kind of PROD_KINDS){
+        const bytes=new TextEncoder().encode(JSON.stringify(files[kind]));
+        const actual=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
+        if(actual!==proof[kind]||declaredVersion(files[kind])!==version)return null;
+      }
+      Object.defineProperty(files,'__networkVerified',{value:proof._networkVerified===true});
+    }
+    return files;
   } catch (e) { return null; }
 }
 
 async function writeGenerationFiles(cache, version, files) {
   const writes = [];
+  const proof={_networkVerified:files.__networkVerified===true};
   for (const kind of ['version', 'cronologico', 'historico']) {
     const jsonText = JSON.stringify(files[kind]);
+    proof[kind]=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(jsonText))),b=>b.toString(16).padStart(2,'0')).join('');
     writes.push(cache.put(genKey(version, kind, 'json'), new Response(jsonText, { headers: { 'Content-Type': 'application/json' } })));
     writes.push(cache.put(genKey(version, kind, 'js'), new Response(buildJsWrapper(kind, jsonText), { headers: { 'Content-Type': 'application/javascript' } })));
   }
@@ -504,6 +526,7 @@ async function writeGenerationFiles(cache, version, files) {
   // el puntero. Si algo falla arriba, la promesa rechaza y NO se llega aquí:
   // la generación anterior queda íntegra (nunca activación parcial).
   await Promise.all(writes);
+  await cache.put(genKey(version,'integrity','json'),new Response(JSON.stringify(proof)));
 }
 
 /* [Hotfix 4.4.4] Promueve `version` a generación activa SOLO si, releyendo
@@ -525,8 +548,9 @@ async function promoteGenerationIfNewer(cache, version, files) {
     if (cmp !== 1) return false; // igual, inferior o irreconocible: NO promover
   }
   await writeGenerationFiles(cache, version, files);
-  await cache.put(LKG_ACTIVE_KEY, new Response(JSON.stringify({ version, ts: Date.now() })));
-  try { await pruneOldGenerations(cache, version); } catch (e) { /* no crítico */ }
+  await cache.put(LKG_ACTIVE_KEY, new Response(JSON.stringify({ version, ts: Date.now(), integrityRequired:true })));
+  // Existing pages remain pinned to their complete generation until they safely
+  // reload. Keep prior shared generations; never prune a live page's data.
   return true;
 }
 
@@ -605,6 +629,43 @@ function prodDataNetworkUrl(kind) {
   return scope + 'modules/produccion/data/' + kind + '.json?ts=' + Date.now();
 }
 
+async function verifiedNetworkGeneration(activeVersion=null,activeFiles=null) {
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+  try {
+  const base = self.registration.scope + 'modules/produccion/data/';
+  const response = await fetch(base + 'integrity.json?ts=' + Date.now(), {cache:'no-store',signal:controller.signal});
+  if (!response.ok) throw new Error('Data integrity manifest unavailable');
+  const manifest = await response.json();
+  if (manifest.schemaVersion !== 1 || !parseCasurDataVersion(manifest.dataVersion)) throw new Error('Invalid data integrity manifest');
+  const comparison=activeVersion?compareCasurDataVersions(manifest.dataVersion,activeVersion):1;
+  if(activeFiles&&(comparison===-1||(comparison===0&&activeFiles.__networkVerified)))return{files:activeFiles,manifest};
+  const files = {};
+  for (const kind of PROD_KINDS) {
+    for (const ext of ['json','js']) {
+      const name = kind + '.' + ext, expected = manifest.files?.[name];
+      if (!/^[a-f0-9]{64}$/.test(expected || '')) throw new Error('Missing data hash');
+      const r = await fetch(base + name + '?ts=' + Date.now(), {cache:'no-store',signal:controller.signal});
+      if (!r.ok) throw new Error('Incomplete data generation');
+      const bytes = await r.arrayBuffer();
+      const actual = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)), b=>b.toString(16).padStart(2,'0')).join('');
+      if (actual !== expected) throw new Error('Data SHA mismatch: ' + name);
+      const text = new TextDecoder().decode(bytes);
+      if (ext === 'json') files[kind] = JSON.parse(text);
+      else {
+        const match = text.match(new RegExp('^\\s*window\\.' + JS_VAR_BY_KIND[kind] + '\\s*=([\\s\\S]*);\\s*$'));
+        if (!match || JSON.stringify(JSON.parse(match[1])) !== JSON.stringify(files[kind])) throw new Error('JSON/JS data mismatch');
+      }
+    }
+  }
+  if (PROD_KINDS.some(k=>declaredVersion(files[k]) !== manifest.dataVersion || !looksValidProdData(k,files[k]))) throw new Error('Incoherent data generation');
+  // Catch a publication changing while its six resources were being read.
+  const final = await fetch(base + 'integrity.json?ts=' + Date.now(), {cache:'no-store',signal:controller.signal});
+  if (!final.ok || JSON.stringify(await final.json()) !== JSON.stringify(manifest)) throw new Error('Data publication changed during preparation');
+  Object.defineProperty(files,'__networkVerified',{value:true});
+  return {files,manifest};
+  }finally{clearTimeout(timer);}
+}
+
 /* [Hotfix 4.4.4] Resuelve la generación vigente: intenta red (los 3 JSON,
    coherentes y válidos) y solo promueve si es ESTRICTAMENTE más nueva que
    la activa (o si aún no hay ninguna activa, tras intentar migrar una LKG
@@ -631,8 +692,9 @@ async function doResolveGeneration() {
   const activeResp = await cache.match(LKG_ACTIVE_KEY);
   if (activeResp) {
     try {
-      activeVersion = JSON.parse(await activeResp.clone().text()).version;
-      activeFiles = await loadGenerationFiles(cache, activeVersion);
+      const pointer = JSON.parse(await activeResp.clone().text());
+      activeVersion = pointer.version;
+      activeFiles = await loadGenerationFiles(cache, activeVersion, {allowLegacy:!pointer.integrityRequired});
       if (!activeFiles) activeVersion = null; // marcador sin dataset recuperable: no cuenta como "protegido"
     } catch (e) { activeVersion = null; activeFiles = null; }
   }
@@ -650,15 +712,9 @@ async function doResolveGeneration() {
 
   let netOk = true, netFiles = null, netVersion = null;
   try {
-    const [vRes, cRes, hRes] = await Promise.all([
-      fetch(prodDataNetworkUrl('version'), { cache: 'no-store' }),
-      fetch(prodDataNetworkUrl('cronologico'), { cache: 'no-store' }),
-      fetch(prodDataNetworkUrl('historico'), { cache: 'no-store' }),
-    ]);
-    if (vRes.ok && cRes.ok && hRes.ok) {
-      netFiles = { version: await vRes.json(), cronologico: await cRes.json(), historico: await hRes.json() };
-      netVersion = declaredVersion(netFiles.version);
-    } else netOk = false;
+    const verified = await verifiedNetworkGeneration(activeVersion,activeFiles);
+    netFiles = verified.files;
+    netVersion = verified.manifest.dataVersion;
   } catch (e) { netOk = false; }
 
   if (netOk && netVersion && parseCasurDataVersion(netVersion)) {
@@ -669,6 +725,9 @@ async function doResolveGeneration() {
       declaredVersion(netFiles.cronologico) === netVersion &&
       declaredVersion(netFiles.historico) === netVersion;
     const cmp = activeVersion ? compareCasurDataVersions(netVersion, activeVersion) : 1;
+    if(coherent&&cmp===0&&!activeFiles?.__networkVerified&&netFiles.__networkVerified&&PROD_KINDS.every(k=>JSON.stringify(netFiles[k])===JSON.stringify(activeFiles[k]))){
+      try{await writeGenerationFiles(cache,activeVersion,netFiles);await cache.put(LKG_ACTIVE_KEY,new Response(JSON.stringify({version:activeVersion,ts:Date.now(),integrityRequired:true})));return{version:activeVersion,files:netFiles};}catch{/* Preserve the complete legacy generation if persistence fails. */}
+    }
     if (coherent && (cmp === 1 || !activeVersion)) {
       try {
         const promoted = await promoteGenerationIfNewer(cache, netVersion, netFiles);
@@ -687,8 +746,8 @@ async function rereadActive(cache) {
   const resp = await cache.match(LKG_ACTIVE_KEY);
   if (!resp) return null;
   try {
-    const v = JSON.parse(await resp.clone().text()).version;
-    const files = await loadGenerationFiles(cache, v);
+    const pointer = JSON.parse(await resp.clone().text()),v=pointer.version;
+    const files = await loadGenerationFiles(cache, v, {allowLegacy:!pointer.integrityRequired});
     return files ? { version: v, files } : null;
   } catch (e) { return null; }
 }
@@ -704,7 +763,18 @@ async function produccionDataGate(event, req, url) {
   const kind = match[1]; // version | cronologico | historico
   const ext = match[2];  // json | js
   let resolved;
-  try { resolved = await resolveGeneration(); } catch (e) { resolved = null; }
+  try {
+    const requested = url.searchParams.get('generation');
+    const check = kind === 'version' && (url.searchParams.has('ts') || url.searchParams.has('check'));
+    const pinned = requested || (!check && clientGenerations.get(event.clientId));
+    if (pinned) {
+      const files = await loadGenerationFiles(await caches.open(PROD_LKG_CACHE), pinned);
+      if (files) resolved = {version:pinned,files};
+      else if (requested) throw new Error('Requested generation unavailable');
+    }
+    if (!resolved) resolved = await resolveGeneration();
+    if (resolved && !check && !requested && event.clientId) clientGenerations.set(event.clientId,resolved.version);
+  } catch (e) { resolved = null; }
   if (!resolved) {
     return new Response('/* Sin publicación de datos válida disponible. */', { status: 503, statusText: 'Sin datos válidos' });
   }

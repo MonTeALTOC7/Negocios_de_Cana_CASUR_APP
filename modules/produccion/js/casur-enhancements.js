@@ -744,7 +744,7 @@
       const cronologico = { ...(window.CASUR_ADMIN_DATA || window.CRONO_DATA) };
       const historico = { ...(window.CASUR_ADMIN_HISTORICO || window.APP_DATA) };
       cronologico.meta = { ...cronologico.meta, dataVersion: version, publishedAt: new Date().toISOString() };
-      historico.meta = { ...historico.meta, dataVersion: version, publishedAt: new Date().toISOString() };
+      historico.meta = { ...historico.meta, sourceDataVersion:historico.meta?.sourceDataVersion||historico.meta?.dataVersion||null, dataVersion: version, publishedAt: new Date().toISOString() };
       const release = { version, publishedAt: new Date().toISOString(), source: cronologico.meta?.source || "Centro Maestro",
         sheet: cronologico.meta?.sheet||"REPORTE", tchEst2627EffectiveDate: cronologico.meta?.operationalContract?cronologico.meta.tchEst2627EffectiveDate:ESTIMATE_DATE, cronologicoRows: cronologico.global?.suertes || 0,
         historicoRows: historico.meta?.rows || 0 };
@@ -756,7 +756,13 @@
       zip.file("data/historico.json", `${JSON.stringify(historico)}\n`);
       zip.file("data/version.js", `window.CASUR_RELEASE=${JSON.stringify(release)};\n`);
       zip.file("data/version.json", `${JSON.stringify(release, null, 2)}\n`);
-      zip.file("LEEME_ACTUALIZACION.txt", "ACTUALIZACIÓN DE DATOS CASUR\n\n1. Descomprima este ZIP.\n2. En GitHub abra la carpeta data del repositorio.\n3. Suba y reemplace los seis archivos de la carpeta data.\n4. Confirme el commit.\n5. Los dispositivos recibirán la nueva versión al abrir la app con internet.\n\nNo reemplace index.html para una actualización normal de datos.\n");
+      const integrity={schemaVersion:1,dataVersion:version,files:{}};
+      for(const kind of ['version','cronologico','historico'])for(const ext of ['json','js']){
+        const name=kind+'.'+ext,bytes=await zip.file('data/'+name).async('uint8array');
+        integrity.files[name]=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(b=>b.toString(16).padStart(2,'0')).join('');
+      }
+      zip.file('data/integrity.json',JSON.stringify(integrity,null,2)+'\n');
+      zip.file("LEEME_ACTUALIZACION.txt", "ACTUALIZACIÓN DE DATOS CASUR\n\n1. Descomprima este ZIP.\n2. En GitHub abra la carpeta data del repositorio.\n3. Suba los seis archivos y su integrity.json juntos a modules/produccion/data.\n4. Confirme el commit.\n5. Los dispositivos recibirán la nueva versión al abrir la app con internet.\n\nNo reemplace index.html para una actualización normal de datos.\n");
       downloadBlob(`CASUR_ACTUALIZACION_DATOS_${version.replace(/[^A-Za-z0-9.-]+/g, "_")}.zip`, await zip.generateAsync({ type: "blob" }));
       addLog(`Paquete GitHub ${version} generado.`);
     } catch (error) { console.error(error); alert(`No se pudo generar el paquete: ${error.message || error}`); }
@@ -1921,44 +1927,7 @@
      real contra recargas repetidas y verificación de que lo cargado tras
      recargar coincide con lo esperado (nunca un toast de éxito falso). */
   async function checkForDataUpdate(force = false) {
-    if (location.protocol === "file:") return;
-    // An approved local generation remains explicit until replaced/restored by its owner.
-    // The shared LKG still operates normally; this only prevents silently replacing the local view.
-    if (window.CASUR_OPERATIONAL_LOCAL) { updateSyncPill('Generación local aprobada · '+text(window.CRONO_DATA?.meta?.dataVersion), ''); return; }
-    if (dataSyncInProgress) return;
-    try {
-      const response = await fetch(`data/version.json?ts=${Date.now()}`, { cache: "no-store" });
-      if (!response.ok) return;
-      const resolved = await response.json(); // ya resuelto/protegido por el SW
-      const local = window.CASUR_RELEASE || {};
-      if (!resolved || !resolved.version) return;
-      if (resolved.version === local.version) {
-        if (!force) { updateSyncPill(`Datos compartidos · versión ${esc(local.version || "—")}`, ""); return; }
-      } else {
-        /* Segunda capa defensiva: el SW ya garantiza que "resolved" nunca es
-           anterior a "local" cuando ambas provienen del mismo gate, pero se
-           conserva la comprobación explícita para nunca sobrescribir con
-           algo inferior o de formato irreconocible. */
-        const cmp = compareCasurDataVersions(resolved.version, local.version);
-        if (cmp === -1) { console.warn(`[CASUR] Versión resuelta (${resolved.version}) es ANTERIOR a la activa (${local.version}); se ignora.`); return; }
-        if (cmp === null) { console.warn(`[CASUR] Formato de versión no reconocido (resuelta="${resolved.version}", activa="${local.version}"); se ignora.`); return; }
-      }
-
-      /* Guard efectivo contra recargas repetidas: si ya se intentó esta
-         versión en esta sesión, no reintentar en bucle. */
-      const attemptKey = `casurDataSynced:${resolved.version}`;
-      if (sessionStorage.getItem(attemptKey) && !force) return;
-
-      dataSyncInProgress = true;
-      updateSyncPill("Sincronizando…", "is-syncing");
-      sessionStorage.setItem(attemptKey, "1");
-      sessionStorage.setItem("casurDataSyncExpected", resolved.version);
-      location.reload();
-    } catch (error) {
-      updateSyncPill("Sincronización pendiente", "is-pending");
-    } finally {
-      dataSyncInProgress = false;
-    }
+    return window.CASUR_OFFICIAL_DATA_UPDATES?.check(force);
   }
 
   function initAdmin() {
@@ -2013,41 +1982,11 @@
   window.CASUR_MODULE_BRIDGE = Object.freeze({
     protocolVersion: 1,
     moduleId: "produccion",
-    async checkpoint() { return { ok: true, status: "noop" }; },
+    async checkpoint() { return window.CRONO_DATA?.meta?.manualChanges ? {ok:false,status:'manual-view-not-persisted'} : { ok: true, status: "noop" }; },
     openContext: openModuleContext,
   });
 
   window.addEventListener("load", () => {
     releaseStrip(); installCronoObserver(); installGeoObservers(); initAdmin(); ensureLockDialog(); ensureGeoDialog();
-    const ACTIVE_KEY = "casur_produccion_active_version";
-    const current = (window.CASUR_RELEASE && window.CASUR_RELEASE.version) || null;
-    const expected = sessionStorage.getItem("casurDataSyncExpected");
-    if (expected) {
-      sessionStorage.removeItem("casurDataSyncExpected");
-      if (current === expected) {
-        /* [Fase 4.4.3] Éxito confirmado: la versión REALMENTE cargada tras la
-           recarga coincide con la esperada. Solo aquí se muestra el toast y
-           se actualiza el marcador (nunca antes, para no mentir). */
-        try { localStorage.setItem(ACTIVE_KEY, current); } catch (e) {}
-        moduleToast(`✓ Maestro de Suertes actualizado · ${current}`);
-        updateSyncPill(`Datos compartidos · versión ${esc(current)}`, "");
-      } else {
-        console.warn(`[CASUR] Se esperaba la versión ${expected} pero se cargó ${current || "—"}.`);
-        updateSyncPill("Sincronización pendiente", "is-pending");
-      }
-    } else if (current) {
-      /* Arranque normal (sin recarga por sync): sincronizar el marcador
-         same-origin SOLO si no implica downgrade respecto al ya conocido. */
-      try {
-        const known = localStorage.getItem(ACTIVE_KEY);
-        const cmp = known ? compareCasurDataVersions(current, known) : 1;
-        if (!known || cmp === 1 || cmp === 0) localStorage.setItem(ACTIVE_KEY, current);
-        /* cmp === -1 o null: NUNCA sobrescribir el marcador con algo inferior o irreconocible. */
-      } catch (e) {}
-    }
-    checkForDataUpdate();
-    window.addEventListener("online", () => checkForDataUpdate());
-    window.addEventListener("focus", () => checkForDataUpdate());
-    setInterval(() => checkForDataUpdate(), 5 * 60 * 1000);
   });
 })();

@@ -1,2 +1,4 @@
 shared/geo/data/*.json text eol=lf
 shared/geo/data/*.geojson text eol=lf
+modules/produccion/data/*.json text eol=lf
+modules/produccion/data/*.js text eol=lf

@@ -16,17 +16,20 @@ export async function installUpdateControl({ version, checkpoint }) {
   let registration, waiting, shownVersion, prepared = false, refreshing = false, busy = false, lastCheck = 0, unlockTimer;
   const read = key => { try { return sessionStorage.getItem(key); } catch { return null; } };
   const write = (key, value) => { try { sessionStorage.setItem(key, value); } catch { /* private mode */ } };
+  const saved = key => { try { return localStorage.getItem(key); } catch { return read(key); } };
+  const persist = (key,value) => { write(key,value); try { localStorage.setItem(key,value); } catch { /* session fallback */ } };
   // Retired confirmation marker: remove only our obsolete key, never user data.
   try { sessionStorage.removeItem('casur-update-confirm'); } catch { /* private mode */ }
   const style = document.createElement('style');
   style.textContent = '.casur-update{position:fixed;right:12px;bottom:76px;z-index:10000;width:min(350px,calc(100vw - 24px));box-sizing:border-box;background:#fff;color:#173c29;border:1px solid #95b9a3;border-radius:12px;padding:14px;box-shadow:0 4px 18px #0002;font:14px/1.4 system-ui}.casur-update p{margin:6px 0}.casur-update button{font:inherit;min-height:36px;margin:5px 6px 0 0;cursor:pointer}.casur-update-lock{border:1px solid #95b9a3;border-radius:12px;max-width:calc(100vw - 40px)}.casur-update-lock::backdrop{background:#082c2266}@media print{.casur-update,.casur-update-lock{display:none!important}}';
+  style.textContent += '.casur-update button{border:1px solid #95b9a3;border-radius:6px;padding:7px 9px;background:#fff;color:#173c29}.casur-update button:first-of-type{background:#0b7f3a;border-color:#0b7f3a;color:#fff}.casur-update button:disabled{opacity:.65}';
   document.head.append(style);
   const box = document.createElement('section');
   box.className = 'casur-update no-print export-excluded'; box.dataset.exportExclude = 'true'; box.hidden = true;
   box.setAttribute('aria-live', 'polite');
   const title = document.createElement('strong'), detail = document.createElement('p'), message = document.createElement('p');
   const apply = document.createElement('button'), later = document.createElement('button');
-  apply.textContent = 'Actualizar ahora'; later.textContent = 'Más tarde';
+  apply.textContent = 'Instalar actualización'; later.textContent = 'Más tarde';
   box.append(title, detail, message, apply, later); document.body.append(box);
   const lock = document.createElement('dialog'); lock.className = 'casur-update-lock'; lock.textContent = 'Guardando estado para actualizar CASUR…';
   lock.addEventListener('cancel', event => event.preventDefault()); document.body.append(lock);
@@ -42,7 +45,7 @@ export async function installUpdateControl({ version, checkpoint }) {
     try { result = await checkpoint('pwa-update'); } catch { result = {ok:false}; }
     prepared = result?.ok === true;
     if (!prepared) release();
-    else unlockTimer = setTimeout(release, 20000);
+    else unlockTimer = setTimeout(() => { release(); message.hidden=false; message.textContent='La instalación no se completó. La versión anterior sigue disponible; podés reintentar.'; }, 30000);
     event.ports[0]?.postMessage({ok:prepared});
   });
   sw.addEventListener('controllerchange', () => {
@@ -61,19 +64,20 @@ export async function installUpdateControl({ version, checkpoint }) {
     waiting = candidate;
     if (shownVersion === info.version || busy) return;
     shownVersion = info.version;
-    title.textContent = 'Nueva versión de CASUR disponible'; detail.textContent = `Versión ${info.version}`;
+    title.textContent = 'Nueva actualización CASUR disponible'; detail.textContent = `Versión ${info.version}`;
     later.textContent = 'Más tarde';
     message.textContent = '';
-    const postponed = read('casur-update-later') === info.version;
+    const postponed = saved('casur-update-later') === info.version || saved('casur-update-offered') === info.version;
+    persist('casur-update-offered',info.version);
     message.hidden = true; detail.hidden = postponed; later.hidden = postponed;
-    apply.hidden = false; apply.textContent = postponed ? 'Ver actualización' : 'Actualizar ahora'; box.hidden = false;
-    later.onclick = () => { write('casur-update-later', info.version); shownVersion = null; void showWaiting().catch(() => {}); };
+    apply.hidden = false; apply.textContent = 'Instalar actualización'; box.hidden = false;
+    if (postponed) title.textContent = 'Actualización CASUR pendiente';
+    later.onclick = () => { persist('casur-update-later', info.version); title.textContent='Actualización CASUR pendiente'; detail.hidden=later.hidden=true; };
     apply.onclick = async () => {
-      if (apply.textContent === 'Ver actualización') { detail.hidden = later.hidden = false; apply.textContent = 'Actualizar ahora'; return; }
       if (busy) return; busy = true; apply.disabled = true;
-      message.hidden = false; message.textContent = 'Comprobando recursos y guardando el estado de las ventanas…';
+      message.hidden = false; message.textContent = 'Instalando actualización…';
       try {
-        const result = await workerRequest(waiting, {type:'CASUR_UPDATE_APPLY'}, 18000);
+        const result = await workerRequest(waiting, {type:'CASUR_UPDATE_APPLY'}, 22000);
         if (!result.ok) throw new Error('No se pudo guardar el estado de todas las ventanas. Reintentá o cerrá las ventanas antiguas después de guardar.');
       } catch (error) { release(); message.hidden = false; message.textContent = error.message; }
       finally { busy = false; apply.disabled = false; }
@@ -94,4 +98,5 @@ export async function installUpdateControl({ version, checkpoint }) {
   void sw.ready.then(warm); void check(true);
   window.addEventListener('online', () => { warm(); void check(true); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) void check(); });
+  window.setInterval?.(() => { void check(); }, 300000);
 }

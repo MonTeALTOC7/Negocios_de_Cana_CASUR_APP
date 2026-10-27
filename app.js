@@ -8,6 +8,7 @@
 import * as router from './core/navigation/router.js';
 import { createModuleCheckpointRunner, resolveHistoryNavigation } from './core/navigation/module-checkpoint.js';
 import { installUpdateControl } from './core/updates/pwa-update.js';
+import { protectModuleActivity } from './core/updates/activity-guard.js';
 import * as registry from './core/module-registry/registry.js';
 import * as gate from './core/permissions/gate.js';
 import * as status from './core/sync/status.js';
@@ -96,7 +97,13 @@ async function consumePendingModuleContext(frame, moduleId) {
 async function checkpointActiveModule(reason) {
   const frame = $('#mFrame');
   if (!frame) return { ok: true, status: 'no-frame' };
-  return runActiveModuleCheckpoint(reason);
+  try {
+    const guard=protectModuleActivity(frame.contentWindow);
+    const result=await guard.checkpoint({protocolVersion:1, moduleId:activeModuleBridge()?.moduleId,
+      checkpoint:()=>runActiveModuleCheckpoint(reason)},reason);
+    if(result.ok && reason==='pwa-update')frame.contentWindow.CASUR_SAVE_UPDATE_CONTEXT?.();
+    return result;
+  } catch { return {ok:false,status:'unavailable'}; }
 }
 
 async function navigateFromActiveModule(path, reason, moduleContext = null) {
@@ -450,7 +457,7 @@ function viewModule(id) {
         <button class="icon-btn" id="mReload" type="button" aria-label="Recargar módulo">${icon('refresh')}</button>
       </div>
       <iframe class="module-host__frame" id="mFrame"
-              src="${m.route}"
+              data-casur-src="${m.route}"
               title="${m.name}"
               allow="camera; geolocation; clipboard-read; clipboard-write; fullscreen"
               referrerpolicy="no-referrer"></iframe>
@@ -470,8 +477,16 @@ function viewModule(id) {
   document.body.classList.add('in-module');
   viewEl.innerHTML = '';
   const frame = $('#mFrame', host);
-  frame.addEventListener('load', () => { void consumePendingModuleContext(frame, id); }, { once: true });
+  frame.addEventListener('load', () => { if(frame.contentWindow?.location.href==='about:blank')return; protectModuleActivity(frame.contentWindow); void consumePendingModuleContext(frame, id); });
   viewEl.appendChild(host);
+  // First-use Production scripts must already be behind the verified SW data gate.
+  void (async()=>{
+    if('serviceWorker' in navigator && location.protocol!=='file:'){
+      await navigator.serviceWorker.ready;
+      if(!navigator.serviceWorker.controller)await new Promise(resolve=>navigator.serviceWorker.addEventListener('controllerchange',resolve,{once:true}));
+    }
+    if(frame.isConnected)frame.src=m.route;
+  })();
 
   $('#mBack', host).addEventListener('click', () => { void navigateFromActiveModule('/', 'back-home'); });
   $('#mReload', host).addEventListener('click', () => { void reloadActiveModule(); });

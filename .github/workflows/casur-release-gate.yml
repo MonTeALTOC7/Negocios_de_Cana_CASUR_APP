@@ -25,6 +25,7 @@ jobs:
         run: |
           node tools/sync-versions.mjs
           node tools/runtime-assets.mjs
+          node tools/production-integrity.mjs
       - name: Enforce scoped release versions
         if: github.event_name == 'pull_request'
         env:

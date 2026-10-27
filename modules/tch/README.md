@@ -1,4 +1,7 @@
-# Estimador TCH CASUR — v2.8.0
+# Estimador TCH CASUR — v2.8.1 (candidata local C2)
+
+Checkpoint PWA: protege operaciones activas antes de instalar código; no cambia fórmulas, Maestro ni IndexedDB. Sin publicación.
+
 
 PWA estática para GitHub Pages orientada a trabajo de campo de Negocios de Caña CASUR.
 

@@ -247,7 +247,7 @@ test('panel general reemplaza contadores por toneladas autorizadas y edad, sin a
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const normalized=html.replaceAll('\r\n','\n');
  const home=normalized.slice(normalized.indexOf('function renderCronoHome(){\n  setupCrono();'),normalized.indexOf('function renderCronoProducer(code){renderCronoScope'));
- assert.match(home,/TCH Z Ant\. 25\/26/);assert.match(home,/estimate\.estimateTons/);
+ assert.match(home,/TCH Z Ant\. 25\/26/);assert.match(home,/estimatedTonsKpi\(rows,season\)/);
  assert.match(home,/currentAgeKpi\(rows,ageMonths\)/);assert.doesNotMatch(home,/kpi\('Haciendas'|Suertes activas/);
  assert.match(normalized,/suerte\?'Edad actual'/);assert.match(normalized,/suerte\?kpi\('Variedad'/);
 });
@@ -268,15 +268,21 @@ test('análisis agronómico reutiliza toneladas/área de molienda: no promedio s
  assert.equal(JSON.stringify(rows),before);
 });
 
-test('etapa exige número de corte acreditado; edad y tipo propuesto no acreditan Plantilla/Soca',()=>{
+test('rangos de NC son excluyentes y exigen número acreditado, sin inferir edad ni tipo propuesto',()=>{
  const api=view().CASUR_CRONO_PARTICIPATION;
  const cut=(c,header='NC',raw=c)=>record('01',{corte:c,provenance:{cut:{header,raw}},edadExcel:1,plan:{cut:'MANUAL'}});
- assert.equal(api.cropStage(cut('1')),'Plantilla');assert.equal(api.cropStage(cut(2)),'Soca');
- assert.equal(api.cropStage(cut('12','#_de_Corte')),'Soca');
+ for(const [number,label] of [[1,'Plantilla'],[2,'2.º corte'],[3,'Cortes 3–4'],[4,'Cortes 3–4'],[5,'Cortes 5–6'],[6,'Cortes 5–6'],[7,'Cortes 7+'],[12,'Cortes 7+']])assert.equal(api.cropStage(cut(String(number))),label);
+ assert.equal(api.cropStage(cut('12','#_de_Corte')),'Cortes 7+');
  for(const r of [cut(null),cut('R'),cut('MANUAL'),cut(0),cut(-1),cut(1.5),cut(1,'Edad'),cut(1,'NC',2),record('02',{corte:1})])assert.equal(api.cropStage(r),'Sin clasificar');
  const groups=api.agronomicGroups([cut(1),cut(2),cut(null)],'stage');
  assert.equal(groups.length,3);assert.equal(groups.reduce((n,g)=>n+g.area,0),30);
  assert.equal(groups.find(g=>g.key==='Sin clasificar').estimateTch,50);
+ const universe=[cut(1),cut(2),cut(3),cut(4),cut(5),cut(6),cut(7),cut(20),cut(null)];
+ const all=api.agronomicGroups(universe,'stage');assert.equal(all.length,6);
+ assert.equal(all.reduce((n,g)=>n+g.lots,0),universe.length);
+ assert.equal(all.reduce((n,g)=>n+g.area,0),90);
+ assert.equal(all.reduce((n,g)=>n+g.estimateArea,0),api.summary(universe).estimateArea);
+ assert.equal(all.reduce((n,g)=>n+g.estimateTons,0),api.summary(universe).estimateTons);
 });
 
 test('paneles de área incluyen todas las categorías y sin clasificar, con total de la misma área activa',()=>{
@@ -293,13 +299,39 @@ test('paneles de área incluyen todas las categorías y sin clasificar, con tota
 test('resumen compacto conserva cinco KPI y agrupa paneles por ámbito sin métricas nuevas',()=>{
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').replaceAll('\r\n','\n');
  const home=html.slice(html.indexOf('function renderCronoHome(){\n  setupCrono();'),html.indexOf('function renderCronoProducer(code){renderCronoScope'));
- assert.match(home,/kpis crono-general-kpis/);assert.match(home,/Ton\. Estim\. Z/);
- assert.equal((home.match(/class="crono-analysis-column"/g)||[]).length,3);
- for(const text of [' por zona',' por riego',' · Plantilla / Soca'])assert.ok(home.includes("'TCH Estim. Z'+(season||'—')+'"+text+"'"));
+ assert.match(home,/kpis crono-general-kpis/);assert.match(home,/estimatedTonsKpi/);
+ assert.ok(home.indexOf('crono-area-analysis')<home.indexOf('crono-yield-analysis'));
+ assert.ok(home.lastIndexOf('.areaPanel(')<home.indexOf('.estimatedTchPanel('));
+ for(const text of [' por zona',' por riego',' · Número de corte'])assert.ok(home.includes("'TCH Estim. Z'+(season||'—')+'"+text+"'"));
  assert.equal((home.match(/\.estimatedTchPanel\(/g)||[]).length,3);
  assert.equal((home.match(/\.areaPanel\(/g)||[]).length,4);
  const js=fs.readFileSync(new URL('../js/casur-enhancements.js',import.meta.url),'utf8');
  assert.match(js,/estimateKpi\(`TCH Estim\. Z\$\{season\}`/);
+});
+
+test('orden de rendimiento es descendente en TCH, independiente del área, N/D al final y empate determinista',()=>{
+ const api=view().CASUR_CRONO_PARTICIPATION,rows=[
+  record('01',{zona:'Grande',inventoryArea:90,forecast:forecast(40)}),
+  record('02',{zona:'Pequeña',inventoryArea:1,forecast:forecast(90)}),
+  record('03',{zona:'A empate',inventoryArea:2,forecast:forecast(60)}),
+  record('04',{zona:'B empate',inventoryArea:3,forecast:forecast(60)}),
+  record('05',{zona:'Sin estimado',inventoryArea:100,forecast:forecast(null)})];
+ const area=api.agronomicGroups(rows,'zona'),before=JSON.stringify(area);
+ assert.deepEqual(Array.from(area,g=>g.key),['Sin estimado','Grande','B empate','A empate','Pequeña']);
+ assert.deepEqual(Array.from(api.orderAgronomicGroups(area,'estimateTch'),g=>g.key),['Pequeña','A empate','B empate','Grande','Sin estimado']);
+ assert.equal(JSON.stringify(area),before);
+ const chart=api.estimatedTchPanel(rows,'zona','Rendimiento');
+ assert.ok(chart.indexOf('>Pequeña</div>')<chart.indexOf('>Grande</div>'));
+ assert.ok(chart.indexOf('>Grande</div>')<chart.indexOf('>Sin estimado</div>'));
+});
+
+test('toneladas de finca usan summary del ámbito; N/D seguro sin fuente y cosecha individual preservada',()=>{
+ const api=view().CASUR_CRONO_PARTICIPATION;
+ const rows=[record('01',{inventoryArea:3,forecast:forecast(70.12345),plan:{tons:601000}}),record('02',{inventoryArea:7,forecast:forecast(80.98765)}),record('03',{classification:'Semilla',forecast:forecast(99)})];
+ const card=api.estimatedTonsKpi(rows,'26/27');assert.match(card,/777.28 t/);assert.match(card,/data-crono-tons/);assert.doesNotMatch(card,/<em>|601,000/);
+ assert.match(api.estimatedTonsKpi([record('04',{source:{sha256:'otra'}})],'26/27'),/>N\/D</);
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(html,/suerte\?window\.CASUR_CRONO_PARTICIPATION\.dateKpi\(rows\):window\.CASUR_CRONO_PARTICIPATION\.estimatedTonsKpi/);
 });
 
 test('gráficos mantienen N/D y denominadores auditables ante fuentes no aplicadas o generaciones mixtas',()=>{

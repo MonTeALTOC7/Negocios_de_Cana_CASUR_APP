@@ -6,6 +6,12 @@
   --casur-gold:#f4c542;
   --casur-est:#0f766e;
   --casur-est-pale:#ecfdf5;
+  --crono-petrol:#1f4e5c;
+  --crono-sage:#86a0aa;
+  --crono-mist:#e4eae9;
+  --crono-slate:#5c7470;
+  --crono-ivory:#f5f2ea;
+  --crono-charcoal:#30393d;
 }
 
 .casur-release-strip{
@@ -198,6 +204,17 @@ body.casur-geo-open{overflow:hidden}
 #cronoContent .crono-estimate-analysis .hval{color:#1f4e5c}
 #cronoContent .crono-estimate-analysis .hrow:focus-visible{outline:2px solid #1f4e5c;outline-offset:3px;border-radius:4px}
 #cronoContent .crono-general-analysis .crono-box{min-width:0}
+#cronoContent .kpi.main:before{background:#86be97}
+#cronoContent .crono-kpi-history{background:var(--crono-ivory);border-color:#c8ceca}
+#cronoContent .crono-kpi-history:before{background:var(--crono-slate)}
+#cronoContent .crono-kpi-history strong,#cronoContent .crono-kpi-history .tch-val{color:var(--crono-charcoal)}
+#cronoContent .crono-kpi-technical{background:#f8faf9;border-color:#d7dedb}
+#cronoContent .crono-kpi-technical:before{background:#a9b5af}
+#cronoContent .crono-kpi-technical strong{color:var(--crono-charcoal)}
+#cronoContent .casur-tons-kpi{background:var(--crono-ivory);border-color:var(--crono-sage)}
+#cronoContent .casur-tons-kpi:before{background:var(--crono-sage)}
+#cronoContent .casur-tons-kpi strong{color:var(--crono-petrol)}
+#cronoContent .casur-tons-kpi .label{color:var(--crono-slate)}
 
 /* PR45: use the full summary width; natural-height columns remove stretched cards. */
 #cronoContent > .crono-general-kpis{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:10px!important;align-items:stretch}
@@ -205,7 +222,10 @@ body.casur-geo-open{overflow:hidden}
 #cronoContent > .crono-general-kpis .kpi .label{font-size:10.5px!important;line-height:1.25;letter-spacing:.15px}
 #cronoContent > .crono-general-kpis .kpi strong{font-size:23px!important;line-height:1.15!important;white-space:nowrap;margin-top:5px!important}
 #cronoContent > .crono-summary-grid.crono-general-analysis{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:start!important;gap:12px!important}
-#cronoContent .crono-analysis-column{display:grid;gap:12px;align-content:start;min-width:0}
+#cronoContent > .crono-summary-grid.crono-area-analysis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+#cronoContent .crono-area-analysis .crono-box{border-top:2px solid var(--casur-green)}
+#cronoContent .crono-analysis-title{margin:18px 0 10px;font-size:14px;color:var(--crono-petrol)}
+#cronoContent .crono-yield-analysis .crono-box{border-top:2px solid var(--crono-petrol);background:#f6f9f8}
 #cronoContent > .crono-general-analysis .crono-box{padding:12px 14px!important;min-height:0!important}
 #cronoContent > .crono-general-analysis .crono-box h3{font-size:13px!important;line-height:1.25!important;margin-bottom:9px!important}
 #cronoContent > .crono-general-analysis .hchart{gap:7px!important}
@@ -219,6 +239,7 @@ body.casur-geo-open{overflow:hidden}
  #cronoContent[data-geo-scope="farm"] #cronoPrintPanel > .kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 }
 @media(max-width:760px){
+ #cronoContent > .crono-summary-grid.crono-area-analysis{grid-template-columns:1fr!important}
  #cronoContent > .crono-general-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
  #cronoContent > .crono-general-kpis .kpi strong{font-size:21px!important}
  #cronoContent[data-geo-scope="farm"] #cronoPrintPanel > .kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}

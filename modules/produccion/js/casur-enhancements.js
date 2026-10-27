@@ -283,6 +283,12 @@
   function estimateKpi(label, value, sub) {
     return `<div class="kpi casur-estimate-kpi" data-casur-estimate="1"><span class="label">${esc(label)}</span><strong>${value}</strong><em>${esc(sub)}</em></div>`;
   }
+  function estimatedTonsKpi(rows, season) {
+    const audit = estimateSummary(rows);
+    const label = `Ton. Estim. Z${season || '—'}`;
+    const detail = estimateCoverageText(audit);
+    return `<div class="kpi casur-tons-kpi" data-crono-tons="${esc(JSON.stringify(audit))}" tabindex="0" title="${esc(detail)}" aria-label="${esc(label)}: ${audit.estimateTons === null ? 'N/D' : fmt(audit.estimateTons,' t')}. ${esc(detail)}"><span class="label">${esc(label)}</span><strong>${audit.estimateTons === null ? 'N/D' : fmt(audit.estimateTons,' t')}</strong></div>`;
+  }
   function estimateCaption(reason, sourceDate) {
     const date = window.CASUR_OPERATIONAL_IMPORT.dateValue(sourceDate).iso;
     return (reason === 'Aforo autorizado' ? 'Último Aforo' : reason) + (date ? `\n${formatCronoDate(date)}` : '');
@@ -310,7 +316,7 @@
     const audit = currentAgeSummary(rows, ageForRow);
     const detail = `Área con edad válida: ${fmt(audit.validArea)} / ${fmt(audit.activeArea)} ha · Cobertura: ${fmt(audit.coveragePct, '%')}` +
       (audit.reason ? ` · ${audit.reason}` : '');
-    return `<div class="kpi" data-crono-current-age="${esc(JSON.stringify(audit))}" tabindex="0" title="${esc(detail)}" aria-label="Edad ponderada actual: ${audit.months === null ? 'N/D' : fmt(audit.months, ' meses')}. ${esc(detail)}"><span class="label">Edad ponderada actual</span><strong>${audit.months === null ? 'N/D' : fmt(audit.months, ' meses')}</strong></div>`;
+    return `<div class="kpi crono-kpi-technical" data-crono-current-age="${esc(JSON.stringify(audit))}" tabindex="0" title="${esc(detail)}" aria-label="Edad ponderada actual: ${audit.months === null ? 'N/D' : fmt(audit.months, ' meses')}. ${esc(detail)}"><span class="label">Edad ponderada actual</span><strong>${audit.months === null ? 'N/D' : fmt(audit.months, ' meses')}</strong></div>`;
   }
   function activeAreaForRow(row) {
     return row.sourcePresence ? window.CASUR_OPERATIONAL_IMPORT.participation(row).activeArea : finite(row.area);
@@ -319,7 +325,14 @@
     const cut = finite(row.corte), origin = row.provenance?.cut;
     const verified = window.CASUR_OPERATIONAL_IMPORT.aliases.cut.some(header => normal(header) === normal(origin?.header)) &&
       finite(origin?.raw) === cut;
-    return verified && Number.isInteger(cut) && cut > 0 ? (cut === 1 ? 'Plantilla' : 'Soca') : 'Sin clasificar';
+    if (!verified || !Number.isInteger(cut) || cut <= 0) return 'Sin clasificar';
+    return cut === 1 ? 'Plantilla' : cut === 2 ? '2.º corte' : cut <= 4 ? 'Cortes 3–4' : cut <= 6 ? 'Cortes 5–6' : 'Cortes 7+';
+  }
+  function orderAgronomicGroups(groups, metric = 'area') {
+    return groups.slice().sort((a,b) => {
+      const x = finite(a[metric]), y = finite(b[metric]);
+      return (x === null) - (y === null) || (y ?? 0) - (x ?? 0) || a.key.localeCompare(b.key,'es');
+    });
   }
   function agronomicGroups(rows, field) {
     const groups = new Map(), applied = estimateSummary(rows).estimateState === 'applied';
@@ -330,19 +343,20 @@
       if (!groups.has(key)) groups.set(key, {key, area:0, rows:[]});
       const group = groups.get(key); group.area += area; group.rows.push(row);
     }
-    return [...groups.values()].map(({key, area, rows: members}) => {
+    return orderAgronomicGroups([...groups.values()].map(({key, area, rows: members}) => {
       const estimate = estimateSummary(members);
-      return {key, area, estimateTch:applied ? estimate.estimateTch : null,
+      return {key, area, lots:members.length, estimateLots:estimate.estimateLots,
+        estimateTch:applied ? estimate.estimateTch : null,
         estimateTons:applied ? estimate.estimateTons : null, estimateArea:applied ? estimate.estimateArea : 0,
         millingArea:estimate.millingArea || 0, coveragePct:applied ? estimate.coberturaEstimadoAreaPct : null};
-    }).sort((a,b) => b.area - a.area || a.key.localeCompare(b.key,'es'));
+    }));
   }
   function areaPanel(rows, field, title, chart) {
     const groups = agronomicGroups(rows, field), total = groups.reduce((sum, group) => sum + group.area, 0);
     return `<div class="crono-box" data-crono-area-group="${esc(field)}" data-area-total="${total}"><h3>${esc(title)}</h3>${chart(groups)}<div class="crono-area-total" role="group" aria-label="Total de ${esc(title.toLowerCase())}"><strong>${fmt(total,' ha')}</strong></div></div>`;
   }
   function estimatedTchPanel(rows, field, title) {
-    const groups = agronomicGroups(rows, field), max = Math.max(1, ...groups.map(g => g.estimateTch || 0));
+    const groups = orderAgronomicGroups(agronomicGroups(rows, field),'estimateTch'), max = Math.max(1, ...groups.map(g => g.estimateTch || 0));
     return `<div class="crono-box crono-estimate-analysis" data-crono-estimate-group="${esc(field)}" data-group-audit="${esc(JSON.stringify(groups))}"><h3>${esc(title)}</h3>` +
       (!groups.length ? '<div class="empty">Sin datos.</div>' : '<div class="hchart">' + groups.map(g => {
         const detail = `Molienda: ${fmt(g.estimateTons,' t')} / ${fmt(g.estimateArea,' ha válidas')} · Cobertura: ${fmt(g.coveragePct,'%')}`;
@@ -408,7 +422,7 @@
         const estimate = finite(estimateValue);
         const caption = scope.producer ? estimateCaption(operational && summary.estimateState === 'applied' ? 'Aforo autorizado' : sourceLabel, aforoDate) : '';
         const card = estimateKpi(`TCH Estim. Z${season}`, estimate === null ? "N/D" : fmt(estimate), caption);
-        const before = scope.producer ? kpis.querySelector('[data-crono-date]') : kpis.children[2];
+        const before = scope.producer ? kpis.querySelector('[data-crono-date],[data-crono-tons]') : kpis.children[3];
         if (before) before.insertAdjacentHTML("beforebegin", card);
         else kpis.insertAdjacentHTML("beforeend", card);
       }
@@ -1981,7 +1995,7 @@
   window.CASUR_REFRESH_OPERATIONAL_VIEW = refreshOperationalView;
   window.CASUR_CRONO_PARTICIPATION = Object.freeze({summary: estimateSummary, coverageText: estimateCoverageText,
     forecastForRow, referenceDate, dateSummary, dateKpi, formatDate: formatCronoDate, cutTypeText, estimateCaption, detailColumns,
-    currentAgeSummary, currentAgeKpi, cropStage, agronomicGroups, areaPanel, estimatedTchPanel});
+    currentAgeSummary, currentAgeKpi, cropStage, agronomicGroups, orderAgronomicGroups, areaPanel, estimatedTchPanel, estimatedTonsKpi});
 
   function openModuleContext(context) {
     if (!context || context.kind !== "lot") return { ok: false, status: "invalid-context" };

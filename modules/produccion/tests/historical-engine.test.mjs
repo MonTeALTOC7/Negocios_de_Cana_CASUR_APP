@@ -560,7 +560,7 @@ test("CAP1 conserva seis KPI junto al gráfico TCH legible y sin tarjeta princip
   }
   assert.match(cards,/suerte\?kpi\('Variedad'.*\):ageCard/);
   assert.match(cards,/suerte\?ageCard:kpi\('Distancia ponderada/);
-  assert.match(enhancements,/kpis\.querySelector\('\[data-crono-date\]'\)/);
+  assert.match(enhancements,/kpis\.querySelector\('\[data-crono-date\],\[data-crono-tons\]'\)/);
   assert.match(crono, /fmt\(ageMonths\(rows\[0\]\),' meses'\)/);
   assert.ok(!crono.includes("Ton. estimadas 26/27"));
   assert.match(enhancements, /estimateKpi\(`TCH Estim\. Z\$\{season\}`/);

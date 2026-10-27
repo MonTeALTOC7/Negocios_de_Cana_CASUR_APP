@@ -2799,7 +2799,7 @@ function ageHtml(r){if(r&&r.renovacion&&!r.fSiembra)return 'Renovación'; const 
 function weightedAge(rows){let num=0,den=0;(rows||[]).forEach(r=>{const a=Number(r.area)||0,m=ageMonths(r); if(a>0&&m!==null){num+=a*m;den+=a;}}); return den?num/den:null;}
 function dateTxt(iso){return window.CASUR_CRONO_PARTICIPATION.formatDate(iso);}
 function pByCode(code){return (C.producers||[]).find(p=>String(p.code)===String(code));}
-function kpi(label,value,sub='',main=false){return '<div class="kpi '+(main?'main':'')+'"><span class="label">'+safe(label)+'</span><strong>'+value+'</strong>'+(sub?'<em>'+safe(sub)+'</em>':'')+'</div>';}
+function kpi(label,value,sub='',main=false,kind=''){return '<div class="kpi '+(main?'main ':'')+kind+'"><span class="label">'+safe(label)+'</span><strong>'+value+'</strong>'+(sub?'<em>'+safe(sub)+'</em>':'')+'</div>';}
 function mini(label,value){return '<div class="mini"><span>'+safe(label)+'</span><strong>'+value+'</strong></div>';}
 function groupRows(rows,key){const map={};(rows||[]).forEach(r=>{const k=r[key]||'Sin dato'; if(!map[k])map[k]={key:k,area:0,num:0,den:0,suertes:0}; const a=Number(r.area)||0,t=num(r.tch); map[k].area+=a; map[k].suertes++; if(t!==null&&a>0){map[k].num+=a*t;map[k].den+=a;}}); return Object.values(map).map(x=>({key:x.key,area:+x.area.toFixed(2),suertes:x.suertes,tch:x.den?+(x.num/x.den).toFixed(2):null})).sort((a,b)=>(b.area||0)-(a.area||0));}
 function hbar(rows,limit=7,palette='green',metric='area',suffix=''){rows=(rows||[]).slice(0,limit); if(!rows.length)return '<div class="empty">Sin datos.</div>'; const color=(palette==='blue')?'0,91,170':((palette==='gold')?'206,139,15':'11,127,58'); const vals=rows.map(r=>Number(r[metric])||0); const max=Math.max(1,...vals), min=Math.min(...vals), span=Math.max(1,max-min); return '<div class="hchart">'+rows.map(r=>{const value=Number(r[metric])||0; const pct=Math.max(4,value/max*100); const intensity=.28+((value-min)/span)*.72; const fill='linear-gradient(90deg, rgba('+color+','+Math.max(.35,intensity).toFixed(2)+'), rgba('+color+','+Math.min(1,intensity+.08).toFixed(2)+'))'; const track='rgba('+color+',.10)'; return '<div class="hrow"><div class="hlabel" title="'+safe(r.key)+'">'+safe(r.key)+'</div><div class="htrack" style="background:'+track+'"><div class="hfill" style="width:'+pct.toFixed(1)+'%;background:'+fill+'"></div></div><div class="hval">'+fmt(value)+(suffix||'')+'</div></div>';}).join('')+'</div>';}
@@ -3060,10 +3060,10 @@ function renderCronoHome(){
   const estimate=aforo.summary(rows),season=C.meta?.estimateSeason||estimate.estimateSeason;
   const html='<div class="kpis crono-general-kpis" style="margin-top:12px">'+[
     kpi(operational?'Área activa':'Área total',fmt(g.area,' ha'),operational?'':'Cronológico',true),
-    kpi('TCH Z Ant. 25/26',fmt(g.tch),''),
-    kpi('Ton. Estim. Z'+(season||'—'),estimate.estimateTons===null?'N/D':fmt(estimate.estimateTons,' t'),''),
-    aforo.currentAgeKpi(rows,ageMonths)
-  ].join('')+'</div>'+`<div class="crono-summary-grid crono-general-analysis"><div class="crono-analysis-column">${aforo.estimatedTchPanel(rows,'zona','TCH Estim. Z'+(season||'—')+' por zona')}${aforo.areaPanel(rows,'zona','Área por zona',groups=>hbar(groups,groups.length,'green'))}</div><div class="crono-analysis-column">${aforo.estimatedTchPanel(rows,'tipoRiego','TCH Estim. Z'+(season||'—')+' por riego')}${aforo.areaPanel(rows,'tipoRiego','Área por riego',groups=>hbar(groups,groups.length,'blue'))}</div><div class="crono-analysis-column">${aforo.estimatedTchPanel(rows,'stage','TCH Estim. Z'+(season||'—')+' · Plantilla / Soca')}${aforo.areaPanel(rows,'tenencia','Área por tenencia',groups=>hbar(groups,groups.length,'gold'))}${aforo.areaPanel(rows,'destino','Área por destino del cultivo',groups=>hbar(groups,groups.length,'green'))}</div></div>`;
+    kpi('TCH Z Ant. 25/26',fmt(g.tch),'',false,'crono-kpi-history'),
+    aforo.currentAgeKpi(rows,ageMonths),
+    aforo.estimatedTonsKpi(rows,season)
+  ].join('')+'</div>'+`<div class="crono-summary-grid crono-general-analysis crono-area-analysis" aria-label="Superficies actuales">${aforo.areaPanel(rows,'zona','Área por zona',groups=>hbar(groups,groups.length,'green'))}${aforo.areaPanel(rows,'tipoRiego','Área por riego',groups=>hbar(groups,groups.length,'green'))}${aforo.areaPanel(rows,'tenencia','Área por tenencia',groups=>hbar(groups,groups.length,'green'))}${aforo.areaPanel(rows,'destino','Área por destino del cultivo',groups=>hbar(groups,groups.length,'green'))}</div><h3 class="crono-analysis-title">Rendimientos estimados Z${safe(season||'—')}</h3><div class="crono-summary-grid crono-general-analysis crono-yield-analysis">${aforo.estimatedTchPanel(rows,'zona','TCH Estim. Z'+(season||'—')+' por zona')}${aforo.estimatedTchPanel(rows,'tipoRiego','TCH Estim. Z'+(season||'—')+' por riego')}${aforo.estimatedTchPanel(rows,'stage','TCH Estim. Z'+(season||'—')+' · Número de corte')}</div>`;
   const cont=ce('cronoContent'); if(cont){cont.innerHTML=html; cont.dataset.ready='1'; cont.dataset.geoScope=''; cont.dataset.geoLotId='';}
   const sel=ce('cronoProducerSelect'); if(sel)sel.value='';
   const q=ce('cronoQ'); if(q)q.value='';
@@ -3154,15 +3154,15 @@ function renderCronoScope(code,suerte){
   const individualDistance=suerte?window.CASUR_HISTORICAL_ENGINE.currentDistanceForLot(window.CASUR_HISTORICAL_ENGINE.buildCurrentDistanceIndex(C.producers),rows[0].codLote):null;
   const singleAge=suerte?(rows[0].renovacion&&!rows[0].fSiembra?'Renovación':fmt(ageMonths(rows[0]),' meses')):fmt(pAge,' meses');
   const distanceValue=suerte?(individualDistance.km==null?'N/D':fmt(individualDistance.km,' km')):(ssum.distance.kmWeighted==null?'N/D':fmt(ssum.distance.kmWeighted,' km'));
-  const ageCard=kpi(suerte?'Edad actual':'Edad ponderada',safe(singleAge||'—'),'');
+  const ageCard=kpi(suerte?'Edad actual':'Edad ponderada',safe(singleAge||'—'),'',false,'crono-kpi-technical');
   const kpis=[
     kpi(C.meta?.operationalContract===1?'Área activa':'Área total',fmt(ssum.area,' ha'),'',true),
-    kpi('TCH Z Ant. 25/26',`<span class="tch-val ${t}">${fmt(ssum.tch)}</span>`,''),
+    kpi('TCH Z Ant. 25/26',`<span class="tch-val ${t}">${fmt(ssum.tch)}</span>`,'',false,'crono-kpi-history'),
     suerte?kpi('Variedad',safe(rows[0]?.variedad||'—'),''):ageCard,
-    suerte?ageCard:kpi('Distancia ponderada (km)',distanceValue,''),
-    window.CASUR_CRONO_PARTICIPATION.dateKpi(rows)
+    suerte?ageCard:kpi('Distancia ponderada (km)',distanceValue,'',false,'crono-kpi-technical'),
+    suerte?window.CASUR_CRONO_PARTICIPATION.dateKpi(rows):window.CASUR_CRONO_PARTICIPATION.estimatedTonsKpi(rows,C.meta?.estimateSeason||ssum.estimateSeason)
   ].join('');
-  const summaryBoxes=suerte?'':'<div class="crono-summary-grid"><div class="crono-box"><h3>Área por riego</h3>'+hbar(byR,8,'blue')+'</div><div class="crono-box"><h3>Área por variedad</h3>'+hbar(byV,8,'green')+'</div><div class="crono-box"><h3>Área por textura</h3>'+hbar(byT,8,'gold')+'</div><div class="crono-box"><h3>Área por Destino Cultivo</h3>'+hbar(byD,8,'green')+'</div></div>';
+  const summaryBoxes=suerte?'':'<div class="crono-summary-grid"><div class="crono-box"><h3>Área por riego</h3>'+hbar(byR,8,'green')+'</div><div class="crono-box"><h3>Área por variedad</h3>'+hbar(byV,8,'green')+'</div><div class="crono-box"><h3>Área por textura</h3>'+hbar(byT,8,'green')+'</div><div class="crono-box"><h3>Área por Destino Cultivo</h3>'+hbar(byD,8,'green')+'</div></div>';
   const singleTrend=suerte?cronoSuerteTrendChart(suerteCode(rows[0])):'';
   const topBlock=suerte?`<div class="single-suerte-layout"><div class="single-suerte-info"><div class="kpis single-suerte-kpis">${kpis}</div></div>${singleTrend}</div>`:`<div class="kpis" style="margin-top:12px">${kpis}</div>${summaryBoxes}`;
   const distanceIndex=window.CASUR_HISTORICAL_ENGINE.buildCurrentDistanceIndex(C.producers);

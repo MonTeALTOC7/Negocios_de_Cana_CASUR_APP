@@ -249,3 +249,31 @@
     .casur-maestro-premium:not(.print-export) :is(#cronoContent,#fichaContent) { scroll-margin-top:170px; }
   }
 }
+
+/* Readable report navigation and more usable mobile viewport. */
+@media screen {
+  .casur-maestro-premium:not(.print-export) .maestro-report-links {
+    padding:8px; background:#fff; border:1px solid var(--maestro-mist); border-radius:12px;
+  }
+  .casur-maestro-premium:not(.print-export) .maestro-report-links button {
+    border-radius:8px; background:#f5f8fa; font-size:12px;
+  }
+  .casur-maestro-premium:not(.print-export) .maestro-report-links button:hover {
+    background:#e4eae9; color:#173b46;
+  }
+  .casur-maestro-premium:not(.print-export) .maestro-query > summary:hover {
+    background:#f5f8fa; border-radius:9px;
+  }
+  @media(max-width:600px) {
+    .casur-maestro-premium:not(.print-export) .head { padding-block:5px; }
+    .casur-maestro-premium:not(.print-export) .maestro-report-links {
+      display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); overflow:visible; gap:6px;
+    }
+    .casur-maestro-premium:not(.print-export) .maestro-report-links button {
+      width:100%; min-width:0; white-space:normal; text-align:center;
+    }
+    .casur-maestro-premium:not(.print-export) :is(#cronoContent,#fichaContent) { scroll-margin-top:170px; }
+    .casur-maestro-premium:not(.print-export) :is(button,a,input,select,summary) { scroll-margin-block:170px 16px; }
+    .casur-maestro-premium:not(.print-export) .maestro-tabs { scroll-padding-inline:12px; }
+  }
+}

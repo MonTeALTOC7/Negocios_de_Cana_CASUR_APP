@@ -210,7 +210,6 @@
  .maestro-farm-breadcrumb { padding:12px 0; color:#1f4e5c; font-size:12px; }
  #maestroFarmMap { height:400px; isolation:isolate; border-radius:12px; }
  .maestro-farm-board { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:12px; align-items:start; }
- .casur-maestro-premium:not(.print-export) .maestro-farm-board > .premium-area-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
  .maestro-farm-board[data-panel="3"] { grid-template-columns:1fr; }
  .casur-maestro-premium:not(.print-export) .crono-general-kpis .kpi { min-height:116px; padding:18px 14px; }
  .casur-maestro-premium:not(.print-export) .crono-general-analysis { grid-template-columns:repeat(3,minmax(0,1fr)); }

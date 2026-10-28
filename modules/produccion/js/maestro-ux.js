@@ -79,7 +79,7 @@
   function detailTip(target,lines){
     target.tabIndex=0;target.setAttribute('aria-label',lines.join('. '));
     const show=()=>{
-      let tip=byId('maestroAnalyticTip');if(!tip){tip=el('div','maestro-analytic-tip');tip.id='maestroAnalyticTip';tip.setAttribute('role','tooltip');document.body.append(tip);}
+      let tip=byId('maestroAnalyticTip');if(!tip){tip=presentation(el('div','maestro-analytic-tip'));tip.id='maestroAnalyticTip';tip.setAttribute('role','tooltip');document.body.append(tip);}
       tip.replaceChildren(...lines.map((line,i)=>el(i?'span':'b','',line)));tip.hidden=false;
       target.setAttribute('aria-describedby',tip.id);const r=target.getBoundingClientRect();
       tip.style.left=Math.max(8,Math.min(innerWidth-tip.offsetWidth-8,r.left))+'px';

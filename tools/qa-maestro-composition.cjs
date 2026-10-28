@@ -30,7 +30,8 @@ const out=path.resolve(process.argv[2]);fs.mkdirSync(out,{recursive:true});
    assert.ok(await frame.locator('#cronoPrintPanel .kpi').first().isVisible());
    await page.screenshot({path:path.join(out,`${theme}-indicadores-${width}.png`)});
    const size=await frame.evaluate(()=>({viewport:innerWidth,content:document.documentElement.scrollWidth}));
-   assert.ok(size.content<=size.viewport,JSON.stringify(size));results.push({theme,width,model,size});
+   assert.ok(size.content<=size.viewport,JSON.stringify(size));
+   assert.equal(await frame.evaluate(()=>{const tab=document.querySelector('[data-maestro-tab=cronologico]'),r=tab.getBoundingClientRect();return tab.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}),true,'sticky tabs remain unobstructed after report navigation');results.push({theme,width,model,size});
   }
  }
  fs.writeFileSync(path.join(out,'composition.json'),JSON.stringify({status:'PASS',comparisons:results.length,results},null,2));

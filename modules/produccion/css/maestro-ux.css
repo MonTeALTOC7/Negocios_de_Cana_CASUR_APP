@@ -10,7 +10,7 @@
   }
   .casur-maestro-premium:not(.print-export) main { max-width:1400px; padding:20px 24px; min-width:0; }
   .casur-maestro-premium:not(.print-export) .topline { height:3px; background:var(--maestro-petrol); }
-  .casur-maestro-premium:not(.print-export) header { background:var(--maestro-white); backdrop-filter:none; border-color:var(--maestro-mist); }
+  .casur-maestro-premium:not(.print-export) header { z-index:1000; background:var(--maestro-white); backdrop-filter:none; border-color:var(--maestro-mist); }
   .casur-maestro-premium:not(.print-export) .head { max-width:1400px; padding:10px 24px; }
   .casur-maestro-premium:not(.print-export) .brand img { width:86px; max-height:38px; }
   .casur-maestro-premium:not(.print-export) .brand-title h1 { font-size:20px; color:var(--maestro-petrol); }

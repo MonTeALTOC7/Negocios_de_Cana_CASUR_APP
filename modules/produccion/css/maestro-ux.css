@@ -154,7 +154,7 @@
  .casur-maestro-premium:not(.print-export) #maestroTabs button::before { display:none!important; }
  .casur-maestro-premium:not(.print-export) .brand img.maestro-secondary-logo { display:block; width:58px; height:58px; max-height:none; object-fit:contain; }
  .casur-maestro-premium:not(.print-export) #homeSection .hero-shell { display:block; }
- .maestro-summary-hero { min-height:158px; padding:22px; border-radius:12px; display:flex; align-items:center; justify-content:space-between; gap:18px; background:linear-gradient(90deg,#003f38ee,#173b4630),url('../../tch/assets/cana-azucar-real.png') center 48%/cover; }
+ .maestro-summary-hero { min-height:158px; padding:22px; border-radius:12px; display:flex; align-items:center; justify-content:space-between; gap:18px; background:linear-gradient(90deg,#003f38ee,#173b4630),url('../assets/campo-iteracion03.webp') center 48%/cover; }
  .casur-maestro-premium:not(.print-export) #homeSection .hero-copy { padding:0; }
  .casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero h2 { color:white; font-size:34px!important; margin:0; }
  .casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero p { color:white; margin:8px 0; font-size:15px; }
@@ -180,29 +180,10 @@
  .casur-maestro-premium:not(.print-export) #homeSection .maestro-dashboard-heading h2 { font-size:21px!important; margin:0; }
  .maestro-dashboard-heading p { margin:5px 0; font-size:12px; color:#526b76; }
  .maestro-dashboard-heading button,#maestroDashboardContent > button { padding:12px; background:#eff7ff; border:1px solid #bbdafa; border-radius:8px; color:#173b46; cursor:pointer; }
- #maestroDashboardContent { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:12px; }
- .maestro-analysis-card { min-width:0; padding:14px; border:1px solid #dde8eb; border-radius:10px; background:linear-gradient(135deg,white,#f9fcfc); }
- .maestro-analysis-card h3 { font-size:14px; color:#173b46; margin:0 0 14px; display:flex; gap:7px; align-items:center; }
- .maestro-analysis-card h3 svg { width:18px; height:18px; }
- .maestro-area-ring { float:left; width:132px; height:132px; margin:10px 14px 14px 0; border-radius:50%; display:grid; place-items:center; }
- .maestro-area-ring span { width:94px; height:94px; border-radius:50%; background:white; display:grid; place-items:center; text-align:center; font-weight:700; font-size:15px; color:#173b46; }
- .maestro-analysis-card:has(.maestro-area-ring) .maestro-analysis-row { display:block; margin-bottom:14px; }
- .maestro-analysis-card:has(.maestro-area-ring) .maestro-analysis-row b { display:block; }.maestro-analysis-card:has(.maestro-area-ring) .maestro-analysis-track { display:none; }
- .maestro-analysis-card > button { clear:both; display:block; }
- .maestro-destination-card { display:flex; flex-wrap:wrap; gap:10px; align-content:flex-start; }
- .maestro-destination-card h3,.maestro-destination-card > small,.maestro-destination-card > button { flex-basis:100%; }.maestro-destination-card > small { color:#526b76; font-size:10px; line-height:1.5; }
- .maestro-destination-card .maestro-analysis-row { flex:1; min-width:0; height:192px; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; font-size:10px; text-align:center; gap:6px; }
- .maestro-destination-card .maestro-analysis-row > span { order:3; }.maestro-destination-card .maestro-analysis-track { height:var(--bar-height); width:60%; border-radius:4px 4px 0 0; }.maestro-destination-card .maestro-analysis-track i { width:100%!important; border-radius:4px 4px 0 0; }
+ #maestroDashboardContent { align-items:start;display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:12px; }
  .casur-maestro-premium:not(.print-export) .maestro-sidebar-tools { margin:24px 16px 0; padding-top:14px; border-top:1px solid #ffffff25; }
  .casur-maestro-premium:not(.print-export) .maestro-sidebar-tools #masterAdminLauncher { position:static; width:100%!important; background:transparent; color:white; padding:8px 0; box-shadow:none; }
  .casur-maestro-premium:not(.print-export) .maestro-sidebar-tools #masterAdminLauncher :is(strong,small) { color:white; }
- .maestro-analysis-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 8px; margin-bottom:10px; font-size:11px; }
- .maestro-analysis-row > span { overflow-wrap:anywhere; }
- .maestro-analysis-track { grid-column:1/-1; height:7px; background:#e9efef; border-radius:5px; overflow:hidden; }
- .maestro-analysis-track i { display:block; height:100%; background:linear-gradient(90deg,#006546,#4cba82); border-radius:5px; }
- .maestro-analysis-row:nth-child(3n) i { background:linear-gradient(90deg,#1766a5,#55a4dc); }
- .maestro-analysis-row:nth-child(4n) i { background:linear-gradient(90deg,#b98e2f,#d8ba69); }
- .maestro-analysis-card > button { border:0; background:none; color:#1f4e5c; font-weight:700; padding:5px 0; cursor:pointer; }
  #maestroDashboardContent > input { width:100%; min-width:0; padding:12px; border:1px solid #c9dbdf; border-radius:8px; font-size:16px; grid-column:span 2; }
  .casur-maestro-premium:not(.print-export) #moduleAccess { padding-top:12px; margin-top:14px; }
  .casur-maestro-premium:not(.print-export) .hero-module-card { min-height:100px; padding:12px; }
@@ -219,7 +200,7 @@
 /* Approved premium composition. Screen rules never change export/print models. */
 @media screen {
  .casur-maestro-premium:not(.print-export) #moduleAccess { display:none!important; }
- #maestroRailToggle { margin:0 12px 12px; padding:10px; border:1px solid #ffffff30; border-radius:8px; background:#ffffff10; color:white; display:flex; gap:8px; align-items:center; cursor:pointer; }
+ #maestroRailToggle { align-self:flex-end; width:38px; height:38px; margin:0 14px 14px; padding:8px; border:1px solid #ffffff30; border-radius:8px; background:#ffffff10; color:white; display:flex; gap:8px; align-items:center; cursor:pointer; }
  #maestroSelectionTray { display:flex; flex-wrap:wrap; align-items:center; gap:7px; padding:12px; background:#eef7f3; border:1px solid #c4ddd3; border-radius:10px; margin:8px 0; font-size:12px; }
  #maestroSelectionTray button { padding:8px 12px; border:1px solid #bad6ca; border-radius:20px; color:#173b46; background:white; cursor:pointer; }
  .maestro-general-hero { margin:10px 0 14px; padding:24px; color:white; border-radius:14px; background:linear-gradient(90deg,#003f38ee,#173b4640),url('../assets/campo-iteracion03.webp') center/cover; }
@@ -229,11 +210,11 @@
  .maestro-farm-breadcrumb { padding:12px 0; color:#1f4e5c; font-size:12px; }
  #maestroFarmMap { height:400px; isolation:isolate; border-radius:12px; }
  .maestro-farm-board { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:12px; align-items:start; }
- .casur-maestro-premium:not(.print-export) .maestro-farm-board > .crono-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .casur-maestro-premium:not(.print-export) .maestro-farm-board > .premium-area-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
  .maestro-farm-board[data-panel="3"] { grid-template-columns:1fr; }
  .casur-maestro-premium:not(.print-export) .crono-general-kpis .kpi { min-height:116px; padding:18px 14px; }
  .casur-maestro-premium:not(.print-export) .crono-general-analysis { grid-template-columns:repeat(3,minmax(0,1fr)); }
- .maestro-farm-forecast,.maestro-farm-map,#maestro-general-ton { padding:20px; border:1px solid #dbe7e8; border-radius:12px; background:white; margin:12px 0; }
+ .maestro-farm-forecast,.maestro-farm-map { padding:20px; border:1px solid #dbe7e8; border-radius:12px; background:white; margin:12px 0; }
  .casur-maestro-premium:not(.print-export) [data-premium-farm] > .kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
  .casur-maestro-premium:not(.print-export) [data-premium-farm] > .section-title { display:none; }
  @media(min-width:801px){
@@ -330,7 +311,7 @@
  .maestro-facts span { font-size:11px; color:#52616b; }
  .maestro-facts strong { font-size:18px; color:#173b46; }
  .casur-maestro-premium:not(.print-export) [data-premium-ficha] > .section-title,
- .casur-maestro-premium:not(.print-export) [data-premium-ficha] #cronoEndBox { display:none; }
+ .casur-maestro-premium:not(.print-export) :is(#cronoEndBox,#cronoZoneEndBox,#cronoSection .maestro-report-links) { display:none!important; }
  .casur-maestro-premium:not(.print-export) [data-ficha-panel=ficha] > :is(.maestro-original-table,.maestro-history-table),
  .casur-maestro-premium:not(.print-export) [data-ficha-panel=mapa] > :is(.maestro-original-table,.maestro-history-table),
  .casur-maestro-premium:not(.print-export) [data-ficha-panel=tabla] :is(.maestro-ficha-board,.maestro-complement),
@@ -410,4 +391,65 @@
   .casur-maestro-premium:not(.print-export) .crono-general-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .casur-maestro-premium:not(.print-export) .crono-general-analysis { grid-template-columns:minmax(0,1fr); }
  }
+}
+/* Integrated analytic components. Original report nodes remain exportable. */
+@media screen {
+ .casur-maestro-premium:not(.print-export) .premium-original-analysis { display:none!important; }
+ .casur-maestro-premium:not(.print-export) .crono-analysis-title { display:none!important; }
+ .casur-maestro-premium:not(.print-export) :is(.crono-area-analysis,.crono-yield-analysis) { display:block!important; }
+ .casur-maestro-premium:not(.print-export) :is(.crono-area-analysis,.crono-yield-analysis).maestro-panel-inactive { display:none!important; }
+ .maestro-ficha-tabs button svg,.kpi .label svg { margin-right:6px;vertical-align:middle; }
+ .premium-area-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start; }
+ .premium-area-card,.premium-estimates { min-width:0;background:#fff;border:1px solid #dbe6e7;border-radius:12px;padding:18px;box-shadow:0 3px 12px #153d4810; }
+ .premium-area-card h3,.premium-estimates h3 { display:flex;align-items:center;gap:8px;margin:0 0 18px;font-size:16px;color:#173b46; }
+ .premium-area-card h3 svg { color:#18805f; }
+ .premium-bars { display:grid;gap:12px; }
+ .premium-bars .premium-bar { margin-bottom:0; }
+ .premium-bar { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;margin-bottom:14px;font-size:12px;cursor:help;outline-offset:4px; }
+ .premium-bar > span { overflow-wrap:anywhere; }
+ .premium-bar > small { grid-column:1/-1;color:#59727d;line-height:1.5; }
+ .premium-track { grid-column:1/-1;height:10px;background:#e9f0f1;border-radius:6px;overflow:hidden; }
+ .premium-track i { display:block;height:100%;background:#189469;border-radius:6px; }
+ .premium-bar:nth-of-type(3n+2) i { background:#2988c0; }.premium-bar:nth-of-type(3n) i { background:#d9ad3c; }
+ .premium-area-card footer { border-top:1px solid #e6edef;padding-top:12px;margin-top:16px;font-size:12px;color:#426571; }
+ #maestroDashboardContent:has(.premium-estimates) { display:block; }
+ .premium-estimate-totals { display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:20px; }
+ .premium-estimate-totals article { display:flex;flex-direction:column;gap:7px;padding:14px;background:#f2f8f6;border:1px solid #dcebe5;border-radius:9px;min-width:0; }
+ .premium-estimate-totals svg { color:#137953; }
+ .premium-estimate-totals span { font-size:12px;color:#365b65; }.premium-estimate-totals strong { font-size:21px;color:#133b47;overflow-wrap:anywhere; }.premium-estimate-totals small { font-size:11px;line-height:1.5;color:#4f6e77; }
+ .premium-group-select { display:flex;align-items:center;gap:12px;font-size:13px;font-weight:600;margin:12px 0 20px; }
+ .premium-group-select select { padding:10px;border:1px solid #cadcde;border-radius:7px;background:#f6fafa;font:inherit;max-width:100%; }
+ .premium-estimate-content { display:grid;grid-template-columns:minmax(240px,1fr) minmax(0,1.4fr);gap:22px;align-items:start; }
+ .premium-estimate-chart h4 { margin:0 0 18px;font-size:14px;color:#173b46; }
+ .premium-estimates[data-compact=true] .premium-estimate-content { grid-template-columns:1fr; }
+ .premium-analytic-table { overflow:auto;min-width:0;border:1px solid #dce8e8;border-radius:8px; }
+ .premium-analytic-table table { width:100%;border-collapse:collapse;font-size:12px; }
+ .premium-analytic-table :is(th,td) { padding:12px 9px;border-bottom:1px solid #e5eeee;text-align:right;white-space:nowrap; }
+ .premium-analytic-table :is(th,td):first-child { text-align:left; }.premium-analytic-table th { background:#f0f7f5;color:#244d57; }
+ .premium-analytic-table button,.premium-detail-action,.premium-group-dialog button { cursor:pointer;background:#ecf5f1;border:1px solid #bad7cd;color:#075c45;border-radius:7px;padding:9px 12px; }
+ .premium-method { display:block;margin-top:18px;color:#61767c;line-height:1.6; }
+ .maestro-farm-board .premium-area-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .maestro-farm-board .premium-area-card[data-field=variedad] { grid-column:2;grid-row:1/4; }
+ .maestro-farm-board .premium-area-card:not([data-field=variedad]) { grid-column:1; }
+ .premium-more summary { cursor:pointer;color:#147151;font-weight:600;padding:8px 0; }
+ .premium-more[open] summary { margin-bottom:12px; }
+ .premium-ring { width:140px;height:140px;border-radius:50%;display:grid;place-items:center;margin:12px auto 22px; }
+ .premium-area-card[data-field=zona] .premium-ring { float:left;width:110px;height:110px;margin:25px 16px 20px 0; }
+ .premium-area-card[data-field=zona] .premium-ring span { width:82px;height:82px;font-size:12px; }
+ .premium-area-card[data-field=zona] .premium-bars { margin-left:126px; }
+ .premium-area-card footer { clear:both; }
+ .premium-ring span { width:100px;height:100px;display:grid;place-items:center;border-radius:50%;background:white;font-size:15px;font-weight:700;color:#173b46; }
+ .maestro-farm-forecast { padding:0;border:0; }.maestro-farm-map { margin-top:0; }
+ .premium-group-dialog { width:min(800px,90vw);max-height:80vh;border:1px solid #cbded8;border-radius:14px;padding:22px;color:#173b46; }
+ .premium-group-dialog::backdrop { background:#002e2d66; }.premium-group-lots { display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px;margin-top:18px; }
+ .maestro-analytic-tip { position:fixed;z-index:5000;max-width:min(340px,calc(100vw - 16px));background:#123c40;color:white;box-shadow:0 6px 24px #123c4050;border-radius:9px;padding:14px;font-size:12px;pointer-events:none; }
+ .maestro-analytic-tip span { display:block;margin-top:6px;line-height:1.4; }
+ .maestro-info svg { width:15px;height:15px; }
+ .maestro-crono-trail { flex-wrap:wrap; }.maestro-crono-trail button { cursor:pointer; }
+ #cronoSuggestions button { padding:12px 14px;border-bottom:1px solid #e1ebe7;line-height:1.6; }
+ body.casur-maestro-premium,#maestroSidebar { transition:padding-left .2s ease,width .2s ease; }
+ @media(max-width:1200px){.premium-area-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.premium-estimate-content { grid-template-columns:1fr; }.premium-estimate-totals { grid-template-columns:repeat(3,minmax(0,1fr)); }}
+ @media(max-width:800px){.maestro-farm-board { grid-template-columns:1fr; }}
+ @media(max-width:600px){.maestro-farm-board .premium-area-card[data-field],.maestro-farm-board .premium-area-card:not([data-field=variedad]) { grid-column:auto;grid-row:auto; }.premium-area-grid,.maestro-farm-board .premium-area-grid { grid-template-columns:1fr; }.premium-estimate-totals { grid-template-columns:repeat(2,minmax(0,1fr)); }.premium-area-card,.premium-estimates { padding:14px; }.premium-estimate-totals strong { font-size:19px; }}
+ @media(prefers-reduced-motion:reduce){body.casur-maestro-premium,#maestroSidebar { transition:none; }}
 }

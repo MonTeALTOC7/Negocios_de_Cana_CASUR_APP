@@ -312,7 +312,7 @@
         const breadcrumb=document.createElement('div');breadcrumb.className='maestro-farm-breadcrumb no-print export-excluded';breadcrumb.textContent='General CASUR → '+producer.zone+' → '+producer.name;band.before(breadcrumb);
         (async()=>{try{const features=await window.CASUR_GEO_DATA.getLotGeometries(producer.details.map(r=>r.codLote));if(!mapPanel.isConnected)return;farmMap=window.createCasurMap(mapPanel.querySelector('div'),{ariaLabel:'Mapa oficial de '+producer.name});farmMap.setLots(features);}catch(e){mapPanel.querySelector('small').textContent=e.message;}})();
       }
-      host.querySelectorAll('.crono-general-kpis .kpi,.ficha-actions .ico').forEach((n,i)=>{if(n.dataset.premiumIcon)return;n.dataset.premiumIcon='1';if(n.classList.contains('ico'))n.innerHTML=icon(['table','leaf','map'][i%3]);});
+      host.querySelectorAll('.crono-general-kpis .kpi,.ficha-actions .ico').forEach((n,i)=>{if(n.dataset.premiumIcon)return;n.dataset.premiumIcon='1';if(n.classList.contains('ico'))n.innerHTML=icon(['table','leaf','map'][i%3]);else n.querySelector('.label')?.insertAdjacentHTML('afterbegin',icon(['leaf','clock','clock','chart','truck'][i%5]));});
       const label=byId('maestro-general-tab-tch');if(label&&label.textContent!=='TCH estimado Z'+season())label.textContent='TCH estimado Z'+season();
       host.querySelectorAll('.crono-yield-analysis h3').forEach(h=>{const value=h.textContent.replace(/TCH Estim\. Z[^ ]+ por /,'TCH estimado por ')+' · Z'+season();if(!h.dataset.premiumLabel){h.dataset.premiumLabel='1';h.textContent=value;}});
       host.querySelectorAll('.hrow').forEach(row=>{if(row.dataset.premiumTooltip)return;row.dataset.premiumTooltip='1';row.tabIndex=0;row.title=row.getAttribute('aria-label')||row.textContent.trim();});

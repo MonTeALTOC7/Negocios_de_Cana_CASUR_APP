@@ -33,3 +33,6 @@ Regresión `qa-maestro-ux.cjs`, puerto configurable 4384: 14 grupos PASS. Tests 
 Evidencias externas: `C:/Users/ctije/AppData/Local/CASUR/QA/iteracion03/`. Capturas General/Finca/Suerte a seis anchos, rail y multiselección, JSON de QA. El paquete de comparación incluye diseños propuestos y capturas reales, identificadas por separado.
 
 La candidata es funcional y auditable; los requisitos marcados pendientes parciales no se presentan como terminados. Histórico no se rediseña en esta iteración. Sin merge, sin main ni producción.
+
+## Revisión posterior
+La Iteración 03 fue rechazada visualmente. R05 queda sustituido por el contrato de tres subpestañas y estimados integrados. Consultar `MAESTRO_CORRECCION_ITERACION_03.md` para la matriz vigente de discrepancias y evidencia; esta tabla anterior se conserva como trazabilidad de la candidata base.

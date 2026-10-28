@@ -13,7 +13,7 @@ const url=process.argv[3]||'http://127.0.0.1:4381/Negocios_de_Cana_CASUR_APP/#/m
  const frame=page.frames().find(f=>f.url().includes('/modules/produccion/'));
  const view=async name=>{if(await frame.locator('#maestroMenu').isVisible())await frame.locator('#maestroMenu').click();await frame.getByRole('tab',{name,exact:true}).click();};
  await view('Cronológico');
- await frame.getByRole('tab',{name:'Rendimientos TCH',exact:true}).click();assert.equal(await frame.locator('.crono-yield-analysis').isVisible(),true);assert.equal(await frame.locator('.crono-area-analysis').isVisible(),false);
+ await frame.getByRole('tab',{name:'Estimados Z26/27',exact:true}).click();assert.equal(await frame.locator('.crono-yield-analysis').isVisible(),true);assert.equal(await frame.locator('.crono-area-analysis').isVisible(),false);
  await frame.getByRole('tab',{name:'Consultar fincas',exact:true}).click();await frame.getByRole('searchbox',{name:'Filtrar directorio de fincas'}).fill('Pansaco');await frame.locator('.maestro-farm-grid button').click();assert.equal(await frame.locator('#cronoProducerSelect').inputValue(),'993');
  await frame.locator('#cronoQ').fill('99336');await frame.locator('#cronoQ').press('Enter');
  await frame.locator('#maestroInlineMap .leaflet-interactive').first().waitFor();await frame.locator('#cronoContent [data-casur-export-kind]').waitFor();
@@ -42,7 +42,7 @@ const url=process.argv[3]||'http://127.0.0.1:4381/Negocios_de_Cana_CASUR_APP/#/m
  await page.setViewportSize({width:1536,height:1024});
  await frame.locator('#maestroBackFarm').click();assert.equal(await frame.locator('#cronoContent').getAttribute('data-geo-scope'),'farm');
  await frame.locator('#maestroGeneral').click();await frame.getByRole('tab',{name:'Área y distribución',exact:true}).waitFor();
- for(const name of ['Área y distribución','Rendimientos TCH','Consultar fincas']){await frame.getByRole('tab',{name,exact:true}).click();await page.screenshot({path:path.join(out,`general-${name.split(' ')[0]}.png`)});}
+ for(const name of ['Área y distribución','Estimados Z26/27','Consultar fincas']){await frame.getByRole('tab',{name,exact:true}).click();await page.screenshot({path:path.join(out,`general-${name.split(' ')[0]}.png`)});}
  for(const name of ['Resumen','Histórico','Zonas','Análisis']){await view(name);await page.screenshot({path:path.join(out,`${name}-1536.png`)});}
  assert.deepEqual(errors,[]);
  fs.writeFileSync(path.join(out,'fidelity.json'),JSON.stringify({status:'PASS',url,results,errors,kpis,checks:['General subtabs and farm directory','99336 original KPI and SVG unchanged across 12 layouts','Real GIS geometry','Ficha panels and keyboard navigation','Drawer Escape and focus','Five views and return to farm']},null,2));

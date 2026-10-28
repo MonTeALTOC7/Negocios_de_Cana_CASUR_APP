@@ -1,0 +1,150 @@
+/* Screen-only, module-local palette. Original print/export styles are retained. */
+@media screen {
+  body.casur-maestro-premium:not(.print-export) {
+    --maestro-petrol:#173B46; --maestro-green:#28483A; --maestro-gold:#D4B35F;
+    --maestro-mist:#E4EAE9; --maestro-white:#FFFFFF; --maestro-text:#30393D;
+    --maestro-table:#1F4E5C; --maestro-slate:#5C7470; --maestro-border:#86A0AA;
+    --green:var(--maestro-green); --green2:var(--maestro-petrol); --blue:var(--maestro-table);
+    --gold:var(--maestro-gold); --ink:var(--maestro-text); --muted:var(--maestro-slate);
+    --card:var(--maestro-white); --line:var(--maestro-mist);
+    background:var(--maestro-white); color:var(--maestro-text); padding-bottom:0;
+  }
+  .casur-maestro-premium:not(.print-export) main { max-width:1400px; padding:20px 24px; min-width:0; }
+  .casur-maestro-premium:not(.print-export) .topline { height:3px; background:var(--maestro-petrol); }
+  .casur-maestro-premium:not(.print-export) header { background:var(--maestro-white); backdrop-filter:none; border-color:var(--maestro-mist); }
+  .casur-maestro-premium:not(.print-export) .head { max-width:1400px; padding:10px 24px; }
+  .casur-maestro-premium:not(.print-export) .brand img { width:86px; max-height:38px; }
+  .casur-maestro-premium:not(.print-export) .brand-title h1 { font-size:20px; color:var(--maestro-petrol); }
+  .casur-maestro-premium:not(.print-export) .brand-title p { font-size:11px; }
+  .casur-maestro-premium:not(.print-export) .production-release { color:var(--maestro-table); white-space:normal; }
+  .casur-maestro-premium:not(.print-export) .badge { background:var(--maestro-mist); color:var(--maestro-petrol); border-color:var(--maestro-mist); padding:3px 7px; }
+  .casur-maestro-premium:not(.print-export) .maestro-tabs { max-width:1352px; margin:auto; display:flex; gap:5px; overflow-x:auto; padding:0 0 8px; scrollbar-width:thin; }
+  .casur-maestro-premium:not(.print-export) .maestro-tabs button { flex:0 0 auto; border:0; border-radius:7px; background:var(--maestro-white); color:var(--maestro-table); padding:11px 20px; font:700 13px 'Segoe UI',sans-serif; cursor:pointer; min-height:42px; }
+  .casur-maestro-premium:not(.print-export) .maestro-tabs button[aria-selected=true] { color:var(--maestro-white); background:var(--maestro-petrol); box-shadow:inset 0 -3px var(--maestro-gold); }
+  .casur-maestro-premium:not(.print-export) :is(button,a,input,select,summary):focus-visible { outline:3px solid var(--maestro-table); outline-offset:3px; }
+  .casur-maestro-premium:not(.print-export) :is(button,a,input,select,summary) { scroll-margin-block:160px 30px; }
+  .casur-maestro-premium:not(.print-export) :is(#executiveSeparator,#postMainModulesSeparator,#stateBar,.bottomnav) { display:none!important; }
+  .casur-maestro-premium:not(.print-export) main > :is(#homeSection,#cronoSection,#fichaSection,#zoneMainSection,#executiveAnalysisSection) { display:none; }
+  .casur-maestro-premium:not(.print-export)[data-maestro-view=resumen] #homeSection,
+  .casur-maestro-premium:not(.print-export)[data-maestro-view=cronologico] #cronoSection,
+  .casur-maestro-premium:not(.print-export)[data-maestro-view=historico] #fichaSection,
+  .casur-maestro-premium:not(.print-export)[data-maestro-view=zonas] #zoneMainSection,
+  .casur-maestro-premium:not(.print-export)[data-maestro-view=analisis] #executiveAnalysisSection { display:block; }
+  .casur-maestro-premium:not(.print-export) #masterUpdateSection { display:none; }
+  .casur-maestro-premium:not(.print-export).maestro-admin-open #masterUpdateSection:not(.is-locked) { display:block; }
+  .casur-maestro-premium:not(.print-export) .casur-release-strip { background:var(--maestro-mist); color:var(--maestro-text); border:0; border-radius:7px; padding:9px 12px; box-shadow:none; }
+  .casur-maestro-premium:not(.print-export) .casur-release-dot { background:var(--maestro-green); box-shadow:none; }
+  .casur-maestro-premium:not(.print-export) #homeSection { background:var(--maestro-white)!important; color:var(--maestro-text); border:0; border-radius:0!important; padding:0!important; box-shadow:none; overflow:visible; }
+  .casur-maestro-premium:not(.print-export) #homeSection:after { display:none; }
+  .casur-maestro-premium:not(.print-export) #homeSection .hero-copy { padding:0 190px 0 0; }
+  .casur-maestro-premium:not(.print-export) #homeSection .hero-shell { gap:4px; }
+  .casur-maestro-premium:not(.print-export) #homeSection .hero-status { display:none; }
+  .casur-maestro-premium:not(.print-export) #homeSection h2 { color:var(--maestro-petrol); font-size:28px; letter-spacing:-.7px; }
+  .casur-maestro-premium:not(.print-export) #homeSection .hero-copy p { color:var(--maestro-slate); font-size:13px; margin:6px 0 20px; }
+  .casur-maestro-premium:not(.print-export) #masterAdminLauncher { background:var(--maestro-mist); color:var(--maestro-petrol); box-shadow:none; border:0; border-radius:7px; width:166px; min-height:42px; }
+  .casur-maestro-premium:not(.print-export) #masterAdminLauncher :is(strong,small) { color:var(--maestro-petrol); }
+  .casur-maestro-premium:not(.print-export) .maestro-source { display:flex; gap:14px; justify-content:space-between; padding:12px 16px; background:var(--maestro-mist); border-radius:9px; color:var(--maestro-petrol); font-size:12px; }
+  .casur-maestro-premium:not(.print-export) .maestro-source > div { display:grid; gap:4px; min-width:0; overflow-wrap:anywhere; }
+  .casur-maestro-premium:not(.print-export) .maestro-source > div:last-child { text-align:right; }
+  .casur-maestro-premium:not(.print-export) .maestro-source span { font-size:11px; color:var(--maestro-text); }
+  .casur-maestro-premium:not(.print-export) .maestro-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:16px; }
+  .casur-maestro-premium:not(.print-export) .maestro-kpi { background:var(--maestro-white); padding:18px; border:1px solid var(--maestro-mist); border-top:3px solid var(--maestro-gold); border-radius:10px; display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .casur-maestro-premium:not(.print-export) .maestro-kpi > span { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.35px; color:var(--maestro-table); }
+  .casur-maestro-premium:not(.print-export) .maestro-kpi strong { font-size:clamp(20px,2.1vw,29px); line-height:1.2; letter-spacing:-.7px; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+  .casur-maestro-premium:not(.print-export) .maestro-kpi small { font-size:11px; line-height:1.5; color:var(--maestro-text); }
+  .casur-maestro-premium:not(.print-export) .maestro-kpi-primary { background:var(--maestro-green); color:var(--maestro-white); border-color:var(--maestro-green); border-top-color:var(--maestro-gold); }
+  .casur-maestro-premium:not(.print-export) .maestro-kpi-primary :is(span,small) { color:var(--maestro-white); }
+  .casur-maestro-premium:not(.print-export) .maestro-population { display:flex; gap:12px 24px; flex-wrap:wrap; align-items:center; padding:16px 0 20px; font-size:12px; color:var(--maestro-text); }
+  .casur-maestro-premium:not(.print-export) .maestro-population b { margin-left:5px; color:var(--maestro-petrol); }
+  .casur-maestro-premium:not(.print-export) .maestro-population > span:last-child { margin-left:auto; }
+  .casur-maestro-premium:not(.print-export) #moduleAccess { display:grid!important; grid-template-columns:repeat(4,minmax(0,1fr))!important; gap:12px; margin:0; padding-top:20px; border-top:1px solid var(--maestro-mist); }
+  .casur-maestro-premium:not(.print-export) .hero-module-card { display:flex; gap:12px; min-height:150px; border:1px solid var(--maestro-mist); border-radius:10px; background:var(--maestro-white); padding:18px 14px; box-shadow:none; color:var(--maestro-text); text-align:left; }
+  .casur-maestro-premium:not(.print-export) .hero-module-card:hover { background:var(--maestro-mist); transform:none; }
+  .casur-maestro-premium:not(.print-export) .hero-module-card:after { background:var(--maestro-mist); }
+  .casur-maestro-premium:not(.print-export) .hero-module-kicker:before { background:var(--maestro-green)!important; }
+  .casur-maestro-premium:not(.print-export) .hero-module-icon { flex:0 0 28px; width:28px; height:28px; font-size:12px; border-radius:7px; background:var(--maestro-mist); color:var(--maestro-petrol); box-shadow:none; }
+  .casur-maestro-premium:not(.print-export) .hero-module-copy { min-width:0; }
+  .casur-maestro-premium:not(.print-export) .hero-module-copy strong { color:var(--maestro-petrol); font-size:17px; }
+  .casur-maestro-premium:not(.print-export) .hero-module-copy small { color:var(--maestro-text); font-size:12px; line-height:1.6; }
+  .casur-maestro-premium:not(.print-export) .hero-module-kicker { color:var(--maestro-slate); font-size:10px; }
+  .casur-maestro-premium:not(.print-export) .hero-module-meta { display:none; }
+  .casur-maestro-premium:not(.print-export) :is(.accordion,.card,.crono-box,.ficha-card) { box-shadow:none; border-color:var(--maestro-mist); border-radius:10px; min-width:0; }
+  .casur-maestro-premium:not(.print-export) main > details > summary { background:var(--maestro-white); border:0; border-bottom:1px solid var(--maestro-mist); padding:0 0 16px; border-radius:0; }
+  .casur-maestro-premium:not(.print-export) main > details > summary strong { color:var(--maestro-petrol); font-size:24px; }
+  .casur-maestro-premium:not(.print-export) main > details { border:0; margin-top:6px; }
+  .casur-maestro-premium:not(.print-export) main > details > .accordion-body { padding:16px 0; }
+  .casur-maestro-premium:not(.print-export) :is(.btn,.searchbox input,.searchbox select) { border-radius:7px; }
+  .casur-maestro-premium:not(.print-export) .btn-primary { background:var(--maestro-petrol); color:var(--maestro-white); }
+  .casur-maestro-premium:not(.print-export) :is(.btn-light,.btn-blue) { background:var(--maestro-mist); color:var(--maestro-petrol); }
+  .casur-maestro-premium:not(.print-export) .maestro-crono-trail { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; margin-bottom:14px; color:var(--maestro-petrol); font-size:12px; }
+  .casur-maestro-premium:not(.print-export) .maestro-crono-trail button { padding:8px 10px; background:var(--maestro-white); color:var(--maestro-table); border:1px solid var(--maestro-mist); border-radius:7px; font:700 12px 'Segoe UI',sans-serif; cursor:pointer; min-height:40px; }
+  .casur-maestro-premium:not(.print-export) .maestro-suggestion-active { background:var(--maestro-mist)!important; outline:2px solid var(--maestro-table); outline-offset:-2px; }
+  .casur-maestro-premium:not(.print-export) .search-suggestions { max-height:300px; overflow-y:auto; }
+  .casur-maestro-premium:not(.print-export) :is(.crono-box h3,.crono-analysis-title,.section-title h3,.section-title h2) { color:var(--maestro-petrol); }
+  .casur-maestro-premium:not(.print-export) :is(.kpi,.crono-general-kpis .kpi) { background:var(--maestro-white); border-color:var(--maestro-mist); border-radius:10px; animation:none!important; }
+  .casur-maestro-premium:not(.print-export) .kpi.main { background:var(--maestro-green); color:var(--maestro-white); }
+  .casur-maestro-premium:not(.print-export) .kpi.main :is(.label,em,strong) { color:var(--maestro-white); }
+  .casur-maestro-premium:not(.print-export) .kpi .label { color:var(--maestro-table); }
+  .casur-maestro-premium:not(.print-export) .kpi:before { background:var(--maestro-gold); width:3px; }
+  .casur-maestro-premium:not(.print-export) .hfill { background:var(--maestro-table)!important; }
+  .casur-maestro-premium:not(.print-export) .htrack { background:var(--maestro-mist)!important; }
+  .casur-maestro-premium:not(.print-export) .hfill.bad { background:#B9685A!important; }
+  .casur-maestro-premium:not(.print-export) .hfill.warn { background:var(--maestro-gold)!important; }
+  .casur-maestro-premium:not(.print-export) .hfill.good { background:var(--maestro-green)!important; }
+  .casur-maestro-premium:not(.print-export) .ficha-band { background:var(--maestro-petrol)!important; border-radius:10px; }
+  .casur-maestro-premium:not(.print-export) .casur-visual-action.pdf { background:var(--maestro-petrol)!important; box-shadow:none!important; border-radius:9px; }
+  .casur-maestro-premium:not(.print-export) .casur-visual-action.pdf .copy :is(b,small) { color:var(--maestro-white)!important; }
+  .casur-maestro-premium:not(.print-export) .casur-visual-action.image { background:var(--maestro-gold)!important; color:var(--maestro-petrol)!important; box-shadow:none!important; border-radius:9px; }
+  .casur-maestro-premium:not(.print-export) .casur-visual-action.image .copy :is(b,small) { color:var(--maestro-petrol)!important; }
+  .casur-maestro-premium:not(.print-export) .casur-visual-action.map { background:var(--maestro-mist)!important; color:var(--maestro-petrol)!important; border-radius:9px; }
+  .casur-maestro-premium:not(.print-export) .casur-visual-action.map .copy :is(b,small) { color:var(--maestro-petrol)!important; }
+  .casur-maestro-premium:not(.print-export) #historicoMultiBar { background:var(--maestro-mist); border-color:var(--maestro-mist); }
+  .casur-maestro-premium:not(.print-export) .hist-multi-header { background:var(--maestro-mist)!important; border-color:var(--maestro-mist)!important; }
+  .casur-maestro-premium:not(.print-export) .table-wrap { min-width:0; max-width:100%; border-color:var(--maestro-mist); border-radius:9px; }
+  .casur-maestro-premium:not(.print-export) th { background:var(--maestro-table); color:var(--maestro-white); }
+  .casur-maestro-premium:not(.print-export) tbody tr:nth-child(even) { background:var(--maestro-mist); }
+  .casur-maestro-premium:not(.print-export) [hidden] { display:none!important; }
+  @media(max-width:1000px) {
+    .casur-maestro-premium:not(.print-export) #moduleAccess { grid-template-columns:repeat(2,minmax(0,1fr))!important; }
+    .casur-maestro-premium:not(.print-export) .maestro-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .casur-maestro-premium:not(.print-export) .maestro-tabs { padding-inline:16px; }
+  }
+  @media(max-width:600px) {
+    .casur-maestro-premium:not(.print-export) main { padding:14px 12px; }
+    .casur-maestro-premium:not(.print-export) .head { padding:8px 12px; gap:4px; }
+    .casur-maestro-premium:not(.print-export) .brand-title h1 { font-size:17px; }
+    .casur-maestro-premium:not(.print-export) .brand img { width:65px; max-height:30px; }
+    .casur-maestro-premium:not(.print-export) .brand-title p { display:none; }
+    .casur-maestro-premium:not(.print-export) .brand-title .badge { display:none; }
+    .casur-maestro-premium:not(.print-export) .maestro-tabs { padding:4px 12px 8px; gap:3px; }
+    .casur-maestro-premium:not(.print-export) .maestro-tabs button { padding:10px 12px; font-size:12px; }
+    .casur-maestro-premium:not(.print-export) #homeSection .hero-copy { padding:0 40px 0 0; }
+    .casur-maestro-premium:not(.print-export) #homeSection h2 { font-size:24px!important; }
+    .casur-maestro-premium:not(.print-export) #masterAdminLauncher { position:absolute; top:0; right:0; margin:0; width:32px!important; height:32px; min-height:32px; display:grid; grid-template-columns:1fr; padding:0; }
+    .casur-maestro-premium:not(.print-export) #masterAdminLauncher .casur-admin-launcher-icon { display:grid!important; width:32px; height:32px; font-size:16px; border:0; }
+    .casur-maestro-premium:not(.print-export) #masterAdminLauncher :is(.casur-admin-launcher-copy,.casur-admin-launcher-arrow) { display:none; }
+    .casur-maestro-premium:not(.print-export) .maestro-source { flex-direction:column; gap:10px; padding:12px; }
+    .casur-maestro-premium:not(.print-export) .maestro-source > div:last-child { text-align:left; }
+    .casur-maestro-premium:not(.print-export) .maestro-kpis { gap:8px; margin-top:12px; }
+    .casur-maestro-premium:not(.print-export) .maestro-kpi { padding:13px 10px; gap:9px; }
+    .casur-maestro-premium:not(.print-export) .maestro-kpi strong { font-size:22px; }
+    .casur-maestro-premium:not(.print-export) .maestro-kpi > span { font-size:10px; }
+    .casur-maestro-premium:not(.print-export) .maestro-population { gap:8px 16px; }
+    .casur-maestro-premium:not(.print-export) .maestro-population > span:last-child { flex-basis:100%; margin-left:0; }
+    .casur-maestro-premium:not(.print-export) #moduleAccess { gap:8px; padding-top:14px; }
+    .casur-maestro-premium:not(.print-export) .hero-module-card { padding:13px 10px; min-height:154px; gap:8px; }
+    .casur-maestro-premium:not(.print-export) .hero-module-icon { display:none; }
+    .casur-maestro-premium:not(.print-export) .hero-module-copy strong { font-size:16px; }
+    .casur-maestro-premium:not(.print-export) .hero-module-copy small { font-size:11px; }
+    .casur-maestro-premium:not(.print-export) .hero-module-kicker { font-size:9px; }
+    .casur-maestro-premium:not(.print-export) main > details > summary strong { font-size:21px; }
+    .casur-maestro-premium:not(.print-export) .searchbox { min-width:0; }
+    .casur-maestro-premium:not(.print-export) .crono-general-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .casur-maestro-premium:not(.print-export) .hrow { grid-template-columns:minmax(72px,.8fr) minmax(40px,1fr) minmax(70px,auto); gap:6px; }
+  }
+  @media(prefers-reduced-motion:reduce) {
+    .casur-maestro-premium { scroll-behavior:auto; }
+    .casur-maestro-premium * { transition:none!important; }
+  }
+}
+@media print { #maestroTabs,.maestro-crono-trail { display:none!important; } }

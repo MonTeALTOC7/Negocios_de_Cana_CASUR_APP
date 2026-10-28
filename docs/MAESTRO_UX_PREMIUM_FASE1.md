@@ -2,7 +2,7 @@
 
 Base: `ac99614a9dd0c4a6a7f0ae06aa569fe1882be100` (`origin/main`, comprobado contra GitHub).
 Rama: `codex/maestro-ux-premium-fase1`.
-Esta entrega es una candidata visual y funcional. No autoriza merge ni publicación.
+Esta entrega es una candidata visual y funcional. No autoriza merge ni publicación productiva. El usuario autorizó una preview pública gratuita e independiente el 28/10/2026.
 
 ## Decisiones y alcance
 
@@ -35,7 +35,7 @@ incremento y el foco visible; esto no equivale a certificar WCAG de toda la app.
 
 ## Archivos y reversibilidad
 
-- `modules/produccion/index.html`: solo dos enlaces nuevos, sin alterar otro byte lógico del documento original (prueba diferencial).
+- `modules/produccion/index.html`: dos enlaces nuevos y metadatos derivados de versión; la prueba diferencial normaliza únicamente esos metadatos y verifica íntegros los motores.
 - `modules/produccion/js/maestro-ux.js`: adaptador de navegación, portada y teclado.
 - `modules/produccion/css/maestro-ux.css`: presentación encapsulada y responsive.
 - `modules/produccion/js/official-data-updates.js`: dos adiciones al contrato de contexto.
@@ -92,28 +92,23 @@ con polígonos y su fallback original, no la disponibilidad de los tiles Esri.
 
 ## Validaciones y límites
 
-Comandos existentes, sin cambiar tests ni desactivar guards:
+Se ejecutan Shell/GEO, Producción, TCH, integridad, sincronización de versiones,
+contrato de release, continuidad del hotfix, Chromium y descargas originales.
+Las expectativas de versión de los tests se actualizan a App 1.5.3 y Producción
+V1.8.0; sus aserciones de consistencia se conservan. No hay excepciones nuevas.
 
-```powershell
-node tools/sync-versions.mjs
-node tools/runtime-assets.mjs
-node tools/production-integrity.mjs
-node --test tests/*.test.mjs
-npm test --prefix modules/produccion
-npm run validate --prefix modules/tch
-git diff --check
-node tools/check-release-policy.mjs ac99614a9dd0c4a6a7f0ae06aa569fe1882be100
-node tools/check-context-hotfix.mjs
-```
+La política requiere incrementar el shell porque cambia su manifiesto runtime:
+1.5.3 PATCH coordina el offline. Producción V1.8.0 MINOR identifica la nueva
+navegación y composición. Ambas entradas tienen publishedAt:null; no publican
+la app. Los demás módulos y las versiones de datos permanecen intactos.
 
-Los dos últimos guards bloquean la liberación: el primero exige incremento
-de versiones de shell/Producción; el segundo está congelado al alcance,
-versiones y 167 activos del hotfix 1.5.2. Esta candidata añade dos activos y
-mantiene 1.5.2/V1.7.2 como base de revisión. No se cambian guards, excepciones,
-workflow, SW, manifest, historial publicado ni versión instalada para ocultar
-ese bloqueo. Una liberación posterior requiere resolver el versionado y la
-aplicabilidad del guard con autorización explícita, repetir QA y obtener CI
-verde para su HEAD. Esta candidata no debe promocionarse tal cual.
+El guard del hotfix combinaba garantías permanentes con condiciones exclusivas
+de App 1.5.2 / Producción V1.7.2 (lista cerrada de archivos y 167 recursos).
+Esas dos restricciones siguen ejecutándose para aquella pareja de versiones.
+En versiones posteriores se mantienen los siete SHA, GEO/TCH/manifest intactos,
+la higiene de artefactos, integridad, manifiesto completo y sincronización;
+además se ejecutan explícitamente los nueve tests de recuperación de contexto.
+El gate de incrementos continúa activo, sin excepciones ni cambios de workflow.
 
 Se conservan los siete archivos oficiales y los hashes de generación
 `2026.10.25-aforo.1101`, GEO y Maestro. Las regresiones cubren 99336, finca
@@ -137,14 +132,34 @@ de `codex/estimados-plan-consulta-b2`; esta rama queda excluida. Se mantiene
 el prefijo histórico `[CF-Pages-Skip]` y CI GitHub permanece activo. Ninguna
 configuración de Pages, Cloudflare, Access o GeoStudio se altera.
 
-La sesión Vercel disponible mostró `Carlos_TM` con plan Hobby; el equipo
-`ctijerino1-6420` del antecedente no estaba accesible. No se acreditó plan
-autorizado para uso empresarial CASUR ni protección de todas las URLs y
-recursos, por lo que no se creó proyecto ni se cargaron datos operativos.
-No se reutilizó Cobros Mecanizados. Si el usuario habilita un equipo compatible,
-verificar primero un despliegue inocuo, protección anónima de HTML/JSON/JS y
-aliases antes de un Preview del SHA revisado. No habilitar producción.
+La revisión inicial se entregó local por falta de plan/protección compatibles
+con el alcance empresarial original. El 28/10/2026 el usuario aclaró uso personal
+y autorizó expresamente preview pública gratuita. Esta autorización sustituye
+la restricción previa de acceso protegido para la preview; no autoriza producción.
 
-Referencia del requisito de plan: https://vercel.com/docs/plans/hobby.
-Los enlaces de PR, HEAD final, logs y evidencias externas se entregan aparte
-para evitar una referencia circular de SHA dentro del propio commit.
+`tools/package-maestro-preview.mjs SHA NUEVO_DIRECTORIO_EXTERNO` prepara únicamente
+runtime y datos requeridos desde objetos Git del SHA elegido, más __preview.json.
+No incluye documentos internos, perfiles, Excel, .git ni credenciales. El proyecto
+Vercel debe ser nuevo, independiente y desplegarse como Preview; no reutilizar
+Cobros Mecanizados ni conectar main a un despliegue automático. La URL real y el
+resultado de autenticación se documentan en la entrega, sin inventar publicación.
+Referencia del plan personal: https://vercel.com/docs/plans/hobby.
+
+## Revisión de composición (aclaración prioritaria)
+
+- Ejecutivo Claro e Institucional Vibrante: selector local al módulo, sin
+  persistencia en IDB ni efectos en otros módulos, PDF o PNG.
+- Consultas plegables tras abrir una ficha; conservan los nodos, handlers,
+  catálogos y búsqueda originales. Limpiar/General recuperan la consulta abierta.
+- Accesos a indicadores, gráficos, detalle y exportación desplazan el foco a
+  los componentes existentes, sin duplicarlos ni desmontarlos.
+- KPI compactos; ficha y gráfico TCH en columnas en PC, apilados en móvil.
+  Controles y exportadores se ajustan al teléfono sin retirar información.
+- Se retiraron las reglas de V1 que recoloreaban barras. No se agregan acciones
+  a los KPI, nuevas métricas, series, tablas analíticas ni cálculos.
+- `tools/qa-maestro-composition.cjs` compara ambas variantes a 1440, 1280, 768
+  y 390 px: mismos KPI, SVG de tendencia y selección, sin desbordamiento global.
+
+Quedan fuera de esta fase los nuevos drilldowns de KPI, otra tabla histórica,
+filtros de negocio nuevos y sustituciones de gráficos. La prueba física en
+el teléfono del usuario queda pendiente; Chromium móvil no la sustituye.

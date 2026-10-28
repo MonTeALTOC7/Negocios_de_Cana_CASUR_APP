@@ -121,6 +121,101 @@
     }, true);
   }
 
+  // Presentation reads the original rendered cells; agronomic models and report
+  // generators remain authoritative. Original nodes and their handlers survive.
+  function installPremiumFicha() {
+    const host=byId('cronoContent'); if(!host)return;
+    let report=null, map=null, generation=0;
+    const element=(tag,cls,value)=>{const el=document.createElement(tag);el.className=cls;if(value!=null)el.textContent=value;return el;};
+    const excluded=el=>{el.classList.add('no-print','export-excluded');el.dataset.exportExclude='true';return el;};
+    const refresh=()=>{
+      const root=host.querySelector('#cronoPrintPanel'),layout=root?.querySelector('.single-suerte-layout');
+      if(root!==report){map?.destroy();map=null;generation++;report=root;}
+      if(!layout || root.dataset.premiumFicha)return;
+      const table=root.querySelector('.table-wrap'); if(!table)return;
+      root.dataset.premiumFicha='true';root.dataset.fichaPanel='ficha';
+      const token=generation;
+      const info=excluded(element('section','maestro-lot-info'));
+      info.append(element('h3','','Información de la suerte'));
+      const list=element('dl','');info.append(list);
+      const attributes=excluded(element('div','maestro-lot-attributes'));root.querySelector('.ficha-band > div')?.append(attributes);
+      const complement=excluded(element('section','maestro-complement'));
+      complement.append(element('h3','','Indicadores complementarios'));
+      const facts=element('div','maestro-facts');complement.append(facts);
+      const updateFacts=()=>{
+        const labels=[...table.querySelectorAll('thead th')].map(n=>n.textContent.trim());
+        const cells=[...table.querySelectorAll('tbody tr:first-child td')].map(n=>n.textContent.trim());
+        const fields=labels.map((label,i)=>({label,value:cells[i]||'—'}));
+        const signature=JSON.stringify(fields);if(list.dataset.signature===signature)return;list.dataset.signature=signature;
+        list.replaceChildren();facts.replaceChildren();attributes.replaceChildren();
+        fields.filter(f=>/^(Zona|Tipo de riego|Variedad|Tenencia)$/.test(f.label)).forEach(f=>{const chip=element('span','');chip.append(element('small','',f.label),element('b','',f.value));attributes.append(chip);});
+        fields.filter(f=>!/^(Suerte|TCH|Ton\.|Toneladas|Estado|Observaci|Fecha para cosecha)/i.test(f.label)).forEach(f=>{list.append(element('dt','',f.label),element('dd','',f.value));});
+        fields.filter(f=>/Ton\.|Toneladas|Estado|Observaci/i.test(f.label)).forEach(f=>{const card=element('div','');card.append(element('span','',f.label),element('strong','',f.value));facts.append(card);});
+        complement.hidden=!facts.childElementCount;
+      };
+      updateFacts();
+      const cellObserver=new MutationObserver(updateFacts);cellObserver.observe(table,{childList:true,subtree:true,characterData:true});
+      const mapPanel=excluded(element('section','maestro-lot-map'));mapPanel.append(element('h3','','Ubicación'));
+      const canvas=element('div','maestro-inline-map');canvas.id='maestroInlineMap';mapPanel.append(canvas);
+      const mapStatus=element('small','maestro-map-status','Cargando geometría oficial…');mapPanel.append(mapStatus);
+      const openMap=element('button','maestro-map-expand','Ampliar mapa');openMap.type='button';openMap.addEventListener('click',()=>root.querySelector('[data-casur-geo-action]')?.click());mapPanel.append(openMap);
+      const tabs=excluded(element('div','maestro-ficha-tabs'));tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Detalle de la suerte');
+      const show=key=>{
+        root.dataset.fichaPanel=key;
+        tabs.querySelectorAll('button').forEach(b=>{const on=b.dataset.panel===key;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;});
+        requestAnimationFrame(()=>{window.dispatchEvent(new Event('resize'));if(key==='mapa')map?.fitToData();});
+      };
+      for(const[key,label]of[['ficha','Ficha y gráfico'],['tabla','Histórico en tabla'],['mapa','Mapa']]){
+        const button=element('button','',label);button.type='button';button.dataset.panel=key;button.setAttribute('role','tab');button.id='maestro-ficha-tab-'+key;button.setAttribute('aria-controls','maestro-ficha-'+key);button.addEventListener('click',()=>show(key));tabs.append(button);
+      }
+      tabs.addEventListener('keydown',event=>{const buttons=[...tabs.children],i=buttons.indexOf(document.activeElement);if(i<0)return;const n=event.key==='ArrowRight'?(i+1)%3:event.key==='ArrowLeft'?(i+2)%3:event.key==='Home'?0:event.key==='End'?2:-1;if(n<0)return;event.preventDefault();buttons[n].focus();buttons[n].click();});
+      const board=element('div','maestro-ficha-board');board.id='maestro-ficha-ficha';board.setAttribute('role','tabpanel');board.setAttribute('aria-labelledby','maestro-ficha-tab-ficha');
+      const chart=layout.querySelector('.crono-trend-card');
+      layout.append(tabs,board);board.append(info);if(chart)board.append(chart);board.append(mapPanel);layout.append(complement);
+      // Keep the report table in its original report root for all export parsers.
+      table.classList.add('maestro-original-table');table.id='maestro-ficha-tabla';table.setAttribute('role','tabpanel');table.setAttribute('aria-labelledby','maestro-ficha-tab-tabla');
+      mapPanel.id='maestro-ficha-mapa';mapPanel.setAttribute('role','tabpanel');mapPanel.setAttribute('aria-labelledby','maestro-ficha-tab-mapa');
+      // This table is a view of the original eight chart points, without recomputation.
+      const history=excluded(element('section','maestro-history-table'));history.append(element('h3','','Histórico TCH por zafra'));
+      const historyRows=element('dl','');chart?.querySelectorAll('.crono-trend-point').forEach(point=>{historyRows.append(element('dt','',point.dataset.zafra),element('dd','',point.dataset.tch));});history.append(historyRows);table.before(history);
+      show('ficha');
+      (async()=>{
+        try{
+          const geo=window.CASUR_GEO_DATA || (await import('../../shared/geo/geo-data.js'));
+          const create=window.createCasurMap || (await import('../../shared/geo/geo-map.js')).createCasurMap;
+          const feature=await geo.getLotGeometry(host.dataset.geoLotId);
+          if(token!==generation || !canvas.isConnected)return;
+          if(!feature){mapStatus.textContent='Esta suerte no tiene geometría oficial disponible.';return;}
+          map=create(canvas,{ariaLabel:'Ubicación oficial de la suerte '+host.dataset.geoLotId,fitPadding:[12,12]});map.setLot(feature);mapStatus.textContent='Geometría oficial CASUR · mapa interactivo';
+        }catch(error){if(canvas.isConnected)mapStatus.textContent='No se pudo cargar el mapa: '+error.message;}
+      })();
+    };
+    new MutationObserver(refresh).observe(host,{childList:true,subtree:true});refresh();
+  }
+
+  function installGeneralPanels() {
+    const host=byId('cronoContent');
+    const refresh=()=>{
+      const area=host.querySelector('.crono-area-analysis'), yields=host.querySelector('.crono-yield-analysis');
+      if(!area || !yields || host.querySelector('.maestro-general-tabs'))return;
+      const nav=document.createElement('div');nav.className='maestro-ficha-tabs maestro-general-tabs no-print export-excluded';nav.dataset.exportExclude='true';nav.setAttribute('role','tablist');nav.setAttribute('aria-label','Cronológico General');
+      const lookup=document.createElement('section');lookup.className='maestro-farm-directory no-print export-excluded';lookup.dataset.exportExclude='true';lookup.id='maestro-general-fincas';
+      const heading=document.createElement('h3');heading.textContent='Consultar fincas';lookup.append(heading);
+      const filter=document.createElement('input');filter.type='search';filter.placeholder='Filtrar fincas o zona…';filter.setAttribute('aria-label','Filtrar directorio de fincas');lookup.append(filter);
+      const list=document.createElement('div');list.className='maestro-farm-grid';lookup.append(list);
+      const producers=window.CRONO_DATA?.producers||[];
+      const render=()=>{list.replaceChildren();const q=filter.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();producers.filter(p=>[p.code,p.name,p.zone].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q)).forEach(p=>{const b=document.createElement('button');b.type='button';b.textContent=p.name+' · '+p.code;const small=document.createElement('small');small.textContent=p.zone||'Sin zona';b.append(small);b.addEventListener('click',()=>window.renderCronoProducer(p.code));list.append(b);});if(!list.childElementCount)list.textContent='Sin coincidencias.';};
+      filter.addEventListener('input',render);render();
+      host.append(lookup);area.before(nav);area.id='maestro-general-area';yields.id='maestro-general-tch';
+      const title=host.querySelector('.crono-analysis-title');
+      const panels=[['area','Área y distribución',area],['tch','Rendimientos TCH',yields],['fincas','Consultar fincas',lookup]];
+      panels.forEach(([key,label,panel])=>{panel.classList.add('maestro-general-panel');panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby','maestro-general-tab-'+key);const b=document.createElement('button');b.type='button';b.id='maestro-general-tab-'+key;b.textContent=label;b.dataset.panel=key;b.setAttribute('role','tab');b.setAttribute('aria-controls',panel.id);b.addEventListener('click',()=>{panels.forEach(([other,,p])=>p.classList.toggle('maestro-panel-inactive',key!==other));nav.querySelectorAll('button').forEach(button=>{const on=button===b;button.setAttribute('aria-selected',String(on));button.tabIndex=on?0:-1;});if(title)title.classList.toggle('maestro-panel-inactive',key!=='tch');});nav.append(b);});
+      nav.addEventListener('keydown',e=>{const buttons=[...nav.children],i=buttons.indexOf(document.activeElement);const n=e.key==='ArrowRight'?(i+1)%3:e.key==='ArrowLeft'?(i+2)%3:e.key==='Home'?0:e.key==='End'?2:-1;if(i<0||n<0)return;e.preventDefault();buttons[n].focus();buttons[n].click();});
+      nav.firstElementChild.click();
+    };
+    new MutationObserver(refresh).observe(host,{childList:true,subtree:true});refresh();
+  }
+
   function init() {
     const home = byId('homeSection'), header = document.querySelector('header');
     if (!home || !header || byId('maestroTabs')) return;
@@ -129,7 +224,7 @@
     views.forEach(([view, label, id]) => {
       const button = document.createElement('button'); button.type = 'button'; button.id = 'maestro-tab-' + view;
       button.dataset.maestroTab = view; button.setAttribute('role', 'tab'); button.setAttribute('aria-controls', id);
-      button.textContent = label; button.hidden = !allowed(view); button.addEventListener('click', () => activate(view));
+      button.textContent = label; button.setAttribute('aria-label',label); button.hidden = !allowed(view); button.addEventListener('click', () => activate(view));
       nav.append(button);
       const panel = byId(id); if (panel) { panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', button.id); }
     });
@@ -137,7 +232,7 @@
       const tabs = [...nav.querySelectorAll('button')].filter(b => !b.hidden);
       const i = tabs.indexOf(document.activeElement); if (i < 0) return;
       const index = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
-        : event.key === 'ArrowRight' ? (i + 1) % tabs.length : event.key === 'ArrowLeft' ? (i + tabs.length - 1) % tabs.length : -1;
+        : ['ArrowRight','ArrowDown'].includes(event.key) ? (i + 1) % tabs.length : ['ArrowLeft','ArrowUp'].includes(event.key) ? (i + tabs.length - 1) % tabs.length : -1;
       if (index < 0) return; event.preventDefault(); tabs[index].focus(); tabs[index].click();
     });
     const appearance = document.createElement('label');
@@ -147,7 +242,20 @@
     appearance.querySelector('select').addEventListener('change', event => { document.body.dataset.maestroTheme = event.target.value; });
     document.body.dataset.maestroTheme = 'claro';
     header.querySelector('.head')?.append(appearance);
-    header.append(nav);
+    const sidebar = document.createElement('aside'); sidebar.id = 'maestroSidebar'; sidebar.className = 'no-print export-excluded';
+    sidebar.innerHTML = '<div class="maestro-sidebar-brand"><img src="../../shared/assets/brand/casur-logo.png" alt="CASUR"></div><div class="maestro-sidebar-foot"><b>CASUR</b><span>Negocios de Caña</span><small>Producción eficiente y sostenible</small></div>';
+    sidebar.querySelector('.maestro-sidebar-brand').after(nav); document.body.append(sidebar);
+    nav.setAttribute('aria-orientation','vertical');
+    const menu = document.createElement('button'); menu.type='button'; menu.id='maestroMenu'; menu.textContent='☰'; menu.setAttribute('aria-label','Abrir navegación'); menu.setAttribute('aria-controls','maestroSidebar'); menu.setAttribute('aria-expanded','false');
+    header.querySelector('.head')?.prepend(menu);
+    const shade=document.createElement('button'); shade.id='maestroShade'; shade.type='button'; shade.setAttribute('aria-label','Cerrar navegación'); shade.hidden=true; document.body.append(shade);
+    const compact=matchMedia('(max-width:800px)');
+    const closeMenu=()=>{document.body.classList.remove('maestro-menu-open');menu.setAttribute('aria-expanded','false');shade.hidden=true;sidebar.inert=compact.matches;};
+    compact.addEventListener('change',closeMenu);closeMenu();
+    menu.addEventListener('click',()=>{const open=menu.getAttribute('aria-expanded')!=='true';document.body.classList.toggle('maestro-menu-open',open);menu.setAttribute('aria-expanded',String(open));shade.hidden=!open;sidebar.inert=!open&&compact.matches;if(open)nav.querySelector('[aria-selected=true]')?.focus();});
+    shade.addEventListener('click',()=>{closeMenu();menu.focus();});
+    nav.addEventListener('click',closeMenu);
+    document.addEventListener('keydown',e=>{if(menu.getAttribute('aria-expanded')!=='true')return;if(e.key==='Escape'){closeMenu();menu.focus();}else if(e.key==='Tab'){e.preventDefault();nav.querySelector('[aria-selected=true]')?.focus();}});
     const moduleTitle = header.querySelector('.brand-title h1'); if (moduleTitle) moduleTitle.textContent = 'Maestro de Suertes';
     const title = home.querySelector('h2'); if (title) title.textContent = 'Resumen de producción';
     const subtitle = home.querySelector('.hero-copy p'); if (subtitle) { subtitle.id = 'maestroSummarySeason'; subtitle.textContent = 'Panorama de la zafra vigente'; }
@@ -196,22 +304,20 @@
       links.dataset.exportExclude = 'true'; links.setAttribute('aria-label', 'Accesos a la ficha');
       host.before(links);
       const search = host.parentElement.querySelector('.searchbox');
-      const query = document.createElement('details'); query.className='maestro-query no-print export-excluded'; query.dataset.exportExclude='true'; query.open=true;
-      const queryTitle=document.createElement('summary'); queryTitle.textContent='Consultar finca o suerte';
-      search.before(query); query.append(queryTitle, search);
+      const query = document.createElement('div'); query.className='maestro-query no-print export-excluded'; query.dataset.exportExclude='true';
+      search.before(query); query.append(search);
       let rendered = null;
       const compactQuery = () => {
         const report=host.firstElementChild;
         if(report===rendered) return; rendered=report;
         if(host.querySelector('#cronoPrintPanel, #printPanel, .hist-multi-summary-root')) {
-          const hadFocus=query.contains(document.activeElement); query.open=false;
-          queryTitle.textContent='Cambiar consulta · '+(byId(id==='cronoContent'?'cronoQ':'q')?.value || 'Finca o suerte');
-          if(hadFocus) { queryTitle.focus({preventScroll:true}); requestAnimationFrame(() => host.scrollIntoView({block:'start',behavior:'instant'})); }
-        } else { query.open=true; queryTitle.textContent='Consultar finca o suerte'; }
+          query.setAttribute('aria-label','Cambiar consulta de finca o suerte');
+        }
       };
       new MutationObserver(compactQuery).observe(host,{childList:true});
       const refreshLinks = () => {
         links.replaceChildren();
+        if (id === 'cronoContent' && host.querySelector('.single-suerte-layout,.crono-general-kpis')) { links.hidden=true; updateTrail(); return; }
         for (const [label, selector] of [['Indicadores', '.kpis, .crono-multi-kpis'], ['Gráficos', '.crono-trend-card, .chart-wrap, .crono-summary-grid'], ['Detalle', '.table-wrap'], ['Mapa y exportación', '[data-casur-export-kind]']]) {
           const target = host.querySelector(selector); if (!target) continue;
           const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
@@ -225,6 +331,8 @@
       refreshLinks();
     }
     installSearch('cronoQ', 'cronoSuggestions'); installSearch('q', 'searchSuggestions');
+    installPremiumFicha();
+    installGeneralPanels();
     document.body.classList.add('casur-maestro-premium');
     // The shell already owns mobile bottom navigation; keep only module tabs.
     document.body.classList.toggle('maestro-embedded', window.self !== window.top);

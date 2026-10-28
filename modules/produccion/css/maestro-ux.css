@@ -141,139 +141,169 @@
     .casur-maestro-premium * { transition:none!important; }
   }
 }
-@media print { #maestroTabs,.maestro-crono-trail { display:none!important; } }
+@media print { #maestroTabs,#maestroSidebar,#maestroMenu,#maestroShade,.maestro-crono-trail { display:none!important; } }
 
-/* Composition only: never select chart marks, SVG series or report export roots. */
+/* Approved premium composition. Screen rules never change export/print models. */
 @media screen {
-  .casur-maestro-premium:not(.print-export) { --maestro-accent:#D4B35F; --maestro-surface:#F5F8FA; }
-  .casur-maestro-premium:not(.print-export)[data-maestro-theme=vibrante] { --maestro-accent:#159AD6; --maestro-surface:#F2FAFD; }
-  .casur-maestro-premium:not(.print-export) main { background:var(--maestro-surface); border-radius:18px; margin-top:16px; }
-  .casur-maestro-premium:not(.print-export) .topline { height:4px; background:linear-gradient(90deg,#173B46 0 60%,var(--maestro-accent) 60% 85%,#25A63F 85%); }
-  .casur-maestro-premium:not(.print-export) .maestro-appearance { display:flex; gap:8px; align-items:center; justify-content:flex-end; max-width:1352px; margin:0 auto 8px; font-size:11px; color:var(--maestro-text); }
-  .casur-maestro-premium:not(.print-export) .maestro-appearance select { min-height:36px; background:white; border:1px solid var(--maestro-mist); border-radius:8px; color:var(--maestro-petrol); padding:6px 9px; font:inherit; }
-  .casur-maestro-premium:not(.print-export) #homeSection { background:transparent!important; }
-  .casur-maestro-premium:not(.print-export) .maestro-source { background:white; border:1px solid var(--maestro-mist); border-left:4px solid var(--maestro-accent); }
-  .casur-maestro-premium:not(.print-export) .maestro-kpi { border-top-color:var(--maestro-accent); box-shadow:0 5px 16px #173b4608; }
-  .casur-maestro-premium:not(.print-export) .maestro-kpi-primary { background:var(--maestro-petrol); }
-  .casur-maestro-premium:not(.print-export)[data-maestro-theme=vibrante] .maestro-kpi-primary { background:#28483A; border-top-color:#25A63F; }
-  .casur-maestro-premium:not(.print-export) .hero-module-card { min-height:130px; box-shadow:0 4px 14px #173b4608; border-top:3px solid var(--maestro-accent); }
-  .casur-maestro-premium:not(.print-export) .hero-module-icon { background:var(--maestro-petrol); color:white; }
-  .casur-maestro-premium:not(.print-export)[data-maestro-theme=vibrante] .module-historico { border-top-color:#25A63F; }
-  .casur-maestro-premium:not(.print-export)[data-maestro-theme=vibrante] .module-zona { border-top-color:#D4B35F; }
-  .casur-maestro-premium:not(.print-export) main > details { background:transparent; }
-  .casur-maestro-premium:not(.print-export) main > details > summary { background:transparent; padding-bottom:10px; }
-  .casur-maestro-premium:not(.print-export) main > details > summary strong { font-size:22px; }
-  .casur-maestro-premium:not(.print-export) main > details > .accordion-body { padding:12px 0; }
-  .casur-maestro-premium:not(.print-export) .maestro-crono-trail { margin-bottom:8px; }
-  .casur-maestro-premium:not(.print-export) .maestro-query > .searchbox { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto; gap:8px; padding:12px; background:white; border:1px solid var(--maestro-mist); border-radius:12px; }
-  .casur-maestro-premium:not(.print-export) .searchbox :is(input,select) { width:100%; min-width:0; min-height:44px; font-size:13px; }
-  .casur-maestro-premium:not(.print-export) .searchbox .suggestion-wrap { min-width:0; }
-  .casur-maestro-premium:not(.print-export) .crono-actions { margin:8px 0; gap:8px; }
-  .casur-maestro-premium:not(.print-export) .btn-compact { min-height:40px; padding:8px 12px; }
-  .casur-maestro-premium:not(.print-export) .ficha-card { padding:14px; box-shadow:0 4px 20px #173b4608; }
-  .casur-maestro-premium:not(.print-export) .ficha-band { padding:14px 16px; gap:12px; }
-  .casur-maestro-premium:not(.print-export) .ficha-band h2 { font-size:22px; }
-  .casur-maestro-premium:not(.print-export) .single-suerte-layout { grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)!important; gap:16px; }
-  .casur-maestro-premium:not(.print-export) .single-suerte-layout .single-suerte-kpis { grid-template-columns:repeat(2,minmax(0,1fr))!important; max-width:none!important; gap:8px; }
-  .casur-maestro-premium:not(.print-export) .kpi { min-height:88px; padding:12px 14px; }
-  .casur-maestro-premium:not(.print-export) .kpi strong { font-size:24px; line-height:1.2; }
-  .casur-maestro-premium:not(.print-export) .single-suerte-kpis .kpi strong { font-size:22px!important; }
-  .casur-maestro-premium:not(.print-export) .kpi .label { font-size:10px; line-height:1.4; }
-  .casur-maestro-premium:not(.print-export) .crono-general-kpis { grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
-  .casur-maestro-premium:not(.print-export) :is(.crono-summary-grid,.crono-area-analysis) { grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
-  .casur-maestro-premium:not(.print-export) .crono-box { padding:16px; background:white; }
-  .casur-maestro-premium:not(.print-export) .table-wrap { overflow:auto; }
-  .casur-maestro-premium:not(.print-export) tbody tr:nth-child(even) { background:#F5F8FA; }
-  .casur-maestro-premium:not(.print-export) :is(th,td) { padding:10px 12px; }
-  .casur-maestro-premium:not(.print-export) .maestro-report-links { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
-  .casur-maestro-premium:not(.print-export) .maestro-report-links button { background:white; color:var(--maestro-petrol); border:1px solid var(--maestro-mist); border-radius:20px; padding:8px 14px; min-height:40px; font:600 12px 'Segoe UI',sans-serif; cursor:pointer; }
-  .casur-maestro-premium:not(.print-export) .maestro-report-links button:hover { border-color:var(--maestro-petrol); }
-  @media(max-width:1000px) {
-    .casur-maestro-premium:not(.print-export) .maestro-appearance { padding-inline:16px; }
-    .casur-maestro-premium:not(.print-export) .crono-general-kpis { grid-template-columns:repeat(3,minmax(0,1fr)); }
-    .casur-maestro-premium:not(.print-export) .single-suerte-layout { grid-template-columns:1fr!important; }
-  }
-  @media(max-width:600px) {
-    .casur-maestro-premium:not(.print-export) main { margin-top:6px; padding:12px 10px; border-radius:0; }
-    .casur-maestro-premium:not(.print-export) .maestro-appearance { margin-bottom:4px; padding-inline:12px; }
-    .casur-maestro-premium:not(.print-export) .maestro-query > .searchbox { grid-template-columns:minmax(0,1fr) auto; padding:8px; }
-    .casur-maestro-premium:not(.print-export) .searchbox .suggestion-wrap { grid-column:1 / -1; }
-    .casur-maestro-premium:not(.print-export) .searchbox input { font-size:16px; }
-    .casur-maestro-premium:not(.print-export) .ficha-card { padding:8px; }
-    .casur-maestro-premium:not(.print-export) .ficha-band { padding:12px; }
-    .casur-maestro-premium:not(.print-export) .ficha-band h2 { font-size:19px; }
-    .casur-maestro-premium:not(.print-export) .crono-general-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .casur-maestro-premium:not(.print-export) :is(.crono-summary-grid,.crono-area-analysis) { grid-template-columns:1fr; }
-    .casur-maestro-premium:not(.print-export) .kpi { padding:10px; min-height:82px; }
-    .casur-maestro-premium:not(.print-export) .hero-module-card { min-height:130px; }
-    .casur-maestro-premium:not(.print-export) .maestro-report-links { flex-wrap:nowrap; overflow-x:auto; }
-    .casur-maestro-premium:not(.print-export) .maestro-report-links button { flex:0 0 auto; }
-  }
-}
-
-@media screen {
-  .casur-maestro-premium:not(.print-export) .maestro-appearance { margin:0 0 0 auto; flex-wrap:wrap; justify-content:flex-end; }
-  .casur-maestro-premium:not(.print-export) .maestro-query { border:1px solid var(--maestro-mist); border-radius:10px; background:white; margin:8px 0; }
-  .casur-maestro-premium:not(.print-export) .maestro-query > summary { padding:12px; color:var(--maestro-petrol); cursor:pointer; font-size:13px; font-weight:700; overflow-wrap:anywhere; }
-  .casur-maestro-premium:not(.print-export) .maestro-query > .searchbox { margin:0; border:0; }
-  .casur-maestro-premium:not(.print-export) .casur-release-strip { padding:6px 10px; font-size:11px; margin-block:6px; }
-  @media(max-width:600px) {
-    .casur-maestro-premium:not(.print-export) .head { flex-wrap:wrap; }
-    .casur-maestro-premium:not(.print-export) .maestro-appearance { font-size:10px; padding:0; }
-    .casur-maestro-premium:not(.print-export) .maestro-appearance select { max-width:165px; min-height:32px; }
-    .casur-maestro-premium:not(.print-export) .maestro-crono-trail { gap:4px; }
-    .casur-maestro-premium:not(.print-export) .maestro-crono-trail > div { display:flex; align-items:center; gap:4px; }
-    .casur-maestro-premium:not(.print-export) .maestro-crono-trail button { font-size:11px; min-height:36px; padding:6px 8px; }
-  }
-}
-
-@media screen {
-  .casur-maestro-premium:not(.print-export) .head { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
-  .casur-maestro-premium:not(.print-export) .maestro-appearance { padding-top:0; }
-  .casur-maestro-premium:not(.print-export) .ficha-actions .casur-visual-actions { gap:8px; }
-  @media(max-width:600px) {
-    .casur-maestro-premium:not(.print-export) .ficha-actions .casur-visual-action { min-width:0; min-height:44px; padding:8px; gap:6px; flex:1 1 130px; }
-    .casur-maestro-premium:not(.print-export) .ficha-actions .casur-visual-action .ico { width:28px; height:28px; }
-    .casur-maestro-premium:not(.print-export) .ficha-actions .casur-visual-action b { font-size:11px; white-space:normal; }
-    .casur-maestro-premium:not(.print-export) .ficha-actions .casur-visual-action small { white-space:normal; font-size:9px; }
-  }
-}
-
-@media screen {
-  .casur-maestro-premium:not(.print-export) :is(#cronoContent,#fichaContent) { scroll-margin-top:150px; }
-  @media(max-width:600px) {
-    .casur-maestro-premium:not(.print-export) .head { gap:6px; }
-    .casur-maestro-premium:not(.print-export) .maestro-appearance > span { display:none; }
-    .casur-maestro-premium:not(.print-export) .maestro-appearance select { max-width:146px; }
-    .casur-maestro-premium:not(.print-export) .production-release { font-size:10px; }
-    .casur-maestro-premium:not(.print-export) :is(#cronoContent,#fichaContent) { scroll-margin-top:170px; }
-  }
-}
-
-/* Readable report navigation and more usable mobile viewport. */
-@media screen {
-  .casur-maestro-premium:not(.print-export) .maestro-report-links {
-    padding:8px; background:#fff; border:1px solid var(--maestro-mist); border-radius:12px;
-  }
-  .casur-maestro-premium:not(.print-export) .maestro-report-links button {
-    border-radius:8px; background:#f5f8fa; font-size:12px;
-  }
-  .casur-maestro-premium:not(.print-export) .maestro-report-links button:hover {
-    background:#e4eae9; color:#173b46;
-  }
-  .casur-maestro-premium:not(.print-export) .maestro-query > summary:hover {
-    background:#f5f8fa; border-radius:9px;
-  }
-  @media(max-width:600px) {
-    .casur-maestro-premium:not(.print-export) .head { padding-block:5px; }
-    .casur-maestro-premium:not(.print-export) .maestro-report-links {
-      display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); overflow:visible; gap:6px;
-    }
-    .casur-maestro-premium:not(.print-export) .maestro-report-links button {
-      width:100%; min-width:0; white-space:normal; text-align:center;
-    }
-    .casur-maestro-premium:not(.print-export) :is(#cronoContent,#fichaContent) { scroll-margin-top:170px; }
-    .casur-maestro-premium:not(.print-export) :is(button,a,input,select,summary) { scroll-margin-block:170px 16px; }
-    .casur-maestro-premium:not(.print-export) .maestro-tabs { scroll-padding-inline:12px; }
-  }
+ body.casur-maestro-premium:not(.print-export) { --maestro-accent:#D4B35F; background:#f5f8fa; padding-left:204px; }
+ .casur-maestro-premium:not(.print-export)[data-maestro-theme=vibrante] { --maestro-accent:#159AD6; }
+ .casur-maestro-premium:not(.print-export) #maestroSidebar { position:fixed; inset:0 auto 0 0; width:204px; z-index:1100; background:linear-gradient(165deg,#002e2d,#173B46); color:white; display:flex; flex-direction:column; }
+ .maestro-sidebar-brand { padding:24px 28px 26px; }
+ .maestro-sidebar-brand img { width:148px; height:48px; object-fit:contain; }
+ .casur-maestro-premium:not(.print-export) #maestroTabs { display:flex; flex-direction:column; padding:0 10px 0 0; margin:0; gap:8px; overflow:visible; }
+ .casur-maestro-premium:not(.print-export) #maestroTabs button { text-align:left; color:#eef7f5; background:transparent; border-radius:0 9px 9px 0; min-height:50px; padding:14px 20px; font-weight:500; display:flex; align-items:center; gap:14px; }
+ .casur-maestro-premium:not(.print-export) #maestroTabs button::before { content:'◇'; font-size:22px; width:24px; text-align:center; }
+ .casur-maestro-premium:not(.print-export) #maestroTabs button:nth-child(1)::before { content:'⌂'; }
+ .casur-maestro-premium:not(.print-export) #maestroTabs button:nth-child(2)::before { content:'▤'; }
+ .casur-maestro-premium:not(.print-export) #maestroTabs button:nth-child(3)::before { content:'▦'; }
+ .casur-maestro-premium:not(.print-export) #maestroTabs button:nth-child(5)::before { content:'▥'; }
+ .casur-maestro-premium:not(.print-export) #maestroTabs button[aria-selected=true] { background:#115648; box-shadow:inset 5px 0 var(--maestro-accent); font-weight:700; }
+ .maestro-sidebar-foot { margin-top:auto; padding:160px 20px 24px; display:grid; gap:9px; background:linear-gradient(0deg,#002b2be6,transparent),url('../../tch/assets/cana-azucar-real.png') center/cover; font-size:12px; }
+ .maestro-sidebar-foot small { font-size:11px; line-height:1.5; }
+ #maestroMenu,#maestroShade { display:none; }
+ .casur-maestro-premium:not(.print-export) .topline { display:none; }
+ .casur-maestro-premium:not(.print-export) .head { display:flex; align-items:center; gap:16px; padding:12px 20px; max-width:none; min-height:76px; }
+ .casur-maestro-premium:not(.print-export) .brand img { display:none; }
+ .casur-maestro-premium:not(.print-export) .brand-title h1 { font-size:24px; letter-spacing:-.6px; }
+ .casur-maestro-premium:not(.print-export) .brand-title p { font-size:12px; }
+ .maestro-appearance { margin-left:auto; display:flex; gap:8px; align-items:center; color:#173b46; font-size:12px; }
+ .maestro-appearance select { max-width:205px; min-height:40px; border:1px solid #d6e2e6; border-radius:9px; background:white; color:#173b46; padding:8px; }
+ .casur-maestro-premium:not(.print-export) main { max-width:none; padding:12px 18px 24px; margin:0; }
+ .casur-maestro-premium:not(.print-export) main > details > summary { display:none; }
+ .casur-maestro-premium:not(.print-export) main > details { border:0!important; background:transparent!important; box-shadow:none; border-radius:0; }
+ .casur-maestro-premium:not(.print-export) :is(#cronoSection,#fichaSection,#zoneMainSection,#executiveAnalysisSection) { border:0!important; }
+ .casur-maestro-premium:not(.print-export) #cronoSection > .accordion-body { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:0 12px; }
+ .casur-maestro-premium:not(.print-export) #cronoSection > .accordion-body > * { grid-column:1/-1; min-width:0; }
+ .casur-maestro-premium:not(.print-export) #cronoSection .maestro-query { grid-row:2; grid-column:1; }
+ .casur-maestro-premium:not(.print-export) #cronoSection .crono-actions { grid-row:2; grid-column:2; align-self:center; }
+ .casur-maestro-premium:not(.print-export) #cronoSection .maestro-crono-trail { grid-row:3; }
+ .casur-maestro-premium:not(.print-export) main > details > .accordion-body { padding:0; }
+ .casur-maestro-premium:not(.print-export) .maestro-query .searchbox { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(170px,.8fr) auto; gap:10px; background:transparent; margin:8px 0; }
+ .casur-maestro-premium:not(.print-export) .searchbox :is(input,select) { width:100%; min-width:0; min-height:44px; background:white; border:1px solid #cfdee4; font-size:13px; }
+ .casur-maestro-premium:not(.print-export) .suggestion-wrap { min-width:0; }
+ .casur-maestro-premium:not(.print-export) .maestro-crono-trail { margin:0 0 8px; }
+ .casur-maestro-premium:not(.print-export) .crono-actions { margin:8px 0; }
+ .casur-maestro-premium:not(.print-export) .btn-compact { min-height:36px; }
+ .casur-maestro-premium:not(.print-export) .ficha-card { background:transparent; box-shadow:none; border:0; overflow:visible; }
+ .casur-maestro-premium:not(.print-export) #cronoPrintPanel { padding:0; }
+ .casur-maestro-premium:not(.print-export) .ficha-band { margin:0 0 12px; min-height:138px; align-items:center; padding:22px 24px; background:linear-gradient(90deg,#003d35 20%,#064936e8 55%,#173b4640),url('../../tch/assets/cana-azucar-real.png') center 54%/cover!important; border-radius:13px; }
+ .casur-maestro-premium:not(.print-export) .ficha-band h2 { font-size:32px; letter-spacing:-.8px; }
+ .casur-maestro-premium:not(.print-export) .ficha-band small { font-size:12px; line-height:1.7; }
+ .maestro-lot-attributes { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+ .maestro-lot-attributes > span { display:grid; gap:2px; padding:6px 12px; background:#ffffff13; border-radius:7px; font-size:11px; }
+ .casur-maestro-premium:not(.print-export) .maestro-lot-attributes small { margin:0; font-size:10px; font-weight:400; }
+ .casur-maestro-premium:not(.print-export) .ficha-actions .status-pill { font-size:11px; }
+ .casur-maestro-premium:not(.print-export) .casur-visual-actions { gap:8px; }
+ .casur-maestro-premium:not(.print-export) .casur-visual-action { padding:9px 12px; min-width:0; min-height:44px; }
+ .casur-maestro-premium:not(.print-export) .casur-visual-action .ico { width:24px; height:24px; }
+ .casur-maestro-premium:not(.print-export) .casur-visual-action .copy small { display:none; }
+ .casur-maestro-premium:not(.print-export) #cronoContent .single-suerte-layout { display:flex; flex-direction:column; gap:12px!important; }
+ .casur-maestro-premium:not(.print-export) .single-suerte-info { width:100%; }
+ .casur-maestro-premium:not(.print-export) #cronoContent .single-suerte-kpis { display:grid; grid-template-columns:repeat(6,minmax(0,1fr))!important; gap:10px; max-width:none!important; }
+ .casur-maestro-premium:not(.print-export) #cronoContent .single-suerte-kpis .kpi { min-height:102px!important; padding:14px 12px; border-top:2px solid var(--maestro-accent); border-radius:12px; }
+ .casur-maestro-premium:not(.print-export) #cronoContent .single-suerte-kpis .kpi strong { font-size:24px!important; line-height:1.25; }
+ .casur-maestro-premium:not(.print-export) #cronoContent .single-suerte-kpis .kpi .label { text-transform:none; font-size:11px; letter-spacing:0; }
+ .casur-maestro-premium:not(.print-export) .kpi.main { background:#004436; }
+ .casur-maestro-premium:not(.print-export) .maestro-ficha-tabs { display:flex; gap:6px; width:100%; border:1px solid #e1e8ed; border-radius:12px; padding:8px; background:white; }
+ .maestro-ficha-tabs button { border:0; border-radius:7px; background:#eef3f3; color:#173b46; padding:11px 20px; font:600 13px 'Segoe UI',sans-serif; cursor:pointer; }
+ .maestro-ficha-tabs button[aria-selected=true] { background:#003e36; color:white; box-shadow:inset 0 -3px #d4b35f; }
+ .maestro-ficha-board { display:grid; grid-template-columns:minmax(0,31fr) minmax(0,41fr) minmax(0,28fr); width:100%; gap:12px; align-items:stretch; }
+ .maestro-ficha-board > section,.maestro-complement { border:1px solid #e1e8ed; border-radius:12px; padding:14px; background:white; min-width:0; }
+ .maestro-ficha-board h3,.maestro-complement h3,.maestro-history-table h3 { margin:0 0 12px; color:#173b46; font-size:16px; }
+ .maestro-lot-info dl { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); margin:0; font-size:12px; line-height:1.6; }
+ .maestro-lot-info :is(dt,dd) { padding:4px 0; border-bottom:1px solid #eef2f4; margin:0; overflow-wrap:anywhere; }
+ .maestro-lot-info dt { color:#52616b; }
+ .maestro-lot-info dd { color:#102f3a; font-weight:500; }
+ .casur-maestro-premium:not(.print-export) #cronoContent .crono-trend-card-line { width:100%!important; max-width:none!important; min-width:0; margin:0; border-radius:12px; background:white; border:1px solid #e1e8ed; padding:14px; }
+ .maestro-inline-map { height:300px; border-radius:8px; isolation:isolate; }
+ .maestro-map-status { display:block; font-size:10px; color:#52616b; margin-top:8px; }
+ .maestro-map-expand { background:#eaf2ef; color:#173b46; border:1px solid #ccdcd7; border-radius:6px; margin-top:8px; min-height:36px; padding:6px 12px; cursor:pointer; }
+ .casur-maestro-premium:not(.print-export) .casur-release-strip { padding:5px 10px; margin:0 0 8px; border:0; font-size:10px; background:transparent; }
+ .casur-maestro-premium:not(.print-export) #casurSyncPill { display:none; }
+ .casur-maestro-premium:not(.print-export) #cronoContent .maestro-ficha-board .crono-trend-chart { height:200px!important; min-height:0!important; margin-top:16px; }
+ .casur-maestro-premium:not(.print-export) #cronoContent .maestro-ficha-board .crono-trend-svg { height:170px!important; min-height:0!important; width:100%!important; }
+ .maestro-complement { width:100%; }
+ .maestro-facts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+ .maestro-facts > div { display:grid; gap:7px; padding:12px; border:1px solid #dbe7e8; border-radius:9px; }
+ .maestro-facts span { font-size:11px; color:#52616b; }
+ .maestro-facts strong { font-size:18px; color:#173b46; }
+ .casur-maestro-premium:not(.print-export) [data-premium-ficha] > .section-title,
+ .casur-maestro-premium:not(.print-export) [data-premium-ficha] #cronoEndBox { display:none; }
+ .casur-maestro-premium:not(.print-export) [data-ficha-panel=ficha] > :is(.maestro-original-table,.maestro-history-table),
+ .casur-maestro-premium:not(.print-export) [data-ficha-panel=mapa] > :is(.maestro-original-table,.maestro-history-table),
+ .casur-maestro-premium:not(.print-export) [data-ficha-panel=tabla] :is(.maestro-ficha-board,.maestro-complement),
+ .casur-maestro-premium:not(.print-export) [data-ficha-panel=mapa] :is(.maestro-lot-info,.crono-trend-card,.maestro-complement) { display:none!important; }
+ .casur-maestro-premium:not(.print-export) [data-ficha-panel=mapa] .maestro-ficha-board { grid-template-columns:1fr; }
+ .casur-maestro-premium:not(.print-export) [data-ficha-panel=mapa] .maestro-inline-map { height:480px; }
+ .maestro-history-table { padding:16px; background:white; border:1px solid #e1e8ed; border-radius:12px; margin:12px 0; }
+ .maestro-history-table dl { display:grid; grid-template-columns:1fr 1fr; margin:0; }
+ .maestro-history-table :is(dt,dd) { margin:0; padding:8px; border-bottom:1px solid #eef2f4; }
+ .casur-maestro-premium:not(.print-export) .maestro-panel-inactive { display:none!important; }
+ .maestro-general-tabs { margin:14px 0; }
+ .maestro-farm-directory { padding:18px; background:white; border:1px solid #dbe7e8; border-radius:12px; }
+ .maestro-farm-directory h3 { margin-top:0; color:#173b46; }
+ .maestro-farm-directory input { min-height:44px; width:100%; border:1px solid #cddde3; border-radius:8px; padding:10px; margin-bottom:14px; font-size:16px; }
+ .maestro-farm-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; }
+ .maestro-farm-grid button { padding:14px; border:1px solid #dbe7e8; border-radius:9px; background:#f5f8fa; color:#173b46; text-align:left; cursor:pointer; font:600 13px 'Segoe UI',sans-serif; }
+ .maestro-farm-grid small { display:block; font-weight:400; margin-top:7px; }
+ .casur-maestro-premium:not(.print-export) .crono-general-kpis { grid-template-columns:repeat(5,minmax(0,1fr)); }
+ .casur-maestro-premium:not(.print-export) .crono-general-analysis { grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+ .casur-maestro-premium:not(.print-export) .crono-box { background:white; padding:18px; border:1px solid #dbe7e8; border-radius:12px; }
+ .casur-maestro-premium:not(.print-export) .crono-box .hrow { min-width:0; grid-template-columns:minmax(60px,1fr) minmax(20px,1fr) minmax(60px,auto); gap:6px; }
+ .casur-maestro-premium:not(.print-export) .table-wrap { max-width:100%; overflow:auto; }
+ .casur-maestro-premium:not(.print-export) .maestro-report-links { display:flex; gap:8px; margin:10px 0; }
+ .maestro-report-links button { padding:9px 12px; border:1px solid #d6e2e6; border-radius:7px; color:#173b46; background:white; cursor:pointer; }
+ @media(max-width:1200px) {
+  body.casur-maestro-premium:not(.print-export) { padding-left:176px; }
+  .casur-maestro-premium:not(.print-export) #maestroSidebar { width:176px; }
+  .maestro-sidebar-brand { padding:20px; }.maestro-sidebar-brand img { width:136px; }
+  .maestro-ficha-board { grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); }
+  .maestro-lot-map { grid-column:1/-1; }
+  .casur-maestro-premium:not(.print-export) #cronoContent .single-suerte-kpis { grid-template-columns:repeat(3,minmax(0,1fr))!important; }
+ }
+ @media(max-width:800px) {
+  body.casur-maestro-premium:not(.print-export) { padding-left:0; }
+  .casur-maestro-premium:not(.print-export) #maestroSidebar { transform:translateX(-100%); width:220px; z-index:2200; }
+  .casur-maestro-premium.maestro-menu-open:not(.print-export) #maestroSidebar { transform:translateX(0); }
+  #maestroMenu { display:block; background:#173b46; color:white; border:0; min-width:40px; height:40px; border-radius:7px; cursor:pointer; }
+  #maestroShade:not([hidden]) { display:block; position:fixed; inset:0; background:#001c2580; z-index:2100; border:0; }
+  .casur-maestro-premium:not(.print-export) .head { padding:8px 12px; gap:8px; flex-wrap:wrap; min-height:0; }
+  .casur-maestro-premium:not(.print-export) .brand-title h1 { font-size:20px; }
+  .casur-maestro-premium:not(.print-export) .brand { flex:1; min-width:0; }
+  .maestro-appearance { font-size:10px; }.maestro-appearance > span { display:none; }
+  .maestro-appearance select { max-width:155px; min-height:32px; }
+ }
+ @media(max-width:600px) {
+  .casur-maestro-premium:not(.print-export) main { padding:10px; }
+  .casur-maestro-premium:not(.print-export) #cronoSection > .accordion-body { display:block; }
+  .casur-maestro-premium:not(.print-export) .brand { width:auto!important; flex:1; }
+  .casur-maestro-premium:not(.print-export) .brand-title h1 { font-size:18px; }
+  .casur-maestro-premium:not(.print-export) .head { display:grid; grid-template-columns:40px minmax(0,1fr); }
+  .casur-maestro-premium:not(.print-export) .head .brand { grid-area:1/2; }
+  .casur-maestro-premium:not(.print-export) .head #maestroMenu { grid-area:1/1; }
+  .casur-maestro-premium:not(.print-export) .head .production-release { grid-area:2/1/auto/3; justify-content:flex-start; }
+  .casur-maestro-premium:not(.print-export) .head .maestro-appearance { grid-area:3/2; justify-content:flex-end; }
+  .casur-maestro-premium.maestro-embedded:not(.print-export) .head .brand { display:none; }
+  .casur-maestro-premium.maestro-embedded:not(.print-export) .head .maestro-appearance { grid-area:1/2; }
+  .maestro-lot-attributes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .casur-maestro-premium:not(.print-export) .brand-title h1 { white-space:normal; }
+  .casur-maestro-premium:not(.print-export) .production-release { font-size:10px; }
+  .casur-maestro-premium:not(.print-export) .maestro-appearance { width:auto; margin-left:auto; }
+  .casur-maestro-premium:not(.print-export) .maestro-crono-trail { font-size:10px; gap:4px; }
+  .casur-maestro-premium:not(.print-export) .maestro-crono-trail button { min-height:32px; padding:5px 7px; font-size:10px; }
+  .casur-maestro-premium:not(.print-export) .maestro-query .searchbox { grid-template-columns:minmax(0,1fr) auto; gap:6px; }
+  .casur-maestro-premium:not(.print-export) .suggestion-wrap { grid-column:1/-1; }
+  .casur-maestro-premium:not(.print-export) .searchbox input { font-size:16px; }
+  .casur-maestro-premium:not(.print-export) .ficha-band { padding:18px 14px; gap:12px; }
+  .casur-maestro-premium:not(.print-export) .ficha-band h2 { font-size:25px; }
+  .casur-maestro-premium:not(.print-export) #cronoContent .single-suerte-kpis { grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:8px; }
+  .casur-maestro-premium:not(.print-export) #cronoContent .single-suerte-kpis .kpi strong { font-size:21px!important; }
+  .maestro-ficha-tabs { overflow:auto; }.maestro-ficha-tabs button { flex:0 0 auto; padding:11px 12px; font-size:12px; }
+  .maestro-ficha-board { grid-template-columns:minmax(0,1fr); }
+  .maestro-facts { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .maestro-lot-info dl { font-size:13px; }
+  .maestro-report-links { flex-wrap:wrap; }
+  .casur-maestro-premium:not(.print-export) .crono-general-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .casur-maestro-premium:not(.print-export) .crono-general-analysis { grid-template-columns:minmax(0,1fr); }
+ }
 }

@@ -72,6 +72,7 @@
       card.dataset.groups=JSON.stringify(groups);let shown=groups;
       if(groups.length>6){shown=groups.slice(0,5);const rest=groups.slice(5);shown=[...shown,{key:'Otras ('+rest.length+')',area:rest.reduce((s,g)=>s+g.area,0),rows:rest}];}
       shown.forEach(g=>{const row=document.createElement('div');row.className='maestro-analysis-row';const label=document.createElement('span');label.textContent=g.key;const value=document.createElement('b');value.textContent=fmt(g[metric])+(key==='tch'?'':' ha');const track=document.createElement('div');track.className='maestro-analysis-track';const fill=document.createElement('i');fill.style.width=Math.min(100,Math.max(0,(g[metric]||0)/maximum*100))+'%';track.append(fill);row.append(label,value,track);card.append(row);});
+      if(key==='area'&&field==='destino'){card.classList.add('maestro-destination-card');card.querySelectorAll('.maestro-analysis-row').forEach((row,i)=>row.style.setProperty('--bar-height',Math.max(2,shown[i].area/maximum*150)+'px'));const note=document.createElement('small');note.textContent='Destino registrado del cultivo; la participación en molienda se determina por el motor operativo.';card.append(note);}
       if(key==='area'&&field==='zona'){
         const total=groups.reduce((s,g)=>s+g.area,0),colors=['#277fce','#459f69','#d5a039','#1a8d92','#8796a8'];let start=0;
         const stops=groups.map((g,i)=>{const end=start+(total?g.area/total*100:0);const stop=colors[i%colors.length]+' '+start+'% '+end+'%';start=end;return stop;});
@@ -302,6 +303,7 @@
     const sidebar = document.createElement('aside'); sidebar.id = 'maestroSidebar'; sidebar.className = 'no-print export-excluded';
     sidebar.innerHTML = '<div class="maestro-sidebar-brand"><img src="../../shared/assets/brand/casur-logo.png" alt="CASUR"></div><div class="maestro-sidebar-foot"><b>CASUR</b><span>Negocios de Caña</span><small>Producción eficiente y sostenible</small></div>';
     sidebar.querySelector('.maestro-sidebar-brand').after(nav); document.body.append(sidebar);
+    const tools=document.createElement('div');tools.className='maestro-sidebar-tools';const launcher=byId('masterAdminLauncher');if(launcher){sidebar.querySelector('.maestro-sidebar-foot').before(tools);tools.append(launcher);}
     nav.setAttribute('aria-orientation','vertical');
     const menu = document.createElement('button'); menu.type='button'; menu.id='maestroMenu'; menu.textContent='☰'; menu.setAttribute('aria-label','Abrir navegación'); menu.setAttribute('aria-controls','maestroSidebar'); menu.setAttribute('aria-expanded','false');
     header.querySelector('.head')?.prepend(menu);

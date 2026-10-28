@@ -189,6 +189,13 @@
  .maestro-analysis-card:has(.maestro-area-ring) .maestro-analysis-row { display:block; margin-bottom:14px; }
  .maestro-analysis-card:has(.maestro-area-ring) .maestro-analysis-row b { display:block; }.maestro-analysis-card:has(.maestro-area-ring) .maestro-analysis-track { display:none; }
  .maestro-analysis-card > button { clear:both; display:block; }
+ .maestro-destination-card { display:flex; flex-wrap:wrap; gap:10px; align-content:flex-start; }
+ .maestro-destination-card h3,.maestro-destination-card > small,.maestro-destination-card > button { flex-basis:100%; }.maestro-destination-card > small { color:#526b76; font-size:10px; line-height:1.5; }
+ .maestro-destination-card .maestro-analysis-row { flex:1; min-width:0; height:192px; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; font-size:10px; text-align:center; gap:6px; }
+ .maestro-destination-card .maestro-analysis-row > span { order:3; }.maestro-destination-card .maestro-analysis-track { height:var(--bar-height); width:60%; border-radius:4px 4px 0 0; }.maestro-destination-card .maestro-analysis-track i { width:100%!important; border-radius:4px 4px 0 0; }
+ .casur-maestro-premium:not(.print-export) .maestro-sidebar-tools { margin:24px 16px 0; padding-top:14px; border-top:1px solid #ffffff25; }
+ .casur-maestro-premium:not(.print-export) .maestro-sidebar-tools #masterAdminLauncher { position:static; width:100%!important; background:transparent; color:white; padding:8px 0; box-shadow:none; }
+ .casur-maestro-premium:not(.print-export) .maestro-sidebar-tools #masterAdminLauncher :is(strong,small) { color:white; }
  .maestro-analysis-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 8px; margin-bottom:10px; font-size:11px; }
  .maestro-analysis-row > span { overflow-wrap:anywhere; }
  .maestro-analysis-track { grid-column:1/-1; height:7px; background:#e9efef; border-radius:5px; overflow:hidden; }

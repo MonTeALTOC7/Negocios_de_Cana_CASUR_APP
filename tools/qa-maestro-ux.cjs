@@ -32,10 +32,10 @@ async function historyFull(run){if(run.label==='after')await run.frame.getByRole
 async function historyModel(run){return run.frame.evaluate(()=>({selection:CASUR_HISTORY_SELECTION.capture(),dual:getHistoricoDualSummary(),mapPaths:document.querySelectorAll('#historicalMultiMap path.leaflet-interactive').length}));}
 (async()=>{
  browser=await chromium.launch({headless:true,...(browserPath?{executablePath:browserPath}:{channel:'chrome'})});
- const before=await boot(4380,'before'),after=await boot(4381,'after');
+ const before=await boot(4380,'before'),after=await boot(Number(process.env.CASUR_QA_PORT||4381),'after');
  const beforeIDB=await idb(before.page),afterIDB=await idb(after.page);
  await check('Resumen efectivo, fuente, área y denominadores correctos',async()=>{
-  const s=await after.frame.evaluate(()=>({view:CASUR_MAESTRO_UX.capture(),source:document.querySelector('#maestroSource').textContent,values:['maestroActiveArea','maestroEstimateArea','maestroEstimateTons','maestroEstimateTch'].map(id=>document.getElementById(id).textContent),totals:CASUR_CRONO_PARTICIPATION.summary(CRONO_DATA.producers.flatMap(p=>p.details))}));
+  const s=await after.frame.evaluate(()=>({view:CASUR_MAESTRO_UX.capture(),source:document.querySelector('#maestroSource').textContent,values:['maestroActiveArea','maestroPreviousTch','maestroEstimateTons','maestroEstimateTch'].map(id=>document.getElementById(id).textContent),totals:CASUR_CRONO_PARTICIPATION.summary(CRONO_DATA.producers.flatMap(p=>p.details))}));
   assert.equal(s.view,'resumen');assert.equal(s.totals.estimateArea,9115.65);assert.equal(s.totals.estimateTons,563187.97);assert.equal(s.totals.estimateTch,61.78);assert.equal(s.totals.activeLots,995);assert.equal(s.totals.catalogLots,1053);assert.equal(s.totals.seedLots,47);assert.match(s.source,/oficiales/);
   await shot(before,'resumen');await shot(before,'resumen',390,844);for(const[w,h]of[[1440,900],[1280,800],[768,1024],[390,844]]){const size=await shot(after,'resumen',w,h);assert.ok(size.scrollWidth<=size.width,JSON.stringify(size));}await after.page.setViewportSize({width:1440,height:900});return s;
  });
@@ -79,7 +79,7 @@ async function historyModel(run){return run.frame.evaluate(()=>({selection:CASUR
  });
  await check('Recarga PWA, otra ventana y offline conservan contextos separados',async()=>{
   await selectView(after,'Histórico');const saved=await state(after.frame);await after.page.reload();after.frame=await ready(after.page);assert.deepEqual(await state(after.frame),saved);
-  const second=await after.context.newPage();await second.goto('http://127.0.0.1:4381/Negocios_de_Cana_CASUR_APP/#/modulo/produccion');const f2=await ready(second);assert.equal((await state(f2)).view,'resumen');assert.deepEqual(await state(after.frame),saved);await second.close();
+  const second=await after.context.newPage();await second.goto('http://127.0.0.1:'+(process.env.CASUR_QA_PORT||4381)+'/Negocios_de_Cana_CASUR_APP/#/modulo/produccion');const f2=await ready(second);assert.equal((await state(f2)).view,'resumen');assert.deepEqual(await state(after.frame),saved);await second.close();
   await after.page.waitForFunction(()=>!!navigator.serviceWorker.controller);await after.context.setOffline(true);await after.page.reload();after.frame=await ready(after.page);assert.deepEqual(await state(after.frame),saved);await shot(after,'offline',390,844);await after.context.setOffline(false);return saved;
  });
  await check('Consulta y exportación no mutan IndexedDB; cero errores JS',async()=>{assert.equal(await idb(before.page),beforeIDB);assert.equal(await idb(after.page),afterIDB);assert.deepEqual(errors,[]);return{unchanged:true,errors};});

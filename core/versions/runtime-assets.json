@@ -70,7 +70,7 @@
     "modules/produccion/js/casur-enhancements.js": "2d66ef53b0b82cf9531b74f9c0be3806f3c9dec564ef38b5850ed990ce08e087",
     "modules/produccion/js/effective-data-date.js": "32a26d5acb069e9a37ca18e806121f68693947fb1f5e0cde7fd9b330f16ae2c9",
     "modules/produccion/js/historical-engine.js": "299ab93c929894a7dd89d197c54bec2c6de3362799afdd6a119cf9b00513c35d",
-    "modules/produccion/js/maestro-ux.js": "14149f6aa5abe7414ef0ad324f7cf80df3471f168a0a6955b9c29800ec398611",
+    "modules/produccion/js/maestro-ux.js": "eea9fa386d4d2765f44ef3b9466e05bf4e5f6090fdf3d5cb3cea5ae1a7e16940",
     "modules/produccion/js/official-data-updates.js": "204fd8607df350d4fe9aff7cd8c030fc79456deb07b4df534cab22437dee1b11",
     "modules/produccion/js/official-source-policy.js": "c415e44b78997b69f02c9e720f59286816af01799e7a5b46d610deb759961d14",
     "modules/produccion/js/operational-import-ui.js": "68a2ab81c5e7682185e2def9be74ef6cf776e1601ec5172b9d27970a3dc61a48",

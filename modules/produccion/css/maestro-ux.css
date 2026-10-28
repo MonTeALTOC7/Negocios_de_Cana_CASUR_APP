@@ -218,6 +218,34 @@
 }
 /* Approved premium composition. Screen rules never change export/print models. */
 @media screen {
+ .casur-maestro-premium:not(.print-export) #moduleAccess { display:none!important; }
+ #maestroRailToggle { margin:0 12px 12px; padding:10px; border:1px solid #ffffff30; border-radius:8px; background:#ffffff10; color:white; display:flex; gap:8px; align-items:center; cursor:pointer; }
+ #maestroSelectionTray { display:flex; flex-wrap:wrap; align-items:center; gap:7px; padding:12px; background:#eef7f3; border:1px solid #c4ddd3; border-radius:10px; margin:8px 0; font-size:12px; }
+ #maestroSelectionTray button { padding:8px 12px; border:1px solid #bad6ca; border-radius:20px; color:#173b46; background:white; cursor:pointer; }
+ .maestro-general-hero { margin:10px 0 14px; padding:24px; color:white; border-radius:14px; background:linear-gradient(90deg,#003f38ee,#173b4640),url('../../tch/assets/cana-azucar-real.png') center/cover; }
+ .maestro-general-hero h2 { margin:0 0 12px; font-size:30px; }.maestro-general-hero p { margin:0; }
+ .maestro-scope-strip { padding:14px; background:white; border:1px solid #dbe7e8; border-radius:10px; color:#1f4e5c; font-size:12px; line-height:1.8; margin:12px 0; }
+ .maestro-farm-breadcrumb { padding:12px 0; color:#1f4e5c; font-size:12px; }
+ #maestroFarmMap { height:400px; isolation:isolate; border-radius:12px; }
+ .maestro-farm-board { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:12px; align-items:start; }
+ .casur-maestro-premium:not(.print-export) .maestro-farm-board > .crono-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .maestro-farm-board[data-panel="3"] { grid-template-columns:1fr; }
+ .casur-maestro-premium:not(.print-export) .crono-general-kpis .kpi { min-height:116px; padding:18px 14px; }
+ .casur-maestro-premium:not(.print-export) .crono-general-analysis { grid-template-columns:repeat(3,minmax(0,1fr)); }
+ .maestro-farm-forecast,.maestro-farm-map,#maestro-general-ton { padding:20px; border:1px solid #dbe7e8; border-radius:12px; background:white; margin:12px 0; }
+ .casur-maestro-premium:not(.print-export) [data-premium-farm] > .kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+ .casur-maestro-premium:not(.print-export) [data-premium-farm] > .section-title { display:none; }
+ @media(min-width:801px){
+  body.casur-maestro-premium.maestro-rail:not(.print-export) { padding-left:74px; }
+  .casur-maestro-premium.maestro-rail:not(.print-export) #maestroSidebar { width:74px; }
+  .maestro-rail #maestroTabs button span,.maestro-rail #maestroRailToggle span,.maestro-rail .maestro-sidebar-foot,.maestro-rail .maestro-sidebar-tools { display:none; }
+  .maestro-rail .maestro-sidebar-brand { padding:18px 5px; }.maestro-rail .maestro-sidebar-brand img { width:64px; height:48px; object-fit:contain; }
+  .casur-maestro-premium.maestro-rail:not(.print-export) #maestroTabs button { padding:14px 24px; }
+ }
+ @media(max-width:800px){#maestroRailToggle { display:none; }.maestro-farm-board { grid-template-columns:1fr; }}
+ @media(max-width:600px){.casur-maestro-premium:not(.print-export) [data-premium-farm] > .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }.maestro-general-hero { padding:18px; }.maestro-general-hero h2 { font-size:25px; }}
+}
+@media screen {
  body.casur-maestro-premium:not(.print-export) { --maestro-accent:#D4B35F; background:#f5f8fa; padding-left:204px; }
  .casur-maestro-premium:not(.print-export)[data-maestro-theme=vibrante] { --maestro-accent:#159AD6; }
  .casur-maestro-premium:not(.print-export) #maestroSidebar { position:fixed; inset:0 auto 0 0; width:204px; z-index:1100; background:linear-gradient(165deg,#002e2d,#173B46); color:white; display:flex; flex-direction:column; }

@@ -10,7 +10,7 @@
   }
   .casur-maestro-premium:not(.print-export) main { max-width:1400px; padding:20px 24px; min-width:0; }
   .casur-maestro-premium:not(.print-export) .topline { height:3px; background:var(--maestro-petrol); }
-  .casur-maestro-premium:not(.print-export) header { z-index:1000; background:var(--maestro-white); backdrop-filter:none; border-color:var(--maestro-mist); }
+  .casur-maestro-premium:not(.print-export) header { position:relative; top:auto; z-index:10; background:var(--maestro-white); backdrop-filter:none; border-color:var(--maestro-mist); }
   .casur-maestro-premium:not(.print-export) .head { max-width:1400px; padding:10px 24px; }
   .casur-maestro-premium:not(.print-export) .brand img { width:86px; max-height:38px; }
   .casur-maestro-premium:not(.print-export) .brand-title h1 { font-size:20px; color:var(--maestro-petrol); }
@@ -143,6 +143,62 @@
 }
 @media print { #maestroTabs,#maestroSidebar,#maestroMenu,#maestroShade,.maestro-crono-trail { display:none!important; } }
 
+/* Summary dashboard and identity, isolated from original reports. */
+@media screen {
+ .maestro-icon { width:24px; height:24px; flex:none; vertical-align:middle; }
+ .casur-maestro-premium:not(.print-export) #maestroTabs button::before { display:none!important; }
+ .casur-maestro-premium:not(.print-export) .brand img.maestro-secondary-logo { display:block; width:58px; height:58px; max-height:none; object-fit:contain; }
+ .casur-maestro-premium:not(.print-export) #homeSection .hero-shell { display:block; }
+ .maestro-summary-hero { min-height:158px; padding:22px; border-radius:12px; display:flex; align-items:center; justify-content:space-between; gap:18px; background:linear-gradient(90deg,#003f38ee,#173b4630),url('../../tch/assets/cana-azucar-real.png') center 48%/cover; }
+ .casur-maestro-premium:not(.print-export) #homeSection .hero-copy { padding:0; }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero h2 { color:white; font-size:34px!important; margin:0; }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero p { color:white; margin:8px 0; font-size:15px; }
+ .casur-maestro-premium:not(.print-export) .maestro-summary-hero .maestro-source { font-size:11px; padding:12px; background:#fffffff0; max-width:420px; border-radius:9px; }
+ .casur-maestro-premium:not(.print-export) .maestro-kpi { flex-direction:row; align-items:flex-start; padding:18px 14px; border-top-width:1px; min-height:116px; background:linear-gradient(135deg,#fff,#eff8f5); }
+ .casur-maestro-premium:not(.print-export) .maestro-kpi-primary { background:linear-gradient(135deg,#00483b,#07382e); }
+ .casur-maestro-premium:not(.print-export) .maestro-kpi:nth-child(2) { background:linear-gradient(135deg,#fffaf0,#fff); border-color:#e7c77d; }
+ .casur-maestro-premium:not(.print-export) .maestro-kpi:nth-child(3) { background:linear-gradient(135deg,#eef7ff,#fff); border-color:#b2d8fc; }
+ .maestro-kpi-icon { padding:10px; background:#27886119; border:1px solid #a4d3be; border-radius:12px; color:#09764c; }
+ .maestro-kpi-primary .maestro-kpi-icon { background:#ffffff15; color:white; }
+ .maestro-kpi:nth-child(2) .maestro-kpi-icon { color:#b97800; background:#fff3d8; border-color:#f1dcae; }
+ .maestro-kpi:nth-child(3) .maestro-kpi-icon { color:#076ac2; background:#e8f5ff; border-color:#b2d8fc; }
+ .maestro-kpi-copy { min-width:0; }.maestro-kpi-copy > span { font-size:12px; font-weight:700; }
+ .maestro-kpi-copy strong,.maestro-kpi-copy small { display:block; margin-top:7px; }
+ .maestro-info { color:inherit; background:none; border:0; cursor:pointer; padding:2px; font-size:14px; }
+ .maestro-help { max-width:340px; padding:22px; border:1px solid #b7d1d0; border-radius:14px; color:#173b46; box-shadow:0 12px 60px #173b4630; line-height:1.6; }
+ .maestro-help::backdrop { background:#173b4630; }.maestro-help button { padding:8px 14px; cursor:pointer; }
+ .casur-maestro-premium:not(.print-export) .maestro-population { background:white; border:1px solid #dce8e8; padding:10px 14px; margin:10px 0 14px; border-radius:9px; gap:12px; font-size:11px; }
+ #maestroComposition { flex-basis:100%; height:5px; border-radius:5px; background:linear-gradient(90deg,#07794d var(--milling-share),#d4b35f var(--milling-share)); }
+ #maestroPending:empty { display:none; }
+ #maestroDashboard { padding:14px; background:#fff; border:1px solid #dce8e8; border-radius:12px; }
+ .maestro-dashboard-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-dashboard-heading h2 { font-size:21px!important; margin:0; }
+ .maestro-dashboard-heading p { margin:5px 0; font-size:12px; color:#526b76; }
+ .maestro-dashboard-heading button,#maestroDashboardContent > button { padding:12px; background:#eff7ff; border:1px solid #bbdafa; border-radius:8px; color:#173b46; cursor:pointer; }
+ #maestroDashboardContent { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:12px; }
+ .maestro-analysis-card { min-width:0; padding:14px; border:1px solid #dde8eb; border-radius:10px; background:linear-gradient(135deg,white,#f9fcfc); }
+ .maestro-analysis-card h3 { font-size:14px; color:#173b46; margin:0 0 14px; display:flex; gap:7px; align-items:center; }
+ .maestro-analysis-card h3 svg { width:18px; height:18px; }
+ .maestro-analysis-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 8px; margin-bottom:10px; font-size:11px; }
+ .maestro-analysis-row > span { overflow-wrap:anywhere; }
+ .maestro-analysis-track { grid-column:1/-1; height:7px; background:#e9efef; border-radius:5px; overflow:hidden; }
+ .maestro-analysis-track i { display:block; height:100%; background:linear-gradient(90deg,#006546,#4cba82); border-radius:5px; }
+ .maestro-analysis-row:nth-child(3n) i { background:linear-gradient(90deg,#1766a5,#55a4dc); }
+ .maestro-analysis-row:nth-child(4n) i { background:linear-gradient(90deg,#b98e2f,#d8ba69); }
+ .maestro-analysis-card > button { border:0; background:none; color:#1f4e5c; font-weight:700; padding:5px 0; cursor:pointer; }
+ #maestroDashboardContent > input { width:100%; min-width:0; padding:12px; border:1px solid #c9dbdf; border-radius:8px; font-size:16px; grid-column:span 2; }
+ .casur-maestro-premium:not(.print-export) #moduleAccess { padding-top:12px; margin-top:14px; }
+ .casur-maestro-premium:not(.print-export) .hero-module-card { min-height:100px; padding:12px; }
+ @media(max-width:1000px) { #maestroDashboardContent { grid-template-columns:repeat(2,minmax(0,1fr)); }.maestro-summary-hero { flex-wrap:wrap; } }
+ @media(max-width:600px) {
+  #maestroDashboardContent { grid-template-columns:minmax(0,1fr); }
+  #maestroDashboardContent > input { grid-column:1; }
+  .maestro-summary-hero { padding:16px; }.casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero h2 { font-size:26px!important; }
+  .casur-maestro-premium:not(.print-export) .maestro-kpi { padding:12px 10px; flex-direction:column; gap:6px; }.maestro-kpi-icon { padding:6px; }
+  .maestro-dashboard-heading { flex-wrap:wrap; }.maestro-kpi-copy > span { font-size:11px; }
+  .casur-maestro-premium:not(.print-export) .maestro-summary-hero .maestro-source { flex-direction:column; width:100%; }
+ }
+}
 /* Approved premium composition. Screen rules never change export/print models. */
 @media screen {
  body.casur-maestro-premium:not(.print-export) { --maestro-accent:#D4B35F; background:#f5f8fa; padding-left:204px; }

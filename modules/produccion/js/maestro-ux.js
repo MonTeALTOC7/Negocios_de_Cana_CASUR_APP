@@ -140,6 +140,13 @@
         : event.key === 'ArrowRight' ? (i + 1) % tabs.length : event.key === 'ArrowLeft' ? (i + tabs.length - 1) % tabs.length : -1;
       if (index < 0) return; event.preventDefault(); tabs[index].focus(); tabs[index].click();
     });
+    const appearance = document.createElement('label');
+    appearance.className = 'maestro-appearance no-print export-excluded';
+    appearance.dataset.exportExclude = 'true';
+    appearance.innerHTML = '<span>Presentación</span> <select id="maestroAppearance" aria-label="Variante visual"><option value="claro">Ejecutivo Claro</option><option value="vibrante">CASUR Institucional Vibrante</option></select>';
+    appearance.querySelector('select').addEventListener('change', event => { document.body.dataset.maestroTheme = event.target.value; });
+    document.body.dataset.maestroTheme = 'claro';
+    header.querySelector('.head')?.append(appearance);
     header.append(nav);
     const moduleTitle = header.querySelector('.brand-title h1'); if (moduleTitle) moduleTitle.textContent = 'Maestro de Suertes';
     const title = home.querySelector('h2'); if (title) title.textContent = 'Resumen de producción';
@@ -181,7 +188,42 @@
     byId('masterUpdateSection')?.addEventListener('toggle', event => {
       document.body.classList.toggle('maestro-admin-open', event.target.open && !event.target.classList.contains('is-locked'));
     });
-    new MutationObserver(updateTrail).observe(byId('cronoContent'), { childList: true });
+    // Shortcuts reference existing nodes; no report reparenting or chart rebuilding.
+    for (const id of ['cronoContent', 'fichaContent']) {
+      const host = byId(id); if (!host) continue;
+      const links = document.createElement('nav');
+      links.className = 'maestro-report-links no-print export-excluded';
+      links.dataset.exportExclude = 'true'; links.setAttribute('aria-label', 'Accesos a la ficha');
+      host.before(links);
+      const search = host.parentElement.querySelector('.searchbox');
+      const query = document.createElement('details'); query.className='maestro-query no-print export-excluded'; query.dataset.exportExclude='true'; query.open=true;
+      const queryTitle=document.createElement('summary'); queryTitle.textContent='Consultar finca o suerte';
+      search.before(query); query.append(queryTitle, search);
+      let rendered = null;
+      const compactQuery = () => {
+        const report=host.firstElementChild;
+        if(report===rendered) return; rendered=report;
+        if(host.querySelector('#cronoPrintPanel, #printPanel, .hist-multi-summary-root')) {
+          const hadFocus=query.contains(document.activeElement); query.open=false;
+          queryTitle.textContent='Cambiar consulta · '+(byId(id==='cronoContent'?'cronoQ':'q')?.value || 'Finca o suerte');
+          if(hadFocus) { queryTitle.focus({preventScroll:true}); requestAnimationFrame(() => host.scrollIntoView({block:'start',behavior:'instant'})); }
+        } else { query.open=true; queryTitle.textContent='Consultar finca o suerte'; }
+      };
+      new MutationObserver(compactQuery).observe(host,{childList:true});
+      const refreshLinks = () => {
+        links.replaceChildren();
+        for (const [label, selector] of [['Indicadores', '.kpis, .crono-multi-kpis'], ['Gráficos', '.crono-trend-card, .chart-wrap, .crono-summary-grid'], ['Detalle', '.table-wrap'], ['Mapa y exportación', '[data-casur-export-kind]']]) {
+          const target = host.querySelector(selector); if (!target) continue;
+          const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
+          button.addEventListener('click', () => { target.scrollIntoView({block:'start',behavior:'instant'}); target.setAttribute('tabindex','-1'); target.focus({preventScroll:true}); });
+          links.append(button);
+        }
+        links.hidden = !links.childElementCount;
+        updateTrail();
+      };
+      new MutationObserver(refreshLinks).observe(host, {childList:true,subtree:true});
+      refreshLinks();
+    }
     installSearch('cronoQ', 'cronoSuggestions'); installSearch('q', 'searchSuggestions');
     document.body.classList.add('casur-maestro-premium');
     // The shell already owns mobile bottom navigation; keep only module tabs.

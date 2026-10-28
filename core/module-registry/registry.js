@@ -29,7 +29,7 @@ import { MODULE_VERSIONS } from '../versions/versions.js';
    reemplaza el contenido de esa carpeta, no esta tabla. */
 const BASE_MODULES = [
   { moduleId: 'produccion', name: 'Maestro de Suertes', desc: 'Cronológico e Histórico de suertes CASUR',
-    version: 'V1.7.2', route: 'modules/produccion/index.html', icon: 'produccion',
+    version: 'V1.8.0', route: 'modules/produccion/index.html', icon: 'produccion',
     accent: 'var(--accent-produccion)', enabled: true, visible: true, order: 1,
     requiresOnline: false, usesSupabase: false,
     storageNamespaces: ['cache:casur-suertes-vf54-*'], privacy: 'public' },

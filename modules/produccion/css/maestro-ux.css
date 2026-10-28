@@ -146,6 +146,11 @@
 /* Summary dashboard and identity, isolated from original reports. */
 @media screen {
  .maestro-icon { width:24px; height:24px; flex:none; vertical-align:middle; }
+ .maestro-trend-detail { position:fixed; z-index:4000; width:250px; max-width:calc(100vw - 16px); padding:16px; background:white; color:#173b46; border:1px solid #a9c8bd; border-radius:12px; box-shadow:0 8px 30px #173b4633; font-size:13px; }
+ .maestro-trend-detail dl { display:grid; grid-template-columns:1fr auto; gap:7px; margin:12px 0; }.maestro-trend-detail dd { margin:0; font-weight:700; }.maestro-trend-detail small { color:#526b76; font-size:10px; }
+ .maestro-trend-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin-top:14px; }
+ .maestro-trend-metrics > div { border:1px solid #e1e9eb; border-radius:9px; padding:10px 5px; text-align:center; }.maestro-trend-metrics small,.maestro-trend-metrics b { display:block; }.maestro-trend-metrics small { font-size:10px; color:#526b76; }.maestro-trend-metrics b { font-size:18px; margin-top:5px; color:#173b46; }
+ .casur-maestro-premium:not(.print-export) [data-premium-ficha] .crono-trend-tooltip { display:none!important; }
  .casur-maestro-premium:not(.print-export) #maestroTabs button::before { display:none!important; }
  .casur-maestro-premium:not(.print-export) .brand img.maestro-secondary-logo { display:block; width:58px; height:58px; max-height:none; object-fit:contain; }
  .casur-maestro-premium:not(.print-export) #homeSection .hero-shell { display:block; }
@@ -179,6 +184,11 @@
  .maestro-analysis-card { min-width:0; padding:14px; border:1px solid #dde8eb; border-radius:10px; background:linear-gradient(135deg,white,#f9fcfc); }
  .maestro-analysis-card h3 { font-size:14px; color:#173b46; margin:0 0 14px; display:flex; gap:7px; align-items:center; }
  .maestro-analysis-card h3 svg { width:18px; height:18px; }
+ .maestro-area-ring { float:left; width:132px; height:132px; margin:10px 14px 14px 0; border-radius:50%; display:grid; place-items:center; }
+ .maestro-area-ring span { width:94px; height:94px; border-radius:50%; background:white; display:grid; place-items:center; text-align:center; font-weight:700; font-size:15px; color:#173b46; }
+ .maestro-analysis-card:has(.maestro-area-ring) .maestro-analysis-row { display:block; margin-bottom:14px; }
+ .maestro-analysis-card:has(.maestro-area-ring) .maestro-analysis-row b { display:block; }.maestro-analysis-card:has(.maestro-area-ring) .maestro-analysis-track { display:none; }
+ .maestro-analysis-card > button { clear:both; display:block; }
  .maestro-analysis-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 8px; margin-bottom:10px; font-size:11px; }
  .maestro-analysis-row > span { overflow-wrap:anywhere; }
  .maestro-analysis-track { grid-column:1/-1; height:7px; background:#e9efef; border-radius:5px; overflow:hidden; }
@@ -339,7 +349,9 @@
   .casur-maestro-premium:not(.print-export) .head #maestroMenu { grid-area:1/1; }
   .casur-maestro-premium:not(.print-export) .head .production-release { grid-area:2/1/auto/3; justify-content:flex-start; }
   .casur-maestro-premium:not(.print-export) .head .maestro-appearance { grid-area:3/2; justify-content:flex-end; }
-  .casur-maestro-premium.maestro-embedded:not(.print-export) .head .brand { display:none; }
+  .casur-maestro-premium.maestro-embedded:not(.print-export) .head .brand { display:flex; grid-area:1/2; justify-self:start; width:38px!important; }
+  .casur-maestro-premium.maestro-embedded:not(.print-export) .head .brand-title { display:none; }
+  .casur-maestro-premium.maestro-embedded:not(.print-export) .head .maestro-secondary-logo { width:36px; height:36px; }
   .casur-maestro-premium.maestro-embedded:not(.print-export) .head .maestro-appearance { grid-area:1/2; }
   .maestro-lot-attributes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
   .casur-maestro-premium:not(.print-export) .brand-title h1 { white-space:normal; }

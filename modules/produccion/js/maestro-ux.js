@@ -72,6 +72,11 @@
       card.dataset.groups=JSON.stringify(groups);let shown=groups;
       if(groups.length>6){shown=groups.slice(0,5);const rest=groups.slice(5);shown=[...shown,{key:'Otras ('+rest.length+')',area:rest.reduce((s,g)=>s+g.area,0),rows:rest}];}
       shown.forEach(g=>{const row=document.createElement('div');row.className='maestro-analysis-row';const label=document.createElement('span');label.textContent=g.key;const value=document.createElement('b');value.textContent=fmt(g[metric])+(key==='tch'?'':' ha');const track=document.createElement('div');track.className='maestro-analysis-track';const fill=document.createElement('i');fill.style.width=Math.min(100,Math.max(0,(g[metric]||0)/maximum*100))+'%';track.append(fill);row.append(label,value,track);card.append(row);});
+      if(key==='area'&&field==='zona'){
+        const total=groups.reduce((s,g)=>s+g.area,0),colors=['#277fce','#459f69','#d5a039','#1a8d92','#8796a8'];let start=0;
+        const stops=groups.map((g,i)=>{const end=start+(total?g.area/total*100:0);const stop=colors[i%colors.length]+' '+start+'% '+end+'%';start=end;return stop;});
+        const ring=document.createElement('div');ring.className='maestro-area-ring';ring.style.background='conic-gradient('+stops.join(',')+')';const center=document.createElement('span');center.textContent=fmt(total)+' ha';ring.append(center);ring.setAttribute('role','img');ring.setAttribute('aria-label','Área activa por zona: '+groups.map(g=>g.key+' '+fmt(g.area)+' ha').join('; '));heading.after(ring);
+      }
       const detail=document.createElement('button');detail.type='button';detail.textContent='Ver detalle →';detail.onclick=()=>{activate('cronologico');window.renderCronoHome();queueMicrotask(()=>byId('maestro-general-tab-'+(key==='tch'?'tch':'area'))?.click());};card.append(detail);host.append(card);
     });
   }
@@ -155,11 +160,17 @@
   function installPremiumFicha() {
     const host=byId('cronoContent'); if(!host)return;
     let report=null, map=null, generation=0;
+    const tooltip=document.createElement('div');tooltip.id='maestroTrendTooltip';tooltip.className='maestro-trend-detail no-print export-excluded';tooltip.setAttribute('role','tooltip');tooltip.hidden=true;document.body.append(tooltip);
+    let pinned=null;
+    const closeTooltip=()=>{tooltip.hidden=true;pinned=null;};
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTooltip();});
+    window.addEventListener('scroll',closeTooltip,{passive:true});
+    document.addEventListener('click',e=>{if(!e.target.closest('.crono-trend-point')&&!tooltip.contains(e.target))closeTooltip();});
     const element=(tag,cls,value)=>{const el=document.createElement(tag);el.className=cls;if(value!=null)el.textContent=value;return el;};
     const excluded=el=>{el.classList.add('no-print','export-excluded');el.dataset.exportExclude='true';return el;};
     const refresh=()=>{
       const root=host.querySelector('#cronoPrintPanel'),layout=root?.querySelector('.single-suerte-layout');
-      if(root!==report){map?.destroy();map=null;generation++;report=root;}
+      if(root!==report){map?.destroy();map=null;closeTooltip();generation++;report=root;}
       if(!layout || root.dataset.premiumFicha)return;
       const table=root.querySelector('.table-wrap'); if(!table)return;
       root.dataset.premiumFicha='true';root.dataset.fichaPanel='ficha';
@@ -200,6 +211,23 @@
       tabs.addEventListener('keydown',event=>{const buttons=[...tabs.children],i=buttons.indexOf(document.activeElement);if(i<0)return;const n=event.key==='ArrowRight'?(i+1)%3:event.key==='ArrowLeft'?(i+2)%3:event.key==='Home'?0:event.key==='End'?2:-1;if(n<0)return;event.preventDefault();buttons[n].focus();buttons[n].click();});
       const board=element('div','maestro-ficha-board');board.id='maestro-ficha-ficha';board.setAttribute('role','tabpanel');board.setAttribute('aria-labelledby','maestro-ficha-tab-ficha');
       const chart=layout.querySelector('.crono-trend-card');
+      const series=window.trendFromLot?.(window.lotByCode?.(host.dataset.geoLotId))||[];
+      const points=[...(chart?.querySelectorAll('.crono-trend-point')||[])];
+      const showTip=point=>{
+        const record=series.find(r=>r.label===point.dataset.zafra);
+        tooltip.replaceChildren();tooltip.append(element('b','','Zafra '+point.dataset.zafra));
+        const values=[['TCH',record?.tch ?? Number(point.dataset.tch)],['Área (ha)',record?.area],['Toneladas',record?.ton],['KATM',record?.katm],['Edad (meses)',record?.edad]];
+        const dl=element('dl','');values.forEach(([label,value])=>dl.append(element('dt','',label),element('dd','',fmt(value))));tooltip.append(dl,element('small','','Histórico original CASUR · Esc para cerrar'));
+        tooltip.hidden=false;const box=point.getBoundingClientRect(),rect=tooltip.getBoundingClientRect();tooltip.style.left=Math.max(8,Math.min(innerWidth-rect.width-8,box.x-rect.width/2))+'px';tooltip.style.top=Math.max(8,Math.min(innerHeight-rect.height-8,box.bottom+12))+'px';
+      };
+      points.forEach(point=>{
+        point.setAttribute('aria-describedby','maestroTrendTooltip');
+        point.addEventListener('mouseenter',()=>showTip(point));point.addEventListener('focus',()=>showTip(point));
+        point.addEventListener('mouseleave',()=>{if(!pinned)tooltip.hidden=true;});point.addEventListener('blur',()=>{if(!pinned)tooltip.hidden=true;});
+        point.addEventListener('click',()=>{if(pinned===point){closeTooltip();}else{pinned=point;showTip(point);}});
+        point.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){pinned=point;showTip(point);}});
+      });
+      if(points.length){const values=points.map(p=>Number(p.dataset.tch)).filter(Number.isFinite);const metrics=excluded(element('div','maestro-trend-metrics'));[['Promedio',values.reduce((s,v)=>s+v,0)/values.length],['Máximo',Math.max(...values)],['Mínimo',Math.min(...values)],['Último',values.at(-1)]].forEach(([label,value])=>{const item=element('div','');item.append(element('small','',label),element('b','',fmt(value)));metrics.append(item);});chart.append(metrics);}
       layout.append(tabs,board);board.append(info);if(chart)board.append(chart);board.append(mapPanel);layout.append(complement);
       // Keep the report table in its original report root for all export parsers.
       table.classList.add('maestro-original-table');table.id='maestro-ficha-tabla';table.setAttribute('role','tabpanel');table.setAttribute('aria-labelledby','maestro-ficha-tab-tabla');
@@ -313,6 +341,7 @@
     summary.after(dashboard);
     [['area','Área y distribución'],['tch','Rendimientos TCH'],['fincas','Consultar fincas']].forEach(([key,label])=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.id='maestro-summary-tab-'+key;b.setAttribute('role','tab');b.setAttribute('aria-controls','maestroDashboardContent');b.setAttribute('aria-selected',String(key==='area'));b.onclick=()=>{dashboard.dataset.panel=key;dashboard.querySelectorAll('[role=tab]').forEach(n=>n.setAttribute('aria-selected',String(n===b)));byId('maestroDashboardContent').setAttribute('aria-labelledby',b.id);refreshSummary();};dashboard.querySelector('[role=tablist]').append(b);});
     byId('maestroSummaryMulti').onclick=()=>{activate('cronologico');byId('cronoMultiToggle')?.click();};
+    dashboard.querySelector('[role=tablist]').addEventListener('keydown',e=>{const tabs=[...dashboard.querySelectorAll('[role=tab]')],i=tabs.indexOf(document.activeElement);const next=e.key==='ArrowRight'?(i+1)%tabs.length:e.key==='ArrowLeft'?(i+tabs.length-1)%tabs.length:-1;if(i<0||next<0)return;e.preventDefault();tabs[next].focus();tabs[next].click();});
     const analysis = document.createElement('button'); analysis.type = 'button'; analysis.className = 'hero-module-card module-analysis';
     analysis.innerHTML = '<span class="hero-module-icon">4</span><span class="hero-module-copy"><span class="hero-module-kicker">Lectura gerencial</span><strong>Análisis</strong><small>Tendencias, variedades, TCH × KATM, prioridades y maquila.</small></span>';
     analysis.hidden = !allowed('analisis'); analysis.addEventListener('click', () => activate('analisis')); byId('moduleAccess')?.append(analysis);

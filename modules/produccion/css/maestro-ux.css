@@ -514,3 +514,7 @@
 @media(max-width:767px){.ux04-master-detail {grid-template-columns:1fr}.ux04-detail:has(.ux04-empty) {display:none}.ux04-farm-row {grid-template-columns:minmax(0,1fr) auto}}
 .ux04-master {max-height:360px;overflow-y:auto}
 @media(max-width:767px){.casur-maestro-premium:not(.print-export) #cronoContent:has(.context-explorer[data-context="general"]) .crono-general-kpis {display:flex!important;overflow-x:auto;gap:6px!important;padding-bottom:5px}.casur-maestro-premium:not(.print-export) #cronoContent:has(.context-explorer[data-context="general"]) .crono-general-kpis .kpi {flex:0 0 145px}}
+/* UX pilot: one exploration level, one content panel at a time. */
+.pilot-explorer {max-width:780px;margin:12px 0;padding:16px;background:white;border:1px solid #dce9e4;border-radius:10px;color:#173b46}
+.pilot-explorer h3 {font-size:17px;margin:0 0 8px}.pilot-hint {font-size:12px;line-height:1.5;color:#536e74;margin:8px 0 12px}.pilot-list {display:grid}.context-explorer .pilot-row {display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;border-bottom:1px solid #e3ece8;border-radius:0;background:white;padding:12px 4px;font-size:14px}.pilot-row span {font-size:13px;text-align:right;color:#315f67;font-weight:600}.pilot-tabs,.pilot-variables {display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.pilot-tabs button[aria-pressed=true] {background:#075744;color:white}.pilot-variables button {border-radius:20px}
+.pilot-list {max-width:610px}

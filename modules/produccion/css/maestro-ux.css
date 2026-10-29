@@ -490,3 +490,18 @@
  .premium-ficha-restored .context-report-trigger { padding:7px 12px; }
 }
 .premium-ficha-board .context-history-plot { background:linear-gradient(#fbfefd,#f4faf7);border:1px solid #e0ebe7;border-radius:12px;margin:12px 0; }
+.ux04-tabs {display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:thin}
+.ux04-tabs button {flex:0 0 auto;min-height:44px;padding:8px 14px;border:1px solid #c4dcd1;border-radius:8px;background:#f0f7f4;color:#075c45;font-weight:600;cursor:pointer}
+.ux04-tabs button[aria-pressed=true] {background:#075744;color:#fff;border-color:#075744}
+.ux04-dimensions button {border-radius:20px}
+.context-toolbar[hidden] {display:none!important}
+.ux04-summary-insight {padding:18px;background:white;border:1px solid #dce7e6;border-radius:12px;color:#173b46}
+.ux04-summary-insight h3 {margin:0 0 10px}.ux04-summary-insight p {line-height:1.5}.ux04-summary-insight button {min-height:44px;padding:9px 14px;background:#075744;color:white;border:0;border-radius:7px;cursor:pointer}
+.ux04-totals {display:flex;gap:12px;overflow-x:auto;margin:8px 0;padding:10px 0;border-block:1px solid #dce7e6}.ux04-totals div {flex:0 0 auto}.ux04-totals dt {font-size:11px;color:#526b6b}.ux04-totals dd {font-size:14px;font-weight:700;margin:4px 0 0}
+.casur-maestro-premium:not(.print-export) #cronoSection .searchbox {grid-template-columns:minmax(0,1fr) auto auto!important}
+.ux04-clear-search {min-height:44px;min-width:44px;border:1px solid #c4dcd1;border-radius:7px;background:#f0f7f4;cursor:pointer}
+.ux04-search-prompt {padding:12px;color:#315f67;font-size:13px}
+.ux04-navigation > .ux04-tabs:first-child {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}
+.ux04-navigation > .ux04-tabs:first-child button {min-width:0;padding:8px 4px;font-size:12px}
+.casur-maestro-premium:not(.print-export) #cronoContent:has(.context-explorer[data-context="general"][data-objective="estimate"]) .crono-general-kpis :is(.casur-estimate-kpi,.casur-tons-kpi) {display:none!important}
+@media(min-width:1024px){.casur-maestro-premium:not(.print-export) #cronoContent:has(.context-explorer[data-context="general"][data-objective="estimate"]) .crono-general-kpis {grid-template-columns:repeat(3,minmax(0,1fr))!important}}

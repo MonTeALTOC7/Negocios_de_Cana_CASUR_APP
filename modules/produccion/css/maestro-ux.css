@@ -429,7 +429,6 @@
  .casur-maestro-premium:not(.print-export) #cronoContent .kpi strong { font-size:20px!important; }
  .casur-maestro-premium:not(.print-export) #cronoContent .kpi .label { font-size:10px!important;line-height:1.4; }
  .casur-maestro-premium:not(.print-export) #cronoContent .kpi .label svg { display:none; }
- .casur-maestro-premium:not(.print-export) [data-premium-ficha]:not(.context-more-kpis) .context-secondary-kpi { display:none!important; }
  .context-kpi-toggle { align-self:flex-end;margin:0 0 8px; }
  .casur-maestro-premium:not(.print-export) .ficha-band { padding:14px!important;min-height:0!important;gap:8px!important; }
  .casur-maestro-premium:not(.print-export) .ficha-band h2 { font-size:23px!important; }.maestro-general-hero { padding:16px;margin:8px 0; }.maestro-general-hero h2 { font-size:25px;margin-bottom:6px; }.maestro-general-hero p { font-size:12px; }
@@ -456,3 +455,38 @@
 
 /* Context panels occupy the available column, including desktop flex layouts. */
 .casur-maestro-premium:not(.print-export) .single-suerte-layout > .context-lot-main { width:100%;box-sizing:border-box; }
+
+/* P0: restore the premium simultaneous lot composition; mobile prioritizes history. */
+.casur-maestro-premium:not(.print-export) .premium-ficha-restored .context-secondary-kpi { display:block!important; }
+.premium-ficha-board { grid-template-columns:minmax(210px,24fr) minmax(0,46fr) minmax(240px,30fr);align-items:start; }
+.premium-ficha-board .context-history { margin:0;max-width:none;width:100%; }
+.premium-ficha-board .context-technical-facts { display:block; }
+.premium-ficha-board .context-technical-facts > div { font-size:12px;padding:9px 0; }
+.premium-ficha-board .context-production { border-top:2px solid #d4b35f;margin-top:14px; }
+.premium-ficha-board .maestro-lot-map { grid-column:auto; }
+.premium-ficha-board .maestro-inline-map { height:330px; }
+.premium-ficha-board button { min-height:44px;padding:9px 10px;background:#f0f7f4;border:1px solid #c4dcd1;border-radius:7px;color:#075744;cursor:pointer; }
+.premium-ficha-board .context-history-chart svg { max-height:340px; }
+.premium-ficha-restored .context-lot-tabs { display:none; }
+.premium-ficha-board .context-history-status { min-height:46px; }
+@media(max-width:1000px){
+ .premium-ficha-restored .context-lot-tabs { display:grid;width:100%;grid-template-columns:1.4fr 1fr 1fr; }
+ .premium-ficha-board { display:block; }
+ .premium-ficha-restored[data-ficha-panel=history] .premium-ficha-board > :not(.premium-ficha-history),
+ .premium-ficha-restored[data-ficha-panel=map] .premium-ficha-board > :not(.maestro-lot-map),
+ .premium-ficha-restored[data-ficha-panel=technical] .premium-ficha-board > :not(.premium-ficha-info) { display:none; }
+ .premium-ficha-board .maestro-inline-map { height:360px; }
+ .casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .single-suerte-kpis { grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px; }
+ .casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .single-suerte-kpis .kpi { padding:9px 7px; }
+ .casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .single-suerte-kpis .kpi strong { font-size:18px!important; }
+ .premium-ficha-restored .maestro-lot-attributes { gap:4px; }
+}
+
+@media(max-width:600px){
+ .casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .single-suerte-kpis { display:flex!important;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:5px; }
+ .casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .single-suerte-kpis .kpi { flex:0 0 125px;scroll-snap-align:start; }
+ .casur-maestro-premium:not(.print-export) .premium-ficha-restored .ficha-band { padding:12px;gap:8px; }
+ .casur-maestro-premium:not(.print-export) .premium-ficha-restored .ficha-band h2 { font-size:20px!important; }
+ .premium-ficha-restored .context-report-trigger { padding:7px 12px; }
+}
+.premium-ficha-board .context-history-plot { background:linear-gradient(#fbfefd,#f4faf7);border:1px solid #e0ebe7;border-radius:12px;margin:12px 0; }

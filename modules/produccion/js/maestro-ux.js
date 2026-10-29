@@ -64,7 +64,7 @@
     const summary=engine().summary(rows),zones=engine().agronomicGroups(rows,'zona').slice().sort((a,b)=>b.area-a.area),panel=presentation(el('section','ux04-summary-insight'));
     panel.append(el('h3','','Panorama del área activa'));
     if(zones.length){const z=zones[0];panel.append(el('p','','La zona '+z.key+' concentra '+fmt(z.area)+' ha activas ('+fmt(z.area/(summary.activeArea||zones.reduce((n,g)=>n+g.area,0))*100)+' % del área activa).'));}
-    panel.append(button('Explorar distribución',()=>{explorerStates.set('general',{objective:'area',dimension:'zona',secondary:'zona',scope:[]});activate('cronologico');window.renderCronoHome();}));host.replaceChildren(panel);
+    if(zones.length)panel.append(button('Explorar distribución',()=>{explorerStates.set('general',{objective:'area',dimension:'variedad',secondary:'zona',scope:[{field:'zona',key:zones[0].key}]});activate('cronologico');window.renderCronoHome();}));host.replaceChildren(panel);
   }
 
   // View models come exclusively from the operational participation aggregator.
@@ -100,6 +100,18 @@
     const render=()=>{list.replaceChildren();const q=input.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();const items=farm?rows:window.CRONO_DATA.producers.filter(p=>p.details.some(r=>rows.includes(r)));const matches=items.filter(r=>[r.codLote,r.name,r.code,r.zone,r.variedad].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q));
       matches.slice(0,limit).forEach(r=>{const b=button(farm?'Suerte '+r.codLote:r.name+' · '+r.code,()=>{wrap.closest('dialog')?.close();if(farm)window.selectCronoSuerteSuggestion(String(r.code),String(r.suerte));else window.renderCronoProducer(String(r.code));});b.append(el('small','',farm?(r.variedad||'Sin variedad'):r.zone));list.append(b);});list.append(el('small','',Math.min(limit,matches.length)+' de '+matches.length+' resultados'));if(matches.length>limit)list.append(button('Mostrar más',()=>{limit+=8;render();}));};input.oninput=()=>{limit=8;render();};wrap.append(input,list);render();return wrap;
   }
+  // Group only the rows that actually belong to the active scope; a producer can
+  // appear in several categories without making counts additive across them.
+  function scopedFarms(rows) {
+    const byCode=new Map();
+    rows.forEach(r=>{const code=String(r.code??'');if(!code||!engine().agronomicGroups([r],'zona').length)return;if(!byCode.has(code))byCode.set(code,[]);byCode.get(code).push(r);});
+    return window.CRONO_DATA.producers.filter(p=>byCode.has(String(p.code))).map(p=>{const subset=byCode.get(String(p.code)),sum=engine().summary(subset);return {producer:p,rows:subset,summary:sum,area:engine().agronomicGroups(subset,'zona').reduce((n,g)=>n+g.area,0)};}).sort((a,b)=>a.producer.name.localeCompare(b.producer.name,'es'));
+  }
+  function scopedFarmDirectory(rows,estimate,state){
+    const all=scopedFarms(rows),wrap=el('section','ux04-farm-directory'),search=el('input');search.type='search';search.placeholder='Buscar finca o código…';search.setAttribute('aria-label','Buscar finca en el ámbito');search.value=state.farmQuery||'';
+    const list=el('div','ux04-farm-list');let limit=4;
+    const update=()=>{const query=search.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),matches=all.filter(x=>(x.producer.name+' '+x.producer.code).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(query));list.replaceChildren();matches.slice(0,limit).forEach(x=>{const item=el('article','ux04-farm-row'),name=el('strong','',x.producer.name+' · '+x.producer.code),meta=el('span','',estimate?fmt(x.summary.estimateArea)+' ha válidas · '+fmt(x.summary.estimateTons)+' t · '+fmt(x.summary.estimateTch)+' TCH · '+fmt(x.summary.coberturaEstimadoAreaPct)+' % cobertura':fmt(x.area)+' ha en este ámbito');item.append(name,meta,button('Ver ficha',()=>window.renderCronoProducer(String(x.producer.code))));list.append(item);});list.append(el('small','',Math.min(limit,matches.length)+' de '+matches.length+' fincas'));if(matches.length>limit)list.append(button('Mostrar más',()=>{limit+=4;update();}));};search.oninput=()=>{state.farmQuery=search.value;limit=4;update();};wrap.append(el('h3','',all.length+' fincas en este ámbito'),search,list);update();return wrap;
+  }
   function contextualExplorer(rows,id,{farm=false,mapPanel=null,table=null}={}){
     const state=explorerStates.get(id)||{objective:'area',dimension:'variedad',secondary:'zona',scope:[]};explorerStates.set(id,state);
     const board=presentation(el('section','context-explorer'));board.dataset.context=id;const toolbar=el('div','context-toolbar'),crumbs=el('nav','context-crumbs'),content=el('div','context-content');crumbs.setAttribute('aria-label','Ámbito analítico');
@@ -116,10 +128,18 @@
       if(state.scope.length)crumbs.append(button('Volver',()=>{const previous=state.scope.pop();state.dimension=previous.field;render();}),button('Limpiar ámbito',()=>{state.scope=[];render();}));
       dimension.hidden=secondary.hidden=['directory','map'].includes(state.objective);
       if(mapPanel){mapPanel.classList.toggle('maestro-panel-inactive',state.objective!=='map');if(state.objective==='map'){requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));return;}}
-      if(state.objective==='directory'){content.append(directory(scoped,farm));if(table)content.append(button('Tabla técnica · 18 columnas',()=>showOriginalTable(table)));return;}
+      if(state.objective==='directory'){content.append(tabsMode?scopedFarmDirectory(scoped,false,state):directory(scoped,farm));if(table)content.append(button('Tabla técnica · 18 columnas',()=>showOriginalTable(table)));return;}
       const groups=engine().agronomicGroups(scoped,state.dimension).slice().sort((a,b)=>b.area-a.area),summary=engine().summary(scoped),total=groups.reduce((sum,g)=>sum+g.area,0);board.dataset.groups=JSON.stringify(groups);board.dataset.summary=JSON.stringify(summary);
       content.append(el('p','context-hint',state.objective==='area'?(tabsMode?'Porcentaje del área activa del ámbito mostrado. Seleccioná una categoría para profundizar.':'Seleccioná una categoría para desglosarla por '+(dimensions.find(d=>d[0]===state.secondary)?.[1]||'zona')+'.'):'Área válida de molienda · toneladas autorizadas · TCH ponderado · cobertura del aforo'));
       if(tabsMode&&state.objective==='estimate'){const totals=el('dl','ux04-totals');[['Área válida',fmt(summary.estimateArea)+' ha'],['Toneladas',fmt(summary.estimateTons)+' t'],['TCH ponderado',fmt(summary.estimateTch)],['Cobertura molienda',fmt(summary.coberturaEstimadoAreaPct)+' %'],['Suertes estimadas',fmt(summary.estimateLots,0)]].forEach(([label,value])=>{const item=el('div');item.append(el('dt','',label),el('dd','',value));totals.append(item);});content.append(totals);}
+      if(tabsMode){
+        const layout=el('div','ux04-master-detail'),master=el('section','ux04-master'),detail=el('section','ux04-detail');master.append(el('h3','',dimensions.find(d=>d[0]===state.dimension)?.[1]||'Categorías'));
+        if(!groups.length)master.append(el('p','','No hay categorías con área activa en este ámbito.'));
+        groups.forEach(g=>{const subset=groupRows(scoped,state.dimension,g.key),farms=scopedFarms(subset),row=el('div','ux04-category');const open=button(g.key,()=>{const field=state.dimension;state.scope.push({field,key:g.key});state.dimension=field==='zona'?(state.scope.some(f=>f.field==='variedad')?'tipoRiego':'variedad'):'zona';render();});open.append(el('span','',state.objective==='estimate'?fmt(g.estimateArea)+' ha válidas · '+fmt(g.estimateTons)+' t · '+fmt(g.estimateTch)+' TCH':fmt(g.area)+' ha · '+fmt(total?g.area/total*100:null)+' %'),el('small','',farms.length+' fincas'));row.append(open);master.append(row);});
+        if(state.scope.length){detail.append(el('h3','','Detalle · '+state.scope.map(f=>f.key).join(' / ')));if(state.dimension!=='zona'&&!state.scope.some(f=>f.field==='zona')){const zones=engine().agronomicGroups(scoped,'zona').slice().sort((a,b)=>b.area-a.area),zoneNav=el('div','ux04-zone-nav');zoneNav.append(el('strong','','Distribución por zona'));zones.forEach(z=>zoneNav.append(button(z.key+' · '+fmt(z.area)+' ha',()=>{state.scope.push({field:'zona',key:z.key});state.dimension='variedad';render();})));detail.append(zoneNav);}detail.append(scopedFarmDirectory(scoped,state.objective==='estimate',state));}
+        else detail.append(el('p','ux04-empty','Elegí una categoría para consultar su composición por zona y las fincas que la integran.'));
+        layout.append(master,detail);content.append(layout);content.append(button('Composición y metodología',()=>{const info=el('p','','Molienda: '+fmt(summary.millingArea)+' ha · Semilla: '+fmt(summary.seedArea)+' ha. TCH ponderado = toneladas autorizadas ÷ área válida. Fuente: '+window.CRONO_DATA.meta.source);openDrawer('Composición del ámbito',info);}));return;
+      }
       const results=el('div','context-results');const limit=4;
       const appendGroup=(g,target)=>{const line=el('div','context-row'),open=button(g.key,()=>{state.scope.push({field:state.dimension,key:g.key});state.dimension=tabsMode?(state.dimension==='zona'?(state.scope.some(f=>f.field==='variedad')?'tipoRiego':'variedad'):state.dimension==='variedad'&&state.scope.some(f=>f.field==='zona')?'tipoRiego':'zona'):state.secondary;dimension.querySelector('select').value=state.dimension;render();});
         line.append(open);

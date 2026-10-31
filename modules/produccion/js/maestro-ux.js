@@ -122,7 +122,38 @@
     const scopedRows=()=>state.scope.reduce((subset,filter)=>groupRows(subset,filter.field,filter.key),rows);
     const render=()=>{
       const scoped=scopedRows();board.dataset.objective=state.objective;board.dataset.state=JSON.stringify(state);content.replaceChildren();crumbs.replaceChildren();
-      if(tabsMode){tabUI.replaceChildren();const primary=el('div','ux04-tabs');primary.setAttribute('role','group');primary.setAttribute('aria-label','Objetivo de análisis');objectives.forEach(([key,label])=>{const b=button(key==='area'?'Distribución':key==='estimate'?'Estimados Z'+(window.CRONO_DATA?.meta?.estimateSeason||''):'Consultar fincas',()=>{state.objective=key;state.scope=[];state.topFarms=false;state.pilotVariable=null;render();});b.setAttribute('aria-pressed',String(state.objective===key));primary.append(b);});tabUI.append(primary);if(state.objective!=='directory'&&!state.scope.length){const dims=el('div','ux04-tabs ux04-dimensions');dims.setAttribute('role','group');dims.setAttribute('aria-label',state.scope.length?'Desglosar ámbito por':'Variable');dimensions.filter(([key])=>!state.scope.some(f=>f.field===key)).forEach(([key,label])=>{const b=button(label,()=>{state.dimension=key;state.topFarms=false;state.pilotVariable=null;state.scope=[];state.pilotTab='zona';state.farmQuery='';render();});b.setAttribute('aria-pressed',String(state.dimension===key));dims.append(b);});const top=button('Top 10 fincas',()=>{state.topFarms=true;render();});top.setAttribute('aria-pressed',String(!!state.topFarms));dims.querySelectorAll('button').forEach(b=>{if(state.topFarms)b.setAttribute('aria-pressed','false');});dims.append(top);tabUI.append(dims);}}
+      if(tabsMode){
+        tabUI.replaceChildren();
+        const primary=el('div','ux04-tabs ux05-primary');
+        primary.setAttribute('role','group');primary.setAttribute('aria-label','Vista Cronológico');
+        objectives.forEach(([key])=>{
+          const label=key==='area'?'Distribución':key==='estimate'?'Estimados Z'+(window.CRONO_DATA?.meta?.estimateSeason||''):'Consultar fincas';
+          const b=button(label,()=>{state.objective=key;state.scope=[];state.category=null;state.detailField=null;state.detailValue=null;state.mode='general';state.expanded=false;render();});
+          b.setAttribute('aria-pressed',String(state.objective===key));primary.append(b);
+        });
+        tabUI.append(primary);
+        if(state.objective!=='directory'){
+          const dims=el('div','ux05-dimensions');
+          const label=el('label','ux05-select-label','Variable ');
+          const select=el('select','ux05-dimension-select');
+          select.setAttribute('aria-label','Variable agronómica');
+          dimensions.forEach(([key,name])=>{const o=el('option','',name);o.value=key;select.append(o);});
+          select.value=state.dimension;
+          const choose=key=>{state.dimension=key;state.scope=[];state.category=null;state.detailField=null;state.detailValue=null;state.mode='general';state.expanded=false;render();};
+          select.onchange=()=>choose(select.value);label.append(select);dims.append(label);
+          const chips=el('div','ux04-tabs ux04-dimensions ux05-chips');
+          dimensions.forEach(([key,name])=>{const b=button(name,()=>choose(key));b.setAttribute('aria-pressed',String(key===state.dimension));chips.append(b);});
+          dims.append(chips);tabUI.append(dims);
+          const modes=el('div','ux05-modes');
+          modes.setAttribute('role','group');modes.setAttribute('aria-label','Detalle de análisis');
+          [['general','General CASUR'],['zones',state.dimension==='zona'?'Composición':'Por zonas'],['farms','Top fincas']].forEach(([key,name])=>{
+            const b=button(name,()=>{state.mode=key;state.expanded=false;state.detailField=null;state.detailValue=null;render();});
+            b.setAttribute('aria-pressed',String((state.mode||'general')===key));modes.append(b);
+          });
+          tabUI.append(modes);
+        }
+      }
+      crumbs.hidden=tabsMode&&!state.scope.length;
       const base=button(farm?'Toda la finca':'General CASUR',()=>{state.scope=[];render();});crumbs.append(base);
       state.scope.forEach((filter,index)=>crumbs.append(button(tabsMode?(dimensions.find(d=>d[0]===filter.field)?.[1]||filter.field)+': '+filter.key:filter.key,()=>{state.scope=state.scope.slice(0,index+1);state.dimension=filter.field==='zona'?'variedad':'zona';render();})));
       if(state.scope.length)crumbs.append(button('Volver',()=>{const previous=state.scope.pop();state.dimension=previous.field;state.pilotTab='zona';render();}),button('Limpiar ámbito',()=>{state.scope=[];render();}));
@@ -131,24 +162,72 @@
       if(state.objective==='directory'){content.append(tabsMode?scopedFarmDirectory(scoped,false,state):directory(scoped,farm));if(table)content.append(button('Tabla técnica · 18 columnas',()=>showOriginalTable(table)));return;}
       const groups=engine().agronomicGroups(scoped,state.dimension).slice().sort((a,b)=>b.area-a.area),summary=engine().summary(scoped),total=groups.reduce((sum,g)=>sum+g.area,0);board.dataset.groups=JSON.stringify(groups);board.dataset.summary=JSON.stringify(summary);
       if(tabsMode){
-        const label=field=>dimensions.find(d=>d[0]===field)?.[1]||field;
-        const compact=el('section','pilot-explorer');
-        const areaOf=items=>engine().agronomicGroups(items,'zona').reduce((n,g)=>n+g.area,0);
-        const formatGroup=(g,denom)=>state.objective==='estimate'?fmt(g.estimateTch)+' TCH · '+fmt(g.estimateArea)+' ha válidas · '+fmt(g.estimateTons)+' t':fmt(g.area)+' ha · '+fmt(denom?g.area/denom*100:null)+' %';
-        const groupList=(items,field,denom,onChoose)=>{const list=el('div','pilot-list'),values=engine().agronomicGroups(items,field).slice().sort((a,b)=>state.objective==='estimate'?((b.estimateTch??-Infinity)-(a.estimateTch??-Infinity)):b.area-a.area);if(!values.length)list.append(el('p','','Sin datos para este ámbito.'));values.forEach(g=>{const entry=button(g.key,()=>onChoose(g));entry.className='pilot-row';entry.append(el('span','',formatGroup(g,denom)));list.append(entry);});return list;};
-        if(state.topFarms){const estimate=state.objective==='estimate',all=scopedFarms(scoped).filter(x=>!estimate||(x.summary.estimateTch!=null&&Number.isFinite(x.summary.estimateTch))).sort((a,b)=>estimate?b.summary.estimateTch-a.summary.estimateTch:b.area-a.area);compact.append(el('h3','','Top 10 fincas'),el('p','pilot-hint',estimate?'Ordenadas por TCH estimado ponderado.':'Ordenadas por área activa en el ámbito.'));if(estimate){const min=el('input');min.type='number';min.min='0';min.placeholder='Área válida mínima (ha), opcional';min.setAttribute('aria-label','Área válida mínima');min.value=state.minArea||'';min.onchange=()=>{state.minArea=min.value;render();};compact.append(min);}const list=el('div','pilot-list'),denom=areaOf(scoped);all.filter(x=>!estimate||!state.minArea||x.summary.estimateArea>=Number(state.minArea)).slice(0,10).forEach(x=>{const b=button(x.producer.name+' · '+x.producer.code,()=>window.renderCronoProducer(String(x.producer.code)));b.className='pilot-row';b.append(el('span','',estimate?fmt(x.summary.estimateTch)+' TCH · '+fmt(x.summary.estimateArea)+' ha · '+fmt(x.summary.estimateTons)+' t':fmt(x.area)+' ha · '+fmt(denom?x.area/denom*100:null)+' %'));list.append(b);});compact.append(list);content.append(compact);return;}
-        if(state.objective==='estimate'&&!state.scope.length){const valid=groups.filter(g=>g.estimateTch!=null&&Number.isFinite(g.estimateTch)).sort((a,b)=>b.estimateTch-a.estimateTch);if(valid.length){const high=valid[0],low=valid[valid.length-1];compact.append(button('Interpretar resultados',()=>openDrawer('Lectura de TCH',el('p','pilot-hint','Mayor: '+high.key+' · '+fmt(high.estimateTch)+' TCH ('+fmt(high.estimateArea)+' ha válidas; cobertura '+fmt(high.coveragePct)+' %). Menor: '+low.key+' · '+fmt(low.estimateTch)+' TCH ('+fmt(low.estimateArea)+' ha válidas; cobertura '+fmt(low.coveragePct)+' %). Brecha: '+fmt(high.estimateTch-low.estimateTch)+'. Revisá área y cobertura antes de investigar diferencias. No hay umbral de investigación configurado; estas cifras no establecen causas.'))));}}
-        if(!state.scope.length){compact.append(el('h3','',label(state.dimension)),el('p','pilot-hint',state.objective==='area'?'Área y participación sobre el área activa CASUR.':'Área válida de molienda · toneladas · TCH ponderado.'));compact.append(groupList(scoped,state.dimension,total,g=>{state.scope.push({field:state.dimension,key:g.key});state.pilotTab='zona';state.farmQuery='';render();}));}
-        else {
-          const scopeArea=areaOf(scoped),allArea=areaOf(rows),first=state.scope[0],last=state.scope[state.scope.length-1],zoneSelected=state.scope.some(f=>f.field==='zona');
-          compact.append(el('h3','',state.scope.map(f=>label(f.field)+' / '+f.key).join(' · ')),el('p','pilot-hint',fmt(scopeArea)+' ha · '+fmt(allArea?scopeArea/allArea*100:null)+' % del área activa CASUR'));
-          const nav=el('div','pilot-tabs');nav.setAttribute('role','group');nav.setAttribute('aria-label','Detalle contextual');
-          [['zona','Por zonas'],['fincas','Top 10 fincas'],['variables','Otras variables']].forEach(([key,name])=>{const b=button(name,()=>{state.pilotTab=key;render();});b.setAttribute('aria-pressed',String((state.pilotTab||'zona')===key));nav.append(b);});compact.append(nav);
-          if((state.pilotTab||'zona')==='fincas'){const denom=areaOf(scoped),rank=scopedFarms(scoped).filter(x=>state.objective!=='estimate'||(x.summary.estimateTch!=null&&Number.isFinite(x.summary.estimateTch))).sort((a,b)=>state.objective==='estimate'?b.summary.estimateTch-a.summary.estimateTch:b.area-a.area).slice(0,10),list=el('div','pilot-list');rank.forEach(x=>{const b=button(x.producer.name+' · '+x.producer.code,()=>window.renderCronoProducer(String(x.producer.code)));b.className='pilot-row';b.append(el('span','',state.objective==='estimate'?fmt(x.summary.estimateTch)+' TCH · '+fmt(x.summary.estimateArea)+' ha · '+fmt(x.summary.estimateTons)+' t':fmt(x.area)+' ha · '+fmt(denom?x.area/denom*100:null)+' %'));list.append(b);});compact.append(list);}
-          else if(state.pilotTab==='variables'){
-            const options=el('div','pilot-variables');dimensions.filter(([k])=>!state.scope.some(f=>f.field===k)).forEach(([k,name])=>options.append(button(name,()=>{state.pilotVariable=k;render();})));compact.append(options);if(state.pilotVariable&&!state.scope.some(f=>f.field===state.pilotVariable)){const field=state.pilotVariable;compact.append(groupList(scoped,field,scopeArea,g=>{state.scope.push({field,key:g.key});state.pilotVariable=null;state.pilotTab='fincas';state.farmQuery='';render();}));}}
-          else if(zoneSelected){compact.append(el('p','pilot-hint','Composición de la zona por variedad.'),groupList(scoped,'variedad',scopeArea,g=>{state.scope.push({field:'variedad',key:g.key});state.pilotTab='fincas';render();}));}
-          else {compact.append(el('p','pilot-hint','Porcentaje sobre '+fmt(scopeArea)+' ha del ámbito seleccionado.'),groupList(scoped,'zona',scopeArea,g=>{state.scope.push({field:'zona',key:g.key});state.pilotTab='fincas';state.farmQuery='';render();}));}
+        // UX 06: same official grouping engine; mobile-first presentation only.
+        const field=state.dimension,estimate=state.objective==='estimate',mode=state.mode||'general';
+        const label=dimensions.find(d=>d[0]===field)?.[1]||field;
+        const groupsFor=(items,key)=>engine().agronomicGroups(items,key).slice().sort((a,b)=>{
+          if(estimate){const av=Number.isFinite(a.estimateTch)?a.estimateTch:-Infinity,bv=Number.isFinite(b.estimateTch)?b.estimateTch:-Infinity;return bv-av||b.area-a.area;}
+          return b.area-a.area||String(a.key).localeCompare(String(b.key),'es');
+        });
+        const groupsAll=groupsFor(scoped,field),compact=el('section','pilot-explorer ux05-explorer');
+        const head=el('div','ux05-heading'),name=el('h3','',mode==='general'?label:mode==='zones'?(field==='zona'?'Composición por variedad':'Distribución por zonas'):'Top 10 fincas');
+        head.append(name,el('p','pilot-hint',estimate?'TCH estimado ponderado · mayor a menor':'Área activa · mayor a menor'));compact.append(head);
+        if(mode==='zones'&&!state.category&&groupsAll.length)state.category=groupsAll[0].key;
+        if(mode!=='general'){
+          const bar=el('div','ux05-filters'),lab=el('label','ux05-filter','Filtrar '+label+' ');
+          const sel=el('select','ux05-category');
+          sel.setAttribute('aria-label','Filtrar '+label);
+          const all=el('option','','Todas las categorías');all.value='';sel.append(all);
+          groupsAll.forEach(g=>{const o=el('option','',g.key);o.value=g.key;sel.append(o);});
+          sel.value=state.category||'';sel.onchange=()=>{state.category=sel.value||null;state.detailField=null;state.detailValue=null;state.expanded=false;render();};
+          lab.append(sel);bar.append(lab);
+          if(state.detailValue){const clear=button('✕ '+state.detailValue,()=>{state.detailField=null;state.detailValue=null;render();});clear.className='ux05-clear';bar.append(clear);}
+          compact.append(bar);
+        }
+        let items=scoped;
+        if(mode!=='general'&&state.category)items=groupRows(items,field,state.category);
+        if(mode==='farms'&&state.detailField&&state.detailValue)items=groupRows(items,state.detailField,state.detailValue);
+        const summary=engine().summary(items);
+        const pct=n=>summary.activeArea>0?fmt(n/summary.activeArea*100)+' %':'N/D';
+        const table=el('table','ux05-table '+(estimate?'ux05-estimate':'ux05-area')),thead=el('thead'),hdr=el('tr');
+        (estimate?['Grupo / finca','TCH','Ha válidas','Toneladas']:['Grupo / finca','Área (ha)','% área']).forEach((x,i)=>{const th=el('th','',x);th.scope='col';if(i>0)th.className='ux05-num'+(estimate&&i>=2?' ux05-desktop':'');hdr.append(th);});
+        thead.append(hdr);table.append(thead);
+        const tbody=el('tbody');table.append(tbody);
+        const row=(title,area,tons,tch,share,onOpen,tooltip)=>{
+          const tr=el('tr','ux05-row');tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label',title+'. '+tooltip+'. Abrir detalle');
+          tr.onclick=onOpen;tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onOpen();}};
+          const key=el('td','ux05-key');key.append(el('span','',title));
+          if(estimate)key.append(el('small','ux05-mobile-metrics',fmt(area)+' ha · '+fmt(tons)+' t'));
+          tr.append(key,el('td','ux05-num ux05-value',estimate?fmt(tch):fmt(area)));
+          if(estimate)tr.append(el('td','ux05-num ux05-desktop',fmt(area)),el('td','ux05-num ux05-desktop',fmt(tons)));
+          else tr.append(el('td','ux05-num',share));
+          tbody.append(tr);
+        };
+        let resultCount=0;
+        if(mode==='farms'){
+          const farms=scopedFarms(items).filter(x=>!estimate||Number.isFinite(x.summary.estimateTch))
+            .sort((a,b)=>estimate?b.summary.estimateTch-a.summary.estimateTch||b.summary.estimateArea-a.summary.estimateArea:b.area-a.area||a.producer.name.localeCompare(b.producer.name,'es')).slice(0,10);
+          resultCount=farms.length;
+          farms.forEach(x=>row(x.producer.name+' · '+x.producer.code,estimate?x.summary.estimateArea:x.area,x.summary.estimateTons,x.summary.estimateTch,pct(x.area),
+            ()=>window.renderCronoProducer(String(x.producer.code)),'Finca, '+fmt(x.area)+' ha'));
+        }else{
+          const key=mode==='zones'?(field==='zona'?'variedad':'zona'):field;
+          const gr=groupsFor(items,key),display=state.expanded?gr:gr.slice(0,8);resultCount=gr.length;
+          display.forEach(g=>row(g.key,estimate?g.estimateArea:g.area,g.estimateTons,g.estimateTch,pct(g.area),()=>{
+            if(mode==='general'){state.category=g.key;state.mode='zones';state.detailField=null;state.detailValue=null;}
+            else{state.detailField=key;state.detailValue=g.key;state.mode='farms';}
+            state.expanded=false;render();
+          },'Área '+fmt(g.area)+' ha'));
+        }
+        if(!resultCount)compact.append(el('p','ux05-empty','Sin resultados válidos para este ámbito.'));
+        else compact.append(table);
+        if(mode!=='farms'&&resultCount>8){const more=button(state.expanded?'Ver menos':'Ver todas ('+resultCount+')',()=>{state.expanded=!state.expanded;render();});more.className='ux05-more';compact.append(more);}
+        if(estimate&&mode!=='farms'){
+          const k=mode==='zones'?(field==='zona'?'variedad':'zona'):field,valid=groupsFor(items,k).filter(g=>Number.isFinite(g.estimateTch));
+          if(valid.length>1){const high=valid[0],low=valid[valid.length-1];const info=button('Interpretar TCH',()=>openDrawer('Lectura TCH · '+label,
+            el('p','pilot-hint','Mayor: '+high.key+' · '+fmt(high.estimateTch)+' TCH ('+fmt(high.estimateArea)+' ha válidas). Menor: '+low.key+' · '+fmt(low.estimateTch)+' TCH ('+fmt(low.estimateArea)+' ha válidas). Brecha: '+fmt(high.estimateTch-low.estimateTch)+' t/ha. Estas diferencias no demuestran causas.')));
+            info.className='ux05-insight';compact.append(info);
+          }
         }
         content.append(compact);return;
       }

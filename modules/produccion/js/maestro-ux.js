@@ -179,13 +179,13 @@
           sel.setAttribute('aria-label','Filtrar '+label);
           const all=el('option','','Todas las categorías');all.value='';sel.append(all);
           groupsAll.forEach(g=>{const o=el('option','',g.key);o.value=g.key;sel.append(o);});
-          sel.value=state.category||'';sel.onchange=()=>{state.category=sel.value||null;state.detailField=null;state.detailValue=null;state.expanded=false;render();};
+          sel.value=state.category==='__all__'?'':state.category||'';sel.onchange=()=>{state.category=sel.value||'__all__';state.detailField=null;state.detailValue=null;state.expanded=false;render();};
           lab.append(sel);bar.append(lab);
           if(state.detailValue){const clear=button('✕ '+state.detailValue,()=>{state.detailField=null;state.detailValue=null;render();});clear.className='ux05-clear';bar.append(clear);}
           compact.append(bar);
         }
         let items=scoped;
-        if(mode!=='general'&&state.category)items=groupRows(items,field,state.category);
+        if(mode!=='general'&&state.category&&state.category!=='__all__')items=groupRows(items,field,state.category);
         if(mode==='farms'&&state.detailField&&state.detailValue)items=groupRows(items,state.detailField,state.detailValue);
         const summary=engine().summary(items);
         const pct=n=>summary.activeArea>0?fmt(n/summary.activeArea*100)+' %':'N/D';

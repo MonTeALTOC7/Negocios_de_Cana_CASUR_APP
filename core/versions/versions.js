@@ -5,7 +5,7 @@
    número de un módulo aquí no afecta a los demás.
    ============================================================ */
 
-export const APP_VERSION = '1.5.3';
+export const APP_VERSION = '1.5.4';
 export const APP_CHANNEL = 'GitHub Pages';
 
 // Historial de código instalado, independiente de las publicaciones SIAGRI/GEO.
@@ -67,6 +67,7 @@ export function moduleStatus(id) {
 }
 
 export const APP_RELEASES = Object.freeze([
+  Object.freeze({id:'shell',version:'1.5.4',type:'PATCH',publishedAt:null,changes:Object.freeze(['Repara navegación de iframe en hosting con redirecciones HTML, conservando verificación de integridad y caché offline.','Renueva caché segura del shell para las vistas Cronológico móvil y corrige la carga del módulo.'])}),
   Object.freeze({id:'shell',version:'1.5.3',type:'PATCH',publishedAt:null,changes:Object.freeze(['Actualiza el manifiesto offline para la candidata UX de Producción V1.8.0, preservando el protocolo de checkpoint y los demás módulos.'])}),
   Object.freeze({id:'shell',version:'1.5.2',type:'PATCH',publishedAt:null,changes:Object.freeze(['Checkpoint de contexto por ventana antes de activar; recuperación después de inicialización y respeto de una selección nueva.','Continuidad del módulo, respaldo de navegación pendiente y aviso discreto cuando el cliente legacy no persistió la ficha.'])}),
   Object.freeze({id:'shell',version:'1.5.1',type:'PATCH',publishedAt:null,changes:Object.freeze(['Libera el PDF corregido de Producción mediante el mismo protocolo de actualización PWA.','Conserva origen, scope, checkpoint, datos personales y generación oficial verificada.'])}),

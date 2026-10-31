@@ -1,5 +1,5 @@
 {
-  "appVersion": "1.5.3",
+  "appVersion": "1.5.4",
   "assets": {
     "404.html": "13e468776893ea36d86e0a6b83935bafd4c5f3782fb3a302959337f8e14a19fe",
     "app.js": "3d1c2f7638acac3c1d3d0a52c6a904bf51667463b950e884eee26707c1725404",
@@ -16,8 +16,8 @@
     "core/updates/activity-guard.js": "ac1a31b305a32b6882702ad9dc7a8ca0d4a3f16b9d09d8a781243385557deb53",
     "core/updates/context-store.js": "d98356363d7fa986eef90374b2188dd1374dcd5a5024fd5ab5fdde28bb704091",
     "core/updates/pwa-update.js": "634a5a924ca2f5c6827ea42fffb88a98d559b3f021250348e0ae94024f403f2c",
-    "core/versions/versions.js": "b2778f121dab3eb92d5896dbb81a6fb79e129bbe8dc189f553f27e650c130763",
-    "index.html": "85fa31659d0f228f8148c2c7fb369fa743bbd7059e16a86532f9d43ffff5720d",
+    "core/versions/versions.js": "0a27552e97c2dc6432848a03ca636c8b35a1a4014e073ca817bce1e7ed922ea7",
+    "index.html": "15170b90374b2980f46aaacc4a3fd477e31d8ca002b5db0fdbd597160326e633",
     "master/adapters/master-to-riego-adapter.js": "03d74311246216895bcae85fa3401d9e1fb32d99b0b9f8f4ff8e25c0056977a9",
     "master/adapters/production-data-adapter.js": "f1922e3e6af02aa3fd22b46717037106d6696f68416540b6531d7bfba2f6adb9",
     "master/convertidor/404.html": "7e9971fcef13fdcba03157fa8a876e45de3f7d8c2494e349de7e6e2255914362",
@@ -70,7 +70,7 @@
     "modules/produccion/js/casur-enhancements.js": "2d66ef53b0b82cf9531b74f9c0be3806f3c9dec564ef38b5850ed990ce08e087",
     "modules/produccion/js/effective-data-date.js": "32a26d5acb069e9a37ca18e806121f68693947fb1f5e0cde7fd9b330f16ae2c9",
     "modules/produccion/js/historical-engine.js": "299ab93c929894a7dd89d197c54bec2c6de3362799afdd6a119cf9b00513c35d",
-    "modules/produccion/js/maestro-ux.js": "7c39a60c72d322c230b7f65afd79280763e1783ce1514f13c8cc54012a70f1b7",
+    "modules/produccion/js/maestro-ux.js": "de715e6858d193c6d5e970c790d7b050ef91f06c798bf2ea2681322f5361a861",
     "modules/produccion/js/official-data-updates.js": "204fd8607df350d4fe9aff7cd8c030fc79456deb07b4df534cab22437dee1b11",
     "modules/produccion/js/official-source-policy.js": "c415e44b78997b69f02c9e720f59286816af01799e7a5b46d610deb759961d14",
     "modules/produccion/js/operational-import-ui.js": "68a2ab81c5e7682185e2def9be74ef6cf776e1601ec5172b9d27970a3dc61a48",

@@ -187,8 +187,8 @@
         let items=scoped;
         if(mode!=='general'&&state.category&&state.category!=='__all__')items=groupRows(items,field,state.category);
         if(mode==='farms'&&state.detailField&&state.detailValue)items=groupRows(items,state.detailField,state.detailValue);
-        const summary=engine().summary(items);
-        const pct=n=>summary.activeArea>0?fmt(n/summary.activeArea*100)+' %':'N/D';
+        const activeAreaInScope=engine().agronomicGroups(items,'zona').reduce((sum,group)=>sum+group.area,0);
+        const pct=n=>activeAreaInScope>0?fmt(n/activeAreaInScope*100)+' %':'N/D';
         const table=el('table','ux05-table '+(estimate?'ux05-estimate':'ux05-area')),thead=el('thead'),hdr=el('tr');
         (estimate?['Grupo / finca','TCH','Ha válidas','Toneladas']:['Grupo / finca','Área (ha)','% área']).forEach((x,i)=>{const th=el('th','',x);th.scope='col';if(i>0)th.className='ux05-num'+(estimate&&i>=2?' ux05-desktop':'');hdr.append(th);});
         thead.append(hdr);table.append(thead);

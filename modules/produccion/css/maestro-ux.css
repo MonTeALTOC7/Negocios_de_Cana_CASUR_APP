@@ -525,3 +525,74 @@
 /* En General la banda original se conserva para informes; cada análisis presenta solo sus propios datos. */
 .casur-maestro-premium:not(.print-export) #cronoContent:has(.context-explorer[data-context="general"][data-objective="area"]) .crono-general-kpis,
 .casur-maestro-premium:not(.print-export) #cronoContent:has(.context-explorer[data-context="general"][data-objective="estimate"]) .crono-general-kpis {display:none!important}
+
+/* UX 06 — real mobile-first Cronológico. Screen presentation only; exports unchanged. */
+@media screen {
+ body.casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] {width:100%;box-sizing:border-box;padding:10px;background:#fff}
+ .context-explorer[data-context="general"] .context-crumbs[hidden] {display:none!important}
+ .context-explorer[data-context="general"] .ux05-explorer {width:100%;max-width:none;margin:2px 0 0;padding:10px 12px 12px;box-sizing:border-box;border-color:#d7e5e0;border-radius:10px}
+ .ux05-explorer .ux05-heading {max-width:1020px;margin:0 auto 10px;display:flex;align-items:baseline;gap:10px;justify-content:space-between}
+ .ux05-heading h3 {margin:0;font-size:16px;color:#073e39}
+ .ux05-heading .pilot-hint {margin:0;font-size:11px}
+ .ux05-dimensions {min-width:0;display:block}
+ .ux05-select-label {display:none}
+ .ux05-modes {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:4px 0 6px}
+ .context-explorer .ux05-modes button {min-width:0;min-height:40px;background:#f1f7f5;color:#075744;border:1px solid #c6ddd4;border-radius:8px;font-size:12px;font-weight:650;padding:6px 4px}
+ .context-explorer .ux05-modes button[aria-pressed=true] {background:#075744;color:white;border-color:#075744;box-shadow:inset 0 -2px #d4b35f}
+ .ux05-filters {max-width:1020px;margin:0 auto 9px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+ .ux05-filter {display:flex;align-items:center;gap:7px;color:#42646a;font-size:12px}
+ .ux05-category {max-width:340px;min-width:0;min-height:40px;border:1px solid #bbd4ca;background:white;border-radius:8px;padding:7px;font-size:13px;color:#075744}
+ .context-explorer .ux05-clear {min-height:36px;padding:5px 10px;background:#f5f6f4}
+ .ux05-table {width:100%;max-width:1020px;margin:0 auto;border-collapse:collapse;table-layout:fixed;font-size:13px;color:#123a46;font-variant-numeric:tabular-nums}
+ .ux05-table thead {background:#f1f6f4}
+ .ux05-table th {font-size:11px;letter-spacing:.1px;font-weight:700;color:#4a6469;padding:8px 10px;border-bottom:1px solid #ccdcd6;text-align:left}
+ .ux05-table th.ux05-num,.ux05-table td.ux05-num {text-align:right;white-space:nowrap}
+ .ux05-table th:first-child,.ux05-table td:first-child {width:42%}
+ .ux05-table td {padding:10px 10px;border-bottom:1px solid #e5ecea;vertical-align:middle}
+ .ux05-table .ux05-row {cursor:pointer}
+ .ux05-table .ux05-row:hover {background:#ecf7f1}
+ .ux05-table .ux05-row:focus-visible {outline:2px solid #08765e;outline-offset:-3px;background:#e5f5ef}
+ .ux05-table .ux05-key {font-weight:650;color:#064e43;overflow-wrap:anywhere}
+ .ux05-table .ux05-primary-value {font-weight:750;color:#164b59}
+ .ux05-table .ux05-mobile-metrics {display:none}
+ .ux05-table.ux05-estimate th:first-child,.ux05-table.ux05-estimate td:first-child {width:42%}
+ .ux05-table .ux05-share {color:#42636a}
+ .ux05-empty {max-width:1020px;margin:10px auto;color:#5a7072}
+ .context-explorer .ux05-more,.context-explorer .ux05-insight {display:block;margin:10px auto 0;min-height:40px;max-width:1020px;border:1px solid #bad6ca;background:#f1f8f5;color:#075744;font-weight:650;padding:6px 13px}
+ .ux05-primary {margin:0 0 5px}
+ .context-explorer[data-context="general"] .ux04-dimensions {gap:5px;padding:3px 0 6px}
+ .context-explorer[data-context="general"] .ux04-dimensions button {min-height:36px;border-radius:18px;padding:6px 12px;font-size:12px}
+}
+@media screen and (max-width:767px) {
+ body.casur-maestro-premium:not(.print-export) #cronoSection:has(.context-explorer[data-context="general"]) {margin-top:0}
+ body.casur-maestro-premium:not(.print-export) #cronoSection:has(.context-explorer[data-context="general"]) > summary {padding:0 0 5px;margin:0;font-size:12px;min-height:0}
+ body.casur-maestro-premium:not(.print-export) #cronoSection:has(.context-explorer[data-context="general"]) > .accordion-body {padding:2px 0 4px}
+ body.casur-maestro-premium:not(.print-export) #cronoSection:has(.context-explorer[data-context="general"]) .maestro-crono-trail {display:none!important}
+ body.casur-maestro-premium:not(.print-export) #cronoContent:has(.context-explorer[data-context="general"]) .ficha-band {min-height:0!important;padding:10px 12px!important;margin:2px 0 6px!important;border-radius:10px}
+ body.casur-maestro-premium:not(.print-export) #cronoContent:has(.context-explorer[data-context="general"]) .ficha-band h2 {font-size:19px!important;line-height:1.15!important}
+ body.casur-maestro-premium:not(.print-export) #cronoContent:has(.context-explorer[data-context="general"]) .ficha-band small {font-size:10px;line-height:1.3}
+ body.casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] {padding:6px}
+ body.casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] .ux05-explorer {padding:9px 6px;margin:0;border:0}
+ .context-explorer[data-context="general"] .ux05-chips {display:none}
+ .context-explorer[data-context="general"] .ux05-select-label {display:flex;gap:8px;align-items:center;padding:2px 0 6px;font-size:12px;font-weight:700;color:#255b57}
+ .context-explorer[data-context="general"] .ux05-dimension-select {display:block;flex:1;min-width:0;min-height:42px;border:1px solid #bbd4ca;background:white;border-radius:8px;padding:5px 10px;color:#075744;font-weight:650;font-size:14px}
+ .context-explorer[data-context="general"] .ux05-primary button {font-size:11px;min-height:41px}
+ .context-explorer[data-context="general"] .ux05-modes {gap:4px;margin:1px 0 4px}
+ .context-explorer[data-context="general"] .ux05-modes button {font-size:11px;line-height:1.1;min-height:43px;padding:6px 3px}
+ .ux05-explorer .ux05-heading {display:block;margin:0 0 5px}
+ .ux05-heading h3 {font-size:15px;margin:0 0 2px}
+ .ux05-heading .pilot-hint {font-size:10px;line-height:1.3;margin:0}
+ .ux05-filters {margin:0 0 5px}
+ .ux05-filter {width:100%;display:grid;grid-template-columns:auto minmax(0,1fr);font-size:11px}
+ .ux05-category {width:100%;max-width:none;min-height:39px}
+ .ux05-table {font-size:12px}
+ .ux05-table th {font-size:10px;padding:7px 3px}
+ .ux05-table td {padding:9px 3px;line-height:1.3}
+ .ux05-table.ux05-area th:first-child,.ux05-table.ux05-area td:first-child {width:38%}
+ .ux05-table.ux05-estimate th:first-child,.ux05-table.ux05-estimate td:first-child {width:66%}
+ .ux05-table .ux05-num {font-size:12px}
+ .ux05-table .ux05-desktop {display:none}
+ .ux05-table .ux05-mobile-metrics {display:block;margin-top:1px;font-size:10px;font-weight:400;color:#587078;line-height:1.2}
+ .ux05-table .ux05-key {font-size:12px}
+ .ux05-table .ux05-share {font-size:11px}
+}

@@ -37,8 +37,8 @@
     text('maestroMillingArea',fmt(summary.millingArea)+' ha');
     text('maestroSeedArea',fmt(summary.seedArea)+' ha');
     text('maestroPending',summary.pendingMillingArea>0 ? fmt(summary.pendingMillingArea)+' ha de molienda pendientes de estimado utilizable' : '');
-    text('maestroTonsLabel','Toneladas estimadas Z'+(summary.estimateSeason||'N/D'));
-    text('maestroTchLabel','TCH estimado Z'+(summary.estimateSeason||'N/D'));
+    text('maestroTonsLabel','Ton. estimadas Z'+(summary.estimateSeason||'N/D'));
+    text('maestroTchLabel','TCH est. Z'+(summary.estimateSeason||'N/D'));
     const composition=byId('maestroComposition');if(composition)composition.style.setProperty('--milling-share',((summary.millingArea/(summary.millingArea+summary.seedArea)||0)*100)+'%');
     text('maestroCoverage', fmt(summary.coberturaEstimadoAreaPct) + ' % del área de molienda');
     text('maestroCatalog', fmt(summary.catalogLots ?? rows.length, 0));
@@ -526,7 +526,7 @@
         <article class="maestro-kpi"><span>Área válida estimada</span><strong id="maestroEstimateArea">—</strong><small id="maestroEstimateLots"></small></article>
         <article class="maestro-kpi"><span>Toneladas estimadas</span><strong id="maestroEstimateTons">—</strong><small>Molienda con estimado autorizado</small></article>
         <article class="maestro-kpi"><span>TCH estimado</span><strong id="maestroEstimateTch">—</strong><small>Toneladas ÷ área válida estimada</small></article>
-      </div><div class="maestro-population"><span>Catálogo <b id="maestroCatalog">—</b></span><span>Molienda <b id="maestroMilling">—</b></span><span>Semilla <b id="maestroSeed">—</b></span><span id="maestroCoverage"></span></div>`;
+      </div><details class="maestro-population"><summary>Composición del área y cobertura</summary><div class="maestro-population-detail"><span>Catálogo <b id="maestroCatalog">—</b></span><span>Molienda <b id="maestroMilling">—</b></span><span>Semilla <b id="maestroSeed">—</b></span><span id="maestroCoverage"></span></div></details>`;
     home.querySelector('#moduleAccess')?.before(summary);
     const hero=document.createElement('div');hero.className='maestro-summary-hero';
     const copy=home.querySelector('.hero-copy');if(copy){copy.before(hero);hero.append(copy);}
@@ -537,7 +537,7 @@
       ['chart','TCH estimado','maestroEstimateTch','','Toneladas autorizadas divididas por área válida de molienda. Semilla no participa en este denominador.',''],
       ['clock','TCH anterior Z25/26','maestroPreviousTch','','Referencia canónica del Cronológico General: CRONO_DATA.global.tch, zafra anterior 25/26.','']
     ].map(([symbol,label,id,smallId,help,caption],i)=>`<article class="maestro-kpi ${i===0?'maestro-kpi-primary':''}"><div class="maestro-kpi-icon">${icon(symbol)}</div><div class="maestro-kpi-copy"><span ${i===1?'id="maestroTonsLabel"':i===2?'id="maestroTchLabel"':''}>${label}</span> <button type="button" class="maestro-info" popovertarget="maestro-help-${i}" aria-label="Definición de ${label}">${icon('info')}</button><strong id="${id}">—</strong>${smallId||caption?'<small '+(smallId?'id="'+smallId+'"':'')+'>'+caption+'</small>':''}</div><div id="maestro-help-${i}" popover class="maestro-help"><b>${label}</b><p>${help}</p><button type="button" popovertarget="maestro-help-${i}" popovertargetaction="hide">Cerrar</button></div></article>`).join('');
-    summary.querySelector('.maestro-population').innerHTML='<span>Molienda <b id="maestroMillingArea"></b> · <b id="maestroMilling"></b> suertes</span><span>Semilla <b id="maestroSeedArea"></b> · <b id="maestroSeed"></b> suertes</span><span>Catálogo <b id="maestroCatalog"></b></span><span id="maestroCoverage"></span><span id="maestroPending"></span><div id="maestroComposition" aria-label="Composición del área activa: molienda y semilla"></div>';
+    summary.querySelector('.maestro-population').innerHTML='<summary>Composición de área, molienda y semilla</summary><div class="maestro-population-detail"><span>Molienda <b id="maestroMillingArea"></b> · <b id="maestroMilling"></b> suertes</span><span>Semilla <b id="maestroSeedArea"></b> · <b id="maestroSeed"></b> suertes</span><span>Catálogo <b id="maestroCatalog"></b></span><span id="maestroCoverage"></span><span id="maestroPending"></span><div id="maestroComposition" aria-label="Composición del área activa: molienda y semilla"></div></div>';
     const dashboard=document.createElement('section');dashboard.id='maestroDashboard';dashboard.dataset.panel='area';dashboard.innerHTML='<div class="maestro-dashboard-heading"><div><h2>Tablero de análisis general</h2><p>Distribución, rendimientos y consulta de fincas</p></div><button type="button" id="maestroSummaryMulti">Selección múltiple →</button></div><div id="maestroDashboardContent" role="tabpanel"></div>';
     summary.after(dashboard);
     byId('maestroSummaryMulti').onclick=()=>{activate('cronologico');byId('cronoMultiToggle')?.click();};

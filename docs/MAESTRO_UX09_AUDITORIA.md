@@ -21,3 +21,7 @@ Hipótesis: los KPI originales pueden reorganizarse sin alterar el DOM usado par
 Se presenta el orden de KPI de suerte TCH estimado, fecha propuesta, área activa y edad actual mediante CSS; los nodos originales permanecen para exportación. Variedad continúa en cabecera y TCH previo en información técnica. Se añadió resumen productivo de finca a partir de `summary()` y resumen de aforo con fuente. El ranking de fincas permite ordenar por toneladas, TCH o área válida sin cambiar cálculos.
 
 Prueba local `tools/qa-maestro-ux09-smoke.cjs` (servidor loopback puerto 4401): Pansaco 359,30 ha molienda, 9,14 ha semilla; orden de cuatro KPI 99336 y tres criterios de ranking. Son comprobaciones parciales: pendientes cobertura de ausencia/semilla/cero, filtros y retorno con navegación real, drill-down completo, todos los anchos, GIS/exportaciones/PWA e integración de otros submódulos. No se afirma aprobación visual ni implementación completa.
+
+## Continuidad de consulta
+
+El directorio de finca conserva la cadena de búsqueda en el estado del explorador al volver desde una suerte. Prueba local de ida y vuelta Pansaco → 99336 → Pansaco con filtro retenido: PASS. Los tres criterios del ranking se contrastaron con sus valores de la tabla: PASS. La prueba cubre Chromium móvil y no sustituye la batería integral ni el control del contenido exportado.

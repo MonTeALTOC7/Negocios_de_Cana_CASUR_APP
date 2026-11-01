@@ -95,10 +95,10 @@
     dialog.addEventListener('close',()=>{onClose?.();dialog.remove();if(focus?.isConnected)focus.focus();},{once:true});document.body.append(dialog);dialog.showModal();return dialog;
   }
   function chooseControl(label,options,value,onChange){const wrap=el('label','context-control',label),select=el('select');select.setAttribute('aria-label',label);options.forEach(([key,name])=>{const option=el('option','',name);option.value=key;select.append(option);});select.value=value;select.onchange=()=>onChange(select.value);wrap.append(select);return wrap;}
-  function directory(rows,farm=false){
-    const wrap=el('div','context-directory'),input=el('input');input.type='search';input.placeholder=farm?'Buscar suerte…':'Buscar finca o zona…';input.setAttribute('aria-label',input.placeholder);const list=el('div','context-results');let limit=8;
+  function directory(rows,farm=false,state=null){
+    const wrap=el('div','context-directory'),input=el('input');input.type='search';input.placeholder=farm?'Buscar suerte…':'Buscar finca o zona…';input.setAttribute('aria-label',input.placeholder);input.value=state?.directoryQuery||'';const list=el('div','context-results');let limit=8;
     const render=()=>{list.replaceChildren();const q=input.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();const items=farm?rows:window.CRONO_DATA.producers.filter(p=>p.details.some(r=>rows.includes(r)));const matches=items.filter(r=>[r.codLote,r.name,r.code,r.zone,r.variedad].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q));
-      matches.slice(0,limit).forEach(r=>{const b=button(farm?'Suerte '+r.codLote:r.name+' · '+r.code,()=>{wrap.closest('dialog')?.close();if(farm)window.selectCronoSuerteSuggestion(String(r.code),String(r.suerte));else window.renderCronoProducer(String(r.code));});b.append(el('small','',farm?(r.variedad||'Sin variedad'):r.zone));list.append(b);});list.append(el('small','',Math.min(limit,matches.length)+' de '+matches.length+' resultados'));if(matches.length>limit)list.append(button('Mostrar más',()=>{limit+=8;render();}));};input.oninput=()=>{limit=8;render();};wrap.append(input,list);render();return wrap;
+      matches.slice(0,limit).forEach(r=>{const b=button(farm?'Suerte '+r.codLote:r.name+' · '+r.code,()=>{wrap.closest('dialog')?.close();if(farm)window.selectCronoSuerteSuggestion(String(r.code),String(r.suerte));else window.renderCronoProducer(String(r.code));});b.append(el('small','',farm?(r.variedad||'Sin variedad'):r.zone));list.append(b);});list.append(el('small','',Math.min(limit,matches.length)+' de '+matches.length+' resultados'));if(matches.length>limit)list.append(button('Mostrar más',()=>{limit+=8;render();}));};input.oninput=()=>{if(state)state.directoryQuery=input.value;limit=8;render();};wrap.append(input,list);render();return wrap;
   }
   // Group only the rows that actually belong to the active scope; a producer can
   // appear in several categories without making counts additive across them.
@@ -159,7 +159,7 @@
       if(state.scope.length)crumbs.append(button('Volver',()=>{const previous=state.scope.pop();state.dimension=previous.field;state.pilotTab='zona';render();}),button('Limpiar ámbito',()=>{state.scope=[];render();}));
       dimension.hidden=secondary.hidden=['directory','map'].includes(state.objective);
       if(mapPanel){mapPanel.classList.toggle('maestro-panel-inactive',state.objective!=='map');if(state.objective==='map'){requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));return;}}
-      if(state.objective==='directory'){content.append(tabsMode?scopedFarmDirectory(scoped,false,state):directory(scoped,farm));if(table)content.append(button('Tabla técnica · 18 columnas',()=>showOriginalTable(table)));return;}
+      if(state.objective==='directory'){content.append(tabsMode?scopedFarmDirectory(scoped,false,state):directory(scoped,farm,state));if(table)content.append(button('Tabla técnica · 18 columnas',()=>showOriginalTable(table)));return;}
       const groups=engine().agronomicGroups(scoped,state.dimension).slice().sort((a,b)=>b.area-a.area),summary=engine().summary(scoped),total=groups.reduce((sum,g)=>sum+g.area,0);board.dataset.groups=JSON.stringify(groups);board.dataset.summary=JSON.stringify(summary);
       if(tabsMode){
         // UX 06: same official grouping engine; mobile-first presentation only.

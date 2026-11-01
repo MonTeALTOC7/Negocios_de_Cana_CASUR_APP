@@ -16,7 +16,7 @@
     "core/updates/activity-guard.js": "ac1a31b305a32b6882702ad9dc7a8ca0d4a3f16b9d09d8a781243385557deb53",
     "core/updates/context-store.js": "d98356363d7fa986eef90374b2188dd1374dcd5a5024fd5ab5fdde28bb704091",
     "core/updates/pwa-update.js": "634a5a924ca2f5c6827ea42fffb88a98d559b3f021250348e0ae94024f403f2c",
-    "core/versions/versions.js": "0a27552e97c2dc6432848a03ca636c8b35a1a4014e073ca817bce1e7ed922ea7",
+    "core/versions/versions.js": "3403a225cdbde8e0cbdd5b002735fbf3e12877c176d75575080c7e96023b2b25",
     "index.html": "15170b90374b2980f46aaacc4a3fd477e31d8ca002b5db0fdbd597160326e633",
     "master/adapters/master-to-riego-adapter.js": "03d74311246216895bcae85fa3401d9e1fb32d99b0b9f8f4ff8e25c0056977a9",
     "master/adapters/production-data-adapter.js": "f1922e3e6af02aa3fd22b46717037106d6696f68416540b6531d7bfba2f6adb9",

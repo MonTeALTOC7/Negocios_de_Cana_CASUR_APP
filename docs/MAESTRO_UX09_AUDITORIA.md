@@ -31,3 +31,9 @@ El directorio de finca conserva la cadena de búsqueda en el estado del explorad
 El ranking de Estimados permite abrir un directorio de suertes del subconjunto efectivamente filtrado antes de consultar la finca o suerte. En Chromium móvil se comprobó que cerrar el diálogo preserva ámbito y orden; aún falta verificar retorno desde ficha de suerte al mismo ámbito y posición.
 
 Validaciones ejecutadas: Producción 212 PASS y 22 controles estáticos; TCH 92 PASS. `node --test tests/*.test.mjs`: 95 PASS y 1 FAIL (`sw-iframe-redirect.test.mjs`), cuyo patrón de extracción usa saltos LF mientras el archivo de trabajo Windows tiene CRLF; la función existe en el SW base. No se alteró el SW ni el test. `qa-maestro-ficha-p0` falla por esperar seis KPI visibles, cuando UX09 pide cuatro; no se ha eliminado su aserción. `qa-maestro-ux05` no ejecutó por servidor 4398 no disponible. Estas fallas no acreditan regresión funcional por sí mismas pero deben resolverse o validarse antes de CI/entrega. Falta la batería completa PC/móvil, mapas, exportadores, PWA y retorno contextual integral.
+
+## Revisión posterior a 3fa64b7
+
+Se normalizaron CRLF/LF al extraer el helper del Service Worker en la prueba, sin cambiar el SW: batería raíz 98/98 PASS. Se actualizó el contrato P0 para exigir seis nodos originales y cuatro visibles en orden UX09, verificar el TCH anterior secundario y conservar todas las pruebas de mapa, gráfico y descargas: PASS. La prueba del directorio del ámbito pasó; se separó su búsqueda por dimensión/categoría/finca para evitar contaminación entre contextos.
+
+`qa-maestro-ux05` se ejecutó con el servidor 4398 y falló esperando un botón «Zona» que la interfaz UX07 reemplazó en móvil por un selector; debe actualizarse sin perder las aserciones. Pendientes: retorno desde suerte al mismo ámbito/posición, batería de interacciones y capturas integral en todos los anchos, Historico/multiselección/PWA y PR/preview. No se considera candidato terminado.

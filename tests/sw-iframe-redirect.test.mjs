@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 // Regression for Cloudflare-style redirects on /modules/*/index.html.
 // Chromium cannot safely consume a cached redirected HTML navigation as an iframe.
-const sw = fs.readFileSync('sw.js','utf8');
+const sw = fs.readFileSync('sw.js','utf8').replace(/\r\n/g,'\n');
 const part = sw.match(/function normalizeNavigationRedirect\(response\) \{[\s\S]*?\n\}\n(?=async function installedNavigation)/)?.[0];
 assert.ok(part,'Navigation response normalizer must exist');
 const normalize = vm.runInNewContext(part+'\nnormalizeNavigationRedirect', {Response,Headers});

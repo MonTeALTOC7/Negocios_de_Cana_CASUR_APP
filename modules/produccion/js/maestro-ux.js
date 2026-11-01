@@ -226,7 +226,7 @@
             .sort((a,b)=>estimate?(rankValue(b)??-Infinity)-(rankValue(a)??-Infinity)||b.summary.estimateArea-a.summary.estimateArea:b.area-a.area||a.producer.name.localeCompare(b.producer.name,'es')).slice(0,10);
           resultCount=farms.length;
           farms.forEach(x=>row(x.producer.name+' · '+x.producer.code,estimate?x.summary.estimateArea:x.area,x.summary.estimateTons,x.summary.estimateTch,pct(x.area),
-            ()=>{if(!estimate){window.renderCronoProducer(String(x.producer.code));return;}const detail=el('section','ux09-scoped-lots');detail.append(el('p','','Ámbito: '+label+(state.category&&state.category!=='__all__'?' · '+state.category:'')+(state.detailValue?' · '+state.detailValue:'')+' · '+x.producer.name+' · '+fmt(x.summary.estimateArea)+' ha válidas · '+fmt(x.summary.estimateTons)+' t · '+fmt(x.summary.estimateTch)+' TCH'),button('Abrir ficha de finca',()=>{detail.closest('dialog')?.close();window.renderCronoProducer(String(x.producer.code));}),directory(x.rows,true,(()=>{state.lotQueries??={};const key=JSON.stringify([state.dimension,state.category,state.detailField,state.detailValue,x.producer.code]);return state.lotQueries[key]??=( {} );})(),()=>{ux09ReturnContext={state:structuredClone(state),scroll:window.scrollY};}));openDrawer('Suertes del ámbito · '+x.producer.name,detail);},'Finca, '+fmt(x.area)+' ha'));
+            ()=>{if(!estimate){window.renderCronoProducer(String(x.producer.code));return;}const detail=el('section','ux09-scoped-lots');detail.append(el('p','','Ámbito: '+label+(state.category&&state.category!=='__all__'?' · '+state.category:'')+(state.detailValue?' · '+state.detailValue:'')+' · '+x.producer.name+' · '+fmt(x.summary.estimateArea)+' ha válidas · '+fmt(x.summary.estimateTons)+' t · '+fmt(x.summary.estimateTch)+' TCH'),button('Abrir ficha de finca',()=>{ux09ReturnContext={state:structuredClone(state),scroll:window.scrollY,producer:String(x.producer.code)};detail.closest('dialog')?.close();window.renderCronoProducer(String(x.producer.code));}),directory(x.rows,true,(()=>{state.lotQueries??={};const key=JSON.stringify([state.dimension,state.category,state.detailField,state.detailValue,x.producer.code]);return state.lotQueries[key]??=( {} );})(),()=>{ux09ReturnContext={state:structuredClone(state),scroll:window.scrollY};}));openDrawer('Suertes del ámbito · '+x.producer.name,detail);},'Finca, '+fmt(x.area)+' ha'));
         }else{
           const key=mode==='zones'?(field==='zona'?'variedad':'zona'):field;
           const gr=groupsFor(items,key),display=state.expanded?gr:gr.slice(0,6);resultCount=gr.length;
@@ -286,6 +286,7 @@
     if (!views.some(v => v[0] === view) || !allowed(view)) return false;
     if (options.remember !== false && active !== view) positions.set(active, window.scrollY);
     const firstCrono = view === 'cronologico' && !cronoVisited;
+    if(view!=='cronologico')ux09ReturnContext=null;
     active = view;
     document.body.dataset.maestroView = view;
     document.querySelectorAll('[data-maestro-tab]').forEach(button => {
@@ -560,10 +561,10 @@
     const trail = document.createElement('div'); trail.className = 'maestro-crono-trail no-print export-excluded'; trail.dataset.exportExclude = 'true';
     trail.innerHTML = '<div><button type="button" id="maestroGeneral">General CASUR</button><button type="button" id="maestroZone" hidden>Zona</button><span aria-hidden="true"> / </span><b id="maestroCronoLocation">General CASUR</b></div><button type="button" id="maestroBackFarm" hidden>Volver a la finca</button>';
     byId('cronoSection')?.querySelector('.accordion-body')?.prepend(trail);
-    byId('maestroGeneral').addEventListener('click', () => { window.renderCronoHome?.(); updateTrail(); });
+    byId('maestroGeneral').addEventListener('click', () => { ux09ReturnContext=null;window.renderCronoHome?.(); updateTrail(); });
     byId('maestroCronoLocation').before(byId('maestroBackFarm'));
     const contextualBack=presentation(button('Volver al análisis',()=>{if(!ux09ReturnContext)return;const saved=ux09ReturnContext;ux09ReturnContext=null;explorerStates.set('general',saved.state);window.renderCronoHome();requestAnimationFrame(()=>window.scrollTo({top:saved.scroll,behavior:'instant'}));}));contextualBack.id='ux09ReturnAnalysis';contextualBack.hidden=true;byId('maestroCronoLocation').before(contextualBack);
-    new MutationObserver(()=>{contextualBack.hidden=!(ux09ReturnContext&&byId('cronoContent').dataset.geoScope==='lot');}).observe(byId('cronoContent'),{childList:true,subtree:true,attributes:true,attributeFilter:['data-geo-scope']});
+    new MutationObserver(()=>{contextualBack.hidden=!(ux09ReturnContext&&['lot','farm'].includes(byId('cronoContent').dataset.geoScope));}).observe(byId('cronoContent'),{childList:true,subtree:true,attributes:true,attributeFilter:['data-geo-scope']});
 
     byId('maestroBackFarm').addEventListener('click', () => { const code = byId('cronoProducerSelect')?.value; if (code) window.renderCronoProducer?.(code); });
 

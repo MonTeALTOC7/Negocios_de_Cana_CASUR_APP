@@ -725,3 +725,71 @@
  }
  .context-explorer[data-context="general"] .ux05-table td {padding-top:8px;padding-bottom:8px}
 }
+
+/* UX 08 — QA móvil: corregir tercera columna fantasma, densidad y lectura TCH.
+   Solo presentación de Cronológico General y Resumen; no toca informes. */
+@media screen and (max-width:600px) {
+ .casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] .ux05-table.ux05-area th:nth-child(3),
+ .casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] .ux05-table.ux05-area td:nth-child(3) {
+   display:none!important;
+ }
+ .casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] .ux05-table.ux05-area th:first-child,
+ .casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] .ux05-table.ux05-area td:first-child {
+   width:39%;
+ }
+ .casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] .ux05-table.ux05-area th:nth-child(2),
+ .casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] .ux05-table.ux05-area td:nth-child(2) {
+   width:61%;text-align:right;
+ }
+ .casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] .ux05-table.ux05-area .ux07-area-share {
+   white-space:nowrap;display:inline;font-size:11px;
+ }
+ .casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] .ux05-table.ux05-area .ux05-value {
+   white-space:nowrap;font-size:11.5px;letter-spacing:-.1px;
+ }
+ .casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] .ux05-table.ux05-area .ux05-key {
+   overflow-wrap:anywhere;
+ }
+ .casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] .ux05-table .ux05-mobile-metrics {
+   font-size:11px;line-height:1.28;
+ }
+ .casur-maestro-premium:not(.print-export) .context-explorer[data-context="general"] .ux05-heading .pilot-hint {
+   font-size:11px;line-height:1.35;
+ }
+ .casur-maestro-premium:not(.print-export) #cronoSection .searchbox {
+   margin-top:3px;margin-bottom:3px;
+ }
+ .casur-maestro-premium:not(.print-export) #cronoSection .context-search-options {
+   margin-top:0;margin-bottom:5px;
+ }
+ .casur-maestro-premium:not(.print-export) #cronoSection .context-search-options > summary {
+   padding:5px 2px;min-height:33px;line-height:1.2;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection #maestroDashboard {
+   padding:9px 10px;border-radius:10px;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-dashboard-heading {
+   gap:5px;margin-bottom:4px;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-dashboard-heading h2 {
+   font-size:15px!important;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-dashboard-heading p {
+   margin:2px 0;font-size:11px;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection #maestroDashboardContent {
+   margin-top:4px;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection #maestroDashboardContent .ux04-summary-insight {
+   padding:9px 10px;border-radius:8px;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection #maestroDashboardContent .ux04-summary-insight h3 {
+   margin-bottom:4px;font-size:13px;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection #maestroDashboardContent .ux04-summary-insight p {
+   margin:5px 0;font-size:11px;line-height:1.35;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection #maestroDashboardContent .ux04-summary-insight button {
+   min-height:38px;padding:7px 11px;
+ }
+}

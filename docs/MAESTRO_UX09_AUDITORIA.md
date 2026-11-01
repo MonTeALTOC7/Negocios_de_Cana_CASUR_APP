@@ -37,3 +37,9 @@ Validaciones ejecutadas: Producción 212 PASS y 22 controles estáticos; TCH 92 
 Se normalizaron CRLF/LF al extraer el helper del Service Worker en la prueba, sin cambiar el SW: batería raíz 98/98 PASS. Se actualizó el contrato P0 para exigir seis nodos originales y cuatro visibles en orden UX09, verificar el TCH anterior secundario y conservar todas las pruebas de mapa, gráfico y descargas: PASS. La prueba del directorio del ámbito pasó; se separó su búsqueda por dimensión/categoría/finca para evitar contaminación entre contextos.
 
 `qa-maestro-ux05` se ejecutó con el servidor 4398 y falló esperando un botón «Zona» que la interfaz UX07 reemplazó en móvil por un selector; debe actualizarse sin perder las aserciones. Pendientes: retorno desde suerte al mismo ámbito/posición, batería de interacciones y capturas integral en todos los anchos, Historico/multiselección/PWA y PR/preview. No se considera candidato terminado.
+
+## QA posterior a a3685f4
+
+Retorno contextual explícito desde Suerte al análisis de Estimados, conservando estado de agrupación y criterio y recuperando posición. Prueba Chromium 390 y 1536: PASS para el recorrido zona → agrupación → ranking → suerte → volver. La búsqueda de suertes por ámbito queda separada por clave compuesta. `qa-maestro-ux05` adaptada al selector móvil y las tablas semánticas vigentes; seis resoluciones PASS. Batería raíz 98/98 PASS; prueba P0 de ficha adaptada al contrato de cuatro KPI visibles y seis nodos originales PASS.
+
+Alcance no verificado todavía: datos sin geometría, cero/N/D y filtros cruzados en más fincas al regresar; rendimiento y mapas en todos los anchos; análisis de programación y comprobación semántica exhaustiva de Histórico/Zonas/Análisis. El retorno se comprobó con una ruta, no acredita todos los casos. No se debe considerar completado el Issue hasta cerrar esos casos y la regresión integral.

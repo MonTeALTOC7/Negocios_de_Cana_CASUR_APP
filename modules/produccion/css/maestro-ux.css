@@ -596,3 +596,132 @@
  .ux05-table .ux05-key {font-size:12px}
  .ux05-table .ux05-share {font-size:11px}
 }
+
+/* UX 07 — Summary and Cronológico designed for phone, without ornamental height.
+   Screen-only selectors deliberately exclude print/export and farm/lot cards. */
+@media screen {
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero {
+   min-height:0;align-items:stretch;gap:9px;padding:14px 16px;box-sizing:border-box;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero h2 {
+   font-size:clamp(20px,2.1vw,28px)!important;line-height:1.17;margin:0;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero p {
+   font-size:12px;line-height:1.3;margin:5px 0 0;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero .maestro-source {
+   display:block;min-width:0;max-width:360px;box-sizing:border-box;
+   padding:0;border:1px solid #ffffff70;border-radius:8px;background:#ffffffed;
+   color:#17423d;font-size:11px;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-source > summary {
+   list-style:none;display:flex;align-items:center;gap:8px;justify-content:space-between;
+   padding:8px 10px;min-height:0;cursor:pointer;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-source > summary::-webkit-details-marker {display:none}
+ .maestro-source-disclosure {white-space:nowrap;color:#416d64;font-weight:600;font-size:10px}
+ .maestro-source-disclosure::after {content:'⌄';margin-left:3px}
+ .maestro-source[open] .maestro-source-disclosure::after {content:'⌃'}
+ .maestro-source-details {display:flex;flex-wrap:wrap;gap:5px 10px;padding:7px 10px 9px;border-top:1px solid #d9e7e1;overflow-wrap:anywhere}
+ .maestro-source-details > * {flex:1 1 140px;min-width:0;font-size:11px}
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-kpis {
+   display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;
+   gap:7px;margin:8px 0 0;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-kpi {
+   min-height:0!important;align-self:start;height:auto;box-sizing:border-box;
+   padding:10px 11px;gap:8px;display:flex;flex-direction:row;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-kpi .maestro-kpi-icon {
+   padding:5px;flex:0 0 auto;border-radius:8px;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-kpi .maestro-icon {
+   width:17px;height:17px;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-kpi-copy > span {
+   display:inline;font-size:11px;line-height:1.22;font-weight:700;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-kpi-copy strong {
+   display:block;margin-top:5px;font-size:clamp(19px,2vw,25px);line-height:1.15;
+   overflow-wrap:normal;word-break:normal;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-kpi-copy small {
+   display:block;margin-top:4px;font-size:10px;line-height:1.2;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-info {
+   display:inline-flex;align-items:center;justify-content:center;
+   min-width:27px;min-height:27px;vertical-align:middle;margin:-5px 0;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-population {
+   display:block;min-height:0;padding:0;margin:8px 0 12px;border:1px solid #dae7e2;border-radius:8px;
+   background:#fff;color:#365960;font-size:11px;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-population > summary {
+   cursor:pointer;padding:9px 12px;font-weight:700;list-style-position:inside;min-height:0;
+ }
+ .maestro-population-detail {padding:0 12px 10px;display:flex;flex-wrap:wrap;gap:5px 12px}
+ .maestro-population-detail span {font-size:11px}
+ .casur-maestro-premium:not(.print-export) #homeSection #maestroComposition {display:none}
+ .context-explorer[data-context="general"] .ux07-area-share {display:none}
+}
+@media screen and (max-width:600px) {
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero {
+   padding:11px 12px;gap:6px;border-radius:10px;margin:0;
+   display:flex;flex-direction:column;align-items:stretch;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero h2 {
+   font-size:20px!important;line-height:1.16;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero p {
+   margin:3px 0 0;font-size:11px;line-height:1.2;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero .maestro-source {
+   width:100%;max-width:none;font-size:10px;border-radius:7px;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-source > summary {
+   padding:7px 9px;font-size:10px;line-height:1.2;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-kpis {gap:6px;margin-top:7px}
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-kpi {
+   display:block;padding:9px 9px!important;min-height:0!important;
+   height:auto!important;align-self:start;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-kpi .maestro-kpi-icon {
+   display:none;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-kpi-copy > span {
+   font-size:10.5px;line-height:1.2;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-kpi-copy strong {
+   font-size:clamp(18px,5vw,22px);line-height:1.14;margin-top:5px;
+   font-variant-numeric:tabular-nums;letter-spacing:-.45px;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-kpi-copy small {
+   font-size:10px;margin-top:3px;
+ }
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-population {margin:7px 0 9px}
+ .casur-maestro-premium:not(.print-export) #homeSection .maestro-population > summary {padding:7px 9px}
+ /* Keep the actual search controls available; condense only the analytical hero. */
+ .casur-maestro-premium:not(.print-export) .maestro-general-hero {
+   padding:9px 12px!important;margin:4px 0 6px!important;border-radius:10px;
+ }
+ .casur-maestro-premium:not(.print-export) .maestro-general-hero h2 {
+   font-size:19px!important;line-height:1.15;margin:0 0 3px!important;
+ }
+ .casur-maestro-premium:not(.print-export) .maestro-general-hero p {font-size:11px;line-height:1.25;margin:0}
+ .context-explorer[data-context="general"] .ux05-explorer .ux05-heading {margin:3px 0 5px}
+ .context-explorer[data-context="general"] .ux05-explorer .ux05-heading h3 {font-size:14px}
+ .context-explorer[data-context="general"] .ux05-explorer .ux05-heading .pilot-hint {font-size:10px}
+ .context-explorer[data-context="general"] .ux05-table.ux05-area th:first-child,
+ .context-explorer[data-context="general"] .ux05-table.ux05-area td:first-child {width:44%}
+ .context-explorer[data-context="general"] .ux05-table.ux05-area .ux07-share-col {display:none}
+ .context-explorer[data-context="general"] .ux05-table.ux05-area th:nth-child(2) {font-size:0}
+ .context-explorer[data-context="general"] .ux05-table.ux05-area th:nth-child(2)::after {content:'Ha y %';font-size:10px}
+ .context-explorer[data-context="general"] .ux05-table.ux05-area .ux05-value {
+   font-size:12px;white-space:normal;text-align:right;line-height:1.2
+ }
+ .context-explorer[data-context="general"] .ux05-table.ux05-area .ux07-area-share {
+   display:inline;font-size:10px;font-weight:500;color:#50726d;
+ }
+ .context-explorer[data-context="general"] .ux05-table td {padding-top:8px;padding-bottom:8px}
+}

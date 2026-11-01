@@ -10,7 +10,7 @@ export const APP_CHANNEL = 'GitHub Pages';
 
 // Historial de código instalado, independiente de las publicaciones SIAGRI/GEO.
 export const PRODUCTION_RELEASES = [
-  {id:'produccion',moduleVersion:'V1.8.0',historicalVersion:'V2.9',appVersion:'1.5.3',type:'MINOR',publishedAt:null,
+  {id:'produccion',moduleVersion:'V1.8.0',historicalVersion:'V2.9',appVersion:'1.5.4',type:'MINOR',publishedAt:null,
    changes:['Maestro por pestañas con Resumen ejecutivo y navegación de consultas conservando selecciones.','Dos presentaciones visuales, composición responsive y accesos a las fichas originales; métricas, gráficos y exportadores conservados.']},
   {id:'produccion',moduleVersion:'V1.7.2',historicalVersion:'V2.9',appVersion:'1.5.2',type:'PATCH',publishedAt:null,
    changes:['Restaura el contexto después de inicializar datos y controles, sin consumirlo antes de tiempo.','Conserva selecciones y periodo histórico; informa de entidades ausentes y de la limitación legacy sin alterar datos.']},

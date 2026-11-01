@@ -15,12 +15,12 @@ function captured(source, pattern, label) {
   return value;
 }
 
-test("la versión 1.5.3 coincide en la fuente canónica, el SW y el fallback HTML", () => {
+test("la versión 1.5.4 coincide en la fuente canónica, el SW y el fallback HTML", () => {
   const canonical = captured(versions, /export const APP_VERSION = ['"]([^'"]+)['"];/, "APP_VERSION canónica");
   const sw = captured(serviceWorker, /const APP_VERSION = ['"]([^'"]+)['"];/, "APP_VERSION del Service Worker");
   const fallback = captured(index, /id="appVersion">v([^<]+)</, "versión fallback de index.html");
-  assert.equal(canonical, "1.5.3");
-  assert.deepEqual([canonical, sw, fallback], ["1.5.3", "1.5.3", "1.5.3"]);
+  assert.equal(canonical, "1.5.4");
+  assert.deepEqual([canonical, sw, fallback], ["1.5.4", "1.5.4", "1.5.4"]);
 });
 
 test("Maestro de Suertes muestra V1.8.0 de forma consistente sin alterar otros módulos", () => {
@@ -29,7 +29,7 @@ test("Maestro de Suertes muestra V1.8.0 de forma consistente sin alterar otros m
   assert.match(registry, /name: 'Maestro de Suertes'[\s\S]*?version: 'V1\.8\.0'/);
   assert.match(productionVersion, /^V1\.8\.0 CASUR/m);
   assert.equal(productionPackage.version, "1.8.0");
-  assert.match(index, /id="appVersion">v1\.5\.3</);
+  assert.match(index, /id="appVersion">v1\.5\.4</);
   assert.match(versions, /tch: '2\.8\.1'/);
 });
 

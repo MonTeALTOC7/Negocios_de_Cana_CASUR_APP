@@ -25,3 +25,9 @@ Prueba local `tools/qa-maestro-ux09-smoke.cjs` (servidor loopback puerto 4401): 
 ## Continuidad de consulta
 
 El directorio de finca conserva la cadena de búsqueda en el estado del explorador al volver desde una suerte. Prueba local de ida y vuelta Pansaco → 99336 → Pansaco con filtro retenido: PASS. Los tres criterios del ranking se contrastaron con sus valores de la tabla: PASS. La prueba cubre Chromium móvil y no sustituye la batería integral ni el control del contenido exportado.
+
+## Seguimiento de implementación y QA
+
+El ranking de Estimados permite abrir un directorio de suertes del subconjunto efectivamente filtrado antes de consultar la finca o suerte. En Chromium móvil se comprobó que cerrar el diálogo preserva ámbito y orden; aún falta verificar retorno desde ficha de suerte al mismo ámbito y posición.
+
+Validaciones ejecutadas: Producción 212 PASS y 22 controles estáticos; TCH 92 PASS. `node --test tests/*.test.mjs`: 95 PASS y 1 FAIL (`sw-iframe-redirect.test.mjs`), cuyo patrón de extracción usa saltos LF mientras el archivo de trabajo Windows tiene CRLF; la función existe en el SW base. No se alteró el SW ni el test. `qa-maestro-ficha-p0` falla por esperar seis KPI visibles, cuando UX09 pide cuatro; no se ha eliminado su aserción. `qa-maestro-ux05` no ejecutó por servidor 4398 no disponible. Estas fallas no acreditan regresión funcional por sí mismas pero deben resolverse o validarse antes de CI/entrega. Falta la batería completa PC/móvil, mapas, exportadores, PWA y retorno contextual integral.

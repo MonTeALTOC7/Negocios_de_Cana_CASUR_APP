@@ -162,7 +162,7 @@
       state.scope.forEach((filter,index)=>crumbs.append(button((tabsMode||farm)?(dimensions.find(d=>d[0]===filter.field)?.[1]||filter.field)+': '+filter.key:filter.key,()=>{state.scope=state.scope.slice(0,index+1);state.dimension=farm?filter.field:(filter.field==='zona'?'variedad':'zona');render();})));
       if(state.scope.length)crumbs.append(button('Volver',()=>{const previous=state.scope.pop();state.dimension=previous.field;if(farm)state.objective='area';state.pilotTab='zona';render();}),button('Limpiar ámbito',()=>{state.scope=[];render();}));
       dimension.hidden=['directory','map'].includes(state.objective);secondary.hidden=['directory','map'].includes(state.objective);if(farm)toolbar.hidden=['directory','map'].includes(state.objective);
-      if(mapPanel){mapPanel.classList.toggle('maestro-panel-inactive',state.objective!=='map');if(state.objective==='map'){requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));return;}}
+      if(mapPanel){mapPanel.classList.toggle('maestro-panel-inactive',state.objective!=='map');if(state.objective==='map'){requestAnimationFrame(()=>{window.dispatchEvent(new Event('resize'));mapPanel.dispatchEvent(new Event('casur:map-visible'));});return;}}
       if(state.objective==='directory'){content.append(tabsMode?scopedFarmDirectory(scoped,false,state):directory(scoped,farm,state));if(table)content.append(button('Tabla técnica · 18 columnas',()=>showOriginalTable(table)));return;}
       if(farm&&!farmDimensions.length){content.append(el('p','context-hint','No hay variables con categorías suficientes para comparar en esta finca.'));return;}
       const groups=engine().agronomicGroups(scoped,state.dimension).slice().sort((a,b)=>b.area-a.area),summary=engine().summary(scoped),total=groups.reduce((sum,g)=>sum+g.area,0);board.dataset.groups=JSON.stringify(groups);board.dataset.summary=JSON.stringify(summary);
@@ -207,16 +207,17 @@
         const activeAreaInScope=engine().agronomicGroups(items,'zona').reduce((sum,group)=>sum+group.area,0);
         const pct=n=>activeAreaInScope>0?fmt(n/activeAreaInScope*100)+' %':'N/D';
         const table=el('table','ux05-table '+(estimate?'ux05-estimate':'ux05-area')),thead=el('thead'),hdr=el('tr');
-        (estimate?['Grupo','TCH (t/ha)','Ha válidas','Toneladas']:['Categoría','Área (ha)','% del ámbito']).forEach((x,i)=>{const th=el('th','',x);th.scope='col';if(i>0)th.className='ux05-num'+(estimate&&i>=2?' ux05-desktop':'');hdr.append(th);});
+        (estimate?['Grupo','TCH (t/ha)','Ha válidas','Toneladas']:['Categoría','Área (ha)','Participación (%)']).forEach((x,i)=>{const th=el('th','',x);th.scope='col';if(i>0)th.className='ux05-num'+(estimate&&i>=2?' ux05-desktop':'');hdr.append(th);});
         thead.append(hdr);table.append(thead);
         const tbody=el('tbody');table.append(tbody);
+        let displayedArea=0;
         const row=(title,area,tons,tch,share,onOpen,tooltip)=>{
+          if(!estimate&&Number.isFinite(area))displayedArea+=area;
           const tr=el('tr','ux05-row');tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label',title+'. '+tooltip+'. Abrir detalle');
           tr.onclick=onOpen;tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onOpen();}};
           const key=el('td','ux05-key');key.append(el('span','',title));
           if(estimate)key.append(el('small','ux05-mobile-metrics',fmt(area)+' ha válidas · '+fmt(tons)+' t'));
           const mainValue=el('td','ux05-num ux05-value',estimate?fmt(tch):fmt(area));
-          if(!estimate)mainValue.append(el('span','ux07-area-share',' ha · '+share));
           tr.append(key,mainValue);
           if(estimate)tr.append(el('td','ux05-num ux05-desktop',fmt(area)),el('td','ux05-num ux05-desktop',fmt(tons)));
           else tr.append(el('td','ux05-num ux07-share-col',share));
@@ -233,16 +234,18 @@
             ()=>{if(!estimate){window.renderCronoProducer(String(x.producer.code));return;}const detail=el('section','ux09-scoped-lots');detail.append(el('p','','Ámbito: '+label+(state.category&&state.category!=='__all__'?' · '+state.category:'')+(state.detailValue?' · '+state.detailValue:'')+' · '+x.producer.name+' · '+fmt(x.summary.estimateArea)+' ha válidas · '+fmt(x.summary.estimateTons)+' t · '+fmt(x.summary.estimateTch)+' TCH'),button('Abrir ficha de finca',()=>{ux09ReturnContext={state:structuredClone(state),scroll:window.scrollY,producer:String(x.producer.code)};detail.closest('dialog')?.close();window.renderCronoProducer(String(x.producer.code));}),directory(x.rows,true,(()=>{state.lotQueries??={};const key=JSON.stringify([state.dimension,state.category,state.detailField,state.detailValue,x.producer.code]);return state.lotQueries[key]??=( {} );})(),()=>{ux09ReturnContext={state:structuredClone(state),scroll:window.scrollY};}));openDrawer('Suertes del ámbito · '+x.producer.name,detail);},'Finca, '+fmt(x.area)+' ha'));
         }else{
           const key=mode==='zones'?(field==='zona'&&!estimate?'variedad':'zona'):field;
-          const gr=groupsFor(items,key),display=state.expanded?gr:gr.slice(0,6);resultCount=gr.length;
+          const gr=groupsFor(items,key),display=!estimate||state.expanded?gr:gr.slice(0,6);resultCount=gr.length;
           display.forEach(g=>row(g.key,estimate?g.estimateArea:g.area,g.estimateTons,g.estimateTch,pct(g.area),()=>{
             if(mode==='general'){state.category=g.key;state.mode=estimate&&field==='zona'?'farms':'zones';state.detailField=null;state.detailValue=null;}
             else{state.detailField=key;state.detailValue=g.key;state.mode='farms';}
             state.expanded=false;render();
           },'Área '+fmt(g.area)+' ha'));
         }
-        if(!resultCount)compact.append(el('p','ux05-empty','Sin resultados válidos para este ámbito.'));
+        if(!estimate){const foot=el('tfoot'),tr=el('tr','ux06-area-total'),name=el('th','','TOTAL');name.scope='row';tr.append(name,el('td','ux05-num',fmt(displayedArea)),el('td','ux05-num',pct(displayedArea)));foot.append(tr);table.append(foot);if(!resultCount)compact.append(el('p','ux05-empty','Sin área activa para este ámbito; participación N/D.'));compact.append(table);}
+        else if(!resultCount)compact.append(el('p','ux05-empty','Sin resultados válidos para este ámbito.'));
         else compact.append(table);
-        if(mode!=='farms'&&resultCount>6){const more=button(state.expanded?'Ver menos':'Ver todas ('+resultCount+')',()=>{state.expanded=!state.expanded;render();});more.className='ux05-more';compact.append(more);}
+        if(!estimate&&mode==='farms'&&resultCount)compact.append(el('p','pilot-hint','TOTAL de fincas mostradas; participación sobre el área activa del ámbito.'));
+        if(estimate&&mode!=='farms'&&resultCount>6){const more=button(state.expanded?'Ver menos':'Ver todas ('+resultCount+')',()=>{state.expanded=!state.expanded;render();});more.className='ux05-more';compact.append(more);}
         if(estimate&&mode!=='farms'){
           const k=mode==='zones'?(field==='zona'&&!estimate?'variedad':'zona'):field,valid=groupsFor(items,k).filter(g=>Number.isFinite(g.estimateTch));
           if(valid.length>1){const high=valid[0],low=valid[valid.length-1];const info=button('Interpretar TCH',()=>openDrawer('Lectura TCH · '+label,
@@ -257,7 +260,7 @@
       const appendGroup=(g,target)=>{const line=el('div','context-row'),open=button(g.key,()=>{state.scope.push({field:state.dimension,key:g.key});if(farm){state.objective='directory';state.directoryQuery='';}else{state.dimension=tabsMode?(state.dimension==='zona'?(state.scope.some(f=>f.field==='variedad')?'tipoRiego':'variedad'):state.dimension==='variedad'&&state.scope.some(f=>f.field==='zona')?'tipoRiego':'zona'):state.secondary;dimension.querySelector('select').value=state.dimension;}render();});
         if(farm)open.append(el('small','ux09-view-lots','Ver suertes →'));line.append(open);
         if(state.objective==='area'){
-          line.append(el('span','context-value',fmt(g.area)+' ha · '+fmt(total?g.area/total*100:null)+' %'),el('small','',g.lots+' suertes activas'));
+          const value=el('span','context-value');value.append(el('strong','',fmt(g.area)+' ha'),el('span','context-share',' · '+fmt(total?g.area/total*100:null)+' % del área activa'));line.append(value,el('small','',g.lots+' suertes activas'));
           if(groups.length>1){const track=el('div','context-track'),fill=el('i');fill.style.width=(total?g.area/total*100:0)+'%';track.append(fill);line.append(track);}
         }else {const metrics=el('dl','context-metrics');[['ha válidas',g.estimateArea],['t',g.estimateTons],['TCH',g.estimateTch],['% cobertura',g.coveragePct]].forEach(([label,value])=>{const pair=el('div');pair.append(el('dt','',label),el('dd','',fmt(value)));metrics.append(pair);});line.append(metrics,el('small','',g.estimateLots+' suertes estimadas / '+g.lots+' activas'));}
         if(!farm){const details=button('Suertes',()=>showGroupLots(groupRows(scoped,state.dimension,g.key),g.key));details.setAttribute('aria-label','Suertes de '+g.key);line.append(details);}
@@ -476,8 +479,8 @@
         const metrics=el('dl','ux09-farm-metrics');[['Área activa',fmt(knownArea)+' ha'],['TCH est. Z'+(scopeSummary.estimateSeason||'N/D'),fmt(scopeSummary.estimateTch)+' t/ha'],['TCH zafra pasada Z25/26',readKpi(/TCH.*Ant/i)+' t/ha'],['Edad ponderada',readKpi(/Edad ponderada/i)]].forEach(([label,value])=>{const item=el('div');item.append(el('dt','',label),el('dd','',value));metrics.append(item);});overview.append(el('h3','','Resumen productivo · '+producer.name),metrics);
         const secondary=el('details','ux09-farm-secondary');secondary.append(el('summary','','Detalle complementario'),el('p','','Molienda '+fmt(scopeSummary.millingArea)+' ha · Semilla '+fmt(scopeSummary.seedArea)+' ha'),el('p','','Toneladas estimadas '+fmt(scopeSummary.estimateTons)+' t · Cobertura de molienda '+fmt(scopeSummary.coberturaEstimadoAreaPct)+' % · '+fmt(scopeSummary.activeLots,0)+' suertes activas'));const distance=sourceKpi(/Distancia/i);if(distance)secondary.append(el('p','','Distancia ponderada: '+readKpi(/Distancia/i)));overview.append(secondary);original.classList.add('ux09-farm-original');original.after(overview);
         const explorer=contextualExplorer(producer.details,'farm-'+producer.code,{farm:true,mapPanel,table});explorer.append(mapPanel);overview.after(explorer);
-        const quick=el('nav','ux09-farm-actions');quick.setAttribute('aria-label','Consultar finca');[['Suertes','directory'],['Composición','area'],['Estimados','estimate'],['Mapa','map']].forEach(([name,key])=>quick.append(button(name,()=>{explorer.setObjective(key);explorer.scrollIntoView({block:'start',behavior:'instant'});})));quick.append(button('Histórico',()=>{activate('historico');window.renderEntity?.(String(producer.code));}),button('Informe',()=>root.querySelector('.context-report-trigger')?.click()));overview.append(quick);
-        (async()=>{try{const features=await window.CASUR_GEO_DATA.getLotGeometries(producer.details.map(r=>r.codLote));if(!mapPanel.isConnected)return;farmMap=window.createCasurMap(mapPanel.querySelector('div'),{ariaLabel:'Mapa oficial de '+producer.name});farmMap.setLots(features);}catch(e){mapPanel.querySelector('small').textContent=e.message;}})();
+        const quick=el('nav','ux09-farm-actions');quick.setAttribute('aria-label','Consultar finca; desplazá horizontalmente para más opciones');[['Suertes','directory'],['Composición','area'],['Estimados','estimate'],['Mapa','map']].forEach(([name,key])=>{const action=button(name,()=>{explorer.setObjective(key);quick.querySelectorAll('[aria-pressed]').forEach(n=>n.setAttribute('aria-pressed',String(n===action)));explorer.scrollIntoView({block:'start',behavior:'instant'});});action.setAttribute('aria-pressed',String(explorer.dataset.objective===key));quick.append(action);});quick.append(button('Histórico',()=>{activate('historico');window.renderEntity?.(String(producer.code));}),button('Informe',()=>root.querySelector('.context-report-trigger')?.click()));overview.append(quick,el('small','ux09-farm-scroll-hint','Deslizá para ver más →'));
+        let farmMapFitted=false;const fitVisibleFarmMap=()=>{if(farmMapFitted||!farmMap||mapPanel.classList.contains('maestro-panel-inactive'))return;farmMapFitted=farmMap.fitToData();};mapPanel.addEventListener('casur:map-visible',fitVisibleFarmMap);(async()=>{try{const features=await window.CASUR_GEO_DATA.getLotGeometries(producer.details.map(r=>r.codLote));if(!mapPanel.isConnected)return;if(!features.length){mapPanel.querySelector('small').textContent='Sin geometrías oficiales disponibles para esta finca.';return;}farmMap=window.createCasurMap(mapPanel.querySelector('div'),{ariaLabel:'Mapa oficial de '+producer.name,autoFit:false});farmMap.setLots(features);requestAnimationFrame(fitVisibleFarmMap);}catch(e){if(mapPanel.isConnected)mapPanel.querySelector('small').textContent='Mapa no disponible: '+e.message;}})();
       }
       installReportMenus(host);
       if(root&&host.dataset.geoScope==='lot'){

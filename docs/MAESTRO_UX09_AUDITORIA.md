@@ -59,3 +59,9 @@ En Chromium local, mapa 99336 descargó 8 mosaicos HTTP 200 y mostró 8 tiles ca
 La banda heredada de Finca permanecía visible porque una regla más específica imponía `display:grid!important`; el selector de presentación ahora la oculta sin retirar sus seis nodos ni afectar modo impresión. Área activa se calcula con la suma de `participation.activeArea` de la fuente operacional, sin asumir que todos los destinos sean molienda o semilla. TCH anterior muestra etiqueta y valor separados.
 
 Zonas y Análisis presentan navegación de una sección activa, conservando los details originales y sus motores; Análisis se inicializa de forma diferida. Prueba local: seis KPI originales ocultos y siete gerenciales visibles; ambos conjuntos de vistas activan un panel a la vez. Producción 212/212, raíz 98/98 y ficha P0 PASS. Pendiente validación de mosaicos, fallback sin conectividad y regresión completa en la preview definitiva.
+
+## Jerarquía ejecutiva de finca y accesos
+
+La banda visible de Finca conserva únicamente área activa, TCH estimado, TCH anterior y edad ponderada. Molienda, semilla, toneladas, cobertura, suertes y distancia se trasladaron al detalle complementario. Los seis nodos originales permanecen en el DOM de informes. El hub de Resumen ofrece Cronológico, Histórico, Consulta de fincas y Estimados; el acceso Histórico de finca abre el productor correspondiente. Las etiquetas de desglose de área y TCH ahora indican explícitamente qué métrica se analiza.
+
+QA local: Pansaco 368,44 ha, TCH estimado 48,57, TCH anterior 66,23 y edad del motor; accesos y menú Informe, navegación al histórico de Pansaco PASS en Chromium móvil. Producción 212, raíz 98 y ficha P0 PASS. Pendiente verificar el SHA de preview y la evaluación visual del usuario; Android probado mediante emulación, no dispositivo físico.

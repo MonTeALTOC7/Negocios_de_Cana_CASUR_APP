@@ -10,7 +10,7 @@
     ['analisis', 'Análisis', 'executiveAnalysisSection'],
   ];
   const byId = id => document.getElementById(id);
-  let active = 'resumen', cronoVisited = false;
+  let active = 'resumen', cronoVisited = false, lastSummaryZone = null;
   const positions = new Map();
   const fmt = (value, digits = 2) => value == null || !Number.isFinite(Number(value))
     ? 'N/D' : Number(value).toLocaleString('es-NI', { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -64,7 +64,7 @@
     const zones=engine().agronomicGroups(rows,'zona').slice().sort((a,b)=>b.area-a.area),total=zones.reduce((n,g)=>n+g.area,0),official=Number(window.CRONO_DATA.global?.area),panel=presentation(el('section','ux09-zone-chart'));
     panel.append(el('h3','','Área activa por zona'),el('p','','Participación del área activa total'));
     if(Number.isFinite(official)&&Math.abs(total-official)>0.05)panel.append(el('p','context-hint','El área agrupada difiere del total global; los porcentajes usan el área activa agrupada.'));
-    zones.forEach(z=>{const pct=total>0?z.area/total*100:null,b=button('',()=>{explorerStates.set('general',{objective:'area',dimension:'zona',secondary:'zona',scope:[{field:'zona',key:z.key}],mode:'general'});activate('cronologico');window.renderCronoHome();});b.className='ux09-zone-row';b.setAttribute('aria-label','Explorar zona '+z.key+', '+fmt(pct)+' por ciento del área activa');const heading=el('span','ux09-zone-heading');heading.append(el('strong','',z.key),el('span','',fmt(pct)+' %'));const track=el('span','ux09-zone-track'),fill=el('span');fill.style.width=(pct??0)+'%';track.append(fill);b.append(heading,track);panel.append(b);});
+    zones.forEach(z=>{const pct=total>0?z.area/total*100:null,b=button('',()=>{lastSummaryZone=z.key;explorerStates.set('general',{objective:'area',dimension:'zona',secondary:'zona',scope:[{field:'zona',key:z.key}],mode:'general'});activate('cronologico');window.renderCronoHome();});b.className='ux09-zone-row';b.dataset.zone=z.key;b.setAttribute('aria-label','Explorar zona '+z.key+', '+fmt(pct)+' por ciento del área activa');const heading=el('span','ux09-zone-heading');heading.append(el('strong','',z.key),el('span','',fmt(pct)+' %'));const track=el('span','ux09-zone-track'),fill=el('span');fill.style.width=(pct??0)+'%';track.append(fill);b.append(heading,track);panel.append(b);});
     if(!zones.length)panel.append(el('p','','No hay zonas con área activa disponible.'));host.replaceChildren(panel);
   }
 
@@ -306,7 +306,7 @@
       else window.initCronoPanel?.();
       updateTrail();
     }
-    if (view === 'resumen') refreshSummary();
+    if (view === 'resumen') {refreshSummary();if(lastSummaryZone){const zone=lastSummaryZone;lastSummaryZone=null;requestAnimationFrame(()=>[...document.querySelectorAll('.ux09-zone-row')].find(n=>n.dataset.zone===zone)?.focus({preventScroll:true}));}}
     if (options.scroll !== false) window.scrollTo({ top: positions.get(view) || 0, behavior: 'instant' });
     // Leaflet must measure the now-visible container; the geo engine owns maps.
     window.dispatchEvent(new Event('resize'));

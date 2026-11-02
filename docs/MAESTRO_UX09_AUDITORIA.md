@@ -53,3 +53,9 @@ El origen del ranking también se guarda al abrir la ficha de finca. El retorno 
 La ficha de finca presenta una sola banda gerencial de siete indicadores basada en el resumen oficial. La banda original queda disponible para exportación; sus indicadores históricos y técnicos se muestran bajo demanda. Accesos a composición, estimados, suertes y mapa utilizan el explorador existente. Pansaco: 368,44 ha activas, 359,30 molienda, 9,14 semilla, 17.452,08 t, 48,57 t/ha, 100 % cobertura y 42 suertes; prueba móvil PASS.
 
 En Chromium local, mapa 99336 descargó 8 mosaicos HTTP 200 y mostró 8 tiles cargados; el aviso offline permaneció oculto. No se modificó el visor GIS; la disponibilidad posterior depende de conectividad y proveedores. Producción 212/212, raíz 98/98 y ficha P0 PASS. Pendiente validar el HEAD publicado, vistas adicionales y faltantes/ausencia de geometría; no se afirma aprobación visual.
+
+## Correcciones R2
+
+La banda heredada de Finca permanecía visible porque una regla más específica imponía `display:grid!important`; el selector de presentación ahora la oculta sin retirar sus seis nodos ni afectar modo impresión. Área activa se calcula con la suma de `participation.activeArea` de la fuente operacional, sin asumir que todos los destinos sean molienda o semilla. TCH anterior muestra etiqueta y valor separados.
+
+Zonas y Análisis presentan navegación de una sección activa, conservando los details originales y sus motores; Análisis se inicializa de forma diferida. Prueba local: seis KPI originales ocultos y siete gerenciales visibles; ambos conjuntos de vistas activan un panel a la vez. Producción 212/212, raíz 98/98 y ficha P0 PASS. Pendiente validación de mosaicos, fallback sin conectividad y regresión completa en la preview definitiva.

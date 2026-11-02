@@ -99,7 +99,7 @@
   function directory(rows,farm=false,state=null,onLot=null){
     const wrap=el('div','context-directory'),input=el('input');input.type='search';input.placeholder=farm?'Buscar suerte…':'Buscar finca o zona…';input.setAttribute('aria-label',input.placeholder);input.value=state?.directoryQuery||'';const list=el('div','context-results');let limit=8;
     const render=()=>{list.replaceChildren();const q=input.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();const items=farm?rows:window.CRONO_DATA.producers.filter(p=>p.details.some(r=>rows.includes(r)));const matches=items.filter(r=>[r.codLote,r.name,r.code,r.zone,r.variedad].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q));
-      matches.slice(0,limit).forEach(r=>{const b=button(farm?'Suerte '+r.codLote:r.name+' · '+r.code,()=>{wrap.closest('dialog')?.close();if(farm){onLot?.();window.selectCronoSuerteSuggestion(String(r.code),String(r.suerte));}else window.renderCronoProducer(String(r.code));});b.append(el('small','',farm?(r.variedad||'Sin variedad'):r.zone));list.append(b);});list.append(el('small','',Math.min(limit,matches.length)+' de '+matches.length+' resultados'));if(matches.length>limit)list.append(button('Mostrar más',()=>{limit+=8;render();}));};input.oninput=()=>{if(state)state.directoryQuery=input.value;limit=8;render();};wrap.append(input,list);render();return wrap;
+      matches.slice(0,limit).forEach(r=>{const b=button(farm?'Suerte '+r.codLote:r.name+' · '+r.code,()=>{wrap.closest('dialog')?.close();if(farm){onLot?.();window.selectCronoSuerteSuggestion(String(r.code),String(r.suerte));}else window.renderCronoProducer(String(r.code));});b.append(el('small','',farm?(r.variedad||'Sin variedad'):r.zone));list.append(b);});list.append(el('small','',Math.min(limit,matches.length)+' de '+matches.length+' resultados'));if(matches.length>limit)list.append(button('Mostrar más',()=>{limit+=8;render();}));};input.oninput=()=>{if(state)state.directoryQuery=input.value;limit=8;render();};if(farm){const summary=engine().summary(rows);wrap.append(el('p','context-hint',fmt(rows.length,0)+' registros en el catálogo de este ámbito · '+fmt(summary.activeLots,0)+' suertes activas'));}wrap.append(input,list);render();return wrap;
   }
   // Group only the rows that actually belong to the active scope; a producer can
   // appear in several categories without making counts additive across them.
@@ -182,7 +182,7 @@
           : mode==='general'?'Área activa por '+label:mode==='zones'?(field==='zona'?'Composición de la zona':'Área por zona · '+label):'10 fincas con mayor área';
         const name=el('h3','',heading);
         const hint=estimate
-          ? 'Orden: TCH ↓ · área válida y toneladas autorizadas'
+          ? mode==='farms'?'Orden: '+({tons:'toneladas estimadas',tch:'TCH ponderado',area:'área válida'}[state.rankBy||'tons']||'toneladas estimadas')+' ↓ · molienda elegible':'Orden: TCH ↓ · área válida y toneladas autorizadas'
           : 'Hectáreas y porcentaje del área activa del ámbito';
         head.append(name,el('p','pilot-hint',hint));compact.append(head);
         if(mode==='zones'&&field==='zona'&&!state.category&&groupsAll.length)state.category=groupsAll[0].key;

@@ -71,3 +71,9 @@ QA local: Pansaco 368,44 ha, TCH estimado 48,57, TCH anterior 66,23 y edad del m
 Finca inicia en directorio buscable de suertes; al volver se conserva la búsqueda de esa finca. Los selectores de agrupación no se muestran en el directorio inicial. El acceso a distribución se llama Composición. En Estimados con dimensión Zona, seleccionar una zona abre el ranking de fincas del ámbito sin activar Variedad; la dimensión Variedad sigue disponible como selección explícita. Los cuatro KPI de finca y el hub permanecen.
 
 QA `tools/qa-maestro-ux09-r3.cjs`: Pansaco (993) y finca 19, 390/1536, cuatro KPI, directorio sin selectores, ida/vuelta con consulta preservada y zona → fincas sin cambio de dimensión. Producción 212, TCH 92 y raíz 98 PASS. La regresión de selección múltiple, Histórico, exportadores y PWA se ejecuta por separado. Móvil emulado; pendiente evaluación visual.
+
+## R3 — consistencia de orden y catálogo
+
+El texto de orden del ranking de Estimados sigue el criterio seleccionado: toneladas estimadas, TCH ponderado o área válida. El cálculo y orden numérico no se modifican. `qa-maestro-ux09-r3.cjs` comprueba los tres criterios y registra capturas a 390/1536; incluye Pansaco 993, Los Arcos 5 y finca 19.
+
+El directorio de suertes usa los registros del ámbito sin filtrarlos; para Pansaco el catálogo tiene 49 registros y el motor de participación reconoce 42 suertes activas. El contador visible identifica ambos universos, sin alterar la selección. El rótulo histórico fijo Z25/26 se mantiene como deuda: requiere fuente canónica de zafra anterior antes de hacerlo dinámico.

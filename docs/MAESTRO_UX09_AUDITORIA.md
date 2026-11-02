@@ -65,3 +65,9 @@ Zonas y Análisis presentan navegación de una sección activa, conservando los 
 La banda visible de Finca conserva únicamente área activa, TCH estimado, TCH anterior y edad ponderada. Molienda, semilla, toneladas, cobertura, suertes y distancia se trasladaron al detalle complementario. Los seis nodos originales permanecen en el DOM de informes. El hub de Resumen ofrece Cronológico, Histórico, Consulta de fincas y Estimados; el acceso Histórico de finca abre el productor correspondiente. Las etiquetas de desglose de área y TCH ahora indican explícitamente qué métrica se analiza.
 
 QA local: Pansaco 368,44 ha, TCH estimado 48,57, TCH anterior 66,23 y edad del motor; accesos y menú Informe, navegación al histórico de Pansaco PASS en Chromium móvil. Producción 212, raíz 98 y ficha P0 PASS. Pendiente verificar el SHA de preview y la evaluación visual del usuario; Android probado mediante emulación, no dispositivo físico.
+
+## Corrección R3 — finca y TCH por zona
+
+Finca inicia en directorio buscable de suertes; al volver se conserva la búsqueda de esa finca. Los selectores de agrupación no se muestran en el directorio inicial. El acceso a distribución se llama Composición. En Estimados con dimensión Zona, seleccionar una zona abre el ranking de fincas del ámbito sin activar Variedad; la dimensión Variedad sigue disponible como selección explícita. Los cuatro KPI de finca y el hub permanecen.
+
+QA `tools/qa-maestro-ux09-r3.cjs`: Pansaco (993) y finca 19, 390/1536, cuatro KPI, directorio sin selectores, ida/vuelta con consulta preservada y zona → fincas sin cambio de dimensión. Producción 212, TCH 92 y raíz 98 PASS. La regresión de selección múltiple, Histórico, exportadores y PWA se ejecuta por separado. Móvil emulado; pendiente evaluación visual.

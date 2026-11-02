@@ -811,3 +811,4 @@
 .casur-maestro-premium:not(.print-export) #cronoContent #cronoPrintPanel > .kpis.ux09-farm-original {display:none!important}
 .ux09-previous {display:flex;justify-content:space-between;gap:12px}.ux09-section-tabs {display:flex;gap:6px;overflow-x:auto;padding:8px 0}.ux09-section-tabs button {flex:0 0 auto;min-height:44px;padding:8px 12px;border:1px solid #c4dcd1;border-radius:8px;background:#f0f7f4;color:#075744;cursor:pointer}.ux09-section-tabs button[aria-pressed=true] {background:#075744;color:white}
 .casur-maestro-premium:not(.print-export) .ux09-view-inactive {display:none!important}.casur-maestro-premium:not(.print-export) .ux09-tabbed-panel > summary {display:none}
+.ux09-tabs-hint {display:none;font-size:12px;color:#315f67;margin:0 0 8px}@media(max-width:767px){.ux09-tabs-hint {display:block}}

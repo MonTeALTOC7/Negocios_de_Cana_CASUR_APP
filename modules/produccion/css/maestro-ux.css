@@ -813,3 +813,13 @@
 .casur-maestro-premium:not(.print-export) .ux09-view-inactive {display:none!important}.casur-maestro-premium:not(.print-export) .ux09-tabbed-panel > summary {display:none}
 .ux09-tabs-hint {display:none;font-size:12px;color:#315f67;margin:0 0 8px}@media(max-width:767px){.ux09-tabs-hint {display:block}}
 .ux09-hub-actions {display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.ux09-hub-actions button {min-height:44px;padding:9px 14px;border:1px solid #c4dcd1;border-radius:7px;background:#f0f7f4;color:#075744;font-weight:600;cursor:pointer}
+/* UX09 R5: compact farm drill-down and zone participation. */
+.ux09-zone-chart {padding:14px;border:1px solid #dce9e4;border-radius:10px;background:#fff;color:#173b46}
+.ux09-zone-chart h3 {margin:0;font-size:15px}.ux09-zone-chart p {margin:4px 0 10px;font-size:12px;color:#526b6b}
+.ux09-zone-row {display:block;width:100%;min-height:44px;padding:5px 0;background:transparent;border:0;text-align:left;color:#173b46;cursor:pointer}
+.ux09-zone-heading {display:flex;justify-content:space-between;gap:12px;font-size:13px}.ux09-zone-track {display:block;height:7px;margin-top:5px;background:#e8f1ed;border-radius:5px;overflow:hidden}.ux09-zone-track span {display:block;height:100%;background:#168264;border-radius:5px}
+.context-explorer:not([data-context="general"]) .context-row > button:only-of-type {grid-column:1;grid-row:1;text-align:left}
+@media(min-width:768px){#maestroDashboard {display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:8px 20px}#maestroDashboard .maestro-dashboard-heading {grid-column:1}#maestroDashboard .ux09-hub-actions {grid-column:1;display:grid;align-content:start}#maestroDashboardContent {grid-column:2;grid-row:1 / span 2;margin:0!important}.context-explorer:not([data-context="general"]) .context-toolbar {grid-template-columns:minmax(180px,320px)}}
+@media(max-width:767px){.ux09-hub-actions {display:grid;grid-template-columns:1fr}.ux09-hub-actions button {text-align:left}}
+
+.ux09-view-lots {display:block;font-size:11px;color:#317565;margin-top:3px}

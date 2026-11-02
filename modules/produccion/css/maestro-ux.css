@@ -806,3 +806,5 @@
 .casur-maestro-premium:not(.print-export) .premium-ficha-restored [data-ux09-kpi="proposal"] .label::after {content:" propuesta"}
 .casur-maestro-premium:not(.print-export) .premium-ficha-restored [data-ux09-kpi="previous"] {display:none!important}
 .ux09-previous {font-size:13px;color:#315f67;padding:8px 0;border-top:1px solid #e3ece8;white-space:pre-line}
+.casur-maestro-premium:not(.print-export) .ux09-farm-original {display:none!important}
+.ux09-farm-metrics {display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0}.ux09-farm-metrics div {padding:10px;border-left:2px solid #d4b35f;background:#f5f9f7}.ux09-farm-metrics dt {font-size:11px;color:#526b6b}.ux09-farm-metrics dd {font-size:17px;font-weight:700;margin:4px 0 0;color:#173b46}.ux09-farm-secondary summary {cursor:pointer;min-height:44px;padding:12px 0;color:#075744}.ux09-farm-actions {display:flex;gap:6px;flex-wrap:wrap}.ux09-farm-actions button {min-height:44px;padding:8px 12px;border:1px solid #c4dcd1;border-radius:7px;background:#f0f7f4;color:#075744;cursor:pointer}

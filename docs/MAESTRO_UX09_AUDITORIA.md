@@ -47,3 +47,9 @@ Alcance no verificado todavía: datos sin geometría, cero/N/D y filtros cruzado
 ## Continuidad de retorno desde finca
 
 El origen del ranking también se guarda al abrir la ficha de finca. El retorno explícito se ofrece en finca y suerte, sin sustituir el retorno normal a finca. Prueba real en 390/1536: grupo → ranking → directorio → suerte → análisis y grupo → finca → suerte → análisis; se compararon filtros, criterio, filas y posición de scroll. PASS. El contexto se descarta al navegar a otra sección o al volver explícitamente a General. Baterías: Producción 212/212, TCH 92/92, raíz 98/98; ficha P0 y UX05 seis anchos PASS. La regresión completa aún estaba en ejecución al registrar este informe. No se ha terminado la revisión exhaustiva de semántica ni todos los casos de datos ausentes.
+
+## Revisión P1 de finca y mapa
+
+La ficha de finca presenta una sola banda gerencial de siete indicadores basada en el resumen oficial. La banda original queda disponible para exportación; sus indicadores históricos y técnicos se muestran bajo demanda. Accesos a composición, estimados, suertes y mapa utilizan el explorador existente. Pansaco: 368,44 ha activas, 359,30 molienda, 9,14 semilla, 17.452,08 t, 48,57 t/ha, 100 % cobertura y 42 suertes; prueba móvil PASS.
+
+En Chromium local, mapa 99336 descargó 8 mosaicos HTTP 200 y mostró 8 tiles cargados; el aviso offline permaneció oculto. No se modificó el visor GIS; la disponibilidad posterior depende de conectividad y proveedores. Producción 212/212, raíz 98/98 y ficha P0 PASS. Pendiente validar el HEAD publicado, vistas adicionales y faltantes/ausencia de geometría; no se afirma aprobación visual.

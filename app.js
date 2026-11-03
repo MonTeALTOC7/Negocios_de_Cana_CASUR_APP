@@ -460,7 +460,7 @@ function viewModule(id) {
         <span class="module-host__spacer"></span>
         <button class="icon-btn" id="mReload" type="button" aria-label="Recargar módulo">${icon('refresh')}</button>
       </div>
-      ${id === 'produccion' ? '<div class="module-host__startup" id="productionStartup" role="status" aria-live="polite"><div class="module-host__startup-card"><img src="modules/produccion/assets/negocios-de-cana.webp" alt="" width="144" height="144"><div><strong>Maestro de Suertes</strong><span>Preparando datos seguros…</span><p hidden>La preparación está tardando. Podés volver al inicio y reintentar.</p></div></div><div class="module-host__startup-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>' : ''}
+      ${id === 'produccion' ? '<div class="module-host__startup" id="productionStartup" role="status" aria-live="polite"><div class="module-host__startup-card"><img src="modules/produccion/assets/negocios-de-cana.webp" alt="" width="144" height="144"><div><strong>Maestro de Suertes</strong><span>Preparando datos seguros…</span><p hidden>No se pudo abrir Maestro. Revisá la conexión y volvé a intentarlo.</p><div id="startupRecovery" hidden><button type="button" id="startupRetry">Reintentar</button><button type="button" id="startupHome">Volver al Inicio</button></div></div></div><div class="module-host__startup-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>' : ''}
       <iframe class="module-host__frame" id="mFrame"
               data-casur-src="${m.route}"
               title="${m.name}"
@@ -478,9 +478,6 @@ function viewModule(id) {
       </div>
     </div>`);
 
-  // Mantener el mismo control y sus listeners al cambiar entre vistas.
-  const updateButton = document.getElementById('checkAppUpdates');
-  if (updateButton) host.querySelector('.module-host__bar').insertBefore(updateButton, host.querySelector('#mReload'));
   // Conservar Inicio durante una transición caliente, sin mostrar el iframe prematuro.
   const previousView = id === 'produccion' && navigator.serviceWorker?.controller && !viewEl.querySelector('#mFrame') ? viewEl.firstElementChild : null;
   if (previousView) { previousView.inert = true; host.classList.add('module-host--pending'); }
@@ -492,11 +489,21 @@ function viewModule(id) {
     host.classList.remove('module-host--pending');
   };
   const frame = $('#mFrame', host);
+  let startupFailed = false, startupComplete = false, startupStage = 'sw-ready';
+  const diagnostic = (stage, status) => { window.CASUR_STARTUP_DIAGNOSTIC = {stage, status, at: Date.now()}; };
+  const failStartup = () => {
+    if (startupComplete || startupFailed || !host.isConnected) return;
+    startupFailed = true; diagnostic(startupStage, 'timeout'); showHost();
+    const note = host.querySelector('#productionStartup p'); if (note) note.hidden = false;
+    const actions = host.querySelector('#startupRecovery'); if (actions) actions.hidden = false;
+  };
+  const deadline = id === 'produccion' ? setTimeout(failStartup, 45000) : null;
   const revealProduction = () => {
-    if (id !== 'produccion' || !frame.isConnected) return;
+    if (id !== 'produccion' || !frame.isConnected || startupFailed) return;
     try {
       const child = frame.contentWindow;
       if (child?.CASUR_PRODUCTION_READY && child.document.body?.classList.contains('casur-maestro-premium') && child.document.querySelector('#casurStartup')?.hidden) {
+        startupComplete = true; clearTimeout(deadline); diagnostic('visible', 'ready');
         host.querySelector('#productionStartup')?.remove();
         showHost();
         return;
@@ -508,15 +515,23 @@ function viewModule(id) {
   if (id === 'produccion') setTimeout(revealProduction, 0);
   viewEl.appendChild(host);
   if (previousView) setTimeout(showHost, 1200);
-  if (id === 'produccion') setTimeout(() => { const note = host.querySelector('#productionStartup p'); if (note) note.hidden = false; }, 20000);
+  host.querySelector('#startupRetry')?.addEventListener('click', async () => { const saved = await checkpointActiveModule('retry-startup'); if (saved.ok) location.reload(); else toast(MODULE_CHECKPOINT_ERROR); });
+  host.querySelector('#startupHome')?.addEventListener('click', () => { void navigateFromActiveModule('/', 'back-home'); });
   // First-use Production scripts must already be behind the verified SW data gate.
   void (async()=>{
     if('serviceWorker' in navigator && location.protocol!=='file:'){
-      await navigator.serviceWorker.ready;
-      if(!navigator.serviceWorker.controller)await new Promise(resolve=>navigator.serviceWorker.addEventListener('controllerchange',resolve,{once:true}));
+      diagnostic('sw-ready', 'waiting');
+      await Promise.race([navigator.serviceWorker.ready, new Promise((_, reject) => setTimeout(() => reject(new Error('sw-ready-timeout')), 40000))]);
+      if (startupFailed) return;
+      startupStage = 'sw-controller'; diagnostic(startupStage, 'waiting');
+      if (!navigator.serviceWorker.controller) await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => { navigator.serviceWorker.removeEventListener('controllerchange', changed); reject(new Error('sw-controller-timeout')); }, 40000);
+        const changed = () => { if (navigator.serviceWorker.controller) { clearTimeout(timer); navigator.serviceWorker.removeEventListener('controllerchange', changed); resolve(); } };
+        navigator.serviceWorker.addEventListener('controllerchange', changed); changed();
+      });
     }
-    if(frame.isConnected)frame.src=m.route;
-  })();
+    if (frame.isConnected && !startupFailed) { startupStage = 'iframe-readiness'; diagnostic(startupStage, 'waiting'); frame.src=m.route; }
+  })().catch(failStartup);
 
   $('#mBack', host).addEventListener('click', () => { void navigateFromActiveModule('/', 'back-home'); });
   $('#mReload', host).addEventListener('click', () => { void reloadActiveModule(); });
@@ -828,8 +843,6 @@ function renderGate(pendingModuleId) {
 
 /* ---------------- Utilidades de vista ---------------- */
 function swap(view) {
-  const updateButton = document.getElementById('checkAppUpdates');
-  if (updateButton) document.querySelector('.header').insertBefore(updateButton, document.getElementById('conn'));
   document.body.classList.remove('in-module');
   viewEl.innerHTML = '';
   viewEl.appendChild(view);

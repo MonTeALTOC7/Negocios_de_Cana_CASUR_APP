@@ -92,34 +92,6 @@ export async function installUpdateControl({ version, checkpoint }) {
     try { await registration.update(); await showWaiting(); } catch { /* Keep installed release usable offline. */ }
   }
   registration = await sw.register('./sw.js', {scope:'./', updateViaCache:'none'});
-  const manualCheck = document.getElementById?.('checkAppUpdates');
-  if (manualCheck) {
-    const feedback = document.createElement('div');
-    feedback.className = 'casur-update-feedback no-print';
-    feedback.setAttribute('role', 'status');
-    feedback.setAttribute('aria-live', 'polite');
-    document.body.append(feedback);
-    let feedbackTimer;
-    const announce = text => {
-      feedback.textContent = text;
-      clearTimeout(feedbackTimer);
-      feedbackTimer = setTimeout(() => { feedback.textContent = ''; }, 5000);
-    };
-    manualCheck.addEventListener('click', async () => {
-      if (!navigator.onLine) { announce('Sin conexión. No se pueden buscar actualizaciones.'); return; }
-      manualCheck.disabled = true;
-      announce('Buscando actualizaciones…');
-      try {
-        await registration.update();
-        await showWaiting();
-        announce(registration.installing ? 'Preparando actualización…' : registration.waiting ? 'Comprobando actualización…' : 'La aplicación está actualizada.');
-      } catch {
-        announce('No se pudo buscar actualizaciones.');
-      } finally {
-        manualCheck.disabled = false;
-      }
-    });
-  }
   registration.addEventListener('updatefound', () => {
     const worker = registration.installing;
     worker?.addEventListener('statechange', () => { if (worker.state === 'installed') void showWaiting().catch(() => {}); });

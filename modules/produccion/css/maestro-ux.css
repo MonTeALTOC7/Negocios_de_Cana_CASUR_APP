@@ -862,3 +862,10 @@
 .casur-maestro-premium:not(.print-export) .premium-ficha-restored [data-ux09-kpi="proposal"] {order:4}
 @media(max-width:650px){.ux09-forecast-stats {grid-template-columns:1fr 1fr}}
 }
+/* Suerte: identificación y atributos compactos sin limitar su ancho al informe. */
+.casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .ficha-band {position:relative;display:block!important;padding:10px 12px!important}
+.casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .ficha-band > div:first-child {min-width:0;width:100%}
+.casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .ficha-band h2,.casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .ux-lot-id {display:block;padding-right:48px}
+.casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .ficha-band .ficha-actions {position:absolute;right:10px;top:10px}
+.casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .maestro-lot-attributes {display:flex;flex-wrap:wrap;gap:4px 6px;margin:5px 0 0}
+.casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .maestro-lot-attributes > span {display:inline-block;padding:2px 5px!important;font-size:10px!important;line-height:1.3;max-width:100%;overflow-wrap:anywhere}

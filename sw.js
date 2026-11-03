@@ -86,7 +86,11 @@ self.addEventListener('install', (event) => {
     if (manifest.appVersion !== APP_VERSION || !manifest.assets || !Object.keys(manifest.assets).length) throw new Error('Release manifest mismatch');
     // All local executable resources, including modules never opened, form one snapshot.
     // Hash validation prevents a partial deployment from producing a mixed generation.
-    for (const [path, expected] of Object.entries(manifest.assets)) {
+    const assets = Object.entries(manifest.assets);
+    let nextAsset = 0;
+    async function verifyAssets() {
+      while (nextAsset < assets.length) {
+      const [path, expected] = assets[nextAsset++];
       const url = new URL(path, self.registration.scope);
       if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) throw new Error('Invalid release asset');
       const response = await fetch(url, {cache:'no-store'});
@@ -97,7 +101,12 @@ self.addEventListener('install', (event) => {
       const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)), byte => byte.toString(16).padStart(2,'0')).join('');
       if (digest !== expected) throw new Error(`Release hash mismatch: ${path}`);
       await cache.put(url,normalizeNavigationRedirect(response));
+      }
     }
+    // Wait for all workers before accepting or rejecting; readiness remains atomic.
+    const checks = await Promise.allSettled(Array.from({length: Math.min(4, assets.length)}, verifyAssets));
+    const failed = checks.find(result => result.status === 'rejected');
+    if (failed) throw failed.reason;
     await cache.put(new URL('./core/versions/runtime-assets.json', self.registration.scope),new Response(JSON.stringify(manifest)));
     // A missing code asset rejects installation; the previous worker stays active.
     await Promise.all([

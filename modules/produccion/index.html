@@ -5,7 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
   html.casur-booting body > :not(#casurStartup) { visibility: hidden !important; }
-  #casurStartup { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-content: center; padding: 24px; background: #f2f7f4; color: #174337; font: 16px/1.5 system-ui, sans-serif; text-align: center; }
+  #casurStartup { position: fixed; inset: 0; z-index: 2147483647; padding: min(7vh, 48px) 16px; background: #f2f7f4; color: #174337; font: 600 16px/1.5 system-ui, sans-serif; text-align: left; }
+  #casurStartup .startup-card, #casurStartup .startup-skeleton { max-width:720px; margin:auto; }
+  #casurStartup .startup-card { display:flex; align-items:center; gap:14px; padding:14px; border:1px solid #d2e3da; border-radius:14px; background:white; }
+  #casurStartup img { width:54px; height:54px; object-fit:contain; }
+  #casurStartup strong, #casurStartup span { display:block; }
+  #casurStartup span { color:#526d61; font-size:13px; }
+  #casurStartup .startup-skeleton { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding-top:12px; }
+  #casurStartup .startup-skeleton i { height:65px; background:#e0ebe5; border-radius:10px; }
   #casurStartup[hidden] { display: none; }
   #casurStartup strong { font-size: 19px; }
   #casurStartup button { margin: 14px auto 0; padding: 10px 16px; border: 1px solid #356e54; border-radius: 8px; background: white; color: #174337; font: inherit; cursor: pointer; }
@@ -1836,7 +1843,7 @@ body.crono-print-preview .print-end{display:block!important;text-align:center!im
 <link rel="stylesheet" href="css/maestro-ux.css">
 </head>
 <body>
-<div id="casurStartup" role="status" aria-live="polite"><strong>Preparando Maestro de Suertes…</strong><span id="casurStartupMessage">Cargando datos e interfaz.</span><button id="casurStartupRetry" type="button" hidden>Reintentar</button></div>
+<div id="casurStartup" role="status" aria-live="polite"><div class="startup-card"><img src="assets/negocios-de-cana.webp" alt=""><div><strong>Maestro de Suertes</strong><span id="casurStartupMessage">Preparando datos seguros…</span><button id="casurStartupRetry" type="button" hidden>Reintentar</button></div></div><div class="startup-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>
 <script>
 (function () {
   var loader = document.getElementById('casurStartup');

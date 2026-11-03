@@ -460,7 +460,7 @@ function viewModule(id) {
         <span class="module-host__spacer"></span>
         <button class="icon-btn" id="mReload" type="button" aria-label="Recargar módulo">${icon('refresh')}</button>
       </div>
-      ${id === 'produccion' ? '<div class="module-host__startup" id="productionStartup" role="status" aria-live="polite"><div><span>Preparando Maestro de Suertes…</span><p hidden>La preparación está tardando. Podés volver al inicio y reintentar.</p></div></div>' : ''}
+      ${id === 'produccion' ? '<div class="module-host__startup" id="productionStartup" role="status" aria-live="polite"><div class="module-host__startup-card"><img src="modules/produccion/assets/negocios-de-cana.webp" alt="" width="54" height="54"><div><strong>Maestro de Suertes</strong><span>Preparando datos seguros…</span><p hidden>La preparación está tardando. Podés volver al inicio y reintentar.</p></div></div><div class="module-host__startup-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>' : ''}
       <iframe class="module-host__frame" id="mFrame"
               data-casur-src="${m.route}"
               title="${m.name}"

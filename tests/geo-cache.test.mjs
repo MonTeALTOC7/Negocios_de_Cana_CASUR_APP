@@ -265,3 +265,20 @@ test('runtime con query usa código instalado; código ausente no descarga otra 
  h.handlers.fetch({request:{method:'GET',url:'https://casur.test/unknown-new-module.js'},respondWith(p){response=p;}});
  assert.equal((await response).status,503);
 });
+
+test('precache concurrente limita solicitudes y no publica readiness ante un hash incorrecto', async()=>{
+ const hash=createHash('sha256').update('valid').digest('hex');
+ for(const bad of [false,true]){
+  const h=harness();
+  h.value(`const previousFetch=fetch; globalThis.inflight=0; globalThis.peak=0; globalThis.finished=0;
+    globalThis.fetch=async(url,opts)=>{const name=String(url);
+      if(name.endsWith('/core/versions/runtime-assets.json'))return new Response(JSON.stringify({appVersion:'1.3.5',assets:Object.fromEntries(Array.from({length:8},(_,i)=>['asset'+i+'.js','${hash}']))}));
+      if(/asset\\d+\\.js$/.test(name)){inflight++;peak=Math.max(peak,inflight);await new Promise(resolve=>setTimeout(resolve,8));inflight--;finished++;return new Response(${bad}?name.endsWith('asset0.js')?'bad':'valid':'valid');}
+      return previousFetch(url,opts);
+    };`);
+  if(bad)await assert.rejects(h.dispatch('install'),/Release hash mismatch/);else await h.dispatch('install');
+  assert.equal(h.value('peak'),4);assert.equal(h.value('inflight'),0);
+  const cache=h.storage.get(h.value('SHELL_CACHE'));const ready=cache.has('https://casur.test/__release_ready__');
+  assert.equal(ready,!bad);if(bad)assert.equal((await h.value('coordinateUpdate()')).ok,false);
+ }
+});

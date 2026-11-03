@@ -1,6 +1,6 @@
 {
   "appVersion": "1.5.5",
-  "releaseId": "1.5.5-250833d5b72dd776",
+  "releaseId": "1.5.5-cd6d6e7db757e11e",
   "assets": {
     "404.html": "13e468776893ea36d86e0a6b83935bafd4c5f3782fb3a302959337f8e14a19fe",
     "app.js": "eec245a48378a08d13fedafee169d0769c64c9382925171ebc4b8e10dd7339f8",
@@ -218,18 +218,8 @@
       "shared/assets/logos/tch-512.png",
       "shared/assets/logos/tch.svg",
       "shared/components/icons.js",
-      "shared/geo/geo-data.js",
-      "shared/geo/geo-map.js",
-      "shared/geo/geo.css",
       "shared/styles/app.css",
-      "shared/styles/tokens.css",
-      "shared/vendor/leaflet/images/layers-2x.png",
-      "shared/vendor/leaflet/images/layers.png",
-      "shared/vendor/leaflet/images/marker-icon-2x.png",
-      "shared/vendor/leaflet/images/marker-icon.png",
-      "shared/vendor/leaflet/images/marker-shadow.png",
-      "shared/vendor/leaflet/leaflet.css",
-      "shared/vendor/leaflet/leaflet.js"
+      "shared/styles/tokens.css"
     ],
     "convertidor": [
       "master/convertidor/404.html",
@@ -363,6 +353,50 @@
     ],
     "conciliacion": [
       "private/conciliacion/index.html"
+    ],
+    "geo": [
+      "shared/geo/geo-data.js",
+      "shared/geo/geo-map.js",
+      "shared/geo/geo.css",
+      "shared/vendor/leaflet/images/layers-2x.png",
+      "shared/vendor/leaflet/images/layers.png",
+      "shared/vendor/leaflet/images/marker-icon-2x.png",
+      "shared/vendor/leaflet/images/marker-icon.png",
+      "shared/vendor/leaflet/images/marker-shadow.png",
+      "shared/vendor/leaflet/leaflet.css",
+      "shared/vendor/leaflet/leaflet.js"
     ]
+  },
+  "dependencies": {
+    "produccion": [
+      "core",
+      "geo"
+    ],
+    "tch": [
+      "core",
+      "geo"
+    ],
+    "riego": [
+      "core"
+    ],
+    "insumos": [
+      "core"
+    ],
+    "labores": [
+      "core"
+    ],
+    "inventario": [
+      "core"
+    ],
+    "convertidor": [
+      "core"
+    ],
+    "conciliacion": [
+      "core"
+    ],
+    "geo": [
+      "core"
+    ],
+    "core": []
   }
 }

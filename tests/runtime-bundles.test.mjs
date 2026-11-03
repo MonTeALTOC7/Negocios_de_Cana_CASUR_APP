@@ -12,5 +12,5 @@ test('los conjuntos cubren todos los recursos una sola vez sin perder hashes',()
 });
 test('rutas compartidas permanecen en núcleo y módulos reciben conjuntos propios',()=>{
  for(const id of ['produccion','tch','riego','insumos','labores','inventario'])assert.equal(bundleFor(`modules/${id}/index.html`),id);
- assert.equal(bundleFor('master/convertidor/index.html'),'convertidor');assert.equal(bundleFor('private/conciliacion/index.html'),'conciliacion');assert.equal(bundleFor('shared/geo/geo-map.js'),'core');
+ assert.equal(bundleFor('master/convertidor/index.html'),'convertidor');assert.equal(bundleFor('private/conciliacion/index.html'),'conciliacion');assert.equal(bundleFor('shared/geo/geo-map.js'),'geo');assert.deepEqual(manifest.dependencies.produccion,['core','geo']);assert.deepEqual(manifest.dependencies.tch,['core','geo']);
 });

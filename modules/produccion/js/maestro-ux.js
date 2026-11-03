@@ -507,6 +507,8 @@
   function presentOperationalStatus() {
     const strip = document.querySelector('.casur-release-strip');
     if (!strip) return;
+    // Source decisions must remain reachable from every Maestro view.
+    if (strip.previousElementSibling?.tagName !== 'HEADER') document.querySelector('header')?.after(strip);
     const kind = document.getElementById('casurReleaseKind');
     const local = kind?.textContent === 'Generación local aprobada';
     if (strip.dataset.local !== String(local)) strip.dataset.local = String(local);
@@ -514,13 +516,13 @@
     if (!status) return;
     const current = status.textContent;
     let readable = current;
-    if (/^Generación local conservada\. Oficial disponible:/.test(current)) readable = 'Datos locales conservados. Hay datos oficiales disponibles.';
+    if (/^Generación local conservada\. Oficial disponible:/.test(current)) readable = 'Generación local conservada. Hay datos oficiales disponibles.';
     if (/^Datos oficiales CASUR actualizados ·/.test(current)) readable = 'Datos oficiales CASUR actualizados.';
     if (readable !== current) status.textContent = readable;
   }
 
   function init() {
-    new MutationObserver(presentOperationalStatus).observe(byId('cronoSection'), {childList:true, subtree:true, characterData:true});
+    new MutationObserver(presentOperationalStatus).observe(document.body, {childList:true, subtree:true, characterData:true});
     presentOperationalStatus();
     const home = byId('homeSection'), header = document.querySelector('header');
     if (!home || !header || byId('maestroTabs')) return;

@@ -10,10 +10,22 @@ function walk(directory='.') {
   return /\.(?:html|css|js|mjs|png|jpe?g|svg|gif|webp|woff2?|ttf|ico)$/.test(entry.name)&&!['sw.js'].includes(entry.name)?[file.replaceAll('\\','/')]:[];
  });
 }
-// Normalize line endings only for hashing: Windows checkout and GitHub LF must agree.
-const assets=Object.fromEntries(walk().sort().map(file=>[file,createHash('sha256').update(/\.(?:html|css|js|mjs|svg)$/.test(file)?fs.readFileSync(file,'utf8').replace(/\r\n/g,'\n'):fs.readFileSync(file)).digest('hex')]));
-const output=JSON.stringify({appVersion:APP_VERSION,assets},null,2)+'\n';
-const file='core/versions/runtime-assets.json';
-if(process.argv.includes('--write'))fs.writeFileSync(file,output);
-else if(!fs.existsSync(file)||fs.readFileSync(file,'utf8').replace(/\r\n/g,'\n')!==output)throw Error('Runtime assets mismatch: node tools/runtime-assets.mjs --write');
-console.log(`Verified runtime manifest ${APP_VERSION}: ${Object.keys(assets).length} code assets`);
+// Group private module files explicitly. Shared files remain in core until their
+// cross-module dependencies have been audited; no asset is silently dropped.
+export function bundleFor(file) {
+ const match=file.match(/^(?:modules\/(produccion|tch|riego|insumos|labores|inventario)|master\/(convertidor)|private\/(conciliacion))\//);
+ return match ? match.slice(1).find(Boolean) : 'core';
+}
+export function generateManifest(files, appVersion=APP_VERSION) {
+ const assets=Object.fromEntries(files.sort().map(file=>[file,createHash('sha256').update(/\.(?:html|css|js|mjs|svg)$/.test(file)?fs.readFileSync(file,'utf8').replace(/\r\n/g,'\n'):fs.readFileSync(file)).digest('hex')]));
+ const bundles={};for(const file of Object.keys(assets)) (bundles[bundleFor(file)]??=[]).push(file);
+ const releaseId=appVersion+'-'+createHash('sha256').update(JSON.stringify(assets)).digest('hex').slice(0,16);
+ return {appVersion,releaseId,assets,bundles};
+}
+if(process.argv[1]&&path.resolve(process.argv[1])===path.resolve('tools/runtime-assets.mjs')) {
+ const manifest=generateManifest(walk());
+ const output=JSON.stringify(manifest,null,2)+'\n',file='core/versions/runtime-assets.json';
+ if(process.argv.includes('--write'))fs.writeFileSync(file,output);
+ else if(!fs.existsSync(file)||fs.readFileSync(file,'utf8').replace(/\r\n/g,'\n')!==output)throw Error('Runtime assets mismatch: node tools/runtime-assets.mjs --write');
+ console.log(`Verified runtime manifest ${APP_VERSION}: ${Object.keys(manifest.assets).length} code assets`);
+}

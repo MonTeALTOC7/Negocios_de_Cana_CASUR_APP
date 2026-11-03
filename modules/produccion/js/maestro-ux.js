@@ -48,8 +48,6 @@
     const personal = !!window.CASUR_OPERATIONAL_LOCAL || !!data.meta?.manualChanges ||
       !!(window.CASUR_MASTER_OVERLAY && window.CASUR_MASTER_OVERLAY.dataVersion === data.meta?.dataVersion);
     text('maestroSource', personal ? 'Generación personal' : 'Datos oficiales CASUR');
-    text('maestroGeneration', data.meta?.dataVersion || 'Generación no disponible');
-    text('maestroSourceName', data.meta?.source || 'Cronológico vigente');
     text('maestroSummarySeason', 'Panorama de la zafra ' + (data.meta?.estimateSeason || summary.estimateSeason || 'vigente'));
     const host = byId('maestroSummary');
     if (host) { host.dataset.generation = data.meta?.dataVersion || ''; host.setAttribute('aria-busy', 'false'); }
@@ -179,7 +177,7 @@
           const overview=presentation(el('section','ux09-forecast-overview'));overview.append(el('h3','','Aforo y producción proyectada · Z'+(summary.estimateSeason||'N/D')));
           const stats=el('dl','ux09-forecast-stats');[['Área de molienda',fmt(summary.millingArea)+' ha'],['Toneladas estimadas',fmt(summary.estimateTons)+' t'],['TCH estimado',fmt(summary.estimateTch)+' t/ha'],['Suertes con estimado',fmt(summary.estimateLots,0)+' / '+fmt(summary.millingLots,0)]].forEach(([k,v])=>{const item=el('div');item.append(el('dt','',k),el('dd','',v));stats.append(item);});
           const method=el('details','ux-aforo-detail');
-          method.append(el('summary','','Detalle del aforo'),el('p','','Área con estimado: '+fmt(summary.estimateArea)+' ha · Cobertura de molienda: '+fmt(summary.coberturaEstimadoAreaPct)+' % · TCH ponderado sobre el área con estimado. Fuente: '+(window.CRONO_DATA.meta?.source||'N/D')+' · '+(window.CRONO_DATA.meta?.dataVersion||'N/D')));
+          method.append(el('summary','','Detalle del aforo'),el('p','','Área con estimado: '+fmt(summary.estimateArea)+' ha · Cobertura de molienda: '+fmt(summary.coberturaEstimadoAreaPct)+' % · TCH ponderado sobre el área con estimado. Estimación, no producción realizada.'));
           overview.append(stats,method);content.append(overview);
         }
         const head=el('div','ux05-heading');
@@ -270,7 +268,7 @@
       };
       groups.slice(0,farm?groups.length:limit).forEach(g=>appendGroup(g,results));content.append(results);
       if(!farm&&groups.length>limit)content.append(button('Ver las '+groups.length+' categorías',()=>{const all=el('div','context-results');groups.forEach(g=>appendGroup(g,all));const dialog=openDrawer('Análisis ampliado',all);all.addEventListener('click',e=>{if(e.target.closest('button'))dialog.close();});}));
-      content.append(button('Composición y metodología',()=>{const info=el('div','context-method');info.append(el('p','','Molienda: '+fmt(summary.millingArea)+' ha · '+summary.millingLots+' suertes'),el('p','','Semilla: '+fmt(summary.seedArea)+' ha · '+summary.seedLots+' suertes'),el('p','','Área válida: '+fmt(summary.estimateArea)+' ha · '+summary.estimateLots+' suertes con estimado'),el('p','','TCH = toneladas autorizadas ÷ área válida. Cobertura = área válida ÷ área de molienda. El destino registrado no reemplaza la participación operativa.'),el('p','','Fuente efectiva: '+window.CRONO_DATA.meta.source));openDrawer('Composición del ámbito',info);}));
+      content.append(button('Composición y metodología',()=>{const info=el('div','context-method');info.append(el('p','','Molienda: '+fmt(summary.millingArea)+' ha · '+summary.millingLots+' suertes'),el('p','','Semilla: '+fmt(summary.seedArea)+' ha · '+summary.seedLots+' suertes'),el('p','','Área válida: '+fmt(summary.estimateArea)+' ha · '+summary.estimateLots+' suertes con estimado'),el('p','','TCH = toneladas autorizadas ÷ área válida. Cobertura = área válida ÷ área de molienda. El destino registrado no reemplaza la participación operativa.'));openDrawer('Composición del ámbito',info);}));
     };
     board.setObjective=key=>{state.objective=key;if(farm){state.scope=[];if(key==='directory')state.directoryQuery='';}objective.querySelector('select').value=key;render();};render();return board;
   }
@@ -505,7 +503,25 @@
 
   }
 
+  // Present operational state without exposing internal generation identifiers.
+  function presentOperationalStatus() {
+    const strip = document.querySelector('.casur-release-strip');
+    if (!strip) return;
+    const kind = document.getElementById('casurReleaseKind');
+    const local = kind?.textContent === 'Generación local aprobada';
+    if (strip.dataset.local !== String(local)) strip.dataset.local = String(local);
+    const status = document.getElementById('casurDataStatus');
+    if (!status) return;
+    const current = status.textContent;
+    let readable = current;
+    if (/^Generación local conservada\. Oficial disponible:/.test(current)) readable = 'Datos locales conservados. Hay datos oficiales disponibles.';
+    if (/^Datos oficiales CASUR actualizados ·/.test(current)) readable = 'Datos oficiales CASUR actualizados.';
+    if (readable !== current) status.textContent = readable;
+  }
+
   function init() {
+    new MutationObserver(presentOperationalStatus).observe(byId('cronoSection'), {childList:true, subtree:true, characterData:true});
+    presentOperationalStatus();
     const home = byId('homeSection'), header = document.querySelector('header');
     if (!home || !header || byId('maestroTabs')) return;
     const nav = document.createElement('div'); nav.id = 'maestroTabs'; nav.className = 'maestro-tabs no-print export-excluded';
@@ -553,7 +569,7 @@
     const title = home.querySelector('h2'); if (title) title.textContent = 'Resumen de producción';
     const subtitle = home.querySelector('.hero-copy p'); if (subtitle) { subtitle.id = 'maestroSummarySeason'; subtitle.textContent = 'Panorama de la zafra vigente'; }
     const summary = document.createElement('section'); summary.id = 'maestroSummary'; summary.setAttribute('aria-label', 'Indicadores del Cronológico vigente'); summary.setAttribute('aria-busy', 'true');
-    summary.innerHTML = `<details class="maestro-source"><summary><b id="maestroSource">Cargando fuente…</b><span class="maestro-source-disclosure">Fuente y versión</span></summary><div class="maestro-source-details"><span id="maestroSourceName"></span><b id="maestroSeason"></b><span id="maestroGeneration"></span></div></details>
+    summary.innerHTML = `<div class="maestro-source"><b id="maestroSource">Cargando fuente…</b><span id="maestroSeason"></span></div>
       <div class="maestro-kpis">
         <article class="maestro-kpi maestro-kpi-primary"><span>Área activa</span><strong id="maestroActiveArea">—</strong><small id="maestroActiveLots">Cargando datos</small></article>
         <article class="maestro-kpi"><span>Área válida estimada</span><strong id="maestroEstimateArea">—</strong><small id="maestroEstimateLots"></small></article>

@@ -16,8 +16,8 @@ if (header && release) {
   function refreshChronoDate() {
     const effective = effectiveChronoDate(window.CRONO_DATA);
     chronoDate.textContent = effective.text.replace(/^Cronológico /, 'Cron ');
-    chronoDate.title = effective.detail;
-    document.querySelector('#productionDataProvenance')?.replaceChildren(document.createTextNode(effective.detail));
+    chronoDate.title = effective.text;
+    document.querySelector('#productionDataProvenance')?.replaceChildren(document.createTextNode(effective.text));
   }
   refreshChronoDate();
   window.addEventListener('load', refreshChronoDate);
@@ -37,7 +37,7 @@ if (header && release) {
   title.id = 'productionNewsTitle'; title.textContent = 'Novedades de la app';
   dialog.append(title);
   const provenance = document.createElement('p'); provenance.id = 'productionDataProvenance';
-  provenance.textContent = effectiveChronoDate(window.CRONO_DATA).detail; dialog.append(provenance);
+  provenance.textContent = effectiveChronoDate(window.CRONO_DATA).text; dialog.append(provenance);
   for (const item of PRODUCTION_RELEASES) {
     const section = document.createElement('section');
     const label = document.createElement('p');
@@ -54,9 +54,7 @@ if (header && release) {
   dialog.append(close); document.body.append(dialog);
   trigger.onclick = () => dialog.showModal();
   dialog.addEventListener('close', () => trigger.focus());
-  row.append(version, chronoDate, trigger); const compact = matchMedia('(max-width:650px)');
-  const placeRelease = () => (compact.matches ? header : header.closest('.head')).append(row);
-  placeRelease();
-  compact.addEventListener('change', placeRelease);
+  row.append(version, chronoDate, trigger);
+  header.closest('.head').append(row);
   document.querySelector('meta[name="casur-build"]')?.setAttribute('content', `Producción ${release.moduleVersion} · Histórico ${release.historicalVersion} · App ${APP_VERSION}`);
 }

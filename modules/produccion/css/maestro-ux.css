@@ -872,3 +872,21 @@
 @media (max-width:650px) {
   .casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .maestro-lot-attributes {margin-top:14px}
 }
+/* Metadatos compactos en un slot visible junto a la marca. */
+@media screen and (max-width:650px) {
+ .casur-maestro-premium:not(.print-export) .head {display:grid!important;grid-template-columns:40px auto minmax(0,1fr)!important;align-items:center!important;gap:4px!important}
+ .casur-maestro-premium:not(.print-export) .head #maestroMenu {grid-area:1/1!important}
+ .casur-maestro-premium:not(.print-export) .head .brand {grid-area:1/2!important;width:auto!important;min-width:0;flex:none}
+ .casur-maestro-premium:not(.print-export) .head .production-release {grid-area:1/3!important;justify-content:flex-end!important;flex-wrap:nowrap!important;gap:3px!important;white-space:nowrap!important;font-size:9px!important;min-width:0}
+ .casur-maestro-premium:not(.print-export) .head .production-release span {min-width:0;overflow:hidden;text-overflow:ellipsis}
+ .casur-maestro-premium:not(.print-export) .head .maestro-appearance {grid-area:2/3!important}
+ .casur-maestro-premium:not(.maestro-embedded):not(.print-export) .head .brand-title {display:none}
+}
+.casur-maestro-premium:not(.print-export) .casur-release-strip > span:first-child {display:none}
+.casur-maestro-premium:not(.print-export) .casur-release-strip[data-local="true"] > span:first-child {display:inline}
+.casur-maestro-premium:not(.print-export) .casur-release-strip[data-local="true"] #casurReleaseVersion {display:none}
+.casur-maestro-premium:not(.print-export) .casur-release-strip:not([data-local="true"]):not(:has(#casurDataStatus:not(:empty),button:not([hidden]))) {display:none}
+.casur-maestro-premium:not(.print-export) .casur-release-strip[data-local="true"] > span:first-child {font-size:0}
+.casur-maestro-premium:not(.print-export) .casur-release-strip[data-local="true"] #casurReleaseKind {font-size:11px}
+.casur-maestro-premium:not(.print-export) #homeSection .maestro-source {display:flex;align-items:center;gap:8px;padding:4px 8px}
+.casur-maestro-premium:not(.print-export) #homeSection .maestro-source #maestroSeason::before {content:' · ';white-space:pre}

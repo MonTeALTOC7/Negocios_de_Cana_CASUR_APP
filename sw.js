@@ -181,7 +181,56 @@ async function coordinateUpdate() {
     return {ok:false};
   } finally { updateInProgress = false; }
 }
+// Transactional bundle staging is opt-in: the existing install/fetch/update gate
+// remains authoritative until generation pinning and offline routing are ready.
+const bundlePreparations = new Map();
+async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}) {
+  const shell = await caches.open(SHELL_CACHE);
+  const manifestResponse = await shell.match(new URL('./core/versions/runtime-assets.json', self.registration.scope));
+  if (!manifestResponse) throw new Error('MANIFEST_UNAVAILABLE');
+  const manifest = await manifestResponse.json();
+  if (!manifest.releaseId || releaseId !== manifest.releaseId || manifest.appVersion !== APP_VERSION) throw new Error('RELEASE_MISMATCH');
+  if (!/^[a-z0-9_-]+$/.test(bundleId) || !Object.hasOwn(manifest.bundles || {}, bundleId)) throw new Error('UNKNOWN_BUNDLE');
+  const entries = manifest.bundles[bundleId];
+  if (!Array.isArray(entries) || !entries.length || new Set(entries).size !== entries.length || entries.some(file => !Object.hasOwn(manifest.assets, file))) throw new Error('INVALID_BUNDLE');
+  const key = releaseId + ':' + bundleId;
+  if (bundlePreparations.has(key)) return bundlePreparations.get(key);
+  const work = (async () => {
+    const stagingName = MASTER_PREFIX + 'bundle_stage_' + encodeURIComponent(releaseId) + '_' + bundleId + '_' + crypto.randomUUID();
+    const staging = await caches.open(stagingName);
+    const meta = await caches.open(MASTER_PREFIX + 'bundle_meta');
+    const marker = new URL('./__bundle_ready__/' + encodeURIComponent(releaseId) + '/' + bundleId, self.registration.scope);
+    try {
+      let completed = 0;
+      for (const file of entries) {
+        const url = new URL(file, self.registration.scope);
+        if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) throw new Error('INVALID_ASSET');
+        const response = await fetch(url, {cache:'no-store'});
+        if (!response.ok) throw new Error('ASSET_UNAVAILABLE');
+        const bytes = /\.(?:html|css|js|mjs|svg)$/.test(file) ? new TextEncoder().encode((await response.clone().text()).replace(/\r\n/g,'\n')) : await response.clone().arrayBuffer();
+        const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), byte => byte.toString(16).padStart(2,'0')).join('');
+        if (digest !== manifest.assets[file]) throw new Error('HASH_MISMATCH');
+        await staging.put(url, normalizeNavigationRedirect(response));
+        try { notify({type:'PROGRESS',bundleId,releaseId,completed:++completed,total:entries.length}); } catch { /* disconnected port */ }
+      }
+      // The pointer is the sole atomic promotion; no partial staging is visible.
+      await meta.put(marker, new Response(JSON.stringify({releaseId,bundleId,cache:stagingName,count:entries.length}),{headers:{'Content-Type':'application/json'}}));
+      return {type:'READY', bundleId, releaseId, count:entries.length};
+    } catch (error) {
+      await caches.delete(stagingName);
+      throw error;
+    }
+  })();
+  bundlePreparations.set(key, work);
+  try { return await work; } finally { bundlePreparations.delete(key); }
+}
 self.addEventListener('message', (event) => {
+  if (event.data?.type === 'PREPARE_BUNDLE' && event.ports?.[0]) {
+    const port = event.ports[0];
+    event.waitUntil(prepareVerifiedBundle(event.data.bundleId,event.data.releaseId, message => port.postMessage(message))
+      .then(result => port.postMessage(result), error => port.postMessage({type:'ERROR',code:error.message,bundleId:event.data.bundleId,releaseId:event.data.releaseId})));
+    return;
+  }
   // Ignore legacy SKIP_WAITING: v1.3.4 cannot provide a safe checkpoint handshake.
   if (event.data?.type === 'CASUR_UPDATE_INFO') event.waitUntil((async () => {
     const previous = (await caches.keys()).filter(key => key.startsWith(MASTER_PREFIX+'shell_v') && key !== SHELL_CACHE).map(key => key.slice((MASTER_PREFIX+'shell_v').length));

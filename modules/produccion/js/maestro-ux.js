@@ -410,11 +410,11 @@
       originalChart?.classList.add('premium-original-analysis');table.classList.add('premium-original-analysis');
       const labels=[...table.querySelectorAll('thead th')].map(n=>n.textContent.trim()),cells=[...table.querySelectorAll('tbody tr:first-child td')].map(n=>n.textContent.trim());
       const fields=labels.map((label,i)=>({label,value:cells[i]||'N/D'}));const chips=presentation(el('div','maestro-lot-attributes'));
-      fields.filter(f=>/^(Zona|Tipo de riego|Variedad|Tenencia)$/.test(f.label)).forEach(f=>chips.append(el('span','',f.label+': '+f.value)));root.querySelector('.ficha-band > div')?.append(chips);const farm=window.CRONO_DATA.producers.find(p=>String(p.code)===String(byId('cronoProducerSelect').value));
+      fields.filter(f=>/^Variedad$/.test(f.label)).forEach(f=>chips.append(el('span','',f.label+': '+f.value)));root.querySelector('.ficha-band > div')?.append(chips);const farm=window.CRONO_DATA.producers.find(p=>String(p.code)===String(byId('cronoProducerSelect').value));
       const lot=farm?.details.find(r=>String(r.codLote)===host.dataset.geoLotId);
       const heading=root.querySelector('.ficha-band h2');
       heading.textContent='Suerte '+(lot?.suerte??host.dataset.geoLotId);
-      heading.after(el('span','ux-lot-id',[farm?.name,'Código finca '+farm?.code,'CodLote '+host.dataset.geoLotId].join(' · ')));
+      heading.after(el('span','ux-lot-id',[farm?.name,'Finca '+farm?.code,'CodLote '+host.dataset.geoLotId].join(' · ')));
       root.querySelector('.ficha-band small')?.classList.add('premium-original-analysis');
       root.classList.add('premium-ficha-restored');
       const tabs=presentation(el('div','context-lot-tabs'));tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Consulta de suerte');

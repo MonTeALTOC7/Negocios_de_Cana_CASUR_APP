@@ -92,6 +92,21 @@ export async function installUpdateControl({ version, checkpoint }) {
     try { await registration.update(); await showWaiting(); } catch { /* Keep installed release usable offline. */ }
   }
   registration = await sw.register('./sw.js', {scope:'./', updateViaCache:'none'});
+  const manualCheck = document.getElementById?.('checkAppUpdates');
+  if (manualCheck) manualCheck.addEventListener('click', async () => {
+    if (!navigator.onLine) { manualCheck.textContent = 'Sin conexión'; return; }
+    manualCheck.disabled = true;
+    manualCheck.textContent = 'Buscando…';
+    try {
+      await registration.update();
+      await showWaiting();
+      manualCheck.textContent = registration.installing ? 'Preparando actualización…' : waiting ? 'Actualización pendiente' : 'Sin novedades';
+    } catch {
+      manualCheck.textContent = 'No se pudo buscar';
+    } finally {
+      manualCheck.disabled = false;
+    }
+  });
   registration.addEventListener('updatefound', () => {
     const worker = registration.installing;
     worker?.addEventListener('statechange', () => { if (worker.state === 'installed') void showWaiting().catch(() => {}); });

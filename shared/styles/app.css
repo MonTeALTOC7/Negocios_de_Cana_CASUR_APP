@@ -612,3 +612,6 @@ a { color: var(--teal-light); text-decoration: none; }
   .install-card, .install-card__glow, .install-card__flash { animation: none; transition: opacity .2s ease; transform: none; }
   .install-card.is-in { transform: none; }
 }
+
+/* Indicador del shell mientras Producción prepara su iframe. */
+.module-host__startup {position:absolute;inset:calc(52px + var(--safe-top)) 0 0;z-index:2;display:grid;place-items:center;padding:24px;background:#f2f7f4;color:#174337;text-align:center;font:600 16px/1.5 system-ui,sans-serif}

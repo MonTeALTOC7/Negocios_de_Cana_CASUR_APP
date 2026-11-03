@@ -10,7 +10,7 @@ const original=p=>execFileSync('git',['show',base+':modules/produccion/'+p],{cwd
 
 test('Fase 1 conserva byte a byte el documento y los motores originales tras retirar los dos enlaces nuevos',()=>{
  const restored=current('index.html').replace('<link rel="stylesheet" href="css/maestro-ux.css">\n','').replace('<script src="js/maestro-ux.js"></script>\n','');
- const normalizeRelease = html => html.replace(/var VERSION='V[\d.]+';/, 'var VERSION=RELEASE;').replace(/(<script id="casurEmbeddedPwaAssets"[^>]*>)([\s\S]*?)(<\/script>)/, (_, start, json, end) => {
+ const normalizeRelease = html => html.replace(/<style>\n  html\.casur-booting[\s\S]*?<\/style>\n<script>document\.documentElement\.classList\.add\('casur-booting'\);<\/script>\n/, '').replace(/\n<div id="casurStartup"[\s\S]*?<\/script>/, '').replace(/var VERSION='V[\d.]+';/, 'var VERSION=RELEASE;').replace(/(<script id="casurEmbeddedPwaAssets"[^>]*>)([\s\S]*?)(<\/script>)/, (_, start, json, end) => {
    const assets=JSON.parse(json); for(const name of ['README_GITHUB.md','VERSION.txt']) assets[name]=Buffer.from(Buffer.from(assets[name],'base64').toString('utf8').replace(/V[\d.]+/g,'RELEASE')).toString('base64');
    return start+JSON.stringify(assets)+end;
  });

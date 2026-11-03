@@ -460,6 +460,7 @@ function viewModule(id) {
         <span class="module-host__spacer"></span>
         <button class="icon-btn" id="mReload" type="button" aria-label="Recargar módulo">${icon('refresh')}</button>
       </div>
+      ${id === 'produccion' ? '<div class="module-host__startup" id="productionStartup" role="status" aria-live="polite"><div><span>Preparando Maestro de Suertes…</span><p hidden>La preparación está tardando. Podés volver al inicio y reintentar.</p></div></div>' : ''}
       <iframe class="module-host__frame" id="mFrame"
               data-casur-src="${m.route}"
               title="${m.name}"
@@ -481,8 +482,9 @@ function viewModule(id) {
   document.body.classList.add('in-module');
   viewEl.innerHTML = '';
   const frame = $('#mFrame', host);
-  frame.addEventListener('load', () => { if(frame.contentWindow?.location.href==='about:blank')return; protectModuleActivity(frame.contentWindow); void consumePendingModuleContext(frame, id); });
+  frame.addEventListener('load', () => { if(frame.contentWindow?.location.href==='about:blank')return; host.querySelector('#productionStartup')?.remove(); protectModuleActivity(frame.contentWindow); void consumePendingModuleContext(frame, id); });
   viewEl.appendChild(host);
+  if (id === 'produccion') setTimeout(() => { const note = host.querySelector('#productionStartup p'); if (note) note.hidden = false; }, 20000);
   // First-use Production scripts must already be behind the verified SW data gate.
   void (async()=>{
     if('serviceWorker' in navigator && location.protocol!=='file:'){

@@ -460,7 +460,7 @@ function viewModule(id) {
         <span class="module-host__spacer"></span>
         <button class="icon-btn" id="mReload" type="button" aria-label="Recargar módulo">${icon('refresh')}</button>
       </div>
-      ${id === 'produccion' ? '<div class="module-host__startup" id="productionStartup" role="status" aria-live="polite"><div class="module-host__startup-card"><img src="modules/produccion/assets/negocios-de-cana.webp" alt="" width="54" height="54"><div><strong>Maestro de Suertes</strong><span>Preparando datos seguros…</span><p hidden>La preparación está tardando. Podés volver al inicio y reintentar.</p></div></div><div class="module-host__startup-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>' : ''}
+      ${id === 'produccion' ? '<div class="module-host__startup" id="productionStartup" role="status" aria-live="polite"><div class="module-host__startup-card"><img src="modules/produccion/assets/negocios-de-cana.webp" alt="" width="144" height="144"><div><strong>Maestro de Suertes</strong><span>Preparando datos seguros…</span><p hidden>La preparación está tardando. Podés volver al inicio y reintentar.</p></div></div><div class="module-host__startup-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>' : ''}
       <iframe class="module-host__frame" id="mFrame"
               data-casur-src="${m.route}"
               title="${m.name}"
@@ -485,8 +485,21 @@ function viewModule(id) {
   document.body.classList.add('in-module');
   viewEl.innerHTML = '';
   const frame = $('#mFrame', host);
-  frame.addEventListener('load', () => { if(frame.contentWindow?.location.href==='about:blank')return; host.querySelector('#productionStartup')?.remove(); protectModuleActivity(frame.contentWindow); void consumePendingModuleContext(frame, id); });
+  const revealProduction = () => {
+    if (id !== 'produccion' || !frame.isConnected) return;
+    try {
+      const child = frame.contentWindow;
+      if (child?.CASUR_PRODUCTION_READY && child.document.body?.classList.contains('casur-maestro-premium') && child.document.querySelector('#casurStartup')?.hidden) {
+        host.querySelector('#productionStartup')?.remove();
+        return;
+      }
+    } catch { /* Navigation can be in progress; keep the safe loading state. */ }
+    setTimeout(revealProduction, 40);
+  };
+  frame.addEventListener('load', () => { if(frame.contentWindow?.location.href==='about:blank')return; protectModuleActivity(frame.contentWindow); void consumePendingModuleContext(frame, id); });
+  if (id === 'produccion') setTimeout(revealProduction, 0);
   viewEl.appendChild(host);
+  if (id === 'produccion' && navigator.serviceWorker?.controller) { host.classList.add('startup-warm'); setTimeout(() => host.classList.remove('startup-warm'), 900); }
   if (id === 'produccion') setTimeout(() => { const note = host.querySelector('#productionStartup p'); if (note) note.hidden = false; }, 20000);
   // First-use Production scripts must already be behind the verified SW data gate.
   void (async()=>{

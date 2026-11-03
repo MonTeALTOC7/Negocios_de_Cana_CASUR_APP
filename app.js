@@ -481,9 +481,16 @@ function viewModule(id) {
   // Mantener el mismo control y sus listeners al cambiar entre vistas.
   const updateButton = document.getElementById('checkAppUpdates');
   if (updateButton) host.querySelector('.module-host__bar').insertBefore(updateButton, host.querySelector('#mReload'));
-  // Ocultamos header/nav del shell mientras un módulo ocupa toda la pantalla.
-  document.body.classList.add('in-module');
-  viewEl.innerHTML = '';
+  // Conservar Inicio durante una transición caliente, sin mostrar el iframe prematuro.
+  const previousView = id === 'produccion' && navigator.serviceWorker?.controller && !viewEl.querySelector('#mFrame') ? viewEl.firstElementChild : null;
+  if (previousView) { previousView.inert = true; host.classList.add('module-host--pending'); }
+  else { document.body.classList.add('in-module'); viewEl.innerHTML = ''; }
+  const showHost = () => {
+    if (!host.isConnected) return;
+    if (previousView?.isConnected) previousView.remove();
+    document.body.classList.add('in-module');
+    host.classList.remove('module-host--pending');
+  };
   const frame = $('#mFrame', host);
   const revealProduction = () => {
     if (id !== 'produccion' || !frame.isConnected) return;
@@ -491,6 +498,7 @@ function viewModule(id) {
       const child = frame.contentWindow;
       if (child?.CASUR_PRODUCTION_READY && child.document.body?.classList.contains('casur-maestro-premium') && child.document.querySelector('#casurStartup')?.hidden) {
         host.querySelector('#productionStartup')?.remove();
+        showHost();
         return;
       }
     } catch { /* Navigation can be in progress; keep the safe loading state. */ }
@@ -499,7 +507,7 @@ function viewModule(id) {
   frame.addEventListener('load', () => { if(frame.contentWindow?.location.href==='about:blank')return; protectModuleActivity(frame.contentWindow); void consumePendingModuleContext(frame, id); });
   if (id === 'produccion') setTimeout(revealProduction, 0);
   viewEl.appendChild(host);
-  if (id === 'produccion' && navigator.serviceWorker?.controller) { host.classList.add('startup-warm'); setTimeout(() => host.classList.remove('startup-warm'), 900); }
+  if (previousView) setTimeout(showHost, 1200);
   if (id === 'produccion') setTimeout(() => { const note = host.querySelector('#productionStartup p'); if (note) note.hidden = false; }, 20000);
   // First-use Production scripts must already be behind the verified SW data gate.
   void (async()=>{

@@ -2,7 +2,7 @@
   "appVersion": "1.5.5",
   "assets": {
     "404.html": "13e468776893ea36d86e0a6b83935bafd4c5f3782fb3a302959337f8e14a19fe",
-    "app.js": "b96a3b12661a31e4db66e4e70972499746e17e7c6fb8ce3782bf0a9f1beb1471",
+    "app.js": "a6fad8de1e5cfe58d16def36402349a407532c3f535bc5bb3f5c106171f54955",
     "core/imports/operational-analysis.js": "8d55dff38e34a6475423241786c0a84a3fd042e9656654c631347aaed94bade8",
     "core/imports/operational-import.js": "f2d9bddf57b8e7d03d9fb72bfee7cb0e73a68defd5a559958956c082a241d8f7",
     "core/imports/workbook-reader.js": "7551a69a1524deec98c9737e71c906c3cf50e68cf5c02413de37dfd82ea945cc",
@@ -163,7 +163,7 @@
     "shared/geo/geo-data.js": "1d10f2ceaf8ec456c54dfaf589a5da43e90a9063d7ef26a82b8299f6551b39fe",
     "shared/geo/geo-map.js": "16b5fe297225436f623bdd3637c2939fdbfd3a3845d04859ef52cf708778674d",
     "shared/geo/geo.css": "6943a2280258b1f353e30012f80463ee28e4bafdd6d54658801efef47f856789",
-    "shared/styles/app.css": "5b7626d41d313ca19fa040d973e7c2f918d2861a1a6d4f6cc81a214186bb66fe",
+    "shared/styles/app.css": "e8a0e021ffcdea89810f9f54eef972776601b00e3bc44cfc4565156d0cdab999",
     "shared/styles/tokens.css": "5b4e8d35d8d6edae0534403f4c23d80dcb620b06144beb827ad09f1804734a45",
     "shared/vendor/leaflet/images/layers-2x.png": "066daca850d8ffbef007af00b06eac0015728dee279c51f3cb6c716df7c42edf",
     "shared/vendor/leaflet/images/layers.png": "1dbbe9d028e292f36fcba8f8b3a28d5e8932754fc2215b9ac69e4cdecf5107c6",

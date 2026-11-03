@@ -633,5 +633,5 @@ a { color: var(--teal-light); text-decoration: none; }
 .module-host__startup-card { justify-content:center; flex-wrap:wrap; text-align:center; }
 .module-host__startup-card img { width:144px; height:144px; flex:0 0 144px; }
 .module-host__startup-card > div { min-width:180px; }
-.startup-warm .module-host__startup-card { display:none; }
+.module-host--pending { visibility:hidden; pointer-events:none; }
 @media (min-width:720px) { .module-host__startup-card img { width:160px; height:160px; flex-basis:160px; } }

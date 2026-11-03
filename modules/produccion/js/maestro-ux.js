@@ -44,10 +44,6 @@
     text('maestroCatalog', fmt(summary.catalogLots ?? rows.length, 0));
     text('maestroMilling', fmt(summary.millingLots, 0));
     text('maestroSeed', fmt(summary.seedLots, 0));
-    text('maestroSeason', 'Zafra ' + (data.meta?.estimateSeason || summary.estimateSeason || 'N/D'));
-    const personal = !!window.CASUR_OPERATIONAL_LOCAL || !!data.meta?.manualChanges ||
-      !!(window.CASUR_MASTER_OVERLAY && window.CASUR_MASTER_OVERLAY.dataVersion === data.meta?.dataVersion);
-    text('maestroSource', personal ? 'Generación personal' : 'Datos oficiales CASUR');
     text('maestroSummarySeason', 'Panorama de la zafra ' + (data.meta?.estimateSeason || summary.estimateSeason || 'vigente'));
     const host = byId('maestroSummary');
     if (host) { host.dataset.generation = data.meta?.dataVersion || ''; host.setAttribute('aria-busy', 'false'); }
@@ -571,8 +567,7 @@
     const title = home.querySelector('h2'); if (title) title.textContent = 'Resumen de producción';
     const subtitle = home.querySelector('.hero-copy p'); if (subtitle) { subtitle.id = 'maestroSummarySeason'; subtitle.textContent = 'Panorama de la zafra vigente'; }
     const summary = document.createElement('section'); summary.id = 'maestroSummary'; summary.setAttribute('aria-label', 'Indicadores del Cronológico vigente'); summary.setAttribute('aria-busy', 'true');
-    summary.innerHTML = `<div class="maestro-source"><b id="maestroSource">Cargando fuente…</b><span id="maestroSeason"></span></div>
-      <div class="maestro-kpis">
+    summary.innerHTML = `<div class="maestro-kpis">
         <article class="maestro-kpi maestro-kpi-primary"><span>Área activa</span><strong id="maestroActiveArea">—</strong><small id="maestroActiveLots">Cargando datos</small></article>
         <article class="maestro-kpi"><span>Área válida estimada</span><strong id="maestroEstimateArea">—</strong><small id="maestroEstimateLots"></small></article>
         <article class="maestro-kpi"><span>Toneladas estimadas</span><strong id="maestroEstimateTons">—</strong><small>Molienda con estimado autorizado</small></article>
@@ -581,7 +576,6 @@
     home.querySelector('#moduleAccess')?.before(summary);
     const hero=document.createElement('div');hero.className='maestro-summary-hero';
     const copy=home.querySelector('.hero-copy');if(copy){copy.before(hero);hero.append(copy);}
-    hero.append(summary.querySelector('.maestro-source'));
     summary.querySelector('.maestro-kpis').innerHTML=[
       ['leaf','Área activa total','maestroActiveArea','maestroActiveLots','Incluye molienda y semilla activas; excluye registros inactivos o ausentes.',''],
       ['truck','Toneladas estimadas','maestroEstimateTons','','Aforo autorizado destinado a molienda, de la generación efectiva.',''],

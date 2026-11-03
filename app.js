@@ -478,6 +478,9 @@ function viewModule(id) {
       </div>
     </div>`);
 
+  // Mantener el mismo control y sus listeners al cambiar entre vistas.
+  const updateButton = document.getElementById('checkAppUpdates');
+  if (updateButton) host.querySelector('.module-host__bar').insertBefore(updateButton, host.querySelector('#mReload'));
   // Ocultamos header/nav del shell mientras un módulo ocupa toda la pantalla.
   document.body.classList.add('in-module');
   viewEl.innerHTML = '';
@@ -804,6 +807,8 @@ function renderGate(pendingModuleId) {
 
 /* ---------------- Utilidades de vista ---------------- */
 function swap(view) {
+  const updateButton = document.getElementById('checkAppUpdates');
+  if (updateButton) document.querySelector('.header').insertBefore(updateButton, document.getElementById('conn'));
   document.body.classList.remove('in-module');
   viewEl.innerHTML = '';
   viewEl.appendChild(view);

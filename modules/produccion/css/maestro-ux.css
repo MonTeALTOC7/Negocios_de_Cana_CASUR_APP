@@ -843,3 +843,22 @@
 @media(max-width:600px){.ux05-table.ux05-area th,.ux05-table.ux05-area td {padding-left:3px;padding-right:3px}.ux05-table.ux05-area th {font-size:10px;line-height:1.15}.ux05-area .ux05-num {font-size:11px}.ux09-farm-actions {scroll-snap-type:x proximity}.ux09-farm-actions button {scroll-snap-align:start}}
 .ux09-farm-scroll-hint {display:none;font-size:10px;color:#527266;margin-top:1px}
 @media(max-width:600px){.ux09-farm-scroll-hint {display:block}}
+@media screen {
+.casur-maestro-premium:not(.print-export) #homeSection .maestro-summary-hero .maestro-source {align-self:center;flex:none;width:max-content;max-width:100%}
+.casur-maestro-premium:not(.print-export) #homeSection .maestro-source > summary {padding:3px 8px}
+.casur-maestro-premium .production-release {gap:5px;font-size:10px;margin:0;padding:0}
+.casur-maestro-premium .production-release button {background:#e7f2eb;border-radius:5px;padding:2px 6px}
+.casur-maestro-premium:not(.print-export) #cronoContent .ficha-band {display:flex!important;flex-direction:row!important;align-items:center;justify-content:space-between;padding:9px 12px!important;min-height:0!important;text-align:left}
+.casur-maestro-premium:not(.print-export) #cronoContent .ficha-band .ficha-actions {width:auto!important;flex:none}
+.casur-maestro-premium:not(.print-export) #cronoContent .ficha-band .context-report-trigger {width:44px!important;min-width:44px!important;height:44px;padding:8px;font-size:0}
+.ux-lot-id {font-size:12px}.ux-aforo-detail {font-size:12px;margin-top:8px}
+.ux09-forecast-stats {display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.context-explorer[data-context^="farm-"] .context-directory .context-results {display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:5px}
+.context-explorer[data-context^="farm-"] .context-directory .context-results > button {min-height:44px;padding:5px 8px;border:1px solid #c9ded3;border-radius:6px}
+.context-directory .context-results > small {grid-column:1/-1}
+.casur-maestro-premium:not(.print-export) .premium-ficha-restored [data-ux09-kpi="area"] {order:1}
+.casur-maestro-premium:not(.print-export) .premium-ficha-restored [data-ux09-kpi="age"] {order:2}
+.casur-maestro-premium:not(.print-export) .premium-ficha-restored [data-ux09-kpi="estimate"] {order:3}
+.casur-maestro-premium:not(.print-export) .premium-ficha-restored [data-ux09-kpi="proposal"] {order:4}
+@media(max-width:650px){.ux09-forecast-stats {grid-template-columns:1fr 1fr}}
+}

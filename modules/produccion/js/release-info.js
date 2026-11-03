@@ -15,7 +15,7 @@ if (header && release) {
   const chronoDate = document.createElement('span');
   function refreshChronoDate() {
     const effective = effectiveChronoDate(window.CRONO_DATA);
-    chronoDate.textContent = effective.text;
+    chronoDate.textContent = effective.text.replace(/^Cronológico /, 'Cron ');
     chronoDate.title = effective.detail;
     document.querySelector('#productionDataProvenance')?.replaceChildren(document.createTextNode(effective.detail));
   }
@@ -28,7 +28,7 @@ if (header && release) {
   // Legacy imports can mutate CRONO_DATA in place without an event.
   setInterval(() => { if (!document.hidden) refreshChronoDate(); }, 120000);
   const trigger = document.createElement('button');
-  trigger.type = 'button'; trigger.textContent = 'Novedades';
+  trigger.type = 'button'; trigger.textContent = 'Nov.'; trigger.setAttribute('aria-label','Novedades');
   trigger.setAttribute('aria-haspopup', 'dialog');
   const dialog = document.createElement('dialog');
   dialog.className = 'production-news no-print export-excluded';
@@ -54,6 +54,9 @@ if (header && release) {
   dialog.append(close); document.body.append(dialog);
   trigger.onclick = () => dialog.showModal();
   dialog.addEventListener('close', () => trigger.focus());
-  row.append(version, chronoDate, trigger); header.closest('.head').append(row);
+  row.append(version, chronoDate, trigger); const compact = matchMedia('(max-width:650px)');
+  const placeRelease = () => (compact.matches ? header : header.closest('.head')).append(row);
+  placeRelease();
+  compact.addEventListener('change', placeRelease);
   document.querySelector('meta[name="casur-build"]')?.setAttribute('content', `Producción ${release.moduleVersion} · Histórico ${release.historicalVersion} · App ${APP_VERSION}`);
 }

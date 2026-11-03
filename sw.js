@@ -9,7 +9,7 @@
    neutralizados dentro de la Maestra: aquí no se registran.
    ============================================================ */
 
-const APP_VERSION = '1.5.2';
+const APP_VERSION = '1.5.4';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;
@@ -96,7 +96,7 @@ self.addEventListener('install', (event) => {
         : await response.clone().arrayBuffer();
       const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)), byte => byte.toString(16).padStart(2,'0')).join('');
       if (digest !== expected) throw new Error(`Release hash mismatch: ${path}`);
-      await cache.put(url,response);
+      await cache.put(url,normalizeNavigationRedirect(response));
     }
     await cache.put(new URL('./core/versions/runtime-assets.json', self.registration.scope),new Response(JSON.stringify(manifest)));
     // A missing code asset rejects installation; the previous worker stays active.
@@ -261,10 +261,26 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(cacheFirst(req, SHELL_CACHE));
 });
 
+// Static hosts (e.g. Cloudflare Pages) may answer /index.html by redirecting
+// to the canonical directory. Fetch follows it, but re-serving that redirected
+// Response from CacheStorage to an iframe navigation can fail in Chromium.
+// Preserve status/body and remove only the redirect metadata; do not bypass
+// the verified snapshot, offline cache or module navigation policy.
+function normalizeNavigationRedirect(response) {
+  if (!response || !response.redirected) return response;
+  const headers = new Headers(response.headers);
+  headers.delete('content-encoding');
+  headers.delete('content-length');
+  headers.delete('transfer-encoding');
+  headers.delete('location');
+  return new Response(response.body, {
+    status:response.status,statusText:response.statusText,headers
+  });
+}
 async function installedNavigation(req, fallback) {
   const cache = await caches.open(SHELL_CACHE);
   const cached = await cache.match(req) || await cache.match(fallback);
-  return cached || networkFirst(req, SHELL_CACHE, fallback);
+  return normalizeNavigationRedirect(cached || await networkFirst(req, SHELL_CACHE, fallback));
 }
 
 /* ---------------- Fallback de navegación por scope ---------------- */
@@ -290,7 +306,7 @@ async function networkFirst(req, cacheName, fallbackUrl) {
   const cache = await caches.open(cacheName);
   try {
     const res = await fetch(req);
-    if (res && res.ok) cache.put(req, res.clone());
+    if (res && res.ok) cache.put(req, normalizeNavigationRedirect(res.clone()));
     return res;
   } catch {
     const cached = await cache.match(req);

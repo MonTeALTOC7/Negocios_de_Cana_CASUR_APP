@@ -1,4 +1,4 @@
-# Producción Suertes CASUR · V1.7.2
+# Producción Suertes CASUR · V1.8.0
 
 PWA del Cronológico e Histórico de Producción de Suertes CASUR. Esta versión conserva los módulos, perfiles y exportadores de VF53 e incorpora:
 

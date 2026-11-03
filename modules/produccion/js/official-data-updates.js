@@ -30,7 +30,7 @@ const bootReady=async()=>{
 function captureContext(){
  const crono=document.getElementById('cronoContent'),selection=window.CASUR_CRONO_SELECTION?.capture();
  const cronoView=document.getElementById('cronoPrintPanel')?(crono?.dataset.geoScope==='lot'?'lot':'farm'):selection?.keys?.length?'multiple':'home';
- return JSON.parse(JSON.stringify({crono:selection,cronoView,history:window.CASUR_HISTORY_SELECTION?.capture(),
+ return JSON.parse(JSON.stringify({maestroView:window.CASUR_MAESTRO_UX?.capture(),crono:selection,cronoView,history:window.CASUR_HISTORY_SELECTION?.capture(),
   cronoScope:crono?.dataset.geoScope||'',producer:document.getElementById('cronoProducerSelect')?.value,
   lot:crono?.dataset.geoLotId,entity:typeof currentEntity!=='undefined'?currentEntity?.code:null,
   historyIndividual:!!document.getElementById('printPanel'),historyPeriod:window.CASUR_HISTORICAL_PERIOD_STATE,
@@ -73,6 +73,7 @@ function applyContext(c){
   // Rendering may open sections; restore their saved state only after the final view exists.
   if(Array.isArray(c.viewClasses))for(const name of ['casur-hide-crono','casur-hide-historico','casur-hide-zone','casur-hide-executive','casur-zone-crono-only','casur-zone-hist-only'])document.body.classList.toggle(name,c.viewClasses.includes(name));
   if(Array.isArray(c.sections))for(const el of document.querySelectorAll('details[id]'))el.open=c.sections.includes(el.id);
+  window.CASUR_MAESTRO_UX?.restore(c.maestroView,c.sections);
   const epoch=userChoice;requestAnimationFrame(()=>{if(epoch===userChoice)scrollTo(0,Number.isFinite(c.scroll)?c.scroll:0);});
   return {message:missing?'Parte de la selección guardada ya no está disponible o la versión anterior no guardó el periodo histórico. Volvé a seleccionar la suerte o las zafras.':null};
  }finally{applyingContext=false;}

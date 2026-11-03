@@ -1,0 +1,7 @@
+# UX09 — QA de arranque del shell
+
+En la preview pública del commit `5f7976af681f0c401a7f23be7c0b6e28a72fb672`, Chromium en contextos aislados y limpios instaló y activó el Service Worker antes de montar Producción en el iframe. A 390 px tardó 37,1 s desde la apertura del shell hasta que el módulo informó CASUR_PRODUCTION_READY; a 1536 px tardó 36,4 s. Son mediciones de esa red y sesión, no una garantía de tiempo máximo.
+
+En ambos anchos pasaron la navegación desde el módulo, el regreso al shell, la segunda visita, la recarga conectada y la recarga sin conexión. No se registraron errores de consola ni solicitudes fallidas en línea. Se observaron 175 entradas en la caché del shell, cinco recursos de geometría y ocho entradas de datos de Producción al terminar el arranque. La espera de la instalación es intencional: el shell espera al Service Worker y el worker verifica la integridad del manifiesto antes de activar el iframe. La prueba anterior agotó su tiempo de espera; estas dos ejecuciones no reproducen un defecto persistente, pero la duración de arranque puede variar con la red.
+
+`tools/qa-maestro-shell-e2e.cjs` repite el recorrido en contextos Chromium aislados, registra muestras de avance y duración, respuestas, errores, redirección HTTP de index.html, integridad de la respuesta almacenada, visitas, recarga y offline. Su límite de 300 s es un límite diagnóstico configurable, no una omisión de la verificación. Las evidencias detalladas y capturas se guardan en el directorio indicado por CASUR_QA_OUT.

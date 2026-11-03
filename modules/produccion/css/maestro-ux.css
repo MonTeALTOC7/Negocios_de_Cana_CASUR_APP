@@ -869,3 +869,6 @@
 .casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .ficha-band .ficha-actions {position:absolute;right:10px;top:10px}
 .casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .maestro-lot-attributes {display:flex;flex-wrap:wrap;gap:4px 6px;margin:5px 0 0}
 .casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .maestro-lot-attributes > span {display:inline-block;padding:2px 5px!important;font-size:10px!important;line-height:1.3;max-width:100%;overflow-wrap:anywhere}
+@media (max-width:650px) {
+  .casur-maestro-premium:not(.print-export) #cronoContent .premium-ficha-restored .maestro-lot-attributes {margin-top:14px}
+}

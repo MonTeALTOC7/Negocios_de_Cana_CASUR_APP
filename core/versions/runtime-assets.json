@@ -1,6 +1,6 @@
 {
   "appVersion": "1.5.6",
-  "releaseId": "1.5.6-e41f0fce797593fd",
+  "releaseId": "1.5.6-5c2629a614158393",
   "assets": {
     "404.html": "13e468776893ea36d86e0a6b83935bafd4c5f3782fb3a302959337f8e14a19fe",
     "app.js": "f07cb22e50f054216536f8bccf21ed0fed94a25d97e623d28c5f38c80d63a9a0",
@@ -16,7 +16,7 @@
     "core/sync/status.js": "be440962d1965683f5eec1c548648daa1f2c684510da87b02a7be90fe2377b24",
     "core/updates/activity-guard.js": "ac1a31b305a32b6882702ad9dc7a8ca0d4a3f16b9d09d8a781243385557deb53",
     "core/updates/context-store.js": "d98356363d7fa986eef90374b2188dd1374dcd5a5024fd5ab5fdde28bb704091",
-    "core/updates/pwa-update.js": "a0f2e04906234b06e32cabf5921ff3e82233b7f21bb88a9e23d8e00a1419fbce",
+    "core/updates/pwa-update.js": "28ffe37ad94ab737adccdc84216a54736f0fe88b05d8f4f11d432fada7e3c072",
     "core/versions/versions.js": "50b256c89d4e121a47ae7ae0175fcee8671e2da8d5041e1f77a86e5a9bbebbe0",
     "index.html": "4b04ee60a21c9e05f5de4bf3c98d181a6bebbeb980e3c95f7cc02fda71c8556d",
     "manifest.webmanifest": "f7945687d34074c70efedd5f44e54b674e390204ffbeb51dc4d805fc9c532fac",

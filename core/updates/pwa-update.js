@@ -13,7 +13,7 @@ export function workerRequest(worker, message, timeout = 15000) {
 export async function installUpdateControl({ version, checkpoint }) {
   if (!('serviceWorker' in navigator)) return;
   const sw = navigator.serviceWorker;
-  let registration, waiting, shownVersion, prepared = false, refreshing = false, busy = false, lastCheck = 0, unlockTimer;
+  let registration, waiting, shownRelease, prepared = false, refreshing = false, busy = false, lastCheck = 0, unlockTimer;
   const read = key => { try { return sessionStorage.getItem(key); } catch { return null; } };
   const write = (key, value) => { try { sessionStorage.setItem(key, value); } catch { /* private mode */ } };
   const saved = key => { try { return localStorage.getItem(key); } catch { return read(key); } };
@@ -64,18 +64,21 @@ export async function installUpdateControl({ version, checkpoint }) {
     ]);
     if (registration.waiting !== candidate || sw.controller !== controller || !info.ready ||
         !info.version || !installed.version || (info.version === installed.version && (!info.releaseId || info.releaseId === installed.releaseId)) || (info.version === version && (!info.releaseId || info.releaseId === installed.releaseId))) return;
+    // A review can keep APP_VERSION while changing its verified generation.
+    // Legacy workers have no releaseId: preserve their version-based keys.
+    const identity = info.releaseId ? `release:${info.releaseId}` : info.version;
+    if (shownRelease === identity || busy) return;
     waiting = candidate;
-    if (shownVersion === info.version || busy) return;
-    shownVersion = info.version;
+    shownRelease = identity;
     title.textContent = 'Nueva actualización CASUR disponible'; detail.textContent = `Versión ${info.version}`;
     later.textContent = 'Más tarde';
     message.textContent = '';
-    const postponed = saved('casur-update-later') === info.version || saved('casur-update-offered') === info.version;
-    persist('casur-update-offered',info.version);
+    const postponed = saved('casur-update-later') === identity || saved('casur-update-offered') === identity;
+    persist('casur-update-offered',identity);
     message.hidden = true; detail.hidden = postponed; later.hidden = postponed;
     apply.hidden = false; apply.textContent = 'Instalar actualización'; box.hidden = false;
     if (postponed) title.textContent = 'Actualización CASUR pendiente';
-    later.onclick = () => { persist('casur-update-later', info.version); title.textContent='Actualización CASUR pendiente'; detail.hidden=later.hidden=true; };
+    later.onclick = () => { persist('casur-update-later', identity); title.textContent='Actualización CASUR pendiente'; detail.hidden=later.hidden=true; };
     apply.onclick = async () => {
       if (busy) return; busy = true; apply.disabled = true;
       message.hidden = false; message.textContent = 'Instalando actualización…';

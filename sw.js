@@ -787,6 +787,16 @@ function prodDataNetworkUrl(kind) {
   return scope + 'modules/produccion/data/' + kind + '.json?ts=' + Date.now();
 }
 
+async function readCurrentPublication(activeVersion,activeFiles) {
+  try { return await verifiedNetworkGeneration(activeVersion,activeFiles); }
+  catch(error) {
+    // One retry for a first installation's transient transport failure only.
+    // Existing LKG falls back immediately; hash/schema failures are never bypassed.
+    if(!activeFiles && ['AbortError','TypeError'].includes(error.name))return verifiedNetworkGeneration(activeVersion,activeFiles);
+    throw error;
+  }
+}
+
 async function verifiedNetworkGeneration(activeVersion=null,activeFiles=null) {
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try {
@@ -871,7 +881,7 @@ async function doResolveGeneration() {
 
   let netOk = true, netFiles = null, netVersion = null;
   try {
-    const verified = await verifiedNetworkGeneration(activeVersion,activeFiles);
+    const verified = await readCurrentPublication(activeVersion,activeFiles);
     netFiles = verified.files;
     netVersion = verified.manifest.dataVersion;
   } catch (e) { netOk = false; }

@@ -5,11 +5,12 @@
    número de un módulo aquí no afecta a los demás.
    ============================================================ */
 
-export const APP_VERSION = '1.5.5';
+export const APP_VERSION = '1.5.6';
 export const APP_CHANNEL = 'GitHub Pages';
 
 // Historial de código instalado, independiente de las publicaciones SIAGRI/GEO.
 export const PRODUCTION_RELEASES = [
+  {id:'produccion',moduleVersion:'V1.8.2',historicalVersion:'V2.9',appVersion:'1.5.6',type:'PATCH',publishedAt:null,changes:['Buscador general antes del análisis en escritorio.','Conserva fichas, motores, datos e informes.']},
   {id:'produccion',moduleVersion:'V1.8.1',historicalVersion:'V2.9',appVersion:'1.5.5',type:'PATCH',publishedAt:null, changes:['Protege la presentación inicial mientras se preparan la interfaz y los datos.','Conserva la recuperación y los controles existentes de actualización.']},
   {id:'produccion',moduleVersion:'V1.8.0',historicalVersion:'V2.9',appVersion:'1.5.4',type:'MINOR',publishedAt:null,
    changes:['Maestro por pestañas con Resumen ejecutivo y navegación de consultas conservando selecciones.','Dos presentaciones visuales, composición responsive y accesos a las fichas originales; métricas, gráficos y exportadores conservados.']},
@@ -34,7 +35,7 @@ export const PRODUCTION_RELEASES = [
    informativas (placeholders); al integrar cada módulo real se
    confirmarán/leerán de su propio version.json cuando exista. */
 export const MODULE_VERSIONS = {
-  produccion: 'V1.8.1',
+  produccion: 'V1.8.2',
   tch: '2.8.1',
   riego: 'v6',
   insumos: '1.0',
@@ -53,7 +54,7 @@ export function moduleVersion(id) {
    de su fase. El TCH está integrado técnicamente; cámara/GPS/Android
    requieren validación final en dispositivo real tras publicar. */
 export const MODULE_STATUS = {
-  produccion: 'integrado · V1.8.1 (código) · datos oficiales íntegros y generaciones locales conservadas',
+  produccion: 'integrado · V1.8.2 (código) · datos oficiales íntegros y generaciones locales conservadas',
   tch: 'integrado · cámara/GPS: validar en dispositivo',
   riego: 'integrado · fuente/backend Supabase propios',
   insumos: 'integrado · fuente/Maestro propios (conexión al Maestro Central en Fase 5.1)',
@@ -68,6 +69,7 @@ export function moduleStatus(id) {
 }
 
 export const APP_RELEASES = Object.freeze([
+  Object.freeze({id:'shell',version:'1.5.6',type:'PATCH',publishedAt:null,changes:Object.freeze(['Preparación verificada por módulo y apertura prioritaria del Maestro.'])}),
   Object.freeze({id:'shell',version:'1.5.5',type:'PATCH',publishedAt:null,changes:Object.freeze(['Actualización coordinada para la presentación segura de Producción.'])}),
   Object.freeze({id:'shell',version:'1.5.4',type:'PATCH',publishedAt:null,changes:Object.freeze(['Repara navegación de iframe en hosting con redirecciones HTML, conservando verificación de integridad y caché offline.','Renueva caché segura del shell para las vistas Cronológico móvil y corrige la carga del módulo.'])}),
   Object.freeze({id:'shell',version:'1.5.3',type:'PATCH',publishedAt:null,changes:Object.freeze(['Actualiza el manifiesto offline para la candidata UX de Producción V1.8.0, preservando el protocolo de checkpoint y los demás módulos.'])}),

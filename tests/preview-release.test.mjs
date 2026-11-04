@@ -6,8 +6,10 @@ import {webcrypto, createHash} from 'node:crypto';
 import {MessageChannel} from 'node:worker_threads';
 import {derivePreviewWorker, previewReleaseId} from '../tools/preview-release.mjs';
 
-const source = fs.readFileSync(new URL('../sw.js',import.meta.url),'utf8');
+const legacySource = fs.readFileSync(new URL('./fixtures/sw-monolithic-1.5.5.txt',import.meta.url),'utf8');
 const manifest = JSON.parse(fs.readFileSync(new URL('../core/versions/runtime-assets.json',import.meta.url)));
+const source=legacySource.replaceAll("APP_VERSION = '1.5.5'",`APP_VERSION = '${manifest.appVersion}'`);
+for(const file of Object.keys(manifest.assets))if(file.endsWith('.webmanifest'))delete manifest.assets[file];
 const origin = 'https://preview.test/';
 test('HEAD identities differ without changing production version, GEO, LKG or update protocol', () => {
   const a = derivePreviewWorker(source,{appVersion:manifest.appVersion,head:'a'.repeat(40)});

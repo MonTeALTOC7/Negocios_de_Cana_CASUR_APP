@@ -198,7 +198,7 @@ check("PWA sincroniza datos con red primero", () => {
   assert.ok(serviceWorker.includes("sw.js — ÚNICO Service Worker raíz"));
   assert.ok(serviceWorker.includes("PROD_DATA_RE"));
   assert.ok(serviceWorker.includes("produccionDataGate(event, req, url)"));
-  assert.ok(serviceWorker.includes("cacheFirst(req, SHELL_CACHE)"), 'código instalado fijado hasta activar actualización');
+  assert.ok(serviceWorker.includes("bundleRuntime(event)") && serviceWorker.includes("pinnedManifest(event)"), 'código instalado fijado hasta activar actualización');
   assert.ok(fs.readFileSync(path.join(root,"js/official-data-updates.js"),"utf8").includes("data/version.json?check=1&ts="));
   assert.ok(fs.readFileSync(path.join(root,"js/official-data-updates.js"),"utf8").includes("location.reload()"));
 });

@@ -890,3 +890,9 @@
 .casur-maestro-premium:not(.print-export) .casur-release-strip[data-local="true"] #casurReleaseKind {font-size:11px}
 .casur-maestro-premium:not(.print-export) #homeSection .maestro-source {display:flex;align-items:center;gap:8px;padding:4px 8px}
 .casur-maestro-premium:not(.print-export) #homeSection .maestro-source #maestroSeason::before {content:' · ';white-space:pre}
+
+/* En escritorio, el buscador precede al análisis general; móvil conserva su flujo. */
+@media (min-width:1024px) {
+ body.casur-maestro-premium:not(.print-export) #cronoSection:has(.context-explorer[data-context="general"]) > .accordion-body > .maestro-query { grid-row:1; grid-column:1 / -1; }
+ body.casur-maestro-premium:not(.print-export) #cronoSection:has(.context-explorer[data-context="general"]) > .accordion-body > #cronoContent { grid-row:2; grid-column:1 / -1; }
+}

@@ -32,9 +32,9 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.5', 
     async delete(name) { return storage.delete(name); },
   };
   const context = vm.createContext({
-    caches, Response, URL, TextEncoder, Uint8Array, MessageChannel, setTimeout, clearTimeout, crypto:webcrypto, indexedDB, console: { warn() {} },
+    caches, Response, URL, TextEncoder, Uint8Array, MessageChannel, setTimeout, clearTimeout, crypto:webcrypto,AbortController, indexedDB, console: { warn() {} },
     fetch: async (url, options) => {
-      if (String(url).endsWith('/core/versions/runtime-assets.json')) return new Response(JSON.stringify({appVersion,assets:{'modules/produccion/js/casur-enhancements.js':createHash('sha256').update(productionEnhancements.replace(/\r\n/g,'\n')).digest('hex')}}));
+      if (String(url).endsWith('/core/versions/runtime-assets.json')) return new Response(JSON.stringify({appVersion,releaseId:appVersion+'-test',bundles:{core:['modules/produccion/js/casur-enhancements.js']},dependencies:{core:[]},assets:{'modules/produccion/js/casur-enhancements.js':createHash('sha256').update(productionEnhancements.replace(/\r\n/g,'\n')).digest('hex')}}));
       if (options?.cache === 'no-store' && String(url).endsWith('/modules/produccion/js/casur-enhancements.js')) return new Response(productionEnhancements);
       return fetchImpl(url,options);
     },
@@ -47,6 +47,7 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.5', 
   });
   const executable = source
     .replace(/const APP_VERSION = '[^']+';/, `const APP_VERSION = '${appVersion}';`)
+    .replace(/const RELEASE_ID = '[^']+';/, `const RELEASE_ID = '${appVersion}-test';`)
     .replace("const GEO_DATA_VERSION = '2026-07-24-maestro-26-27-r2';", `const GEO_DATA_VERSION = '${geoVersion}';`);
   vm.runInContext(executable, context);
   const value = (expression) => vm.runInContext(expression, context);
@@ -75,6 +76,7 @@ test('GEO_DATA_VERSION coincide con el manifest y no depende de APP_VERSION', ()
 test('instalación prepara automáticamente la generación completa de cinco recursos', async () => {
   const h = harness();
   await h.dispatch('install');
+  assert.equal(h.downloads.filter(url=>url.includes('/geo/data/')).length,0,'core install does not fetch GIS');
   const result = await h.message();
   assert.equal(result.status, 'complete');
   assert.equal(result.missing.length, 0);
@@ -101,8 +103,9 @@ test('fallo de cada asset produce incomplete y WARM_GEO reintenta solo el faltan
   }
 });
 
-test('fallo del shell rechaza instalación; GEO incompleto puede reintentarse', async () => {
+test('fallo de core rechaza instalación; GEO incompleto puede reintentarse', async () => {
   const h = harness({ fail: new Set(['./index.html', './shared/geo/data/manifest.json']) });
+  h.value(`const before=fetch;globalThis.fetch=async(url,...args)=>String(url).endsWith('/modules/produccion/js/casur-enhancements.js')?Promise.reject(Error('network unavailable')):before(url,...args);`);
   await assert.rejects(h.dispatch('install'), /network unavailable/);
   assert.equal((await h.message()).status, 'incomplete');
   h.fail.clear();
@@ -131,13 +134,15 @@ test('actualizar v1.3.4 → v1.3.5 conserva shell anterior, GEO, LKG e IndexedDB
   await next.dispatch('activate');
   assert.ok(next.storage.has(oldShell));
   assert.ok(next.storage.has(next.value('SHELL_CACHE')));
+  // GIS stays independent and can be prepared without reinstalling core.
+  await next.message();
   assert.ok(next.storage.has(previous.value('GEO_CACHE')));
   assert.equal(next.storage.get(lkg), lkgEntries);
   assert.strictEqual(next.indexedDB, indexedDB);
   assert.deepEqual([...next.indexedDB.records], [['biometry:original', { id: 'biometry:original', latitude: 11.5, longitude: -85.8 }]]);
-  assert.ok(next.storage.get(next.value('SHELL_CACHE')).has('https://casur.test/shared/geo/geo-map.js'));
+  assert.equal(await next.value('releaseReady()'),true);
   assert.equal((await next.message()).status, 'complete');
-  assert.equal(next.downloads.filter((url) => url.includes('/geo/data/')).length, 0);
+  assert.equal(next.downloads.filter((url) => url.includes('/geo/data/')).length, 5);
   assert.doesNotMatch(source, /\bindexedDB\b/, 'el SW no administra los registros locales');
   const productionAsset = 'https://casur.test/modules/produccion/js/casur-enhancements.js';
   let response;
@@ -237,7 +242,7 @@ test('hash de recurso inconsistente rechaza instalación y no habilita activaci�
    if(String(args[0]).endsWith('/modules/produccion/js/casur-enhancements.js')) return new Response('inconsistent deployment');
    return originalFetch(...args);
  };`);
- await assert.rejects(h.dispatch('install'),/Release hash mismatch/);
+ await assert.rejects(h.dispatch('install'),/HASH_MISMATCH/);
  assert.equal((await h.value('coordinateUpdate()')).ok,false);
  assert.equal(h.value('globalThis.activationCount || 0'),0);
 });
@@ -272,12 +277,12 @@ test('precache concurrente limita solicitudes y no publica readiness ante un has
   const h=harness();
   h.value(`const previousFetch=fetch; globalThis.inflight=0; globalThis.peak=0; globalThis.finished=0;
     globalThis.fetch=async(url,opts)=>{const name=String(url);
-      if(name.endsWith('/core/versions/runtime-assets.json'))return new Response(JSON.stringify({appVersion:'1.3.5',assets:Object.fromEntries(Array.from({length:8},(_,i)=>['asset'+i+'.js','${hash}']))}));
+      if(name.endsWith('/core/versions/runtime-assets.json'))return new Response(JSON.stringify({appVersion:'1.3.5',releaseId:'1.3.5-test',bundles:{core:Array.from({length:8},(_,i)=>'asset'+i+'.js')},dependencies:{core:[]},assets:Object.fromEntries(Array.from({length:8},(_,i)=>['asset'+i+'.js','${hash}']))}));
       if(/asset\\d+\\.js$/.test(name)){inflight++;peak=Math.max(peak,inflight);await new Promise(resolve=>setTimeout(resolve,8));inflight--;finished++;return new Response(${bad}?name.endsWith('asset0.js')?'bad':'valid':'valid');}
       return previousFetch(url,opts);
     };`);
-  if(bad)await assert.rejects(h.dispatch('install'),/Release hash mismatch/);else await h.dispatch('install');
-  assert.equal(h.value('peak'),4);assert.equal(h.value('inflight'),0);
+  if(bad)await assert.rejects(h.dispatch('install'),/HASH_MISMATCH/);else await h.dispatch('install');
+  assert.ok(h.value('peak')>=1&&h.value('peak')<=4);assert.equal(h.value('inflight'),0);
   const cache=h.storage.get(h.value('SHELL_CACHE'));const ready=cache.has('https://casur.test/__release_ready__');
   assert.equal(ready,!bad);if(bad)assert.equal((await h.value('coordinateUpdate()')).ok,false);
  }

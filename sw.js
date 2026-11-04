@@ -797,23 +797,24 @@ async function verifiedNetworkGeneration(activeVersion=null,activeFiles=null) {
   if (manifest.schemaVersion !== 1 || !parseCasurDataVersion(manifest.dataVersion)) throw new Error('Invalid data integrity manifest');
   const comparison=activeVersion?compareCasurDataVersions(manifest.dataVersion,activeVersion):1;
   if(activeFiles&&(comparison===-1||(comparison===0&&activeFiles.__networkVerified)))return{files:activeFiles,manifest};
-  const files = {};
-  for (const kind of PROD_KINDS) {
-    for (const ext of ['json','js']) {
-      const name = kind + '.' + ext, expected = manifest.files?.[name];
-      if (!/^[a-f0-9]{64}$/.test(expected || '')) throw new Error('Missing data hash');
-      const r = await fetch(base + name + '?ts=' + Date.now(), {cache:'no-store',signal:controller.signal});
-      if (!r.ok) throw new Error('Incomplete data generation');
-      const bytes = await r.arrayBuffer();
-      const actual = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)), b=>b.toString(16).padStart(2,'0')).join('');
-      if (actual !== expected) throw new Error('Data SHA mismatch: ' + name);
-      const text = new TextDecoder().decode(bytes);
-      if (ext === 'json') files[kind] = JSON.parse(text);
-      else {
-        const match = text.match(new RegExp('^\\s*window\\.' + JS_VAR_BY_KIND[kind] + '\\s*=([\\s\\S]*);\\s*$'));
-        if (!match || JSON.stringify(JSON.parse(match[1])) !== JSON.stringify(files[kind])) throw new Error('JSON/JS data mismatch');
-      }
-    }
+  const files = {}, texts = {}, resources=PROD_KINDS.flatMap(kind=>['json','js'].map(ext=>({kind,ext,name:kind+'.'+ext})));
+  let nextResource=0;
+  const readResources=async()=>{while(nextResource<resources.length){
+    const {name}=resources[nextResource++],expected=manifest.files?.[name];
+    if(!/^[a-f0-9]{64}$/.test(expected||''))throw new Error('Missing data hash');
+    const r=await fetch(base+name+'?ts='+Date.now(),{cache:'no-store',signal:controller.signal});
+    if(!r.ok)throw new Error('Incomplete data generation');
+    const bytes=await r.arrayBuffer();
+    const actual=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
+    if(actual!==expected)throw new Error('Data SHA mismatch: '+name);
+    texts[name]=new TextDecoder().decode(bytes);
+  }};
+  const reads=await Promise.allSettled(Array.from({length:3},readResources));
+  const failed=reads.find(r=>r.status==='rejected');if(failed)throw failed.reason;
+  for(const kind of PROD_KINDS){
+    files[kind]=JSON.parse(texts[kind+'.json']);
+    const match=texts[kind+'.js'].match(new RegExp('^\\s*window\\.'+JS_VAR_BY_KIND[kind]+'\\s*=([\\s\\S]*);\\s*$'));
+    if(!match||JSON.stringify(JSON.parse(match[1]))!==JSON.stringify(files[kind]))throw new Error('JSON/JS data mismatch');
   }
   if (PROD_KINDS.some(k=>declaredVersion(files[k]) !== manifest.dataVersion || !looksValidProdData(k,files[k]))) throw new Error('Incoherent data generation');
   // Catch a publication changing while its six resources were being read.

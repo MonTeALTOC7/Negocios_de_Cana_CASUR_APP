@@ -86,6 +86,7 @@ self.addEventListener('install', (event) => {
     if (manifest.appVersion !== APP_VERSION || !manifest.assets || !Object.keys(manifest.assets).length) throw new Error('Release manifest mismatch');
     if (!manifest.releaseId || !manifest.bundles?.core) throw new Error('Bundle manifest required');
     await cache.put(new URL('./core/versions/runtime-assets.json', self.registration.scope),new Response(JSON.stringify(manifest)));
+    await (await caches.open(MASTER_PREFIX+'release_manifests')).put(new URL('./__manifest__/'+encodeURIComponent(manifest.releaseId),self.registration.scope),new Response(JSON.stringify(manifest)));
     await prepareVerifiedBundle('core',manifest.releaseId);
     // Preserve installed offline capabilities on upgrade. New installs prepare core only.
     if (self.registration.active) {
@@ -99,10 +100,12 @@ self.addEventListener('install', (event) => {
       const oldResponse=await oldCache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));
       if(!oldResponse)throw new Error('Active manifest unavailable');
       const oldManifest=await oldResponse.json();
+      const manifests=await caches.open(MASTER_PREFIX+'release_manifests'),oldId=oldManifest.releaseId||'legacy-'+active.version;
+      await manifests.put(new URL('./__manifest__/'+encodeURIComponent(oldId),self.registration.scope),new Response(JSON.stringify(oldManifest)));
       const pins=await caches.open(MASTER_PREFIX+'client_releases');
       for(const client of await self.clients.matchAll({type:'window',includeUncontrolled:true})) {
         const key=new URL('./__client__/'+client.id,self.registration.scope);
-        if(!(await pins.match(key)))await pins.put(key,new Response(active.version));
+        if(!(await pins.match(key)))await pins.put(key,new Response(JSON.stringify({version:active.version,releaseId:oldId})));
       }
       const meta=await caches.open(MASTER_PREFIX+'bundle_meta');
       for(const id of Object.keys(manifest.bundles)) {
@@ -200,16 +203,28 @@ async function verifiedBundleCache(manifest,id, verifyEntries = true) {
 }
 const clientReleasePins = new Map(), pinnedManifests = new Map();
 async function pinnedManifest(event) {
-  const pins=await caches.open(MASTER_PREFIX+'client_releases');
-  const id=event.clientId;
+  const pins=await caches.open(MASTER_PREFIX+'client_releases'),id=event.clientId;
   const key=new URL('./__client__/'+id,self.registration.scope);
-  const pin=id&&!clientReleasePins.has(id)?await pins.match(key):null;
-  const version=event.request.mode==='navigate'&&event.request.destination==='document'?APP_VERSION:clientReleasePins.get(id)||(pin?await pin.text():APP_VERSION);
-  if(id&&!clientReleasePins.has(id)){clientReleasePins.set(id,version);if(!pin)await pins.put(key,new Response(version));}
-  if(event.resultingClientId)await pins.put(new URL('./__client__/'+event.resultingClientId,self.registration.scope),new Response(version));
-  const cache=await caches.open(MASTER_PREFIX+'shell_v'+version);
-  if(!pinnedManifests.has(version)){const response=await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));if(response)pinnedManifests.set(version,await response.json());}
-  return {manifest:pinnedManifests.get(version)||null,cache};
+  const newDocument=event.request.mode==='navigate'&&event.request.destination==='document';
+  let pin=!newDocument&&id?clientReleasePins.get(id):null;
+  if(!pin&&!newDocument&&id){const response=await pins.match(key);if(response){const text=await response.text();try{pin=JSON.parse(text);}catch{pin={version:text,releaseId:null};}}}
+  const cache=await caches.open(MASTER_PREFIX+'shell_v'+(pin?.version||APP_VERSION));
+  let manifest;
+  if(pin?.releaseId){
+    if(!pinnedManifests.has(pin.releaseId)){const response=await(await caches.open(MASTER_PREFIX+'release_manifests')).match(new URL('./__manifest__/'+encodeURIComponent(pin.releaseId),self.registration.scope));if(response)pinnedManifests.set(pin.releaseId,await response.json());}
+    manifest=pinnedManifests.get(pin.releaseId);
+    if(!manifest||manifest.releaseId&&manifest.releaseId!==pin.releaseId)return {manifest:null,cache};
+  } else {
+    const response=await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));
+    manifest=response?await response.json():null;
+    if(!manifest)return {manifest:null,cache};
+    pin={version:pin?.version||APP_VERSION,releaseId:manifest.releaseId||'legacy-'+(pin?.version||APP_VERSION)};
+    await(await caches.open(MASTER_PREFIX+'release_manifests')).put(new URL('./__manifest__/'+encodeURIComponent(pin.releaseId),self.registration.scope),new Response(JSON.stringify(manifest)));
+    pinnedManifests.set(pin.releaseId,manifest);
+  }
+  if(id&&!newDocument){if(!clientReleasePins.has(id))await pins.put(key,new Response(JSON.stringify(pin)));clientReleasePins.set(id,pin);}
+  if(event.resultingClientId){clientReleasePins.set(event.resultingClientId,pin);await pins.put(new URL('./__client__/'+event.resultingClientId,self.registration.scope),new Response(JSON.stringify(pin)));}
+  return {manifest,cache};
 }
 async function bundleRuntime(event) {
   const {manifest,cache}=await pinnedManifest(event);
@@ -306,7 +321,7 @@ self.addEventListener('message', (event) => {
   if(event.data?.type==='BUNDLE_STATUS' && event.ports?.[0])event.waitUntil((async()=>{const cache=await caches.open(SHELL_CACHE),manifest=await (await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope))).json();const bundles={};for(const id of Object.keys(manifest.bundles))bundles[id]=!!(await verifiedBundleCache(manifest,id));event.ports[0].postMessage({releaseId:manifest.releaseId,bundles,metrics:self.CASUR_BUNDLE_METRICS||[],readyMetrics:self.CASUR_READY_METRICS||[]});})());
   if (event.data?.type === 'PREPARE_BUNDLE' && event.ports?.[0]) {
     const port = event.ports[0];
-    event.waitUntil((async()=>{if(event.source?.id){const pins=await caches.open(MASTER_PREFIX+'client_releases'),pin=await pins.match(new URL('./__client__/'+event.source.id,self.registration.scope));if(pin&&(await pin.text())!==APP_VERSION)throw new Error('CLIENT_RELEASE_MISMATCH');}return prepareVerifiedBundle(event.data.bundleId,event.data.releaseId, message => port.postMessage(message));})()
+    event.waitUntil((async()=>{if(event.source?.id){const pins=await caches.open(MASTER_PREFIX+'client_releases'),pin=await pins.match(new URL('./__client__/'+event.source.id,self.registration.scope));if(pin){const text=await pin.text();let ref;try{ref=JSON.parse(text);}catch{ref={version:text};}if(ref.version!==APP_VERSION||ref.releaseId&&ref.releaseId!==event.data.releaseId)throw new Error('CLIENT_RELEASE_MISMATCH');}}return prepareVerifiedBundle(event.data.bundleId,event.data.releaseId, message => port.postMessage(message));})()
       .then(result => port.postMessage(result), error => port.postMessage({type:'ERROR',code:error.message,bundleId:event.data.bundleId,releaseId:event.data.releaseId})));
     return;
   }

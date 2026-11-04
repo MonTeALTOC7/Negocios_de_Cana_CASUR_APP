@@ -19,7 +19,7 @@ export function derivePreviewWorker(source, {appVersion, head}) {
     source=source.replace("new Response(APP_VERSION));", "new Response(PREVIEW_RELEASE_ID));");
     source=source.replace("manifest.appVersion !== APP_VERSION || !manifest.assets", "manifest.appVersion !== APP_VERSION || manifest.previewReleaseId !== PREVIEW_RELEASE_ID || !manifest.assets");
     source=source.replace("version:APP_VERSION,releaseId:m.releaseId", "version:PREVIEW_RELEASE_ID,releaseId:m.releaseId");
-    source=source.replace("(await pin.text())!==APP_VERSION", "(await pin.text())!==PREVIEW_RELEASE_ID");
+    source=source.replace("ref.version!==APP_VERSION", "ref.version!==PREVIEW_RELEASE_ID");
     source=source.replace("return {ok:true, version:APP_VERSION};", "return {ok:true, version:PREVIEW_RELEASE_ID};");
     return source;
   }

@@ -612,3 +612,26 @@ a { color: var(--teal-light); text-decoration: none; }
   .install-card, .install-card__glow, .install-card__flash { animation: none; transition: opacity .2s ease; transform: none; }
   .install-card.is-in { transform: none; }
 }
+
+/* Indicador del shell mientras Producción prepara su iframe. */
+.module-host__startup {position:absolute;inset:calc(52px + var(--safe-top)) 0 0;z-index:2;display:grid;place-items:center;padding:24px;background:#f2f7f4;color:#174337;text-align:center;font:600 16px/1.5 system-ui,sans-serif}
+
+/* Un solo acceso de actualización, compartido por Inicio y la barra de módulo. */
+.update-check { flex: 0 0 40px; cursor: pointer; }
+.module-host__switch { flex: 0 1 auto; max-width: calc(100vw - 180px); }
+.casur-update-feedback:not(:empty) { position: fixed; z-index: 10001; bottom: calc(86px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); padding: 9px 12px; border-radius: 8px; background: #173c29; color: #fff; font: 14px/1.4 system-ui, sans-serif; box-shadow: 0 4px 18px #0003; }
+
+.module-host__startup { display:block; padding: min(7vh, 48px) 16px; text-align:left; }
+.module-host__startup-card,.module-host__startup-skeleton { width: 100%; box-sizing: border-box; max-width: 720px; margin:auto; }
+.module-host__startup-card { display:flex; align-items:center; gap:14px; padding:14px; border:1px solid #d2e3da; border-radius:14px; background:#fff; }
+.module-host__startup-card img { width:54px; height:54px; object-fit:contain; }
+.module-host__startup-card strong,.module-host__startup-card span { display:block; }
+.module-host__startup-card span,.module-host__startup-card p { color:#526d61; font-size:13px; margin:2px 0 0; }
+.module-host__startup-skeleton { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding-top:12px; }
+.module-host__startup-skeleton i { display:block; height:65px; background:#e0ebe5; border-radius:10px; }
+
+.module-host__startup-card { justify-content:center; flex-wrap:wrap; text-align:center; }
+.module-host__startup-card img { width:144px; height:144px; flex:0 0 144px; }
+.module-host__startup-card > div { min-width:180px; }
+.module-host--pending { visibility:hidden; pointer-events:none; }
+@media (min-width:720px) { .module-host__startup-card img { width:160px; height:160px; flex-basis:160px; } }

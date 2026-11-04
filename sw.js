@@ -9,7 +9,8 @@
    neutralizados dentro de la Maestra: aquí no se registran.
    ============================================================ */
 
-const APP_VERSION = '1.5.4';
+const APP_VERSION = '1.5.6';
+const RELEASE_ID = '1.5.6-5c2629a614158393';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;
@@ -84,45 +85,55 @@ self.addEventListener('install', (event) => {
     if (!manifestResponse.ok) throw new Error('Release manifest unavailable');
     const manifest = await manifestResponse.json();
     if (manifest.appVersion !== APP_VERSION || !manifest.assets || !Object.keys(manifest.assets).length) throw new Error('Release manifest mismatch');
-    // All local executable resources, including modules never opened, form one snapshot.
-    // Hash validation prevents a partial deployment from producing a mixed generation.
-    for (const [path, expected] of Object.entries(manifest.assets)) {
-      const url = new URL(path, self.registration.scope);
-      if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) throw new Error('Invalid release asset');
-      const response = await fetch(url, {cache:'no-store'});
-      if (!response.ok) throw new Error(`Release asset unavailable: ${path}`);
-      const bytes = /\.(?:html|css|js|mjs|svg)$/.test(path)
-        ? new TextEncoder().encode((await response.clone().text()).replace(/\r\n/g,'\n'))
-        : await response.clone().arrayBuffer();
-      const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)), byte => byte.toString(16).padStart(2,'0')).join('');
-      if (digest !== expected) throw new Error(`Release hash mismatch: ${path}`);
-      await cache.put(url,normalizeNavigationRedirect(response));
-    }
+    if (manifest.releaseId !== RELEASE_ID || !manifest.bundles?.core) throw new Error('Bundle manifest required');
     await cache.put(new URL('./core/versions/runtime-assets.json', self.registration.scope),new Response(JSON.stringify(manifest)));
-    // A missing code asset rejects installation; the previous worker stays active.
-    await Promise.all([
-      ...SHELL_ASSETS.map(async (url) => { if (!(await cache.match(url))) await cache.add(url); }),
-      warmGeoCache(),
-    ]);
-    // Refresh previously used module resources before allowing an offline update.
-    for (const name of await caches.keys()) {
-      if (!name.startsWith(MASTER_PREFIX + 'shell_v') || name === SHELL_CACHE) continue;
-      const old = await caches.open(name);
-      for (const request of await old.keys()) {
-        const url = new URL(request.url);
-        if (url.pathname.endsWith('/__release_ready__')) continue;
-        // Removed runtime files must not be fetched from a different release.
-        if (/\.(?:js|mjs|html|css)$/.test(url.pathname)) continue;
-        if (!(await cache.match(request))) await cache.add(request);
+    await (await caches.open(MASTER_PREFIX+'release_manifests')).put(new URL('./__manifest__/'+encodeURIComponent(manifest.releaseId),self.registration.scope),new Response(JSON.stringify(manifest)));
+    await prepareVerifiedBundle('core',manifest.releaseId);
+    // Preserve installed offline capabilities on upgrade. New installs prepare core only.
+    if (self.registration.active) {
+      const channel = new MessageChannel();
+      const active = await new Promise((resolve,reject) => {
+        const timer=setTimeout(()=>reject(new Error('Active release unavailable')),15000);
+        channel.port1.onmessage=e=>{clearTimeout(timer);channel.port1.close();resolve(e.data);};
+        self.registration.active.postMessage({type:'CASUR_UPDATE_INFO'},[channel.port2]);
+      });
+      const oldCache=await caches.open(MASTER_PREFIX+'shell_v'+active.version);
+      const oldResponse=active.releaseId?await(await caches.open(MASTER_PREFIX+'release_manifests')).match(new URL('./__manifest__/'+encodeURIComponent(active.releaseId),self.registration.scope)):await oldCache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));
+      if(!oldResponse)throw new Error('Active manifest unavailable');
+      const oldManifest=await oldResponse.json();
+      const manifests=await caches.open(MASTER_PREFIX+'release_manifests'),oldId=oldManifest.releaseId||'legacy-'+active.version;
+      await manifests.put(new URL('./__manifest__/'+encodeURIComponent(oldId),self.registration.scope),new Response(JSON.stringify(oldManifest)));
+      const pins=await caches.open(MASTER_PREFIX+'client_releases');
+      for(const client of await self.clients.matchAll({type:'window',includeUncontrolled:true})) {
+        const key=new URL('./__client__/'+client.id,self.registration.scope);
+        if(!(await pins.match(key)))await pins.put(key,new Response(JSON.stringify({version:active.version,releaseId:oldId})));
+      }
+      const meta=await caches.open(MASTER_PREFIX+'bundle_meta');
+      for(const id of Object.keys(manifest.bundles)) {
+        const previouslyReady=oldManifest.bundles ? await meta.match(new URL('./__bundle_ready__/'+encodeURIComponent(oldManifest.releaseId)+'/'+id,self.registration.scope)) : Object.keys(oldManifest.assets).some(file=>manifest.bundles[id].includes(file));
+        if(previouslyReady)await prepareVerifiedBundle(id,manifest.releaseId);
       }
     }
     const dataCache = await caches.open(DATA_CACHE);
+    for(const name of await caches.keys()) {
+      if(!name.startsWith(MASTER_PREFIX+'shell_v')||name===SHELL_CACHE)continue;
+      const old=await caches.open(name);
+      for(const req of await old.keys()) {
+        const url=new URL(req.url);
+        if(/\/modules\/tch\/data\/.*\.json$/.test(url.pathname)) {
+          try { const r=await fetch(req);if(!r.ok)throw Error('data');await dataCache.put(req,r); }
+          catch {const r=await old.match(req);if(r)await dataCache.put(req,r);}
+        }
+      }
+    }
+
     for (const name of (await caches.keys()).reverse()) {
       if (!name.startsWith(MASTER_PREFIX + 'data_v') || name === DATA_CACHE) continue;
       const old = await caches.open(name);
       for (const request of await old.keys()) if (!(await dataCache.match(request))) await dataCache.put(request, await old.match(request));
     }
     await cache.put(new URL('./__release_ready__', self.registration.scope), new Response(APP_VERSION));
+    await(await caches.open(MASTER_PREFIX+'release_manifests')).put(new URL('./__release_ready__/'+encodeURIComponent(RELEASE_ID),self.registration.scope),new Response(RELEASE_ID));
   })());
 });
 
@@ -137,18 +148,26 @@ self.addEventListener('activate', (event) => {
 
 /* ---------------- Mensajes (actualización controlada) ---------------- */
 let updateInProgress = false;
+async function currentManifest() {
+  const registry=await caches.open(MASTER_PREFIX+'release_manifests');
+  const key=new URL('./__manifest__/'+encodeURIComponent(RELEASE_ID),self.registration.scope);
+  let response=await registry.match(key),fromShell=false;
+  if(!response){response=await(await caches.open(SHELL_CACHE)).match(new URL('./core/versions/runtime-assets.json',self.registration.scope));fromShell=true;}
+  if(!response)return null;
+  const manifest=await response.json();
+  if(manifest.releaseId!==RELEASE_ID||manifest.appVersion!==APP_VERSION)return null;
+  if(fromShell)await registry.put(key,new Response(JSON.stringify(manifest)));
+  return manifest;
+}
 async function releaseReady(verifyHashes = false) {
-  const cache = await caches.open(SHELL_CACHE);
-  const manifestResponse = await cache.match(new URL('./core/versions/runtime-assets.json', self.registration.scope));
-  if (!manifestResponse || !(await cache.match(new URL('./__release_ready__', self.registration.scope)))) return false;
-  const manifest = await manifestResponse.json();
-  if (verifyHashes) for (const [file,expected] of Object.entries(manifest.assets)) {
-    const response=await cache.match(new URL(file,self.registration.scope));
-    const bytes=/\.(?:html|css|js|mjs|svg)$/.test(file)?new TextEncoder().encode((await response.text()).replace(/\r\n/g,'\n')):await response.arrayBuffer();
-    const actual=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
-    if(actual!==expected)return false;
-  }
-  return manifest.appVersion === APP_VERSION && (await Promise.all([...SHELL_ASSETS,...Object.keys(manifest.assets)].map(url => cache.match(new URL(url,self.registration.scope))))).every(Boolean);
+  try {
+    const manifest=await currentManifest();
+    if(!manifest?.bundles)return false;
+    const registry=await caches.open(MASTER_PREFIX+'release_manifests');
+    if(!(await registry.match(new URL('./__release_ready__/'+encodeURIComponent(RELEASE_ID),self.registration.scope))))return false;
+    if(verifyHashes)await prepareVerifiedBundle('core',manifest.releaseId);
+    return !!(await verifiedBundleCache(manifest,'core'));
+  } catch { return false; }
 }
 async function coordinateUpdate() {
   if (updateInProgress) return {ok:false};
@@ -172,11 +191,156 @@ async function coordinateUpdate() {
     return {ok:false};
   } finally { updateInProgress = false; }
 }
+// Each module is a versioned transaction. Fetch never reads unpromoted staging.
+const bundlePreparations = new Map();
+async function matchesBundleHash(response,file,expected) {
+  const bytes = /\.(?:html|css|js|mjs|svg|webmanifest)$/.test(file) ? new TextEncoder().encode((await response.clone().text()).replace(/\r\n/g,'\n')) : await response.clone().arrayBuffer();
+  const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)), byte => byte.toString(16).padStart(2,'0')).join('');
+  return digest === expected;
+}
+async function verifiedBundleCache(manifest,id, verifyEntries = true) {
+  const meta=await caches.open(MASTER_PREFIX+'bundle_meta');
+  const response=await meta.match(new URL('./__bundle_ready__/'+encodeURIComponent(manifest.releaseId)+'/'+id,self.registration.scope));
+  if(!response)return null;
+  const record=await response.json();
+  const prefix=MASTER_PREFIX+'bundle_stage_'+encodeURIComponent(manifest.releaseId)+'_'+id+'_';
+  if(record.releaseId!==manifest.releaseId||record.bundleId!==id||record.count!==manifest.bundles[id]?.length||!record.cache?.startsWith(prefix))return null;
+  if(!verifyEntries)return caches.open(record.cache);
+  if(!(await caches.keys()).includes(record.cache))return null;
+  const cache=await caches.open(record.cache);
+  const urls=new Set((await cache.keys()).map(request=>request.url));
+  if(manifest.bundles[id].some(file=>!urls.has(new URL(file,self.registration.scope).href)))return null;
+  return cache;
+}
+const clientReleasePins = new Map(), pinnedManifests = new Map();
+async function pinnedManifest(event) {
+  const pins=await caches.open(MASTER_PREFIX+'client_releases'),id=event.clientId;
+  const key=new URL('./__client__/'+id,self.registration.scope);
+  const newDocument=event.request.mode==='navigate'&&event.request.destination==='document';
+  let pin=!newDocument&&id?clientReleasePins.get(id):null;
+  if(!pin&&!newDocument&&id){const response=await pins.match(key);if(response){const text=await response.text();try{pin=JSON.parse(text);}catch{pin={version:text,releaseId:null};}}}
+  const cache=await caches.open(MASTER_PREFIX+'shell_v'+(pin?.version||APP_VERSION));
+  let manifest;
+  if(pin?.releaseId){
+    if(!pinnedManifests.has(pin.releaseId)){const response=await(await caches.open(MASTER_PREFIX+'release_manifests')).match(new URL('./__manifest__/'+encodeURIComponent(pin.releaseId),self.registration.scope));if(response)pinnedManifests.set(pin.releaseId,await response.json());}
+    manifest=pinnedManifests.get(pin.releaseId);
+    if(!manifest||manifest.releaseId&&manifest.releaseId!==pin.releaseId)return {manifest:null,cache};
+  } else {
+    const response=pin?await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope)):null;
+    manifest=pin?(response?await response.json():null):await currentManifest();
+    if(!manifest)return {manifest:null,cache};
+    pin={version:pin?.version||APP_VERSION,releaseId:manifest.releaseId||'legacy-'+(pin?.version||APP_VERSION)};
+    await(await caches.open(MASTER_PREFIX+'release_manifests')).put(new URL('./__manifest__/'+encodeURIComponent(pin.releaseId),self.registration.scope),new Response(JSON.stringify(manifest)));
+    pinnedManifests.set(pin.releaseId,manifest);
+  }
+  if(id&&!newDocument){if(!clientReleasePins.has(id))await pins.put(key,new Response(JSON.stringify(pin)));clientReleasePins.set(id,pin);}
+  if(event.resultingClientId){clientReleasePins.set(event.resultingClientId,pin);await pins.put(new URL('./__client__/'+event.resultingClientId,self.registration.scope),new Response(JSON.stringify(pin)));}
+  return {manifest,cache};
+}
+async function bundleRuntime(event) {
+  const {manifest,cache}=await pinnedManifest(event);
+  if(!manifest)return new Response('Versión instalada no disponible.',{status:503});
+  const url=new URL(event.request.url);url.search='';
+  let file=url.pathname.slice(new URL(self.registration.scope).pathname.length);
+  if(!file||file.endsWith('/'))file+='index.html';
+  if(!manifest.bundles)return normalizeNavigationRedirect(await cache.match(url,{ignoreSearch:true})||await cache.match(new URL(file,self.registration.scope))||new Response('Recurso no disponible en la versión instalada.',{status:503}));
+  if(file==='core/versions/runtime-assets.json')return new Response(JSON.stringify(manifest),{headers:{'Content-Type':'application/json'}});
+  const id=Object.keys(manifest.bundles).find(id=>manifest.bundles[id].includes(file));
+  if(!id)return new Response('Recurso no incluido en esta versión.',{status:503});
+  const saved=await verifiedBundleCache(manifest,id,false);
+  const response=saved?await saved.match(new URL(file,self.registration.scope)):null;
+  if(!response)return new Response('Módulo no preparado para uso sin conexión. Abrilo desde Inicio con conexión.',{status:503});
+  if(!(await matchesBundleHash(response,file,manifest.assets[file])))return new Response('Integridad del recurso inválida.',{status:503});
+  return normalizeNavigationRedirect(response);
+}
+async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}, ancestry = []) {
+  if (ancestry.includes(bundleId)) throw new Error('BUNDLE_CYCLE');
+  const manifest=await currentManifest();
+  if(!manifest)throw new Error('MANIFEST_UNAVAILABLE');
+  if (!manifest.releaseId || releaseId !== manifest.releaseId || manifest.appVersion !== APP_VERSION) throw new Error('RELEASE_MISMATCH');
+  if (!/^[a-z0-9_-]+$/.test(bundleId) || !Object.hasOwn(manifest.bundles || {}, bundleId)) throw new Error('UNKNOWN_BUNDLE');
+  const entries = manifest.bundles[bundleId];
+  if (!Array.isArray(entries) || !entries.length || new Set(entries).size !== entries.length || entries.some(file => !Object.hasOwn(manifest.assets, file))) throw new Error('INVALID_BUNDLE');
+  const dependencies = manifest.dependencies?.[bundleId] || [];
+  if (!Array.isArray(dependencies)) throw new Error('INVALID_DEPENDENCIES');
+  // Validate the entire dependency graph before any cache/download mutation.
+  const visit = (id, path = []) => {
+    if (path.includes(id)) throw new Error('BUNDLE_CYCLE');
+    if (!Object.hasOwn(manifest.bundles, id)) throw new Error('MISSING_DEPENDENCY');
+    const deps = manifest.dependencies?.[id] || [];
+    if (!Array.isArray(deps)) throw new Error('INVALID_DEPENDENCIES');
+    deps.forEach(dep => visit(dep, [...path,id]));
+  };
+  visit(bundleId);
+  const key = releaseId + ':' + bundleId;
+  if (bundlePreparations.has(key)) return bundlePreparations.get(key);
+  const work = (async () => {
+    const started=Date.now();
+    for (const dependency of dependencies) await prepareVerifiedBundle(dependency, releaseId, notify, [...ancestry,bundleId]);
+    const meta = await caches.open(MASTER_PREFIX + 'bundle_meta');
+    const marker = new URL('./__bundle_ready__/' + encodeURIComponent(releaseId) + '/' + bundleId, self.registration.scope);
+    const previousResponse = await meta.match(marker);
+    if (previousResponse) {
+      try {
+        const previous = await previousResponse.json();
+        const expectedPrefix = MASTER_PREFIX + 'bundle_stage_' + encodeURIComponent(releaseId) + '_' + bundleId + '_';
+        if (previous.releaseId === releaseId && previous.bundleId === bundleId && previous.count === entries.length && typeof previous.cache === 'string' && previous.cache.startsWith(expectedPrefix) && (await caches.keys()).includes(previous.cache)) {
+          const saved = await caches.open(previous.cache);
+          let valid = true;
+          for (const file of entries) {
+            const response = await saved.match(new URL(file,self.registration.scope));
+            if (!response || !(await matchesBundleHash(response,file,manifest.assets[file]))) { valid = false; break; }
+          }
+          if (valid) { (self.CASUR_READY_METRICS ||= []).push({bundleId,count:entries.length,durationMs:Date.now()-started}); return {type:'READY',bundleId,releaseId,count:entries.length,reused:true}; }
+        }
+      } catch { /* An invalid marker cannot authorize serving an incomplete cache. */ }
+    }
+    const stagingName = MASTER_PREFIX + 'bundle_stage_' + encodeURIComponent(releaseId) + '_' + bundleId + '_' + crypto.randomUUID();
+    const staging = await caches.open(stagingName);
+    try {
+      let completed = 0, cursor = 0;
+      const jobs = async () => { while(cursor<entries.length) {
+        const file=entries[cursor++];
+        const url = new URL(file, self.registration.scope);
+        if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) throw new Error('INVALID_ASSET');
+        const started=Date.now(),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
+        try {
+        const response = await fetch(url, {cache:'no-store',signal:controller.signal});
+        const received=Date.now();
+        if (!response.ok) throw new Error('ASSET_UNAVAILABLE');
+        if (!(await matchesBundleHash(response,file,manifest.assets[file]))) throw new Error('HASH_MISMATCH');
+        const hashed=Date.now();
+        await staging.put(url, normalizeNavigationRedirect(response));
+        (self.CASUR_BUNDLE_METRICS ||= []).push({file,bundleId,releaseId,fetchMs:received-started,verifyMs:hashed-received,cacheMs:Date.now()-hashed});
+        try { notify({type:'PROGRESS',bundleId,releaseId,completed:++completed,total:entries.length}); } catch { /* disconnected port */ }
+        } finally {clearTimeout(timer);}
+      }};
+      const results=await Promise.allSettled(Array.from({length:Math.min(4,entries.length)},jobs));
+      const failed=results.find(r=>r.status==='rejected');if(failed)throw failed.reason;
+      // The pointer is the sole atomic promotion; no partial staging is visible.
+      await meta.put(marker, new Response(JSON.stringify({releaseId,bundleId,cache:stagingName,count:entries.length}),{headers:{'Content-Type':'application/json'}}));
+      return {type:'READY', bundleId, releaseId, count:entries.length};
+    } catch (error) {
+      await caches.delete(stagingName);
+      throw error;
+    }
+  })();
+  bundlePreparations.set(key, work);
+  try { return await work; } finally { bundlePreparations.delete(key); }
+}
 self.addEventListener('message', (event) => {
+  if(event.data?.type==='BUNDLE_STATUS' && event.ports?.[0])event.waitUntil((async()=>{const manifest=await currentManifest();const bundles={};for(const id of Object.keys(manifest.bundles))bundles[id]=!!(await verifiedBundleCache(manifest,id));event.ports[0].postMessage({releaseId:manifest.releaseId,bundles,metrics:self.CASUR_BUNDLE_METRICS||[],readyMetrics:self.CASUR_READY_METRICS||[]});})());
+  if (event.data?.type === 'PREPARE_BUNDLE' && event.ports?.[0]) {
+    const port = event.ports[0];
+    event.waitUntil((async()=>{if(event.source?.id){const pins=await caches.open(MASTER_PREFIX+'client_releases'),pin=await pins.match(new URL('./__client__/'+event.source.id,self.registration.scope));if(pin){const text=await pin.text();let ref;try{ref=JSON.parse(text);}catch{ref={version:text};}if(ref.version!==APP_VERSION||ref.releaseId&&ref.releaseId!==event.data.releaseId)throw new Error('CLIENT_RELEASE_MISMATCH');}}return prepareVerifiedBundle(event.data.bundleId,event.data.releaseId, message => port.postMessage(message));})()
+      .then(result => port.postMessage(result), error => port.postMessage({type:'ERROR',code:error.message,bundleId:event.data.bundleId,releaseId:event.data.releaseId})));
+    return;
+  }
   // Ignore legacy SKIP_WAITING: v1.3.4 cannot provide a safe checkpoint handshake.
   if (event.data?.type === 'CASUR_UPDATE_INFO') event.waitUntil((async () => {
     const previous = (await caches.keys()).filter(key => key.startsWith(MASTER_PREFIX+'shell_v') && key !== SHELL_CACHE).map(key => key.slice((MASTER_PREFIX+'shell_v').length));
-    event.ports?.[0]?.postMessage({version:APP_VERSION, ready:await releaseReady(), previous});
+    const m=await currentManifest();
+    event.ports?.[0]?.postMessage({version:APP_VERSION,releaseId:m.releaseId,ready:await releaseReady(),previous});
   })());
   if (event.data?.type === 'CASUR_UPDATE_APPLY') event.waitUntil(coordinateUpdate().then(result => event.ports?.[0]?.postMessage(result)));
   if (event.data && event.data.type === 'WARM_GEO') {
@@ -200,13 +364,15 @@ self.addEventListener('fetch', (event) => {
     return; // deja pasar a la red tal cual
   }
 
+  if(url.pathname===new URL('./__preview.json',self.registration.scope).pathname){event.respondWith(networkFirst(req,SHELL_CACHE));return;}
+
   // 2) Navegaciones: network-first con fallback al index CORRECTO.
   //    Una navegación offline dentro de /modules/<id>/, /master/<id>/ o
   //    /private/<id>/ debe caer en el index.html de ESE módulo, no en el
   //    shell maestro. Así, cuando un módulo se cargue en iframe, offline
   //    no termina metiendo la App Maestra dentro de sí misma.
   if (req.mode === 'navigate') {
-    event.respondWith(installedNavigation(req, navigationFallback(url)));
+    event.respondWith(bundleRuntime(event));
     return;
   }
 
@@ -238,27 +404,12 @@ self.addEventListener('fetch', (event) => {
   //    las políticas quedan separadas; esta fase no aplica LKG a Riego.
   //    Las llamadas a Supabase (origen distinto) NUNCA pasan por aquí: la
   //    regla 1) de passthrough por origen ya las deja seguir sin caché.
-  if (url.pathname.includes('/master/data/') || url.pathname.includes('/modules/produccion/data/') || url.pathname.includes('/modules/insumos/data/') || url.pathname.includes('/modules/riego/data/') || url.pathname.includes('/modules/labores/datos/') || url.pathname.includes('/modules/labores/data/')) {
+  if (url.pathname.includes('/master/data/') || url.pathname.includes('/modules/produccion/data/') || url.pathname.includes('/modules/tch/data/') || /\/modules\/(riego|insumos|labores)\/bootstrap\.json$/.test(url.pathname) || url.pathname.includes('/modules/insumos/data/') || url.pathname.includes('/modules/riego/data/') || url.pathname.includes('/modules/labores/datos/') || url.pathname.includes('/modules/labores/data/')) {
     event.respondWith(networkFirst(req, DATA_CACHE));
     return;
   }
 
-  // 4) Assets hasheados de módulos (inmutables): cache-first.
-  if (/\/modules\/.+\.[a-f0-9]{6,}\.(js|css|png|jpg|svg|woff2?)$/i.test(url.pathname)) {
-    event.respondWith(cacheFirst(req, SHELL_CACHE));
-    return;
-  }
-
-  // 5) Installed runtime is pinned, including cache-busting query strings.
-  if (/\.(?:js|mjs|html|css)$/.test(url.pathname)) {
-    event.respondWith((async () => {
-      const cache = await caches.open(SHELL_CACHE);
-      return await cache.match(req,{ignoreSearch:true}) || new Response('Recurso no incluido en esta versión instalada.',{status:503});
-    })());
-    return;
-  }
-  // Pin installed code until an explicit activation, avoiding mixed-version imports.
-  event.respondWith(cacheFirst(req, SHELL_CACHE));
+  event.respondWith(bundleRuntime(event));
 });
 
 // Static hosts (e.g. Cloudflare Pages) may answer /index.html by redirecting
@@ -645,6 +796,16 @@ function prodDataNetworkUrl(kind) {
   return scope + 'modules/produccion/data/' + kind + '.json?ts=' + Date.now();
 }
 
+async function readCurrentPublication(activeVersion,activeFiles) {
+  try { return await verifiedNetworkGeneration(activeVersion,activeFiles); }
+  catch(error) {
+    // One retry for a first installation's transient transport failure only.
+    // Existing LKG falls back immediately; hash/schema failures are never bypassed.
+    if(!activeFiles && ['AbortError','TypeError'].includes(error.name))return verifiedNetworkGeneration(activeVersion,activeFiles);
+    throw error;
+  }
+}
+
 async function verifiedNetworkGeneration(activeVersion=null,activeFiles=null) {
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try {
@@ -655,23 +816,24 @@ async function verifiedNetworkGeneration(activeVersion=null,activeFiles=null) {
   if (manifest.schemaVersion !== 1 || !parseCasurDataVersion(manifest.dataVersion)) throw new Error('Invalid data integrity manifest');
   const comparison=activeVersion?compareCasurDataVersions(manifest.dataVersion,activeVersion):1;
   if(activeFiles&&(comparison===-1||(comparison===0&&activeFiles.__networkVerified)))return{files:activeFiles,manifest};
-  const files = {};
-  for (const kind of PROD_KINDS) {
-    for (const ext of ['json','js']) {
-      const name = kind + '.' + ext, expected = manifest.files?.[name];
-      if (!/^[a-f0-9]{64}$/.test(expected || '')) throw new Error('Missing data hash');
-      const r = await fetch(base + name + '?ts=' + Date.now(), {cache:'no-store',signal:controller.signal});
-      if (!r.ok) throw new Error('Incomplete data generation');
-      const bytes = await r.arrayBuffer();
-      const actual = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)), b=>b.toString(16).padStart(2,'0')).join('');
-      if (actual !== expected) throw new Error('Data SHA mismatch: ' + name);
-      const text = new TextDecoder().decode(bytes);
-      if (ext === 'json') files[kind] = JSON.parse(text);
-      else {
-        const match = text.match(new RegExp('^\\s*window\\.' + JS_VAR_BY_KIND[kind] + '\\s*=([\\s\\S]*);\\s*$'));
-        if (!match || JSON.stringify(JSON.parse(match[1])) !== JSON.stringify(files[kind])) throw new Error('JSON/JS data mismatch');
-      }
-    }
+  const files = {}, texts = {}, resources=PROD_KINDS.flatMap(kind=>['json','js'].map(ext=>({kind,ext,name:kind+'.'+ext})));
+  let nextResource=0;
+  const readResources=async()=>{while(nextResource<resources.length){
+    const {name}=resources[nextResource++],expected=manifest.files?.[name];
+    if(!/^[a-f0-9]{64}$/.test(expected||''))throw new Error('Missing data hash');
+    const r=await fetch(base+name+'?ts='+Date.now(),{cache:'no-store',signal:controller.signal});
+    if(!r.ok)throw new Error('Incomplete data generation');
+    const bytes=await r.arrayBuffer();
+    const actual=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
+    if(actual!==expected)throw new Error('Data SHA mismatch: '+name);
+    texts[name]=new TextDecoder().decode(bytes);
+  }};
+  const reads=await Promise.allSettled(Array.from({length:3},readResources));
+  const failed=reads.find(r=>r.status==='rejected');if(failed)throw failed.reason;
+  for(const kind of PROD_KINDS){
+    files[kind]=JSON.parse(texts[kind+'.json']);
+    const match=texts[kind+'.js'].match(new RegExp('^\\s*window\\.'+JS_VAR_BY_KIND[kind]+'\\s*=([\\s\\S]*);\\s*$'));
+    if(!match||JSON.stringify(JSON.parse(match[1]))!==JSON.stringify(files[kind]))throw new Error('JSON/JS data mismatch');
   }
   if (PROD_KINDS.some(k=>declaredVersion(files[k]) !== manifest.dataVersion || !looksValidProdData(k,files[k]))) throw new Error('Incoherent data generation');
   // Catch a publication changing while its six resources were being read.
@@ -728,7 +890,7 @@ async function doResolveGeneration() {
 
   let netOk = true, netFiles = null, netVersion = null;
   try {
-    const verified = await verifiedNetworkGeneration(activeVersion,activeFiles);
+    const verified = await readCurrentPublication(activeVersion,activeFiles);
     netFiles = verified.files;
     netVersion = verified.manifest.dataVersion;
   } catch (e) { netOk = false; }

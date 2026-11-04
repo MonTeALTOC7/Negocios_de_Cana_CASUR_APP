@@ -417,9 +417,9 @@ function viewHome() {
         ? `<span class="chip is-online"><span class="chip__dot"></span>Requiere conexión</span>`
         : `<span class="chip is-offline"><span class="chip__dot"></span>Sin conexión</span>`;
     } else {
-      chip = `<span class="chip is-local"><span class="chip__dot"></span>Local · offline</span>`;
+      chip = `<span class="chip is-local"><span class="chip__dot"></span>Código pendiente de descarga</span>`;
     }
-    const card = el(`<button class="mod-card" type="button" style="--accent:${m.accent}">
+    const card = el(`<button data-offline-module="${m.moduleId}" class="mod-card" type="button" style="--accent:${m.accent}">
         <span class="mod-card__tile"><img class="mod-card__logo" src="${logoFor(m.moduleId)}" alt="" loading="lazy" width="60" height="60"></span>
         <span class="mod-card__body">
           <span class="mod-card__name">${m.name}</span>
@@ -438,6 +438,14 @@ function viewHome() {
   swap(view);
   renderNav('home');
   mountInstallBanner();
+  void refreshBundleAvailability();
+}
+
+async function refreshBundleAvailability(){
+ if(!navigator.serviceWorker?.controller)return;
+ try{const result=await new Promise((resolve,reject)=>{const c=new MessageChannel(),t=setTimeout(()=>reject(Error('status')),5000);c.port1.onmessage=e=>{clearTimeout(t);c.port1.close();resolve(e.data);};navigator.serviceWorker.controller.postMessage({type:'BUNDLE_STATUS'},[c.port2]);});
+ for(const [id,ready] of Object.entries(result.bundles)){const card=document.querySelector('[data-offline-module="'+id+'"] .chip.is-local');if(card)card.lastChild.textContent=ready?'Código disponible offline':'Requiere descarga inicial';}
+ }catch{}
 }
 
 /* ---------------- Vista: MÓDULO (iframe) ---------------- */
@@ -460,6 +468,7 @@ function viewModule(id) {
         <span class="module-host__spacer"></span>
         <button class="icon-btn" id="mReload" type="button" aria-label="Recargar módulo">${icon('refresh')}</button>
       </div>
+      ${id === 'produccion' ? '<div class="module-host__startup" id="productionStartup" role="status" aria-live="polite"><div class="module-host__startup-card"><img src="modules/produccion/assets/negocios-de-cana.webp" alt="" width="144" height="144"><div><strong>Maestro de Suertes</strong><span>Preparando datos seguros…</span><p hidden>No se pudo abrir Maestro. Revisá la conexión y volvé a intentarlo.</p><div id="startupRecovery" hidden><button type="button" id="startupRetry">Reintentar</button><button type="button" id="startupHome">Volver al Inicio</button></div></div></div><div class="module-host__startup-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>' : ''}
       <iframe class="module-host__frame" id="mFrame"
               data-casur-src="${m.route}"
               title="${m.name}"
@@ -477,20 +486,72 @@ function viewModule(id) {
       </div>
     </div>`);
 
-  // Ocultamos header/nav del shell mientras un módulo ocupa toda la pantalla.
-  document.body.classList.add('in-module');
-  viewEl.innerHTML = '';
+  // Conservar Inicio durante una transición caliente, sin mostrar el iframe prematuro.
+  const previousView = id === 'produccion' && navigator.serviceWorker?.controller && !viewEl.querySelector('#mFrame') ? viewEl.firstElementChild : null;
+  if (previousView) { previousView.inert = true; host.classList.add('module-host--pending'); }
+  else { document.body.classList.add('in-module'); viewEl.innerHTML = ''; }
+  const showHost = () => {
+    if (!host.isConnected) return;
+    if (previousView?.isConnected) previousView.remove();
+    document.body.classList.add('in-module');
+    host.classList.remove('module-host--pending');
+  };
   const frame = $('#mFrame', host);
+  let startupFailed = false, startupComplete = false, startupStage = 'sw-ready';
+  const diagnostic = (stage, status) => { window.CASUR_STARTUP_DIAGNOSTIC = {stage, status, at: Date.now()}; };
+  const failStartup = error => {
+    if (startupComplete || startupFailed || !host.isConnected) return;
+    startupFailed = true; diagnostic(startupStage, error?.message || 'timeout'); showHost();
+    if(id!=='produccion'){toast('No se pudo preparar el módulo. Conectate para descargarlo y volvé a intentarlo.');void navigateFromActiveModule('/', 'bundle-unavailable');return;}
+    const note = host.querySelector('#productionStartup p'); if (note) note.hidden = false;
+    const actions = host.querySelector('#startupRecovery'); if (actions) actions.hidden = false;
+  };
+  const deadline = id === 'produccion' ? setTimeout(failStartup, 45000) : null;
+  const revealProduction = () => {
+    if (id !== 'produccion' || !frame.isConnected || startupFailed) return;
+    try {
+      const child = frame.contentWindow;
+      if (child?.CASUR_PRODUCTION_READY && child.document.body?.classList.contains('casur-maestro-premium') && child.document.querySelector('#casurStartup')?.hidden) {
+        startupComplete = true; clearTimeout(deadline); diagnostic('visible', 'ready');
+        host.querySelector('#productionStartup')?.remove();
+        showHost();
+        return;
+      }
+    } catch { /* Navigation can be in progress; keep the safe loading state. */ }
+    setTimeout(revealProduction, 40);
+  };
   frame.addEventListener('load', () => { if(frame.contentWindow?.location.href==='about:blank')return; protectModuleActivity(frame.contentWindow); void consumePendingModuleContext(frame, id); });
+  if (id === 'produccion') setTimeout(revealProduction, 0);
   viewEl.appendChild(host);
+  if (previousView) setTimeout(showHost, 1200);
+  host.querySelector('#startupRetry')?.addEventListener('click', async () => { const saved = await checkpointActiveModule('retry-startup'); if (saved.ok) location.reload(); else toast(MODULE_CHECKPOINT_ERROR); });
+  host.querySelector('#startupHome')?.addEventListener('click', () => { void navigateFromActiveModule('/', 'back-home'); });
   // First-use Production scripts must already be behind the verified SW data gate.
   void (async()=>{
     if('serviceWorker' in navigator && location.protocol!=='file:'){
-      await navigator.serviceWorker.ready;
-      if(!navigator.serviceWorker.controller)await new Promise(resolve=>navigator.serviceWorker.addEventListener('controllerchange',resolve,{once:true}));
+      diagnostic('sw-ready', 'waiting');
+      await Promise.race([navigator.serviceWorker.ready, new Promise((_, reject) => setTimeout(() => reject(new Error('sw-ready-timeout')), 40000))]);
+      if (startupFailed) return;
+      startupStage = 'sw-controller'; diagnostic(startupStage, 'waiting');
+      if (!navigator.serviceWorker.controller) await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => { navigator.serviceWorker.removeEventListener('controllerchange', changed); reject(new Error('sw-controller-timeout')); }, 40000);
+        const changed = () => { if (navigator.serviceWorker.controller) { clearTimeout(timer); navigator.serviceWorker.removeEventListener('controllerchange', changed); resolve(); } };
+        navigator.serviceWorker.addEventListener('controllerchange', changed); changed();
+      });
     }
-    if(frame.isConnected)frame.src=m.route;
-  })();
+    if (frame.isConnected && !startupFailed) {
+      startupStage='bundle-'+id; diagnostic(startupStage,'waiting');
+      const manifest=await (await fetch('core/versions/runtime-assets.json')).json();
+      await new Promise((resolve,reject)=>{
+        const channel=new MessageChannel();
+        let timer; const arm=()=>{clearTimeout(timer);timer=setTimeout(()=>{channel.port1.close();reject(new Error('bundle-timeout'));},30000);};arm();
+        channel.port1.onmessage=({data})=>{if(data.releaseId!==manifest.releaseId)return;if(data.type==='PROGRESS'){arm();return;}clearTimeout(timer);channel.port1.close();data.type==='READY'?resolve():reject(new Error(data.code||'bundle-error'));};
+        navigator.serviceWorker.controller.postMessage({type:'PREPARE_BUNDLE',bundleId:id,releaseId:manifest.releaseId},[channel.port2]);
+      });
+      if(['produccion','tch'].includes(id))navigator.serviceWorker.controller.postMessage({type:'WARM_GEO'});
+      startupStage='iframe-readiness';diagnostic(startupStage,'waiting');frame.src=m.route;
+    }
+  })().catch(failStartup);
 
   $('#mBack', host).addEventListener('click', () => { void navigateFromActiveModule('/', 'back-home'); });
   $('#mReload', host).addEventListener('click', () => { void reloadActiveModule(); });

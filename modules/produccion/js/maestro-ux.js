@@ -667,6 +667,7 @@
     installGeneralPanels();
     installIteration03();
     document.body.classList.add('casur-maestro-premium');
+    document.dispatchEvent(new Event('casur-premium-ready'));
     // The shell already owns mobile bottom navigation; keep only module tabs.
     document.body.classList.toggle('maestro-embedded', window.self !== window.top);
     activate('resumen', {scroll:false});

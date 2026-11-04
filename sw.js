@@ -184,7 +184,13 @@ async function coordinateUpdate() {
 // Transactional bundle staging is opt-in: the existing install/fetch/update gate
 // remains authoritative until generation pinning and offline routing are ready.
 const bundlePreparations = new Map();
-async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}) {
+async function matchesBundleHash(response,file,expected) {
+  const bytes = /\.(?:html|css|js|mjs|svg)$/.test(file) ? new TextEncoder().encode((await response.clone().text()).replace(/\r\n/g,'\n')) : await response.clone().arrayBuffer();
+  const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)), byte => byte.toString(16).padStart(2,'0')).join('');
+  return digest === expected;
+}
+async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}, ancestry = []) {
+  if (ancestry.includes(bundleId)) throw new Error('BUNDLE_CYCLE');
   const shell = await caches.open(SHELL_CACHE);
   const manifestResponse = await shell.match(new URL('./core/versions/runtime-assets.json', self.registration.scope));
   if (!manifestResponse) throw new Error('MANIFEST_UNAVAILABLE');
@@ -193,13 +199,41 @@ async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}) {
   if (!/^[a-z0-9_-]+$/.test(bundleId) || !Object.hasOwn(manifest.bundles || {}, bundleId)) throw new Error('UNKNOWN_BUNDLE');
   const entries = manifest.bundles[bundleId];
   if (!Array.isArray(entries) || !entries.length || new Set(entries).size !== entries.length || entries.some(file => !Object.hasOwn(manifest.assets, file))) throw new Error('INVALID_BUNDLE');
+  const dependencies = manifest.dependencies?.[bundleId] || [];
+  if (!Array.isArray(dependencies)) throw new Error('INVALID_DEPENDENCIES');
+  // Validate the entire dependency graph before any cache/download mutation.
+  const visit = (id, path = []) => {
+    if (path.includes(id)) throw new Error('BUNDLE_CYCLE');
+    if (!Object.hasOwn(manifest.bundles, id)) throw new Error('MISSING_DEPENDENCY');
+    const deps = manifest.dependencies?.[id] || [];
+    if (!Array.isArray(deps)) throw new Error('INVALID_DEPENDENCIES');
+    deps.forEach(dep => visit(dep, [...path,id]));
+  };
+  visit(bundleId);
   const key = releaseId + ':' + bundleId;
   if (bundlePreparations.has(key)) return bundlePreparations.get(key);
   const work = (async () => {
-    const stagingName = MASTER_PREFIX + 'bundle_stage_' + encodeURIComponent(releaseId) + '_' + bundleId + '_' + crypto.randomUUID();
-    const staging = await caches.open(stagingName);
+    for (const dependency of dependencies) await prepareVerifiedBundle(dependency, releaseId, notify, [...ancestry,bundleId]);
     const meta = await caches.open(MASTER_PREFIX + 'bundle_meta');
     const marker = new URL('./__bundle_ready__/' + encodeURIComponent(releaseId) + '/' + bundleId, self.registration.scope);
+    const previousResponse = await meta.match(marker);
+    if (previousResponse) {
+      try {
+        const previous = await previousResponse.json();
+        const expectedPrefix = MASTER_PREFIX + 'bundle_stage_' + encodeURIComponent(releaseId) + '_' + bundleId + '_';
+        if (previous.releaseId === releaseId && previous.bundleId === bundleId && previous.count === entries.length && typeof previous.cache === 'string' && previous.cache.startsWith(expectedPrefix) && (await caches.keys()).includes(previous.cache)) {
+          const saved = await caches.open(previous.cache);
+          let valid = true;
+          for (const file of entries) {
+            const response = await saved.match(new URL(file,self.registration.scope));
+            if (!response || !(await matchesBundleHash(response,file,manifest.assets[file]))) { valid = false; break; }
+          }
+          if (valid) return {type:'READY',bundleId,releaseId,count:entries.length,reused:true};
+        }
+      } catch { /* An invalid marker cannot authorize serving an incomplete cache. */ }
+    }
+    const stagingName = MASTER_PREFIX + 'bundle_stage_' + encodeURIComponent(releaseId) + '_' + bundleId + '_' + crypto.randomUUID();
+    const staging = await caches.open(stagingName);
     try {
       let completed = 0;
       for (const file of entries) {
@@ -207,9 +241,7 @@ async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}) {
         if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) throw new Error('INVALID_ASSET');
         const response = await fetch(url, {cache:'no-store'});
         if (!response.ok) throw new Error('ASSET_UNAVAILABLE');
-        const bytes = /\.(?:html|css|js|mjs|svg)$/.test(file) ? new TextEncoder().encode((await response.clone().text()).replace(/\r\n/g,'\n')) : await response.clone().arrayBuffer();
-        const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), byte => byte.toString(16).padStart(2,'0')).join('');
-        if (digest !== manifest.assets[file]) throw new Error('HASH_MISMATCH');
+        if (!(await matchesBundleHash(response,file,manifest.assets[file]))) throw new Error('HASH_MISMATCH');
         await staging.put(url, normalizeNavigationRedirect(response));
         try { notify({type:'PROGRESS',bundleId,releaseId,completed:++completed,total:entries.length}); } catch { /* disconnected port */ }
       }

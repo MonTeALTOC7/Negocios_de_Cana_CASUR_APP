@@ -63,7 +63,7 @@ export async function installUpdateControl({ version, checkpoint }) {
       workerRequest(controller, {type:'CASUR_UPDATE_INFO'}),
     ]);
     if (registration.waiting !== candidate || sw.controller !== controller || !info.ready ||
-        !info.version || !installed.version || info.version === installed.version || info.version === version) return;
+        !info.version || !installed.version || (info.version === installed.version && (!info.releaseId || info.releaseId === installed.releaseId)) || (info.version === version && (!info.releaseId || info.releaseId === installed.releaseId))) return;
     waiting = candidate;
     if (shownVersion === info.version || busy) return;
     shownVersion = info.version;

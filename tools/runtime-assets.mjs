@@ -28,7 +28,8 @@ export function generateManifest(files, appVersion=APP_VERSION) {
 if(process.argv[1]&&path.resolve(process.argv[1])===path.resolve('tools/runtime-assets.mjs')) {
  const manifest=generateManifest(walk());
  const output=JSON.stringify(manifest,null,2)+'\n',file='core/versions/runtime-assets.json';
- if(process.argv.includes('--write'))fs.writeFileSync(file,output);
+ if(process.argv.includes('--write')){fs.writeFileSync(file,output);const worker=fs.readFileSync('sw.js','utf8');fs.writeFileSync('sw.js',worker.replace(/const RELEASE_ID = '[^']+';/,`const RELEASE_ID = '${manifest.releaseId}';`));}
  else if(!fs.existsSync(file)||fs.readFileSync(file,'utf8').replace(/\r\n/g,'\n')!==output)throw Error('Runtime assets mismatch: node tools/runtime-assets.mjs --write');
+ if(!fs.readFileSync('sw.js','utf8').includes(`const RELEASE_ID = '${manifest.releaseId}';`))throw Error('Worker release identity mismatch: node tools/runtime-assets.mjs --write');
  console.log(`Verified runtime manifest ${APP_VERSION}: ${Object.keys(manifest.assets).length} code assets`);
 }

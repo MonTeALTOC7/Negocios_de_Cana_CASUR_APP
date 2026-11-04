@@ -4,13 +4,14 @@ export function previewReleaseId(appVersion, head) {
   return `${appVersion}-preview.${head}`;
 }
 
-export function derivePreviewWorker(source, {appVersion, head}) {
+export function derivePreviewWorker(source, {appVersion, head, releaseId}) {
   const release = previewReleaseId(appVersion, head);
   const replace = (before, after) => {
     if (source.split(before).length !== 2) throw Error('Preview SW contract changed: ' + before);
     source = source.replace(before, after);
   };
   if(source.includes('async function bundleRuntime(event)')) {
+    if(releaseId)source=source.replace(/const RELEASE_ID = '[^']+';/,`const RELEASE_ID = '${releaseId}';`);
     replace(`const APP_VERSION = '${appVersion}';`, `const APP_VERSION = '${appVersion}';\nconst PREVIEW_RELEASE_ID = '${release}';`);
     source=source.replace("'shell_v' + APP_VERSION", "'shell_v' + PREVIEW_RELEASE_ID");
     source=source.replace("const version=event.request.mode==='navigate'&&event.request.destination==='document'?APP_VERSION:pin?await pin.text():APP_VERSION;", "const version=event.request.mode==='navigate'&&event.request.destination==='document'?PREVIEW_RELEASE_ID:pin?await pin.text():PREVIEW_RELEASE_ID;");

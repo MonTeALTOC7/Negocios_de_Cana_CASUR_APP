@@ -10,6 +10,7 @@
    ============================================================ */
 
 const APP_VERSION = '1.5.6';
+const RELEASE_ID = '1.5.6-e41f0fce797593fd';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;
@@ -84,7 +85,7 @@ self.addEventListener('install', (event) => {
     if (!manifestResponse.ok) throw new Error('Release manifest unavailable');
     const manifest = await manifestResponse.json();
     if (manifest.appVersion !== APP_VERSION || !manifest.assets || !Object.keys(manifest.assets).length) throw new Error('Release manifest mismatch');
-    if (!manifest.releaseId || !manifest.bundles?.core) throw new Error('Bundle manifest required');
+    if (manifest.releaseId !== RELEASE_ID || !manifest.bundles?.core) throw new Error('Bundle manifest required');
     await cache.put(new URL('./core/versions/runtime-assets.json', self.registration.scope),new Response(JSON.stringify(manifest)));
     await (await caches.open(MASTER_PREFIX+'release_manifests')).put(new URL('./__manifest__/'+encodeURIComponent(manifest.releaseId),self.registration.scope),new Response(JSON.stringify(manifest)));
     await prepareVerifiedBundle('core',manifest.releaseId);
@@ -97,7 +98,7 @@ self.addEventListener('install', (event) => {
         self.registration.active.postMessage({type:'CASUR_UPDATE_INFO'},[channel.port2]);
       });
       const oldCache=await caches.open(MASTER_PREFIX+'shell_v'+active.version);
-      const oldResponse=await oldCache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));
+      const oldResponse=active.releaseId?await(await caches.open(MASTER_PREFIX+'release_manifests')).match(new URL('./__manifest__/'+encodeURIComponent(active.releaseId),self.registration.scope)):await oldCache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));
       if(!oldResponse)throw new Error('Active manifest unavailable');
       const oldManifest=await oldResponse.json();
       const manifests=await caches.open(MASTER_PREFIX+'release_manifests'),oldId=oldManifest.releaseId||'legacy-'+active.version;
@@ -132,6 +133,7 @@ self.addEventListener('install', (event) => {
       for (const request of await old.keys()) if (!(await dataCache.match(request))) await dataCache.put(request, await old.match(request));
     }
     await cache.put(new URL('./__release_ready__', self.registration.scope), new Response(APP_VERSION));
+    await(await caches.open(MASTER_PREFIX+'release_manifests')).put(new URL('./__release_ready__/'+encodeURIComponent(RELEASE_ID),self.registration.scope),new Response(RELEASE_ID));
   })());
 });
 
@@ -146,14 +148,23 @@ self.addEventListener('activate', (event) => {
 
 /* ---------------- Mensajes (actualización controlada) ---------------- */
 let updateInProgress = false;
+async function currentManifest() {
+  const registry=await caches.open(MASTER_PREFIX+'release_manifests');
+  const key=new URL('./__manifest__/'+encodeURIComponent(RELEASE_ID),self.registration.scope);
+  let response=await registry.match(key),fromShell=false;
+  if(!response){response=await(await caches.open(SHELL_CACHE)).match(new URL('./core/versions/runtime-assets.json',self.registration.scope));fromShell=true;}
+  if(!response)return null;
+  const manifest=await response.json();
+  if(manifest.releaseId!==RELEASE_ID||manifest.appVersion!==APP_VERSION)return null;
+  if(fromShell)await registry.put(key,new Response(JSON.stringify(manifest)));
+  return manifest;
+}
 async function releaseReady(verifyHashes = false) {
   try {
-    const cache=await caches.open(SHELL_CACHE);
-    const response=await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));
-    if(!response||!(await cache.match(new URL('./__release_ready__',self.registration.scope))))return false;
-    const manifest=await response.json();
-    if(!manifest.bundles) return false;
-    if(manifest.appVersion!==APP_VERSION)return false;
+    const manifest=await currentManifest();
+    if(!manifest?.bundles)return false;
+    const registry=await caches.open(MASTER_PREFIX+'release_manifests');
+    if(!(await registry.match(new URL('./__release_ready__/'+encodeURIComponent(RELEASE_ID),self.registration.scope))))return false;
     if(verifyHashes)await prepareVerifiedBundle('core',manifest.releaseId);
     return !!(await verifiedBundleCache(manifest,'core'));
   } catch { return false; }
@@ -215,8 +226,8 @@ async function pinnedManifest(event) {
     manifest=pinnedManifests.get(pin.releaseId);
     if(!manifest||manifest.releaseId&&manifest.releaseId!==pin.releaseId)return {manifest:null,cache};
   } else {
-    const response=await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));
-    manifest=response?await response.json():null;
+    const response=pin?await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope)):null;
+    manifest=pin?(response?await response.json():null):await currentManifest();
     if(!manifest)return {manifest:null,cache};
     pin={version:pin?.version||APP_VERSION,releaseId:manifest.releaseId||'legacy-'+(pin?.version||APP_VERSION)};
     await(await caches.open(MASTER_PREFIX+'release_manifests')).put(new URL('./__manifest__/'+encodeURIComponent(pin.releaseId),self.registration.scope),new Response(JSON.stringify(manifest)));
@@ -244,10 +255,8 @@ async function bundleRuntime(event) {
 }
 async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}, ancestry = []) {
   if (ancestry.includes(bundleId)) throw new Error('BUNDLE_CYCLE');
-  const shell = await caches.open(SHELL_CACHE);
-  const manifestResponse = await shell.match(new URL('./core/versions/runtime-assets.json', self.registration.scope));
-  if (!manifestResponse) throw new Error('MANIFEST_UNAVAILABLE');
-  const manifest = await manifestResponse.json();
+  const manifest=await currentManifest();
+  if(!manifest)throw new Error('MANIFEST_UNAVAILABLE');
   if (!manifest.releaseId || releaseId !== manifest.releaseId || manifest.appVersion !== APP_VERSION) throw new Error('RELEASE_MISMATCH');
   if (!/^[a-z0-9_-]+$/.test(bundleId) || !Object.hasOwn(manifest.bundles || {}, bundleId)) throw new Error('UNKNOWN_BUNDLE');
   const entries = manifest.bundles[bundleId];
@@ -320,7 +329,7 @@ async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}, anc
   try { return await work; } finally { bundlePreparations.delete(key); }
 }
 self.addEventListener('message', (event) => {
-  if(event.data?.type==='BUNDLE_STATUS' && event.ports?.[0])event.waitUntil((async()=>{const cache=await caches.open(SHELL_CACHE),manifest=await (await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope))).json();const bundles={};for(const id of Object.keys(manifest.bundles))bundles[id]=!!(await verifiedBundleCache(manifest,id));event.ports[0].postMessage({releaseId:manifest.releaseId,bundles,metrics:self.CASUR_BUNDLE_METRICS||[],readyMetrics:self.CASUR_READY_METRICS||[]});})());
+  if(event.data?.type==='BUNDLE_STATUS' && event.ports?.[0])event.waitUntil((async()=>{const manifest=await currentManifest();const bundles={};for(const id of Object.keys(manifest.bundles))bundles[id]=!!(await verifiedBundleCache(manifest,id));event.ports[0].postMessage({releaseId:manifest.releaseId,bundles,metrics:self.CASUR_BUNDLE_METRICS||[],readyMetrics:self.CASUR_READY_METRICS||[]});})());
   if (event.data?.type === 'PREPARE_BUNDLE' && event.ports?.[0]) {
     const port = event.ports[0];
     event.waitUntil((async()=>{if(event.source?.id){const pins=await caches.open(MASTER_PREFIX+'client_releases'),pin=await pins.match(new URL('./__client__/'+event.source.id,self.registration.scope));if(pin){const text=await pin.text();let ref;try{ref=JSON.parse(text);}catch{ref={version:text};}if(ref.version!==APP_VERSION||ref.releaseId&&ref.releaseId!==event.data.releaseId)throw new Error('CLIENT_RELEASE_MISMATCH');}}return prepareVerifiedBundle(event.data.bundleId,event.data.releaseId, message => port.postMessage(message));})()
@@ -330,7 +339,7 @@ self.addEventListener('message', (event) => {
   // Ignore legacy SKIP_WAITING: v1.3.4 cannot provide a safe checkpoint handshake.
   if (event.data?.type === 'CASUR_UPDATE_INFO') event.waitUntil((async () => {
     const previous = (await caches.keys()).filter(key => key.startsWith(MASTER_PREFIX+'shell_v') && key !== SHELL_CACHE).map(key => key.slice((MASTER_PREFIX+'shell_v').length));
-    const m=await (await (await caches.open(SHELL_CACHE)).match(new URL('./core/versions/runtime-assets.json',self.registration.scope))).json();
+    const m=await currentManifest();
     event.ports?.[0]?.postMessage({version:APP_VERSION,releaseId:m.releaseId,ready:await releaseReady(),previous});
   })());
   if (event.data?.type === 'CASUR_UPDATE_APPLY') event.waitUntil(coordinateUpdate().then(result => event.ports?.[0]?.postMessage(result)));

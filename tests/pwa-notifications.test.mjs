@@ -5,10 +5,10 @@ import vm from 'node:vm';
 import {MessageChannel} from 'node:worker_threads';
 
 const source=readFileSync(new URL('../core/updates/pwa-update.js',import.meta.url),'utf8').replaceAll('export ','');
-async function scenario({pending=null,installed='1.3.6',ready=true,sameWorker=false}={}){
+async function scenario({pending=null,installed='1.3.6',ready=true,sameWorker=false,installedRelease=null,pendingRelease=null}={}){
  const elements=[],session=new Map([['casur-update-confirm','pending'],['unrelated','keep']]);
- const worker=version=>({postMessage(message,ports){ports?.[0]?.postMessage({version,ready,previous:['1.3.4','1.3.5']});ports?.[0]?.close();}});
- const controller=worker(installed),candidate=pending?worker(pending):null;
+ const worker=(version,releaseId)=>({postMessage(message,ports){ports?.[0]?.postMessage({version,releaseId,ready,previous:['1.3.4','1.3.5']});ports?.[0]?.close();}});
+ const controller=worker(installed,installedRelease),candidate=pending?worker(pending,pendingRelease):null;
  const registration={waiting:sameWorker?controller:candidate,addEventListener(){}};
  const node=()=>({hidden:false,dataset:{},append(){},setAttribute(){},addEventListener(){}});
  const sandbox=vm.createContext({MessageChannel,setTimeout,clearTimeout,sessionStorage:{getItem:key=>session.get(key)??null,setItem:(k,v)=>session.set(k,v),removeItem:key=>session.delete(key)},
@@ -38,3 +38,5 @@ test('Más tarde conserva el acceso a la actualización sin recarga',async()=>{
  const action=result.elements.find(element=>element.textContent==='Instalar actualización');assert.ok(action);await action.onclick();
  assert.equal(action.textContent,'Instalar actualización');
 });
+
+test('una revisión con igual versión y distinto releaseId conserva el aviso seguro',async()=>{const result=await scenario({pending:'1.3.6',installed:'1.3.6',installedRelease:'old',pendingRelease:'new'});assert.equal(result.notice.hidden,false)});

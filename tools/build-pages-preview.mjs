@@ -70,6 +70,7 @@ export function buildPreview(output, env = process.env, aforo = null) {
   const releaseId = previewReleaseId(manifest.appVersion, head);
   const derivedManifest = {...structuredClone(manifest), previewReleaseId:releaseId};
   for (const file of Object.keys(derivedManifest.assets)) derivedManifest.assets[file] = digest(normalized(file, bytesByPath.get(file)));
+  if(derivedManifest.bundles)derivedManifest.releaseId=manifest.appVersion+'-'+digest(Buffer.from(JSON.stringify({assets:derivedManifest.assets,bundles:derivedManifest.bundles,dependencies:derivedManifest.dependencies}))).slice(0,16);
   bytesByPath.set('core/versions/runtime-assets.json', Buffer.from(JSON.stringify(derivedManifest, null, 2) + '\n'));
   // A build is never allowed to replace an existing artifact or the working tree.
   const destination = path.resolve(output);
@@ -92,7 +93,7 @@ export function buildPreview(output, env = process.env, aforo = null) {
   // still requires the existing prepared-resource and multiwindow checkpoint gate.
   const hostingMarker = '\n/* Cloudflare preview HTML routing compatibility v1. */\n' +
     (aforo ? `/* Approved preview snapshot ${aforo.manifest.snapshotSha256} */\n` : '');
-  const swBytes = Buffer.from(derivePreviewWorker(bytesByPath.get('sw.js').toString(), {appVersion:manifest.appVersion, head}) + hostingMarker);
+  const swBytes = Buffer.from(derivePreviewWorker(bytesByPath.get('sw.js').toString(), {appVersion:manifest.appVersion, head, releaseId:derivedManifest.releaseId}) + hostingMarker);
   fs.writeFileSync(path.join(destination, 'sw.js'), swBytes);
   bytesByPath.set('sw.js', swBytes);
   const metadata = {project:'casur-negocios-preview', branch, head, appVersion:manifest.appVersion,

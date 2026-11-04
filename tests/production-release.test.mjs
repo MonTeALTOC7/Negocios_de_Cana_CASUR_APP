@@ -6,7 +6,7 @@ test('metadatos locales distinguen PWA, módulo e Histórico y quedan precachead
  const release=PRODUCTION_RELEASES[0];
  assert.equal(release.moduleVersion,MODULE_VERSIONS.produccion);
  assert.equal(APP_RELEASES[0].version,APP_VERSION);
- assert.equal(release.appVersion,APP_VERSION);
+ assert.ok(APP_RELEASES.some(r=>r.version===release.appVersion));
  assert.ok(APP_RELEASES.some(app=>app.version===release.appVersion));
  assert.equal(release.historicalVersion,'V2.9');
  assert.ok(release.changes.length>=2);

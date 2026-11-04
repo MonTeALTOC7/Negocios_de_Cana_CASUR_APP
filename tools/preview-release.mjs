@@ -10,6 +10,17 @@ export function derivePreviewWorker(source, {appVersion, head}) {
     if (source.split(before).length !== 2) throw Error('Preview SW contract changed: ' + before);
     source = source.replace(before, after);
   };
+  if(source.includes('async function bundleRuntime(event)')) {
+    replace(`const APP_VERSION = '${appVersion}';`, `const APP_VERSION = '${appVersion}';\nconst PREVIEW_RELEASE_ID = '${release}';`);
+    source=source.replace("'shell_v' + APP_VERSION", "'shell_v' + PREVIEW_RELEASE_ID");
+    source=source.replace("const version=event.request.mode==='navigate'&&event.request.destination==='document'?APP_VERSION:pin?await pin.text():APP_VERSION;", "const version=event.request.mode==='navigate'&&event.request.destination==='document'?PREVIEW_RELEASE_ID:pin?await pin.text():PREVIEW_RELEASE_ID;");
+    source=source.replace("new Response(APP_VERSION));", "new Response(PREVIEW_RELEASE_ID));");
+    source=source.replace("manifest.appVersion !== APP_VERSION || !manifest.assets", "manifest.appVersion !== APP_VERSION || manifest.previewReleaseId !== PREVIEW_RELEASE_ID || !manifest.assets");
+    source=source.replace("version:APP_VERSION,releaseId:m.releaseId", "version:PREVIEW_RELEASE_ID,releaseId:m.releaseId");
+    source=source.replace("(await pin.text())!==APP_VERSION", "(await pin.text())!==PREVIEW_RELEASE_ID");
+    source=source.replace("return {ok:true, version:APP_VERSION};", "return {ok:true, version:PREVIEW_RELEASE_ID};");
+    return source;
+  }
   replace(`const APP_VERSION = '${appVersion}';`, `const APP_VERSION = '${appVersion}';\nconst PREVIEW_RELEASE_ID = '${release}';\nconst PREVIEW_HEAD = '${head}';`);
   replace("const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;", "const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + PREVIEW_RELEASE_ID;");
   replace("if (manifest.appVersion !== APP_VERSION || !manifest.assets || !Object.keys(manifest.assets).length)",

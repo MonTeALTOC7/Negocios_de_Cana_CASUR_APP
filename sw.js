@@ -9,7 +9,7 @@
    neutralizados dentro de la Maestra: aquí no se registran.
    ============================================================ */
 
-const APP_VERSION = '1.5.5';
+const APP_VERSION = '1.5.6';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;
@@ -84,48 +84,45 @@ self.addEventListener('install', (event) => {
     if (!manifestResponse.ok) throw new Error('Release manifest unavailable');
     const manifest = await manifestResponse.json();
     if (manifest.appVersion !== APP_VERSION || !manifest.assets || !Object.keys(manifest.assets).length) throw new Error('Release manifest mismatch');
-    // All local executable resources, including modules never opened, form one snapshot.
-    // Hash validation prevents a partial deployment from producing a mixed generation.
-    const assets = Object.entries(manifest.assets);
-    let nextAsset = 0;
-    async function verifyAssets() {
-      while (nextAsset < assets.length) {
-      const [path, expected] = assets[nextAsset++];
-      const url = new URL(path, self.registration.scope);
-      if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) throw new Error('Invalid release asset');
-      const response = await fetch(url, {cache:'no-store'});
-      if (!response.ok) throw new Error(`Release asset unavailable: ${path}`);
-      const bytes = /\.(?:html|css|js|mjs|svg)$/.test(path)
-        ? new TextEncoder().encode((await response.clone().text()).replace(/\r\n/g,'\n'))
-        : await response.clone().arrayBuffer();
-      const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)), byte => byte.toString(16).padStart(2,'0')).join('');
-      if (digest !== expected) throw new Error(`Release hash mismatch: ${path}`);
-      await cache.put(url,normalizeNavigationRedirect(response));
-      }
-    }
-    // Wait for all workers before accepting or rejecting; readiness remains atomic.
-    const checks = await Promise.allSettled(Array.from({length: Math.min(4, assets.length)}, verifyAssets));
-    const failed = checks.find(result => result.status === 'rejected');
-    if (failed) throw failed.reason;
+    if (!manifest.releaseId || !manifest.bundles?.core) throw new Error('Bundle manifest required');
     await cache.put(new URL('./core/versions/runtime-assets.json', self.registration.scope),new Response(JSON.stringify(manifest)));
-    // A missing code asset rejects installation; the previous worker stays active.
-    await Promise.all([
-      ...SHELL_ASSETS.map(async (url) => { if (!(await cache.match(url))) await cache.add(url); }),
-      warmGeoCache(),
-    ]);
-    // Refresh previously used module resources before allowing an offline update.
-    for (const name of await caches.keys()) {
-      if (!name.startsWith(MASTER_PREFIX + 'shell_v') || name === SHELL_CACHE) continue;
-      const old = await caches.open(name);
-      for (const request of await old.keys()) {
-        const url = new URL(request.url);
-        if (url.pathname.endsWith('/__release_ready__')) continue;
-        // Removed runtime files must not be fetched from a different release.
-        if (/\.(?:js|mjs|html|css)$/.test(url.pathname)) continue;
-        if (!(await cache.match(request))) await cache.add(request);
+    await prepareVerifiedBundle('core',manifest.releaseId);
+    // Preserve installed offline capabilities on upgrade. New installs prepare core only.
+    if (self.registration.active) {
+      const channel = new MessageChannel();
+      const active = await new Promise((resolve,reject) => {
+        const timer=setTimeout(()=>reject(new Error('Active release unavailable')),15000);
+        channel.port1.onmessage=e=>{clearTimeout(timer);channel.port1.close();resolve(e.data);};
+        self.registration.active.postMessage({type:'CASUR_UPDATE_INFO'},[channel.port2]);
+      });
+      const oldCache=await caches.open(MASTER_PREFIX+'shell_v'+active.version);
+      const oldResponse=await oldCache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));
+      if(!oldResponse)throw new Error('Active manifest unavailable');
+      const oldManifest=await oldResponse.json();
+      const pins=await caches.open(MASTER_PREFIX+'client_releases');
+      for(const client of await self.clients.matchAll({type:'window',includeUncontrolled:true})) {
+        const key=new URL('./__client__/'+client.id,self.registration.scope);
+        if(!(await pins.match(key)))await pins.put(key,new Response(active.version));
+      }
+      const meta=await caches.open(MASTER_PREFIX+'bundle_meta');
+      for(const id of Object.keys(manifest.bundles)) {
+        const previouslyReady=oldManifest.bundles ? await meta.match(new URL('./__bundle_ready__/'+encodeURIComponent(oldManifest.releaseId)+'/'+id,self.registration.scope)) : Object.keys(oldManifest.assets).some(file=>manifest.bundles[id].includes(file));
+        if(previouslyReady)await prepareVerifiedBundle(id,manifest.releaseId);
       }
     }
     const dataCache = await caches.open(DATA_CACHE);
+    for(const name of await caches.keys()) {
+      if(!name.startsWith(MASTER_PREFIX+'shell_v')||name===SHELL_CACHE)continue;
+      const old=await caches.open(name);
+      for(const req of await old.keys()) {
+        const url=new URL(req.url);
+        if(/\/modules\/tch\/data\/.*\.json$/.test(url.pathname)) {
+          try { const r=await fetch(req);if(!r.ok)throw Error('data');await dataCache.put(req,r); }
+          catch {const r=await old.match(req);if(r)await dataCache.put(req,r);}
+        }
+      }
+    }
+
     for (const name of (await caches.keys()).reverse()) {
       if (!name.startsWith(MASTER_PREFIX + 'data_v') || name === DATA_CACHE) continue;
       const old = await caches.open(name);
@@ -147,17 +144,16 @@ self.addEventListener('activate', (event) => {
 /* ---------------- Mensajes (actualización controlada) ---------------- */
 let updateInProgress = false;
 async function releaseReady(verifyHashes = false) {
-  const cache = await caches.open(SHELL_CACHE);
-  const manifestResponse = await cache.match(new URL('./core/versions/runtime-assets.json', self.registration.scope));
-  if (!manifestResponse || !(await cache.match(new URL('./__release_ready__', self.registration.scope)))) return false;
-  const manifest = await manifestResponse.json();
-  if (verifyHashes) for (const [file,expected] of Object.entries(manifest.assets)) {
-    const response=await cache.match(new URL(file,self.registration.scope));
-    const bytes=/\.(?:html|css|js|mjs|svg)$/.test(file)?new TextEncoder().encode((await response.text()).replace(/\r\n/g,'\n')):await response.arrayBuffer();
-    const actual=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
-    if(actual!==expected)return false;
-  }
-  return manifest.appVersion === APP_VERSION && (await Promise.all([...SHELL_ASSETS,...Object.keys(manifest.assets)].map(url => cache.match(new URL(url,self.registration.scope))))).every(Boolean);
+  try {
+    const cache=await caches.open(SHELL_CACHE);
+    const response=await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));
+    if(!response||!(await cache.match(new URL('./__release_ready__',self.registration.scope))))return false;
+    const manifest=await response.json();
+    if(!manifest.bundles) return false;
+    if(manifest.appVersion!==APP_VERSION)return false;
+    if(verifyHashes)await prepareVerifiedBundle('core',manifest.releaseId);
+    return !!(await verifiedBundleCache(manifest,'core'));
+  } catch { return false; }
 }
 async function coordinateUpdate() {
   if (updateInProgress) return {ok:false};
@@ -181,13 +177,49 @@ async function coordinateUpdate() {
     return {ok:false};
   } finally { updateInProgress = false; }
 }
-// Transactional bundle staging is opt-in: the existing install/fetch/update gate
-// remains authoritative until generation pinning and offline routing are ready.
+// Each module is a versioned transaction. Fetch never reads unpromoted staging.
 const bundlePreparations = new Map();
 async function matchesBundleHash(response,file,expected) {
   const bytes = /\.(?:html|css|js|mjs|svg)$/.test(file) ? new TextEncoder().encode((await response.clone().text()).replace(/\r\n/g,'\n')) : await response.clone().arrayBuffer();
   const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)), byte => byte.toString(16).padStart(2,'0')).join('');
   return digest === expected;
+}
+async function verifiedBundleCache(manifest,id) {
+  const meta=await caches.open(MASTER_PREFIX+'bundle_meta');
+  const response=await meta.match(new URL('./__bundle_ready__/'+encodeURIComponent(manifest.releaseId)+'/'+id,self.registration.scope));
+  if(!response)return null;
+  const record=await response.json();
+  const prefix=MASTER_PREFIX+'bundle_stage_'+encodeURIComponent(manifest.releaseId)+'_'+id+'_';
+  if(record.releaseId!==manifest.releaseId||record.bundleId!==id||record.count!==manifest.bundles[id]?.length||!record.cache?.startsWith(prefix)||!(await caches.keys()).includes(record.cache))return null;
+  return caches.open(record.cache);
+}
+async function pinnedManifest(event) {
+  const pins=await caches.open(MASTER_PREFIX+'client_releases');
+  const id=event.clientId;
+  const key=new URL('./__client__/'+id,self.registration.scope);
+  const pin=id?await pins.match(key):null;
+  const version=event.request.mode==='navigate'&&event.request.destination==='document'?APP_VERSION:pin?await pin.text():APP_VERSION;
+  if(id&&!pin)await pins.put(key,new Response(version));
+  if(event.resultingClientId)await pins.put(new URL('./__client__/'+event.resultingClientId,self.registration.scope),new Response(version));
+  const cache=await caches.open(MASTER_PREFIX+'shell_v'+version);
+  const response=await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));
+  return {manifest:response?await response.json():null,cache};
+}
+async function bundleRuntime(event) {
+  const {manifest,cache}=await pinnedManifest(event);
+  if(!manifest)return new Response('Versión instalada no disponible.',{status:503});
+  const url=new URL(event.request.url);url.search='';
+  let file=url.pathname.slice(new URL(self.registration.scope).pathname.length);
+  if(!file||file.endsWith('/'))file+='index.html';
+  if(!manifest.bundles)return normalizeNavigationRedirect(await cache.match(url,{ignoreSearch:true})||await cache.match(new URL(file,self.registration.scope))||new Response('Recurso no disponible en la versión instalada.',{status:503}));
+  if(file==='core/versions/runtime-assets.json')return new Response(JSON.stringify(manifest),{headers:{'Content-Type':'application/json'}});
+  const id=Object.keys(manifest.bundles).find(id=>manifest.bundles[id].includes(file));
+  if(!id)return new Response('Recurso no incluido en esta versión.',{status:503});
+  const saved=await verifiedBundleCache(manifest,id);
+  const response=saved?await saved.match(new URL(file,self.registration.scope)):null;
+  if(!response)return new Response('Módulo no preparado para uso sin conexión. Abrilo desde Inicio con conexión.',{status:503});
+  if(!(await matchesBundleHash(response,file,manifest.assets[file])))return new Response('Integridad del recurso inválida.',{status:503});
+  return normalizeNavigationRedirect(response);
 }
 async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}, ancestry = []) {
   if (ancestry.includes(bundleId)) throw new Error('BUNDLE_CYCLE');
@@ -235,16 +267,23 @@ async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}, anc
     const stagingName = MASTER_PREFIX + 'bundle_stage_' + encodeURIComponent(releaseId) + '_' + bundleId + '_' + crypto.randomUUID();
     const staging = await caches.open(stagingName);
     try {
-      let completed = 0;
-      for (const file of entries) {
+      let completed = 0, cursor = 0;
+      const jobs = async () => { while(cursor<entries.length) {
+        const file=entries[cursor++];
         const url = new URL(file, self.registration.scope);
         if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) throw new Error('INVALID_ASSET');
+        const started=Date.now();
         const response = await fetch(url, {cache:'no-store'});
+        const received=Date.now();
         if (!response.ok) throw new Error('ASSET_UNAVAILABLE');
         if (!(await matchesBundleHash(response,file,manifest.assets[file]))) throw new Error('HASH_MISMATCH');
+        const hashed=Date.now();
         await staging.put(url, normalizeNavigationRedirect(response));
+        (self.CASUR_BUNDLE_METRICS ||= []).push({file,bundleId,releaseId,fetchMs:received-started,verifyMs:hashed-received,cacheMs:Date.now()-hashed});
         try { notify({type:'PROGRESS',bundleId,releaseId,completed:++completed,total:entries.length}); } catch { /* disconnected port */ }
-      }
+      }};
+      const results=await Promise.allSettled(Array.from({length:Math.min(4,entries.length)},jobs));
+      const failed=results.find(r=>r.status==='rejected');if(failed)throw failed.reason;
       // The pointer is the sole atomic promotion; no partial staging is visible.
       await meta.put(marker, new Response(JSON.stringify({releaseId,bundleId,cache:stagingName,count:entries.length}),{headers:{'Content-Type':'application/json'}}));
       return {type:'READY', bundleId, releaseId, count:entries.length};
@@ -257,16 +296,18 @@ async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}, anc
   try { return await work; } finally { bundlePreparations.delete(key); }
 }
 self.addEventListener('message', (event) => {
+  if(event.data?.type==='BUNDLE_STATUS' && event.ports?.[0])event.waitUntil((async()=>{const cache=await caches.open(SHELL_CACHE),manifest=await (await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope))).json();const bundles={};for(const id of Object.keys(manifest.bundles))bundles[id]=!!(await verifiedBundleCache(manifest,id));event.ports[0].postMessage({releaseId:manifest.releaseId,bundles});})());
   if (event.data?.type === 'PREPARE_BUNDLE' && event.ports?.[0]) {
     const port = event.ports[0];
-    event.waitUntil(prepareVerifiedBundle(event.data.bundleId,event.data.releaseId, message => port.postMessage(message))
+    event.waitUntil((async()=>{if(event.source?.id){const pins=await caches.open(MASTER_PREFIX+'client_releases'),pin=await pins.match(new URL('./__client__/'+event.source.id,self.registration.scope));if(pin&&(await pin.text())!==APP_VERSION)throw new Error('CLIENT_RELEASE_MISMATCH');}return prepareVerifiedBundle(event.data.bundleId,event.data.releaseId, message => port.postMessage(message));})()
       .then(result => port.postMessage(result), error => port.postMessage({type:'ERROR',code:error.message,bundleId:event.data.bundleId,releaseId:event.data.releaseId})));
     return;
   }
   // Ignore legacy SKIP_WAITING: v1.3.4 cannot provide a safe checkpoint handshake.
   if (event.data?.type === 'CASUR_UPDATE_INFO') event.waitUntil((async () => {
     const previous = (await caches.keys()).filter(key => key.startsWith(MASTER_PREFIX+'shell_v') && key !== SHELL_CACHE).map(key => key.slice((MASTER_PREFIX+'shell_v').length));
-    event.ports?.[0]?.postMessage({version:APP_VERSION, ready:await releaseReady(), previous});
+    const m=await (await (await caches.open(SHELL_CACHE)).match(new URL('./core/versions/runtime-assets.json',self.registration.scope))).json();
+    event.ports?.[0]?.postMessage({version:APP_VERSION,releaseId:m.releaseId,ready:await releaseReady(),previous});
   })());
   if (event.data?.type === 'CASUR_UPDATE_APPLY') event.waitUntil(coordinateUpdate().then(result => event.ports?.[0]?.postMessage(result)));
   if (event.data && event.data.type === 'WARM_GEO') {
@@ -296,7 +337,7 @@ self.addEventListener('fetch', (event) => {
   //    shell maestro. Así, cuando un módulo se cargue en iframe, offline
   //    no termina metiendo la App Maestra dentro de sí misma.
   if (req.mode === 'navigate') {
-    event.respondWith(installedNavigation(req, navigationFallback(url)));
+    event.respondWith(bundleRuntime(event));
     return;
   }
 
@@ -328,27 +369,12 @@ self.addEventListener('fetch', (event) => {
   //    las políticas quedan separadas; esta fase no aplica LKG a Riego.
   //    Las llamadas a Supabase (origen distinto) NUNCA pasan por aquí: la
   //    regla 1) de passthrough por origen ya las deja seguir sin caché.
-  if (url.pathname.includes('/master/data/') || url.pathname.includes('/modules/produccion/data/') || url.pathname.includes('/modules/insumos/data/') || url.pathname.includes('/modules/riego/data/') || url.pathname.includes('/modules/labores/datos/') || url.pathname.includes('/modules/labores/data/')) {
+  if (url.pathname.includes('/master/data/') || url.pathname.includes('/modules/produccion/data/') || url.pathname.includes('/modules/tch/data/') || /\/modules\/(riego|insumos|labores)\/bootstrap\.json$/.test(url.pathname) || url.pathname.includes('/modules/insumos/data/') || url.pathname.includes('/modules/riego/data/') || url.pathname.includes('/modules/labores/datos/') || url.pathname.includes('/modules/labores/data/')) {
     event.respondWith(networkFirst(req, DATA_CACHE));
     return;
   }
 
-  // 4) Assets hasheados de módulos (inmutables): cache-first.
-  if (/\/modules\/.+\.[a-f0-9]{6,}\.(js|css|png|jpg|svg|woff2?)$/i.test(url.pathname)) {
-    event.respondWith(cacheFirst(req, SHELL_CACHE));
-    return;
-  }
-
-  // 5) Installed runtime is pinned, including cache-busting query strings.
-  if (/\.(?:js|mjs|html|css)$/.test(url.pathname)) {
-    event.respondWith((async () => {
-      const cache = await caches.open(SHELL_CACHE);
-      return await cache.match(req,{ignoreSearch:true}) || new Response('Recurso no incluido en esta versión instalada.',{status:503});
-    })());
-    return;
-  }
-  // Pin installed code until an explicit activation, avoiding mixed-version imports.
-  event.respondWith(cacheFirst(req, SHELL_CACHE));
+  event.respondWith(bundleRuntime(event));
 });
 
 // Static hosts (e.g. Cloudflare Pages) may answer /index.html by redirecting

@@ -97,7 +97,7 @@ export async function installUpdateControl({ version, checkpoint }) {
     worker?.addEventListener('statechange', () => { if (worker.state === 'installed') void showWaiting().catch(() => {}); });
   });
   await showWaiting().catch(() => {});
-  const warm = () => registration.active?.postMessage({type:'WARM_GEO'});
+  const warm = () => { /* Module bundles prepare shared resources on demand. */ };
   void sw.ready.then(warm); void check(true);
   window.addEventListener('online', () => { warm(); void check(true); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) void check(); });

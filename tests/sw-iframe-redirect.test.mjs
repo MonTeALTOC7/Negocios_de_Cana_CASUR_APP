@@ -28,6 +28,6 @@ test('unredirected responses are left untouched',()=>{
   assert.strictEqual(normalize(response),response);
 });
 test('worker precache and iframe navigation both normalize redirected HTML',()=>{
-  assert.match(sw,/cache\.put\(url,normalizeNavigationRedirect\(response\)\)/);
+  assert.match(sw,/staging\.put\(url, normalizeNavigationRedirect\(response\)\)/);
   assert.match(sw,/normalizeNavigationRedirect\(cached \|\| await networkFirst/);
 });

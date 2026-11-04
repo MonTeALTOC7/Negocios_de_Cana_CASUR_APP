@@ -417,9 +417,9 @@ function viewHome() {
         ? `<span class="chip is-online"><span class="chip__dot"></span>Requiere conexión</span>`
         : `<span class="chip is-offline"><span class="chip__dot"></span>Sin conexión</span>`;
     } else {
-      chip = `<span class="chip is-local"><span class="chip__dot"></span>Local · offline</span>`;
+      chip = `<span class="chip is-local"><span class="chip__dot"></span>Código pendiente de descarga</span>`;
     }
-    const card = el(`<button class="mod-card" type="button" style="--accent:${m.accent}">
+    const card = el(`<button data-offline-module="${m.moduleId}" class="mod-card" type="button" style="--accent:${m.accent}">
         <span class="mod-card__tile"><img class="mod-card__logo" src="${logoFor(m.moduleId)}" alt="" loading="lazy" width="60" height="60"></span>
         <span class="mod-card__body">
           <span class="mod-card__name">${m.name}</span>
@@ -438,6 +438,14 @@ function viewHome() {
   swap(view);
   renderNav('home');
   mountInstallBanner();
+  void refreshBundleAvailability();
+}
+
+async function refreshBundleAvailability(){
+ if(!navigator.serviceWorker?.controller)return;
+ try{const result=await new Promise((resolve,reject)=>{const c=new MessageChannel(),t=setTimeout(()=>reject(Error('status')),5000);c.port1.onmessage=e=>{clearTimeout(t);c.port1.close();resolve(e.data);};navigator.serviceWorker.controller.postMessage({type:'BUNDLE_STATUS'},[c.port2]);});
+ for(const [id,ready] of Object.entries(result.bundles)){const card=document.querySelector('[data-offline-module="'+id+'"] .chip.is-local');if(card)card.lastChild.textContent=ready?'Código disponible offline':'Requiere descarga inicial';}
+ }catch{}
 }
 
 /* ---------------- Vista: MÓDULO (iframe) ---------------- */
@@ -494,6 +502,7 @@ function viewModule(id) {
   const failStartup = () => {
     if (startupComplete || startupFailed || !host.isConnected) return;
     startupFailed = true; diagnostic(startupStage, 'timeout'); showHost();
+    if(id!=='produccion'){toast('No se pudo preparar el módulo. Conectate para descargarlo y volvé a intentarlo.');void navigateFromActiveModule('/', 'bundle-unavailable');return;}
     const note = host.querySelector('#productionStartup p'); if (note) note.hidden = false;
     const actions = host.querySelector('#startupRecovery'); if (actions) actions.hidden = false;
   };
@@ -530,7 +539,18 @@ function viewModule(id) {
         navigator.serviceWorker.addEventListener('controllerchange', changed); changed();
       });
     }
-    if (frame.isConnected && !startupFailed) { startupStage = 'iframe-readiness'; diagnostic(startupStage, 'waiting'); frame.src=m.route; }
+    if (frame.isConnected && !startupFailed) {
+      startupStage='bundle-'+id; diagnostic(startupStage,'waiting');
+      const manifest=await (await fetch('core/versions/runtime-assets.json')).json();
+      await new Promise((resolve,reject)=>{
+        const channel=new MessageChannel();
+        let timer; const arm=()=>{clearTimeout(timer);timer=setTimeout(()=>{channel.port1.close();reject(new Error('bundle-timeout'));},30000);};arm();
+        channel.port1.onmessage=({data})=>{if(data.releaseId!==manifest.releaseId)return;if(data.type==='PROGRESS'){arm();return;}clearTimeout(timer);channel.port1.close();data.type==='READY'?resolve():reject(new Error(data.code||'bundle-error'));};
+        navigator.serviceWorker.controller.postMessage({type:'PREPARE_BUNDLE',bundleId:id,releaseId:manifest.releaseId},[channel.port2]);
+      });
+      if(['produccion','tch'].includes(id))navigator.serviceWorker.controller.postMessage({type:'WARM_GEO'});
+      startupStage='iframe-readiness';diagnostic(startupStage,'waiting');frame.src=m.route;
+    }
   })().catch(failStartup);
 
   $('#mBack', host).addEventListener('click', () => { void navigateFromActiveModule('/', 'back-home'); });

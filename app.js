@@ -499,9 +499,9 @@ function viewModule(id) {
   const frame = $('#mFrame', host);
   let startupFailed = false, startupComplete = false, startupStage = 'sw-ready';
   const diagnostic = (stage, status) => { window.CASUR_STARTUP_DIAGNOSTIC = {stage, status, at: Date.now()}; };
-  const failStartup = () => {
+  const failStartup = error => {
     if (startupComplete || startupFailed || !host.isConnected) return;
-    startupFailed = true; diagnostic(startupStage, 'timeout'); showHost();
+    startupFailed = true; diagnostic(startupStage, error?.message || 'timeout'); showHost();
     if(id!=='produccion'){toast('No se pudo preparar el módulo. Conectate para descargarlo y volvé a intentarlo.');void navigateFromActiveModule('/', 'bundle-unavailable');return;}
     const note = host.querySelector('#productionStartup p'); if (note) note.hidden = false;
     const actions = host.querySelector('#startupRecovery'); if (actions) actions.hidden = false;

@@ -9,7 +9,7 @@ import {derivePreviewWorker, previewReleaseId} from './preview-release.mjs';
 export const PREVIEW_BRANCH = 'codex/estimados-plan-consulta-b2';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
-const normalized = (file, bytes) => /\.(?:html|css|js|mjs|svg)$/.test(file)
+const normalized = (file, bytes) => /\.(?:html|css|js|mjs|svg|webmanifest)$/.test(file)
   ? Buffer.from(bytes.toString('utf8').replace(/\r\n/g, '\n')) : bytes;
 const dataFiles = [
   'modules/produccion/data/version.json', 'modules/produccion/data/version.js',

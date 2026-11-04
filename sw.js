@@ -180,7 +180,7 @@ async function coordinateUpdate() {
 // Each module is a versioned transaction. Fetch never reads unpromoted staging.
 const bundlePreparations = new Map();
 async function matchesBundleHash(response,file,expected) {
-  const bytes = /\.(?:html|css|js|mjs|svg)$/.test(file) ? new TextEncoder().encode((await response.clone().text()).replace(/\r\n/g,'\n')) : await response.clone().arrayBuffer();
+  const bytes = /\.(?:html|css|js|mjs|svg|webmanifest)$/.test(file) ? new TextEncoder().encode((await response.clone().text()).replace(/\r\n/g,'\n')) : await response.clone().arrayBuffer();
   const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)), byte => byte.toString(16).padStart(2,'0')).join('');
   return digest === expected;
 }
@@ -191,7 +191,10 @@ async function verifiedBundleCache(manifest,id) {
   const record=await response.json();
   const prefix=MASTER_PREFIX+'bundle_stage_'+encodeURIComponent(manifest.releaseId)+'_'+id+'_';
   if(record.releaseId!==manifest.releaseId||record.bundleId!==id||record.count!==manifest.bundles[id]?.length||!record.cache?.startsWith(prefix)||!(await caches.keys()).includes(record.cache))return null;
-  return caches.open(record.cache);
+  const cache=await caches.open(record.cache);
+  const urls=new Set((await cache.keys()).map(request=>request.url));
+  if(manifest.bundles[id].some(file=>!urls.has(new URL(file,self.registration.scope).href)))return null;
+  return cache;
 }
 async function pinnedManifest(event) {
   const pins=await caches.open(MASTER_PREFIX+'client_releases');
@@ -245,6 +248,7 @@ async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}, anc
   const key = releaseId + ':' + bundleId;
   if (bundlePreparations.has(key)) return bundlePreparations.get(key);
   const work = (async () => {
+    const started=Date.now();
     for (const dependency of dependencies) await prepareVerifiedBundle(dependency, releaseId, notify, [...ancestry,bundleId]);
     const meta = await caches.open(MASTER_PREFIX + 'bundle_meta');
     const marker = new URL('./__bundle_ready__/' + encodeURIComponent(releaseId) + '/' + bundleId, self.registration.scope);
@@ -260,7 +264,7 @@ async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}, anc
             const response = await saved.match(new URL(file,self.registration.scope));
             if (!response || !(await matchesBundleHash(response,file,manifest.assets[file]))) { valid = false; break; }
           }
-          if (valid) return {type:'READY',bundleId,releaseId,count:entries.length,reused:true};
+          if (valid) { (self.CASUR_READY_METRICS ||= []).push({bundleId,count:entries.length,durationMs:Date.now()-started}); return {type:'READY',bundleId,releaseId,count:entries.length,reused:true}; }
         }
       } catch { /* An invalid marker cannot authorize serving an incomplete cache. */ }
     }
@@ -296,7 +300,7 @@ async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}, anc
   try { return await work; } finally { bundlePreparations.delete(key); }
 }
 self.addEventListener('message', (event) => {
-  if(event.data?.type==='BUNDLE_STATUS' && event.ports?.[0])event.waitUntil((async()=>{const cache=await caches.open(SHELL_CACHE),manifest=await (await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope))).json();const bundles={};for(const id of Object.keys(manifest.bundles))bundles[id]=!!(await verifiedBundleCache(manifest,id));event.ports[0].postMessage({releaseId:manifest.releaseId,bundles});})());
+  if(event.data?.type==='BUNDLE_STATUS' && event.ports?.[0])event.waitUntil((async()=>{const cache=await caches.open(SHELL_CACHE),manifest=await (await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope))).json();const bundles={};for(const id of Object.keys(manifest.bundles))bundles[id]=!!(await verifiedBundleCache(manifest,id));event.ports[0].postMessage({releaseId:manifest.releaseId,bundles,metrics:self.CASUR_BUNDLE_METRICS||[],readyMetrics:self.CASUR_READY_METRICS||[]});})());
   if (event.data?.type === 'PREPARE_BUNDLE' && event.ports?.[0]) {
     const port = event.ports[0];
     event.waitUntil((async()=>{if(event.source?.id){const pins=await caches.open(MASTER_PREFIX+'client_releases'),pin=await pins.match(new URL('./__client__/'+event.source.id,self.registration.scope));if(pin&&(await pin.text())!==APP_VERSION)throw new Error('CLIENT_RELEASE_MISMATCH');}return prepareVerifiedBundle(event.data.bundleId,event.data.releaseId, message => port.postMessage(message));})()

@@ -19,7 +19,7 @@ export function bundleFor(file) {
  return match ? match.slice(1).find(Boolean) : 'core';
 }
 export function generateManifest(files, appVersion=APP_VERSION) {
- const assets=Object.fromEntries(files.sort().map(file=>[file,createHash('sha256').update(/\.(?:html|css|js|mjs|svg)$/.test(file)?fs.readFileSync(file,'utf8').replace(/\r\n/g,'\n'):fs.readFileSync(file)).digest('hex')]));
+ const assets=Object.fromEntries(files.sort().map(file=>[file,createHash('sha256').update(/\.(?:html|css|js|mjs|svg|webmanifest)$/.test(file)?fs.readFileSync(file,'utf8').replace(/\r\n/g,'\n'):fs.readFileSync(file)).digest('hex')]));
  const bundles={};for(const file of Object.keys(assets)) (bundles[bundleFor(file)]??=[]).push(file);
  const dependencies={produccion:['core','geo','agricultural'],tch:['core','geo','agricultural'],agricultural:['core'],riego:['core'],insumos:['core'],labores:['core'],inventario:['core'],convertidor:['core'],conciliacion:['core'],geo:['core'],core:[]};
  const releaseId=appVersion+'-'+createHash('sha256').update(JSON.stringify({assets,bundles,dependencies})).digest('hex').slice(0,16);

@@ -14,6 +14,8 @@ export function derivePreviewWorker(source, {appVersion, head}) {
     replace(`const APP_VERSION = '${appVersion}';`, `const APP_VERSION = '${appVersion}';\nconst PREVIEW_RELEASE_ID = '${release}';`);
     source=source.replace("'shell_v' + APP_VERSION", "'shell_v' + PREVIEW_RELEASE_ID");
     source=source.replace("const version=event.request.mode==='navigate'&&event.request.destination==='document'?APP_VERSION:pin?await pin.text():APP_VERSION;", "const version=event.request.mode==='navigate'&&event.request.destination==='document'?PREVIEW_RELEASE_ID:pin?await pin.text():PREVIEW_RELEASE_ID;");
+    const pinStart=source.indexOf('async function pinnedManifest(event)'),pinEnd=source.indexOf('async function bundleRuntime(event)');
+    source=source.slice(0,pinStart)+source.slice(pinStart,pinEnd).replaceAll('APP_VERSION','PREVIEW_RELEASE_ID')+source.slice(pinEnd);
     source=source.replace("new Response(APP_VERSION));", "new Response(PREVIEW_RELEASE_ID));");
     source=source.replace("manifest.appVersion !== APP_VERSION || !manifest.assets", "manifest.appVersion !== APP_VERSION || manifest.previewReleaseId !== PREVIEW_RELEASE_ID || !manifest.assets");
     source=source.replace("version:APP_VERSION,releaseId:m.releaseId", "version:PREVIEW_RELEASE_ID,releaseId:m.releaseId");

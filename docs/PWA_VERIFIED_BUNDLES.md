@@ -9,3 +9,11 @@ Los clientes se fijan a la versión de caché cuyo manifiesto contiene el releas
 Se conservan los marcadores y las cachés referenciadas. La eliminación de staging fallido solo afecta a la transacción actual. La recolección de generaciones abandonadas queda conservadora: no se borran automáticamente snapshots previos; esto puede consumir espacio con varias versiones y requiere una política posterior basada en clientes vivos.
 
 Las pruebas de derivación del hosting monolítico usan una fixture congelada del SW anterior para conservar ese contrato. Las transacciones, fetch y pinning nuevos se comprueban contra el worker actual.
+
+## Validación
+
+QA de fidelidad actualizado: objetivos actuales de General, consulta real de Pansaco/99336, paneles móviles Información/Ubicación/TCH-KATM, tabla completa de 18 columnas, foco/Escape, selección y SVG conservados. La base ya no tiene selector de apariencia; las dos variantes CSS se prueban sin afirmar que exista ese control. El buscador se prueba con sidebar abierto y contraído a 1280/1536/1774. Comparación CSS móvil 360/390/430 en General/Finca/Suerte 19011: ocho capturas idénticas, una diferencia de un píxel sin alteración de layout.
+
+Actualizaciones de instalaciones reales 1.5.2 y 1.5.4: aviso, aplazar, dos ventanas, checkpoint rechazado sintético, borrador real de TCH/IndexedDB y recarga offline. Fallos 404/hash durante preparación muestran recuperación, permiten reintentar y conservan módulos ya listos; un módulo no preparado offline regresa a Inicio sin UI parcial.
+
+Los tiempos públicos y videos se entregan como evidencia externa; no se infiere una aceleración de los tiempos locales. La prueba pública usa cinco contextos aislados por resolución y origen, alternando baseline ca6c535 y candidata. Mide desde el clic en Inicio hasta interacción real con Cronológico.

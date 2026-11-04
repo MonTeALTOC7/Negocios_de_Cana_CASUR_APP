@@ -184,29 +184,32 @@ async function matchesBundleHash(response,file,expected) {
   const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)), byte => byte.toString(16).padStart(2,'0')).join('');
   return digest === expected;
 }
-async function verifiedBundleCache(manifest,id) {
+async function verifiedBundleCache(manifest,id, verifyEntries = true) {
   const meta=await caches.open(MASTER_PREFIX+'bundle_meta');
   const response=await meta.match(new URL('./__bundle_ready__/'+encodeURIComponent(manifest.releaseId)+'/'+id,self.registration.scope));
   if(!response)return null;
   const record=await response.json();
   const prefix=MASTER_PREFIX+'bundle_stage_'+encodeURIComponent(manifest.releaseId)+'_'+id+'_';
-  if(record.releaseId!==manifest.releaseId||record.bundleId!==id||record.count!==manifest.bundles[id]?.length||!record.cache?.startsWith(prefix)||!(await caches.keys()).includes(record.cache))return null;
+  if(record.releaseId!==manifest.releaseId||record.bundleId!==id||record.count!==manifest.bundles[id]?.length||!record.cache?.startsWith(prefix))return null;
+  if(!verifyEntries)return caches.open(record.cache);
+  if(!(await caches.keys()).includes(record.cache))return null;
   const cache=await caches.open(record.cache);
   const urls=new Set((await cache.keys()).map(request=>request.url));
   if(manifest.bundles[id].some(file=>!urls.has(new URL(file,self.registration.scope).href)))return null;
   return cache;
 }
+const clientReleasePins = new Map(), pinnedManifests = new Map();
 async function pinnedManifest(event) {
   const pins=await caches.open(MASTER_PREFIX+'client_releases');
   const id=event.clientId;
   const key=new URL('./__client__/'+id,self.registration.scope);
-  const pin=id?await pins.match(key):null;
-  const version=event.request.mode==='navigate'&&event.request.destination==='document'?APP_VERSION:pin?await pin.text():APP_VERSION;
-  if(id&&!pin)await pins.put(key,new Response(version));
+  const pin=id&&!clientReleasePins.has(id)?await pins.match(key):null;
+  const version=event.request.mode==='navigate'&&event.request.destination==='document'?APP_VERSION:clientReleasePins.get(id)||(pin?await pin.text():APP_VERSION);
+  if(id&&!clientReleasePins.has(id)){clientReleasePins.set(id,version);if(!pin)await pins.put(key,new Response(version));}
   if(event.resultingClientId)await pins.put(new URL('./__client__/'+event.resultingClientId,self.registration.scope),new Response(version));
   const cache=await caches.open(MASTER_PREFIX+'shell_v'+version);
-  const response=await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));
-  return {manifest:response?await response.json():null,cache};
+  if(!pinnedManifests.has(version)){const response=await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));if(response)pinnedManifests.set(version,await response.json());}
+  return {manifest:pinnedManifests.get(version)||null,cache};
 }
 async function bundleRuntime(event) {
   const {manifest,cache}=await pinnedManifest(event);
@@ -218,7 +221,7 @@ async function bundleRuntime(event) {
   if(file==='core/versions/runtime-assets.json')return new Response(JSON.stringify(manifest),{headers:{'Content-Type':'application/json'}});
   const id=Object.keys(manifest.bundles).find(id=>manifest.bundles[id].includes(file));
   if(!id)return new Response('Recurso no incluido en esta versión.',{status:503});
-  const saved=await verifiedBundleCache(manifest,id);
+  const saved=await verifiedBundleCache(manifest,id,false);
   const response=saved?await saved.match(new URL(file,self.registration.scope)):null;
   if(!response)return new Response('Módulo no preparado para uso sin conexión. Abrilo desde Inicio con conexión.',{status:503});
   if(!(await matchesBundleHash(response,file,manifest.assets[file])))return new Response('Integridad del recurso inválida.',{status:503});

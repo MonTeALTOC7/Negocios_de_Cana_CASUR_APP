@@ -1,3 +1,5 @@
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -18,5 +20,5 @@ test('rutas compartidas permanecen en núcleo y módulos reciben conjuntos propi
 test('URLs CSS de Producción resuelven a conjuntos en su cierre',()=>{
  const css=readFileSync(new URL('../modules/produccion/css/maestro-ux.css',import.meta.url),'utf8');
  const allowed=new Set(['core','geo','agricultural','produccion']);
- for(const match of css.matchAll(/url\(['"]?([^)'"\s]+)['"]?\)/g)){if(/^(data:|https?:)/.test(match[1]))continue;const url=new URL(match[1],new URL('../modules/produccion/css/maestro-ux.css',import.meta.url)),file=decodeURIComponent(url.pathname).split('/Negocios_de_Cana_CASUR_APP/')[1];if(!file)continue;assert.ok(manifest.assets[file],file);assert.ok(allowed.has(bundleFor(file)),file);}
+ for(const match of css.matchAll(/url\(['"]?([^)'"\s]+)['"]?\)/g)){if(/^(data:|https?:)/.test(match[1]))continue;const url=new URL(match[1],new URL('../modules/produccion/css/maestro-ux.css',import.meta.url)),file=path.relative(fileURLToPath(new URL('../',import.meta.url)),fileURLToPath(url)).replaceAll('\\','/');if(!file)continue;assert.ok(manifest.assets[file],file);assert.ok(allowed.has(bundleFor(file)),file);}
 });

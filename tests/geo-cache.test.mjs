@@ -32,7 +32,7 @@ function harness({ storage = new Map(), fail = new Set(), appVersion = '1.3.5', 
     async delete(name) { return storage.delete(name); },
   };
   const context = vm.createContext({
-    caches, Response, URL, TextEncoder, Uint8Array, MessageChannel, setTimeout, clearTimeout, crypto:webcrypto, indexedDB, console: { warn() {} },
+    caches, Response, URL, TextEncoder, Uint8Array, MessageChannel, setTimeout, clearTimeout, crypto:webcrypto,AbortController, indexedDB, console: { warn() {} },
     fetch: async (url, options) => {
       if (String(url).endsWith('/core/versions/runtime-assets.json')) return new Response(JSON.stringify({appVersion,releaseId:appVersion+'-test',bundles:{core:['modules/produccion/js/casur-enhancements.js']},dependencies:{core:[]},assets:{'modules/produccion/js/casur-enhancements.js':createHash('sha256').update(productionEnhancements.replace(/\r\n/g,'\n')).digest('hex')}}));
       if (options?.cache === 'no-store' && String(url).endsWith('/modules/produccion/js/casur-enhancements.js')) return new Response(productionEnhancements);

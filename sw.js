@@ -294,8 +294,9 @@ async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}, anc
         const file=entries[cursor++];
         const url = new URL(file, self.registration.scope);
         if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) throw new Error('INVALID_ASSET');
-        const started=Date.now();
-        const response = await fetch(url, {cache:'no-store'});
+        const started=Date.now(),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
+        try {
+        const response = await fetch(url, {cache:'no-store',signal:controller.signal});
         const received=Date.now();
         if (!response.ok) throw new Error('ASSET_UNAVAILABLE');
         if (!(await matchesBundleHash(response,file,manifest.assets[file]))) throw new Error('HASH_MISMATCH');
@@ -303,6 +304,7 @@ async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}, anc
         await staging.put(url, normalizeNavigationRedirect(response));
         (self.CASUR_BUNDLE_METRICS ||= []).push({file,bundleId,releaseId,fetchMs:received-started,verifyMs:hashed-received,cacheMs:Date.now()-hashed});
         try { notify({type:'PROGRESS',bundleId,releaseId,completed:++completed,total:entries.length}); } catch { /* disconnected port */ }
+        } finally {clearTimeout(timer);}
       }};
       const results=await Promise.allSettled(Array.from({length:Math.min(4,entries.length)},jobs));
       const failed=results.find(r=>r.status==='rejected');if(failed)throw failed.reason;
@@ -352,6 +354,8 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname.endsWith('.supabase.co') || url.origin !== self.location.origin) {
     return; // deja pasar a la red tal cual
   }
+
+  if(url.pathname===new URL('./__preview.json',self.registration.scope).pathname){event.respondWith(networkFirst(req,SHELL_CACHE));return;}
 
   // 2) Navegaciones: network-first con fallback al index CORRECTO.
   //    Una navegación offline dentro de /modules/<id>/, /master/<id>/ o

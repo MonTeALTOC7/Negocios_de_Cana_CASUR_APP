@@ -158,6 +158,10 @@ const MODULE_LOGOS = {
   labores:    'shared/assets/logos/labores-512.png',
 };
 function logoFor(id) { return MODULE_LOGOS[id] || 'shared/assets/icons/emblem-192.png'; }
+// En el menú lateral se usan versiones simplificadas para mejorar la lectura.
+const RAIL_LOGOS = Object.fromEntries(['produccion','tch','riego','insumos','labores']
+  .map(id => [id, `shared/assets/logos/${id}-rail.png`]));
+function railLogoFor(id) { return RAIL_LOGOS[id] || logoFor(id); }
 
 /* ---------------- Header ---------------- */
 function renderHeader() {
@@ -195,7 +199,7 @@ function renderRail(r) {
   if (!railEl) return;
   const activePath = r ? routePath(r) : '/';
   const item = (path, label, iconKey, moduleId = null) => `<button class="rail__item ${activePath === path ? 'is-active' : ''}" type="button"
-      data-rail-path="${path}" title="${label}" ${activePath === path ? 'aria-current="page"' : ''}>${moduleId ? '<img src="' + logoFor(moduleId) + '" alt="" width="22" height="22" loading="lazy" decoding="async">' : icon(iconKey)}<span>${label}</span></button>`;
+      data-rail-path="${path}" title="${label}" ${activePath === path ? 'aria-current="page"' : ''}>${moduleId ? '<img src="' + railLogoFor(moduleId) + '" alt="" width="22" height="22" loading="lazy" decoding="async">' : icon(iconKey)}<span>${label}</span></button>`;
   const groups = registry.homeGroups().map((g) => `<div class="rail__group">
       <p class="rail__label">${g.title}</p>
       ${g.modules.map((m) => item('/modulo/' + m.moduleId, m.name, m.icon, m.moduleId)).join('')}

@@ -27,3 +27,15 @@ test('el icono de inventario permanece idéntico',()=>{
  const approved={inventario:'b4f33dcd80db5c0f6d64beadbc167b09020fa1b65085139603d3133e42afb1aa'};
  for(const[id,hash]of Object.entries(approved))assert.equal(createHash('sha256').update(readFileSync(`shared/assets/logos/${id}-512.png`)).digest('hex'),hash,id);
 });
+
+test('el menú lateral usa iconos simplificados y conserva Inventario',()=>{
+ const manifest=JSON.parse(readFileSync('core/versions/runtime-assets.json','utf8'));
+ assert.ok(shell.includes('railLogoFor(moduleId)'));
+ assert.ok(shell.includes('RAIL_LOGOS[id] || logoFor(id)'));
+ for(const id of ['produccion','tch','riego','insumos','labores']){
+  const path=`shared/assets/logos/${id}-rail.png`, bytes=readFileSync(path);
+  assert.equal(bytes.readUInt32BE(16),256);assert.equal(bytes.readUInt32BE(20),256);
+  assert.ok(manifest.bundles.core.includes(path));
+  assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.assets[path]);
+ }
+});

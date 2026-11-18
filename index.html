@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
   <title>Negocios de Caña</title>
   <meta name="description" content="App Maestra de los sistemas de campo CASUR: Producción, TCH, Riego, Insumos, Inventario y Labores.">
-  <meta name="theme-color" content="#081A33">
-  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0F2A33">
+  <meta name="color-scheme" content="light">
 
   <!-- PWA: un solo manifest para toda la App Maestra -->
   <link rel="manifest" href="manifest.webmanifest">
@@ -25,30 +25,35 @@
 </head>
 <body>
   <div class="app" id="app">
-    <!-- Header -->
-    <header class="header">
-      <img class="header__mark" src="shared/assets/icons/emblem-192.png" alt="" width="34" height="34">
-      <div class="header__titles">
-        <span class="header__title">Departamento de Negocios de Caña</span>
-        <span class="header__sub" id="appVersion">v1.5.6</span>
-      </div>
-      <span class="header__spacer"></span>
-      <span class="conn" id="conn">
-        <span class="conn__ic" aria-hidden="true"></span>
-        <span class="conn__dot"></span>
-        <span class="conn__label">En línea</span>
-      </span>
-    </header>
+    <!-- Barra lateral (escritorio): todos los módulos a un clic -->
+    <aside class="rail" id="rail" aria-label="Módulos"></aside>
 
-    <!-- Contenido dinámico -->
-    <main class="main" id="view"></main>
+    <div class="app__body">
+      <!-- Barra superior -->
+      <header class="header">
+        <img class="header__mark" src="shared/assets/icons/emblem-192.png" alt="" width="32" height="32">
+        <div class="header__titles">
+          <span class="header__title">Departamento de Negocios de Caña</span>
+          <span class="header__sub" id="appVersion">v1.5.7</span>
+        </div>
+        <span class="header__spacer"></span>
+        <span class="conn" id="conn" role="status">
+          <span class="conn__ic" aria-hidden="true"></span>
+          <span class="conn__dot"></span>
+          <span class="conn__label">En línea</span>
+        </span>
+      </header>
 
-    <!-- Navegación inferior -->
-    <nav class="nav" id="nav" aria-label="Navegación principal"></nav>
+      <!-- Contenido dinámico -->
+      <main class="main" id="view"></main>
+
+      <!-- Navegación inferior (teléfono y tableta) -->
+      <nav class="nav" id="nav" aria-label="Navegación principal"></nav>
+    </div>
   </div>
 
   <noscript>
-    <p style="padding:24px;color:#EAF2E4">Esta aplicación necesita JavaScript activado.</p>
+    <p style="padding:24px;color:#1E293B">Esta aplicación necesita JavaScript activado.</p>
   </noscript>
 
   <!-- Lógica del shell como módulo ES (estándar, sin bundler) -->

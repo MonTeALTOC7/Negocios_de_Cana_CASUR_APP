@@ -3,18 +3,21 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {migrateModuleHtml} from '../../../tools/retheme-petroleo.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
 const base='ac99614a9dd0c4a6a7f0ae06aa569fe1882be100';
 const current=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const original=p=>execFileSync('git',['show',base+':modules/produccion/'+p],{cwd:root,encoding:'utf8',maxBuffer:32e6}).replace(/\r\n/g,'\n');
 
+// Rediseño Petróleo·Pizarra: el documento actual debe ser exactamente el original
+// tras la migración de tema (solo color, tipografía y radios en CSS; ver tools/retheme-petroleo.mjs).
 test('Fase 1 conserva byte a byte el documento y los motores originales tras retirar los dos enlaces nuevos',()=>{
  const restored=current('index.html').replace('<link rel="stylesheet" href="css/maestro-ux.css">\n','').replace('<script src="js/maestro-ux.js"></script>\n','');
  const normalizeRelease = html => html.replace(/<style>\n  html\.casur-booting[\s\S]*?<\/style>\n<script>document\.documentElement\.classList\.add\('casur-booting'\);<\/script>\n/, '').replace(/\n<div id="casurStartup"[\s\S]*?<\/script>/, '').replace(/var VERSION='V[\d.]+';/, 'var VERSION=RELEASE;').replace(/(<script id="casurEmbeddedPwaAssets"[^>]*>)([\s\S]*?)(<\/script>)/, (_, start, json, end) => {
    const assets=JSON.parse(json); for(const name of ['README_GITHUB.md','VERSION.txt']) assets[name]=Buffer.from(Buffer.from(assets[name],'base64').toString('utf8').replace(/V[\d.]+/g,'RELEASE')).toString('base64');
    return start+JSON.stringify(assets)+end;
  });
- assert.equal(normalizeRelease(restored),normalizeRelease(original('index.html')));
+ assert.equal(normalizeRelease(restored),normalizeRelease(migrateModuleHtml(original('index.html'))));
  for(const p of['js/historical-engine.js','js/casur-enhancements.js','data/version.json','data/cronologico.json','data/historico.json','data/integrity.json'])assert.equal(current(p),original(p),p);
 });
 

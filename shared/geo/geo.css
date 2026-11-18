@@ -5,9 +5,9 @@
   height: 100%;
   overflow: hidden;
   background:
-    linear-gradient(145deg, rgba(25, 73, 46, 0.08), rgba(244, 197, 66, 0.07)),
-    #e7ece7;
-  color: #173829;
+    linear-gradient(145deg, rgba(31, 61, 67, 0.08), rgba(244, 197, 66, 0.07)),
+    #e4e9ef;
+  color: #1b3034;
   isolation: isolate;
 }
 
@@ -24,7 +24,7 @@
 .casur-geo-map .leaflet-control-zoom {
   border: 0;
   border-radius: 12px;
-  box-shadow: 0 7px 22px rgba(18, 54, 34, 0.2);
+  box-shadow: 0 7px 22px rgba(23, 45, 49, 0.2);
 }
 
 .casur-geo-map .leaflet-control-layers-toggle,
@@ -35,16 +35,16 @@
 
 .casur-geo-map .leaflet-control-attribution {
   background: rgba(255, 255, 255, 0.84);
-  color: #31483b;
+  color: #334346;
   font-size: 10px;
 }
 
 .casur-geo-label {
-  border: 1px solid rgba(22, 68, 42, 0.25);
+  border: 1px solid rgba(28, 56, 62, 0.25);
   border-radius: 999px;
   background: rgba(249, 252, 249, 0.9);
-  box-shadow: 0 2px 8px rgba(15, 45, 28, 0.2);
-  color: #173d29;
+  box-shadow: 0 2px 8px rgba(19, 37, 41, 0.2);
+  color: #1c3338;
   font: 700 11px/1.2 system-ui, sans-serif;
   padding: 3px 7px;
   pointer-events: none;
@@ -67,11 +67,11 @@
   right: 12px;
   bottom: 24px;
   max-width: min(280px, calc(100% - 24px));
-  border: 1px solid rgba(35, 78, 50, 0.2);
+  border: 1px solid rgba(41, 67, 72, 0.2);
   border-radius: 999px;
   background: rgba(250, 252, 249, 0.94);
-  box-shadow: 0 5px 16px rgba(17, 48, 29, 0.16);
-  color: #244b32;
+  box-shadow: 0 5px 16px rgba(21, 40, 44, 0.16);
+  color: #294146;
   font: 700 12px/1.3 system-ui, sans-serif;
   padding: 8px 12px;
   pointer-events: none;

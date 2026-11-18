@@ -87,7 +87,7 @@ parts={
 reason="Migración visual de CSS y HTML de tema Petróleo sin cambiar motores, algoritmos, datos, API, identidad de módulo ni lógica agronómica; versión del shell 1.5.7."
 (root/"core/versions/release-exceptions.json").write_text(json.dumps([dict(base=base,owner=k,reason=reason,paths=v) for k,v in parts.items()],indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
 for path in ["tests/app-version.test.mjs","tests/runtime-bundles.test.mjs","tests/sw-bundle-transaction.test.mjs"]:
-    change(path,lambda s:s.replace("1.5.6","1.5.7"))
+    change(path,lambda s:s.replace("1.5.6","1.5.7").replace(r"1\.5\.6",r"1\.5\.7"))
 (root/"tests/shell-module-icons.test.mjs").write_text("""import test from 'node:test';
 import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';

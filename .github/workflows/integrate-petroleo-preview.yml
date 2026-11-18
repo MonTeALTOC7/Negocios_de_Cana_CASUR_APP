@@ -1,0 +1,48 @@
+name: Preparar rediseño Petróleo en rama de revisión
+
+on:
+  push:
+    branches:
+      - codex/rediseno-petroleo-iconos-originales
+
+permissions:
+  contents: write
+
+jobs:
+  build-candidate:
+    if: "!contains(github.event.head_commit.message, '[petroleo-integrated]')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout base oficial, sin tocar main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fuente de diseño fijada a commit del jefe
+        run: |
+          git clone --depth 1 https://github.com/MonTeALTOC7/preview_NC_App-Maestra.git /tmp/casur-petroleo
+          test "$(git -C /tmp/casur-petroleo rev-parse HEAD)" = "2a00eac0993aa8d89cd600d48014d977a7706e60"
+      - name: Integrar estilo y logos por módulo
+        env:
+          PETROLEO_SOURCE: /tmp/casur-petroleo
+        run: |
+          python3 tools/integrate-petroleo-preview.py
+          node --check app.js
+          node tools/sync-versions.mjs --write
+          node tools/runtime-assets.mjs --write
+          node tools/sync-versions.mjs
+          node tools/runtime-assets.mjs
+          node --test tests/app-version.test.mjs tests/runtime-bundles.test.mjs tests/shell-module-icons.test.mjs
+          npm run validate --prefix modules/tch
+      - name: Crear commit solo en la rama de revisión
+        run: |
+          rm -f .github/workflows/integrate-petroleo-preview.yml
+          git config user.name "CASUR Integration Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: rediseño Petróleo e iconos reales de módulos [petroleo-integrated]"
+          git push origin HEAD:refs/heads/codex/rediseno-petroleo-iconos-originales

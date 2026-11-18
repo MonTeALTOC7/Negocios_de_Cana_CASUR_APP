@@ -1,6 +1,6 @@
 {
   "appVersion": "1.5.7",
-  "releaseId": "1.5.7-fbbb2107659c315d",
+  "releaseId": "1.5.7-03b8c3eb5b763421",
   "assets": {
     "404.html": "13e468776893ea36d86e0a6b83935bafd4c5f3782fb3a302959337f8e14a19fe",
     "app.js": "2e62cbe84f75fec94e99de5d467bd96f75a260c5bd75e721b8b588f69559cb2f",
@@ -162,7 +162,7 @@
     "shared/assets/logos/produccion-rail.png": "3125314987216eff13f8ee68e1d22ad8e0ff7530d17ef69e259eaed5192582b3",
     "shared/assets/logos/produccion.svg": "e1fa0f817038f6b127e7602799619d0106985cdee9226b6d15fd406a5569f080",
     "shared/assets/logos/riego-512.png": "bc169f26cbe3557f54244c18fdffa3dc03a2405f0ae6f5e78c402f6b0cc0d7eb",
-    "shared/assets/logos/riego-rail.png": "a6e9765837c2d84d59cea26442489833564de8ba2c56e3cd2b227f2316b54b4e",
+    "shared/assets/logos/riego-rail.png": "307f0d7f5b8b2e5ea380cdcf53a3d421caae213af54c17c7d2d2dff0136cca32",
     "shared/assets/logos/riego.svg": "9500b084b8d1b3022255e5d5cac0c99a692b918263fd0fa7df013f1c9fdd321e",
     "shared/assets/logos/tch-512.png": "0f85fb585deff7a54e53ec7a3e99c92514fa271cd6b41514416e1069c8d3849c",
     "shared/assets/logos/tch-rail.png": "f0308bd67aca50bb7702b479deb648e15318a5482b515287f7486f9b686e58ca",

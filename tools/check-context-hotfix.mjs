@@ -14,7 +14,14 @@ for(const [file,h]of Object.entries(manifest.files)){
 }
 assert.equal(JSON.parse(fs.readFileSync('modules/produccion/data/version.json')).publishedAt,null);
 assert.equal(manifest.dataVersion,'2026.10.25-aforo.1101');
-assert.equal(git('diff',base,'--','manifest.webmanifest','shared/geo','modules/tch'),'','Scope/GEO/TCH remain unchanged');
+// Later visual releases may recolor CSS and PWA chrome; never change the actual sources.
+const previousManifest=JSON.parse(git('show',base+':manifest.webmanifest'));
+const currentManifest=JSON.parse(fs.readFileSync('manifest.webmanifest','utf8'));
+for(const key of ['id','name','short_name','start_url','scope','display','icons'])
+ assert.deepEqual(currentManifest[key],previousManifest[key],'PWA identity unchanged: '+key);
+assert.equal(git('diff',base,'--','shared/geo/data','shared/geo/geo-data.js',
+ 'shared/geo/geo-map.js','modules/tch/js','modules/tch/data','modules/tch/assets',
+ 'modules/tch/version.json'),'','GIS/TCH datasets and engines remain unchanged');
 const allowed=new Set(['.github/workflows/casur-release-gate.yml','app.js','core/updates/pwa-update.js','core/updates/context-store.js','core/module-registry/registry.js','core/versions/versions.js','core/versions/runtime-assets.json','index.html','sw.js','modules/produccion/index.html','modules/produccion/js/official-data-updates.js','modules/produccion/package.json','modules/produccion/VERSION.txt','modules/produccion/README_GITHUB.md','modules/produccion/tests/geo-integration.test.mjs','tests/app-version.test.mjs','tests/preview-release.test.mjs','tests/context-store.test.mjs','tools/check-context-hotfix.mjs','tools/qa-context-hotfix.cjs','tools/qa-c2-updates.cjs','docs/HOTFIX_CONTEXTO_PWA.md']);
 const changed=[...git('diff','--name-only',base).split('\n'),...git('ls-files','--others','--exclude-standard').split('\n')].filter(Boolean);
 if(originalHotfix) assert.deepEqual(changed.filter(p=>!allowed.has(p)),[],'Only focused hotfix files');

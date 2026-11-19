@@ -35,6 +35,7 @@ export const ICONS = {
   refresh: wrap('<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>'),
   wifi: wrap('<path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><path d="M12 19h.01"/>'),
   wifiOff: wrap('<path d="M3 3l18 18"/><path d="M12 19h.01"/><path d="M8.5 16a5 5 0 0 1 6-.5"/>'),
+  collapse: wrap('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="M15.5 9.5L13 12l2.5 2.5"/>'),
   close: wrap('<path d="M6 6l12 12M18 6L6 18"/>'),
 };
 

@@ -5,7 +5,7 @@
    número de un módulo aquí no afecta a los demás.
    ============================================================ */
 
-export const APP_VERSION = '1.5.6';
+export const APP_VERSION = '1.6.0';
 export const APP_CHANNEL = 'GitHub Pages';
 
 // Historial de código instalado, independiente de las publicaciones SIAGRI/GEO.
@@ -69,6 +69,7 @@ export function moduleStatus(id) {
 }
 
 export const APP_RELEASES = Object.freeze([
+  Object.freeze({id:'shell',version:'1.6.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Rediseño Petróleo y Pizarra con nueva navegación empresarial y móvil.','Iconos definitivos por módulo y búsqueda Histórico móvil accesible.','Se conservan datos, motores y actualización segura PWA.'])}),
   Object.freeze({id:'shell',version:'1.5.6',type:'PATCH',publishedAt:null,changes:Object.freeze(['Preparación verificada por módulo y apertura prioritaria del Maestro.'])}),
   Object.freeze({id:'shell',version:'1.5.5',type:'PATCH',publishedAt:null,changes:Object.freeze(['Actualización coordinada para la presentación segura de Producción.'])}),
   Object.freeze({id:'shell',version:'1.5.4',type:'PATCH',publishedAt:null,changes:Object.freeze(['Repara navegación de iframe en hosting con redirecciones HTML, conservando verificación de integridad y caché offline.','Renueva caché segura del shell para las vistas Cronológico móvil y corrige la carga del módulo.'])}),

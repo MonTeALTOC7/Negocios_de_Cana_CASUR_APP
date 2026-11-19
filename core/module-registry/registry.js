@@ -19,6 +19,8 @@
      usesSupabase      usa backend Supabase
      storageNamespaces bases/claves que toca (auditoría)
      privacy           'public' | 'admin' | 'private'
+     surface           'campo' (teléfono/tableta) | 'gestion' (computadora):
+                       agrupa los módulos en Inicio y en la barra lateral
    ============================================================ */
 
 import * as store from '../storage/storage.js';
@@ -32,45 +34,45 @@ const BASE_MODULES = [
     version: 'V1.8.2', route: 'modules/produccion/index.html', icon: 'produccion',
     accent: 'var(--accent-produccion)', enabled: true, visible: true, order: 1,
     requiresOnline: false, usesSupabase: false,
-    storageNamespaces: ['cache:casur-suertes-vf54-*'], privacy: 'public' },
+    storageNamespaces: ['cache:casur-suertes-vf54-*'], surface: 'campo', privacy: 'public' },
 
   { moduleId: 'tch', name: 'Estimador TCH', desc: 'Estimación TCH, biometría, visitas y fotografías',
     version: '2.8.1', route: 'modules/tch/index.html', icon: 'tch',
     accent: 'var(--accent-tch)', enabled: true, visible: true, order: 2,
     requiresOnline: false, usesSupabase: false,
-    storageNamespaces: ['idb:casur-estimador-tch'], privacy: 'public' },
+    storageNamespaces: ['idb:casur-estimador-tch'], surface: 'campo', privacy: 'public' },
 
   { moduleId: 'riego', name: 'Riegos Ejecutados', desc: 'Seguimiento de riegos por productor',
     version: 'v6', route: 'modules/riego/index.html', icon: 'riego',
     accent: 'var(--accent-riego)', enabled: true, visible: true, order: 3,
     requiresOnline: true, usesSupabase: true,
-    storageNamespaces: ['supabase:fbatjsbdybliradxjhdm'], privacy: 'public' },
+    storageNamespaces: ['supabase:fbatjsbdybliradxjhdm'], surface: 'gestion', privacy: 'public' },
 
   { moduleId: 'insumos', name: 'Insumos Entregados Productores', desc: 'Fertilizantes, herbicidas e insumos entregados',
     version: '1.0', route: 'modules/insumos/index.html', icon: 'insumos',
     accent: 'var(--accent-insumos)', enabled: true, visible: true, order: 4,
     requiresOnline: false, usesSupabase: false,
-    storageNamespaces: ['idb:insumos_casur_db'], privacy: 'public' },
+    storageNamespaces: ['idb:insumos_casur_db'], surface: 'gestion', privacy: 'public' },
 
   { moduleId: 'inventario', name: 'Inventario Pansaco', desc: 'Kardex, entradas y salidas · Pansaco',
     version: '1.4.0', route: 'modules/inventario/index.html', icon: 'inventario',
     accent: 'var(--accent-inventario)', enabled: true, visible: true, order: 5,
     requiresOnline: true, usesSupabase: true,
     storageNamespaces: ['idb:pansaco-inventory-outbox', 'supabase:fbatjsbdybliradxjhdm'],
-    privacy: 'public' },
+    surface: 'gestion', privacy: 'public' },
 
   { moduleId: 'labores', name: 'Seguimiento de Labores · Prefacturas', desc: 'Seguimiento operativo de labores manuales y mecanizadas',
     version: '0.7.x', route: 'modules/labores/index.html', icon: 'labores',
     accent: 'var(--accent-labores)', enabled: true, visible: true, order: 6,
     requiresOnline: false, usesSupabase: false,
-    storageNamespaces: ['casur_labores_public_*'], privacy: 'public' },
+    storageNamespaces: ['casur_labores_public_*'], surface: 'gestion', privacy: 'public' },
 
   /* Administración: se opera desde Centro Maestro, no en el home. */
   { moduleId: 'convertidor', name: 'Administrador SIAGRI', desc: 'Convertidor Cronológico Maestro',
     version: '1.1.0', route: 'master/convertidor/index.html', icon: 'siagri',
     accent: 'var(--accent-admin)', enabled: true, visible: false, order: 90,
     requiresOnline: false, usesSupabase: false,
-    storageNamespaces: ['ls:casur-master-validations-v1'], privacy: 'admin' },
+    storageNamespaces: ['ls:casur-master-validations-v1'], surface: 'gestion', privacy: 'admin' },
 
   /* Privado: solo tras desbloqueo. */
   { moduleId: 'conciliacion', name: 'Conciliación de Cobros', desc: 'Área privada · datos económicos',
@@ -78,7 +80,7 @@ const BASE_MODULES = [
     accent: 'var(--accent-private)', enabled: true, visible: false, order: 99,
     requiresOnline: false, usesSupabase: false,
     storageNamespaces: ['idb:conciliador-casur', 'ls:casur-application-rules-v1'],
-    privacy: 'private' },
+    surface: 'gestion', privacy: 'private' },
 ];
 
 /* Overrides del propietario (mostrar/ocultar, activar/desactivar,
@@ -108,6 +110,20 @@ export function byId(id) {
 /** Módulos que se muestran en el home normal (públicos, visibles, activos). */
 export function homeModules() {
   return all().filter((m) => m.visible && m.enabled && m.privacy === 'public');
+}
+
+/** Grupos de módulos por superficie de uso, en el orden en que se muestran. */
+export const SURFACES = [
+  { key: 'campo', title: 'Trabajo de campo', note: 'Teléfono y tableta' },
+  { key: 'gestion', title: 'Gestión y seguimiento', note: 'Computadora' },
+];
+
+/** Módulos del home agrupados por superficie (omite grupos vacíos). */
+export function homeGroups() {
+  const mods = homeModules();
+  return SURFACES
+    .map((g) => ({ ...g, modules: mods.filter((m) => (m.surface || 'gestion') === g.key) }))
+    .filter((g) => g.modules.length);
 }
 
 /** Guarda un override para un módulo (p. ej. {enabled:false}). */

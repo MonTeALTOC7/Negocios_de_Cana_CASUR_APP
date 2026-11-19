@@ -1,0 +1,53 @@
+/* ============================================================
+   module-theme.css — Capa común que cargan todos los módulos.
+   · Sirve la tipografía Inter local (sin red).
+   · Unifica foco de teclado, cifras tabulares y movimiento reducido.
+   Los colores de cada módulo se migran con
+   tools/retheme-petroleo.mjs; esta hoja no redefine su diseño.
+   ============================================================ */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../assets/fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+}
+
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+/* Cifras alineadas en tablas e indicadores */
+table, [class*="kpi"], [class*="stat"], [class*="metric"], [class*="value"], input[type="number"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Foco visible con teclado en cualquier control */
+:where(a, button, input, select, textarea, summary, [tabindex], [role="button"], [role="tab"]):focus-visible {
+  outline: 2px solid #2F7E97 !important;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Modo embebido (dentro de la App Maestra) ----------
+   El shell agrega la clase `casur-embedded` y `data-casur-module`
+   al documento del módulo (solo TCH e Insumos tienen cabecera puramente
+   de marca; los demás conservan la suya porque contiene su menú).
+   En teléfono, la barra del shell ya muestra el nombre del módulo:
+   se oculta la cabecera de marca duplicada para dejar los datos
+   en la primera pantalla. Abierto por separado, el módulo no cambia. */
+@media (max-width: 720px) {
+  html.casur-embedded[data-casur-module="tch"] .app-header,
+  html.casur-embedded[data-casur-module="insumos"] header.topbar {
+    display: none !important;
+  }
+  /* Insumos reservaba 74 px para su cabecera fija */
+  html.casur-embedded[data-casur-module="insumos"] main.app { padding-top: 14px; }
+  html.casur-embedded[data-casur-module="insumos"] .scope-wrap { top: 0; }
+}

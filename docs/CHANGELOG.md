@@ -2,6 +2,12 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.6.0] — 18-nov-2026 · Rediseño «Petróleo · Pizarra»
+- Sistema de diseño único: azul petróleo, pizarra, gris y blanco; tipografía Inter local.
+- Shell en tema claro con barra lateral en escritorio, Inicio agrupado por uso y ruta en la barra de módulo.
+- Módulos recoloreados con `tools/retheme-petroleo.mjs`; capa común `shared/styles/module-theme.css`.
+- Integración de la iconografía final por módulo y mejora táctil del buscador Histórico móvil; sin cambios agronómicos, datos oficiales, importadores ni algoritmos de Service Worker. Actualización PWA coordinada con versión 1.6.0. Detalle: `docs/REDISENO_PETROLEO.md`.
+
 ## [1.4.0] / Producción [V1.6.0] — pendiente de publicación · Maestro Etapa A
 - MINOR: importación de inventarios/aforos por encabezados y contenido, sin nombre de hoja obligatorio; elección y mapeo de candidatos ambiguos.
 - Previsualización, conciliación y aprobación explícita; transacción de Producción/Maestro Central con respaldo, archivo de generaciones y recuperación offline. Ausencias conservan identidad, sin imputar bajas definitivas.

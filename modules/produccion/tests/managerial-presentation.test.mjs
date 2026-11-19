@@ -37,9 +37,9 @@ test('V2.1: rango dinámico no acredita continuidad cuando faltan zafras',()=>{
 });
 test('V2.3: selección flexible y acento lateral exclusivo del período',()=>{
   assert.match(html,/hist-multi-included\{display:flex!important;align-items:baseline;flex-wrap:wrap/);
-  assert.match(html,/\.hist-selection-list li\{border:1px solid #aab9af/);
-  assert.match(html,/\.dual-period \.dual-kpi\{border-top-width:1px;border-left:4px solid #9bd8ae/);
-  assert.match(html,/\.casur-report-executive \.dual-period \.dual-kpi\{border-top-width:1px;border-top-color:#81988a;border-left:4px solid #245b38/);
+  assert.match(html,/\.hist-selection-list li\{border:1px solid #a3afc0/);
+  assert.match(html,/\.dual-period \.dual-kpi\{border-top-width:1px;border-left:4px solid #a3c9d0/);
+  assert.match(html,/\.casur-report-executive \.dual-period \.dual-kpi\{border-top-width:1px;border-top-color:#7a899f;border-left:4px solid #2b4d54/);
 });
 test('selección analizada distingue nombre, código y alcance sin mutar identidades',()=>{
   const farms=[{farmCode:'256',farmName:'Dolores',mode:'full',lotIds:['25601']},{farmCode:'983',farmName:'Rancho Peirano',mode:'partial',lotIds:['98301','98304','98304A']}];
@@ -52,9 +52,9 @@ test('selección analizada distingue nombre, código y alcance sin mutar identid
   assert.match(ctx.managerialIncludedSelection([{...farms[1],lotIds:['25601']}]),/Suerte 25601/);
 });
 test('estilo de papel queda acotado al ejecutivo y anexos sin alterar fichas individuales',()=>{
-  assert.match(html,/\.casur-report-executive \.dual-period \.dual-kpi\{background:#fff;color:#17261c/);
+  assert.match(html,/\.casur-report-executive \.dual-period \.dual-kpi\{background:#fff;color:#192224/);
   assert.match(html,/\.casur-report-executive \.dual-period\{background:#f6f7f6;border-left:3px/);
-  assert.match(html,/\.dual-period \.dual-kpi\{background:#087638;color:#fff/);
+  assert.match(html,/\.dual-period \.dual-kpi\{background:#1c5762;color:#fff/);
   assert.match(html,/const included=managerialIncludedSelection\(result.selection\)/);
 });
 const scope={areaMean:187.41,areaAccumulated:937.03,tch:53.57,katm:105.66,tahAudit:{tah:5.66,excludedRows:0},metricCoverage:{tch:{pct:100},katm:{pct:100}},zafrasWithData:[2122,2526],requestedSeasonCount:2};

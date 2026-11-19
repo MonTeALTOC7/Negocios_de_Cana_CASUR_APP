@@ -150,14 +150,18 @@ async function reloadActiveModule(reason = 'reload') {
    Los 5 primeros son SVG propios; Inventario reutiliza el emblema
    oficial de Pansaco reenmarcado a la familia. */
 const MODULE_LOGOS = {
-  produccion: 'shared/assets/logos/produccion.svg',
-  tch:        'shared/assets/logos/tch.svg',
-  riego:      'shared/assets/logos/riego.svg',
-  insumos:    'shared/assets/logos/insumos.svg',
-  inventario: 'shared/assets/logos/inventario.png',
-  labores:    'shared/assets/logos/labores.svg',
+  produccion: 'shared/assets/logos/produccion-512.png',
+  tch:        'shared/assets/logos/tch-512.png',
+  riego:      'shared/assets/logos/riego-512.png',
+  insumos:    'shared/assets/logos/insumos-512.png',
+  inventario: 'shared/assets/logos/inventario-512.png',
+  labores:    'shared/assets/logos/labores-512.png',
 };
 function logoFor(id) { return MODULE_LOGOS[id] || 'shared/assets/icons/emblem-192.png'; }
+// En el menú lateral se usan versiones simplificadas para mejorar la lectura.
+const RAIL_LOGOS = Object.fromEntries(['produccion','tch','riego','insumos','labores']
+  .map(id => [id, `shared/assets/logos/${id}-rail.png`]));
+function railLogoFor(id) { return RAIL_LOGOS[id] || logoFor(id); }
 
 /* ---------------- Header ---------------- */
 function renderHeader() {
@@ -169,8 +173,70 @@ function updateConn(online) {
   c.classList.toggle('is-offline', !online);
   c.querySelector('.conn__label').textContent = online ? 'En línea' : 'Sin conexión';
   c.querySelector('.conn__ic').innerHTML = icon(online ? 'wifi' : 'wifiOff');
+  const railStatus = $('#railStatus');
+  if (railStatus) {
+    railStatus.classList.toggle('is-offline', !online);
+    railStatus.querySelector('[data-conn-label]').textContent = online ? 'En línea' : 'Sin conexión';
+  }
 }
 status.onConnectivityChange(updateConn);
+
+/* ---------------- Barra lateral (escritorio) ----------------
+   Navegación principal en pantallas anchas: Inicio, todos los módulos
+   visibles agrupados por superficie de uso y Centro Maestro. Si hay un
+   módulo abierto, el cambio pasa por el mismo checkpoint que el selector
+   (nunca se pierde trabajo pendiente). El área privada no aparece aquí. */
+const RAIL_KEY = 'casur_master_rail_collapsed';
+const railEl = $('#rail');
+
+function shellNavigate(path) {
+  if (routePath(router.current()) === path && currentRenderedRoute === path) return;
+  if ($('#mFrame')) { void navigateFromActiveModule(path, path === '/' ? 'back-home' : 'module-switch'); return; }
+  router.go(path);
+}
+
+function renderRail(r) {
+  if (!railEl) return;
+  const activePath = r ? routePath(r) : '/';
+  const item = (path, label, iconKey, moduleId = null) => `<button class="rail__item ${activePath === path ? 'is-active' : ''}" type="button"
+      data-rail-path="${path}" title="${label}" ${activePath === path ? 'aria-current="page"' : ''}>${moduleId ? '<img src="' + railLogoFor(moduleId) + '" alt="" width="22" height="22" loading="lazy" decoding="async">' : icon(iconKey)}<span>${label}</span></button>`;
+  const groups = registry.homeGroups().map((g) => `<div class="rail__group">
+      <p class="rail__label">${g.title}</p>
+      ${g.modules.map((m) => item('/modulo/' + m.moduleId, m.name, m.icon, m.moduleId)).join('')}
+    </div>`).join('');
+  const online = status.isOnline();
+  railEl.innerHTML = `
+    <div class="rail__brand">
+      <img src="shared/assets/icons/emblem-192.png" alt="" width="32" height="32">
+      <span class="rail__brand-text"><strong>Negocios de Caña</strong><small>CASUR · v${APP_VERSION}</small></span>
+    </div>
+    <nav class="rail__scroll" aria-label="Módulos">
+      <div class="rail__group">${item('/', 'Inicio', 'home')}</div>
+      ${groups}
+    </nav>
+    <div class="rail__foot">
+      ${item('/centro-maestro', 'Centro Maestro', 'master')}
+      <div class="rail__status ${online ? '' : 'is-offline'}" id="railStatus" role="status">
+        <span class="conn__dot"></span><span data-conn-label>${online ? 'En línea' : 'Sin conexión'}</span>
+      </div>
+      <button class="rail__item rail__toggle" type="button" id="railToggle" title="Contraer o expandir el menú"
+        aria-pressed="${document.body.classList.contains('rail-collapsed')}">${icon('collapse')}<span>Contraer menú</span></button>
+    </div>`;
+}
+
+if (railEl) {
+  if (lsGet(RAIL_KEY) === '1') document.body.classList.add('rail-collapsed');
+  railEl.addEventListener('click', (event) => {
+    if (event.target.closest('#railToggle')) {
+      const collapsed = document.body.classList.toggle('rail-collapsed');
+      try { localStorage.setItem(RAIL_KEY, collapsed ? '1' : '0'); } catch { /* modo privado */ }
+      $('#railToggle')?.setAttribute('aria-pressed', String(collapsed));
+      return;
+    }
+    const target = event.target.closest('[data-rail-path]');
+    if (target) shellNavigate(target.dataset.railPath);
+  });
+}
 
 /* ---------------- Bottom nav ---------------- */
 function renderNav(active) {
@@ -391,48 +457,58 @@ async function prepareProduccionDataIfNewer() {
 
 /* ---------------- Vista: HOME ---------------- */
 function viewHome() {
-  const mods = registry.homeModules();
   const view = el(`<div class="view">
     <header class="masthead">
       <div class="masthead__brandrow">
         <img class="masthead__logo" src="shared/assets/brand/casur-logo.png"
-             alt="CASUR · Compañía Azucarera del Sur, S.A." width="220" height="84">
+             alt="CASUR · Compañía Azucarera del Sur, S.A." width="116" height="44">
         <span class="emct" title="Edgardo Madrigal · Carlos Tijerino · Desarrollo">
           <span class="emct__dot"></span>EM-CT</span>
       </div>
       <p class="masthead__eyebrow">Compañía Azucarera del Sur, S.A.</p>
-      <h1 class="masthead__title">Negocios de Caña CASUR</h1>
-      <p class="masthead__desc">Todos los sistemas de campo en una sola app. Elige un módulo para comenzar.</p>
+      <h1 class="masthead__title">Negocios de Caña</h1>
+      <p class="masthead__desc">Producción, estimación, riego, insumos y labores en un solo lugar.</p>
     </header>
     <div class="install-slot" id="installSlot"></div>
-    <div class="modules" id="mods"></div>
+    <div id="mods"></div>
   </div>`);
-  const grid = $('#mods', view);
+  const host = $('#mods', view);
+  const online = status.isOnline();
 
-  mods.forEach((m) => {
-    const online = status.isOnline();
-    let chip;
-    if (m.usesSupabase) {
-      chip = online
-        ? `<span class="chip is-online"><span class="chip__dot"></span>Requiere conexión</span>`
-        : `<span class="chip is-offline"><span class="chip__dot"></span>Sin conexión</span>`;
-    } else {
-      chip = `<span class="chip is-local"><span class="chip__dot"></span>Código pendiente de descarga</span>`;
-    }
-    const card = el(`<button data-offline-module="${m.moduleId}" class="mod-card" type="button" style="--accent:${m.accent}">
-        <span class="mod-card__tile"><img class="mod-card__logo" src="${logoFor(m.moduleId)}" alt="" loading="lazy" width="60" height="60"></span>
-        <span class="mod-card__body">
-          <span class="mod-card__name">${m.name}</span>
-          <span class="mod-card__meta">
-            <span>${m.desc}</span>
-            ${chip}
-            <span class="chip"><span class="chip__dot"></span>${m.version}</span>
+  registry.homeGroups().forEach((group) => {
+    const section = el(`<section class="section" aria-label="${group.title}">
+        <div class="section__head">
+          <h2 class="section__title">${group.title}</h2>
+          <span class="section__note">${group.note}</span>
+        </div>
+        <div class="modules"></div>
+      </section>`);
+    const grid = $('.modules', section);
+    group.modules.forEach((m) => {
+      let chip;
+      if (m.usesSupabase) {
+        chip = online
+          ? `<span class="chip is-online"><span class="chip__dot"></span>Requiere conexión</span>`
+          : `<span class="chip is-offline"><span class="chip__dot"></span>Sin conexión</span>`;
+      } else {
+        chip = `<span class="chip is-local"><span class="chip__dot"></span>Se descarga al abrir</span>`;
+      }
+      const card = el(`<button data-offline-module="${m.moduleId}" class="mod-card" type="button" style="--accent:${m.accent}">
+          <span class="mod-card__tile"><img src="${logoFor(m.moduleId)}" alt="" width="44" height="44" loading="lazy" decoding="async"></span>
+          <span class="mod-card__body">
+            <span class="mod-card__name">${m.name}</span>
+            <span class="mod-card__desc">${m.desc}</span>
+            <span class="mod-card__meta">
+              ${chip}
+              <span class="chip is-version">${String(m.version).replace(/^v?/i, 'v')}</span>
+            </span>
           </span>
-        </span>
-        <span class="mod-card__go">${icon('chevron')}</span>
-      </button>`);
-    card.addEventListener('click', () => router.go('/modulo/' + m.moduleId));
-    grid.appendChild(card);
+          <span class="mod-card__go">${icon('chevron')}</span>
+        </button>`);
+      card.addEventListener('click', () => router.go('/modulo/' + m.moduleId));
+      grid.appendChild(card);
+    });
+    host.appendChild(section);
   });
 
   swap(view);
@@ -444,7 +520,7 @@ function viewHome() {
 async function refreshBundleAvailability(){
  if(!navigator.serviceWorker?.controller)return;
  try{const result=await new Promise((resolve,reject)=>{const c=new MessageChannel(),t=setTimeout(()=>reject(Error('status')),5000);c.port1.onmessage=e=>{clearTimeout(t);c.port1.close();resolve(e.data);};navigator.serviceWorker.controller.postMessage({type:'BUNDLE_STATUS'},[c.port2]);});
- for(const [id,ready] of Object.entries(result.bundles)){const card=document.querySelector('[data-offline-module="'+id+'"] .chip.is-local');if(card)card.lastChild.textContent=ready?'Código disponible offline':'Requiere descarga inicial';}
+ for(const [id,ready] of Object.entries(result.bundles)){const card=document.querySelector('[data-offline-module="'+id+'"] .chip.is-local');if(card)card.lastChild.textContent=ready?'Disponible sin conexión':'Se descarga al abrir';}
  }catch{}
 }
 
@@ -460,6 +536,7 @@ function viewModule(id) {
   const host = el(`<div class="module-host view" data-module-id="${id}" data-rendered-route="/modulo/${id}">
       <div class="module-host__bar">
         <button class="icon-btn" id="mBack" type="button" aria-label="Volver">${icon('back')}</button>
+        <button class="module-host__crumb" id="mCrumb" type="button">Inicio</button>
         <button class="module-host__switch" id="mSwitch" type="button"
                 aria-haspopup="dialog" aria-expanded="false" aria-controls="moduleSwitcher">
           <span class="module-host__title">${m.name}</span>
@@ -520,7 +597,7 @@ function viewModule(id) {
     } catch { /* Navigation can be in progress; keep the safe loading state. */ }
     setTimeout(revealProduction, 40);
   };
-  frame.addEventListener('load', () => { if(frame.contentWindow?.location.href==='about:blank')return; protectModuleActivity(frame.contentWindow); void consumePendingModuleContext(frame, id); });
+  frame.addEventListener('load', () => { if(frame.contentWindow?.location.href==='about:blank')return; try { const root = frame.contentDocument.documentElement; root.classList.add('casur-embedded'); root.dataset.casurModule = id; } catch { /* módulo aún navegando */ } protectModuleActivity(frame.contentWindow); void consumePendingModuleContext(frame, id); });
   if (id === 'produccion') setTimeout(revealProduction, 0);
   viewEl.appendChild(host);
   if (previousView) setTimeout(showHost, 1200);
@@ -554,6 +631,7 @@ function viewModule(id) {
   })().catch(failStartup);
 
   $('#mBack', host).addEventListener('click', () => { void navigateFromActiveModule('/', 'back-home'); });
+  $('#mCrumb', host).addEventListener('click', () => { void navigateFromActiveModule('/', 'back-home'); });
   $('#mReload', host).addEventListener('click', () => { void reloadActiveModule(); });
 
   const trigger = $('#mSwitch', host);
@@ -581,7 +659,7 @@ function viewModule(id) {
           <button class="module-switcher__option ${current ? 'is-current' : ''}"
             type="button" role="menuitem" data-switch-module="${target.moduleId}"
             ${current ? 'aria-current="page"' : ''}>
-            <span class="module-switcher__logo"><img src="${logoFor(target.moduleId)}" alt="" width="38" height="38"></span>
+            <span class="module-switcher__logo"><img src="${logoFor(target.moduleId)}" alt="" width="32" height="32" loading="lazy" decoding="async"></span>
             <span class="module-switcher__copy"><strong>${target.name}</strong>${connectivity}</span>
             <span class="module-switcher__mark" aria-hidden="true">${current ? '✓' : '›'}</span>
           </button>
@@ -699,7 +777,7 @@ async function viewCentroMaestro() {
   const rows = $('#mrows', view);
   mods.forEach((m) => {
     const row = el(`<div class="mrow" style="--accent:${m.accent}">
-        <span class="mrow__tile">${icon(m.icon)}</span>
+        <span class="mrow__tile"><img src="${logoFor(m.moduleId)}" alt="" width="32" height="32" loading="lazy" decoding="async"></span>
         <span class="mrow__body">
           <span class="mrow__name">${m.name}</span>
           <span class="mrow__meta">${m.privacy} · ${m.version} · ${m.requiresOnline ? 'requiere red' : 'offline'}${m.usesSupabase ? ' · Supabase' : ''} · ${moduleStatus(m.moduleId)}</span>
@@ -802,7 +880,7 @@ function viewPrivado(pendingModuleId) {
   const rows = $('#privRows', view);
   privateMods.forEach((m) => {
     const row = el(`<div class="mrow" style="--accent:${m.accent}">
-        <span class="mrow__tile">${icon(m.icon)}</span>
+        <span class="mrow__tile"><img src="${logoFor(m.moduleId)}" alt="" width="32" height="32" loading="lazy" decoding="async"></span>
         <span class="mrow__body"><span class="mrow__name">${m.name}</span>
           <span class="mrow__meta">${m.desc} · ${m.version}</span></span>
         <span class="mod-card__go">${icon('chevron')}</span>
@@ -1094,6 +1172,7 @@ function renderRoute(r) {
     default: viewHome();
   }
   currentRenderedRoute = routePath(r);
+  renderRail(r);
 }
 
 function restoreRenderedHash(path) {

@@ -9,30 +9,31 @@
   * { box-sizing: border-box; }
   html,body { margin:0; height:100%; }
   body {
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    color:#EAF2E4; display:grid; place-items:center; padding:24px;
+    font-family: Inter,"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+    color:#e6ebf0; display:grid; place-items:center; padding:24px;
     background:
-      radial-gradient(120% 60% at 50% -10%, #12365F 0%, transparent 60%),
-      linear-gradient(180deg, #0A1E38 0%, #081A33 100%);
+      radial-gradient(120% 60% at 50% -10%, #1c4355 0%, transparent 60%),
+      linear-gradient(180deg, #102732 0%, #0e232d 100%);
   }
   .box { max-width: 460px; text-align:center; }
   .tile {
-    width:76px; height:76px; margin:0 auto 18px; border-radius:20px;
+    width:76px; height:76px; margin:0 auto 18px; border-radius:12px;
     display:grid; place-items:center;
-    background: radial-gradient(120% 120% at 30% 20%, #B98CF066, transparent 70%), #0E2A4A;
-    border:1px solid #B98CF066; box-shadow:0 10px 24px rgba(0,0,0,.4);
-    color:#B98CF0;
+    background: radial-gradient(120% 120% at 30% 20%, #a7b6d566, transparent 70%), #163442;
+    border:1px solid #a7b6d566; box-shadow:0 10px 24px rgba(0,0,0,.4);
+    color:#a7b6d5;
   }
   .tile svg { width:38px; height:38px; }
   h1 { font-size:1.5rem; letter-spacing:-.02em; margin:0 0 6px; }
   p.sub { color:#B7C6D6; margin:0 0 18px; }
   .badge {
     display:inline-block; padding:7px 14px; border-radius:999px;
-    background:#0F2A4C; border:1px solid rgba(155,190,225,.18);
-    color:#9FE06B; font-size:.85rem; font-weight:600;
+    background:#173644; border:1px solid rgba(155,190,225,.18);
+    color:#7ac2d1; font-size:.85rem; font-weight:600;
   }
   .note { margin-top:22px; color:#7C90A6; font-size:.82rem; line-height:1.5; }
 </style>
+<link rel="stylesheet" href="../../shared/styles/module-theme.css">
 </head>
 <body>
   <div class="box">

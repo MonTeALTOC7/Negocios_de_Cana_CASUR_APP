@@ -2,7 +2,7 @@
   {
     "base": "1f9fe9aaef755a34e8cec2f2bbbfc487966fd1ab",
     "owner": "produccion",
-    "reason": "Migración visual de CSS y HTML de tema Petróleo sin cambiar motores, algoritmos, datos, API, identidad de módulo ni lógica agronómica; versión del shell 1.5.7.",
+    "reason": "Migración visual de CSS y HTML de tema Petróleo sin cambiar motores, algoritmos, datos, API, identidad de módulo ni lógica agronómica; versión del shell 1.6.0.",
     "paths": [
       "modules/produccion/css/casur-upgrade.css",
       "modules/produccion/css/maestro-ux.css",
@@ -12,7 +12,7 @@
   {
     "base": "1f9fe9aaef755a34e8cec2f2bbbfc487966fd1ab",
     "owner": "tch",
-    "reason": "Migración visual de CSS y HTML de tema Petróleo sin cambiar motores, algoritmos, datos, API, identidad de módulo ni lógica agronómica; versión del shell 1.5.7.",
+    "reason": "Migración visual de CSS y HTML de tema Petróleo sin cambiar motores, algoritmos, datos, API, identidad de módulo ni lógica agronómica; versión del shell 1.6.0.",
     "paths": [
       "modules/tch/css/casur.css",
       "modules/tch/index.html"
@@ -21,7 +21,7 @@
   {
     "base": "1f9fe9aaef755a34e8cec2f2bbbfc487966fd1ab",
     "owner": "riego",
-    "reason": "Migración visual de CSS y HTML de tema Petróleo sin cambiar motores, algoritmos, datos, API, identidad de módulo ni lógica agronómica; versión del shell 1.5.7.",
+    "reason": "Migración visual de CSS y HTML de tema Petróleo sin cambiar motores, algoritmos, datos, API, identidad de módulo ni lógica agronómica; versión del shell 1.6.0.",
     "paths": [
       "modules/riego/assets/index-B0LwgFY-.css",
       "modules/riego/index.html"
@@ -30,7 +30,7 @@
   {
     "base": "1f9fe9aaef755a34e8cec2f2bbbfc487966fd1ab",
     "owner": "insumos",
-    "reason": "Migración visual de CSS y HTML de tema Petróleo sin cambiar motores, algoritmos, datos, API, identidad de módulo ni lógica agronómica; versión del shell 1.5.7.",
+    "reason": "Migración visual de CSS y HTML de tema Petróleo sin cambiar motores, algoritmos, datos, API, identidad de módulo ni lógica agronómica; versión del shell 1.6.0.",
     "paths": [
       "modules/insumos/index.html"
     ]
@@ -38,7 +38,7 @@
   {
     "base": "1f9fe9aaef755a34e8cec2f2bbbfc487966fd1ab",
     "owner": "inventario",
-    "reason": "Migración visual de CSS y HTML de tema Petróleo sin cambiar motores, algoritmos, datos, API, identidad de módulo ni lógica agronómica; versión del shell 1.5.7.",
+    "reason": "Migración visual de CSS y HTML de tema Petróleo sin cambiar motores, algoritmos, datos, API, identidad de módulo ni lógica agronómica; versión del shell 1.6.0.",
     "paths": [
       "modules/inventario/index.html"
     ]
@@ -46,7 +46,7 @@
   {
     "base": "1f9fe9aaef755a34e8cec2f2bbbfc487966fd1ab",
     "owner": "labores",
-    "reason": "Migración visual de CSS y HTML de tema Petróleo sin cambiar motores, algoritmos, datos, API, identidad de módulo ni lógica agronómica; versión del shell 1.5.7.",
+    "reason": "Migración visual de CSS y HTML de tema Petróleo sin cambiar motores, algoritmos, datos, API, identidad de módulo ni lógica agronómica; versión del shell 1.6.0.",
     "paths": [
       "modules/labores/assets/index-BY74yemB.css",
       "modules/labores/index.html"

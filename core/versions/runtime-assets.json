@@ -1,6 +1,6 @@
 {
-  "appVersion": "1.5.7",
-  "releaseId": "1.5.7-8b9bb54b4dcad0a2",
+  "appVersion": "1.6.0",
+  "releaseId": "1.6.0-0991e707bcb75d10",
   "assets": {
     "404.html": "13e468776893ea36d86e0a6b83935bafd4c5f3782fb3a302959337f8e14a19fe",
     "app.js": "2e62cbe84f75fec94e99de5d467bd96f75a260c5bd75e721b8b588f69559cb2f",
@@ -17,8 +17,8 @@
     "core/updates/activity-guard.js": "ac1a31b305a32b6882702ad9dc7a8ca0d4a3f16b9d09d8a781243385557deb53",
     "core/updates/context-store.js": "d98356363d7fa986eef90374b2188dd1374dcd5a5024fd5ab5fdde28bb704091",
     "core/updates/pwa-update.js": "bdaf67c3734edb36d5657b5797cb69980aeba27545a24333f1f511c49c12518b",
-    "core/versions/versions.js": "3dfa0f2fbe0b02030ebd86373d7a3f189785d9f81836572406b8dd2f5497a3d8",
-    "index.html": "a29a2d628c02b8edd035094ba598b369a3249f25bbf796f4d854018e5a871294",
+    "core/versions/versions.js": "e60efcaa0ace6e43ce048c98d96c3d75a28c0f9dc925f8eab20a64b4ea06df92",
+    "index.html": "23593f09ba234849177610cddb2bcd986b25f163e65a82abec1cd822788fba8a",
     "manifest.webmanifest": "be32304a907b3b2059b96bd4828e499b279332fd85e59aea43c582f061a283dc",
     "master/adapters/master-to-riego-adapter.js": "03d74311246216895bcae85fa3401d9e1fb32d99b0b9f8f4ff8e25c0056977a9",
     "master/adapters/production-data-adapter.js": "f1922e3e6af02aa3fd22b46717037106d6696f68416540b6531d7bfba2f6adb9",

@@ -26,3 +26,7 @@ No ejecutar merge, despliegue productivo, cierre de PR #57, ni modificaciones de
 ## Estado
 
 Este documento registra la consolidación del PR #58 sobre `main`; no constituye una liberación ni certifica resultados posteriores de CI o de una preview nueva.
+
+## Liberación consolidada 1.6.0
+
+El propietario autorizó liberar el rediseño consolidado desde PR #58 directamente a `main` como App Maestra **1.6.0** (tipo MINOR), condicionado a Release Gate real de PR y verificación de producción. No integrar el PR #57 de forma independiente. Las versiones funcionales por módulo siguen intactas; el cambio de versión pertenece al shell. Esta nota no certifica el despliegue final.

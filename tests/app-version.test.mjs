@@ -15,12 +15,12 @@ function captured(source, pattern, label) {
   return value;
 }
 
-test("la versión 1.5.7 coincide en la fuente canónica, el SW y el fallback HTML", () => {
+test("la versión 1.6.0 coincide en la fuente canónica, el SW y el fallback HTML", () => {
   const canonical = captured(versions, /export const APP_VERSION = ['"]([^'"]+)['"];/, "APP_VERSION canónica");
   const sw = captured(serviceWorker, /const APP_VERSION = ['"]([^'"]+)['"];/, "APP_VERSION del Service Worker");
   const fallback = captured(index, /id="appVersion">v([^<]+)</, "versión fallback de index.html");
-  assert.equal(canonical, "1.5.7");
-  assert.deepEqual([canonical, sw, fallback], ["1.5.7", "1.5.7", "1.5.7"]);
+  assert.equal(canonical, "1.6.0");
+  assert.deepEqual([canonical, sw, fallback], ["1.6.0", "1.6.0", "1.6.0"]);
 });
 
 test("Maestro de Suertes muestra V1.8.2 de forma consistente sin alterar otros módulos", () => {

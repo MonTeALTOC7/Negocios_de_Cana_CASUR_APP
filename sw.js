@@ -9,8 +9,8 @@
    neutralizados dentro de la Maestra: aquí no se registran.
    ============================================================ */
 
-const APP_VERSION = '1.6.0';
-const RELEASE_ID = '1.6.0-0991e707bcb75d10';
+const APP_VERSION = '1.6.1';
+const RELEASE_ID = '1.6.1-4369527e88d00489';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;
@@ -77,9 +77,65 @@ const SHELL_ASSETS = [
   './shared/assets/brand/casur-logo.png',
 ];
 
+/* ---------------- Predecessor (upgrade) ---------------- */
+const ACTIVE_RELEASE_TIMEOUT_MS = 15000;
+function compareAppVersions(a, b) {
+  const parse = value => /^v?(\d+)\.(\d+)\.(\d+)$/i.exec(String(value||''))?.slice(1).map(Number);
+  const x = parse(a), y = parse(b);
+  if (!x || !y) return null;
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i] ? 1 : -1;
+  return 0;
+}
+/* Ask the active worker which release it serves and find its manifest WITHOUT creating
+   phantom caches. Every failure degrades to {unavailable:true}; it never throws. */
+async function inspectPredecessor() {
+  let active;
+  try {
+    const channel = new MessageChannel();
+    active = await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { try { channel.port1.close(); } catch { /* closed */ } reject(new Error('Active release unavailable')); }, ACTIVE_RELEASE_TIMEOUT_MS);
+      channel.port1.onmessage = event => { clearTimeout(timer); channel.port1.close(); resolve(event.data); };
+      self.registration.active.postMessage({type:'CASUR_UPDATE_INFO'}, [channel.port2]);
+    });
+  } catch (error) { return {unavailable:true, reason:error.message}; }
+  if (!active || typeof active.version !== 'string') return {unavailable:true, reason:'Active release malformed'};
+  return {version:active.version, releaseId:active.releaseId || null};
+}
+/* The predecessor's own manifest, if (and only if) it still exists. Never creates caches. */
+async function readPredecessorManifest(predecessor) {
+  try {
+    const names = await caches.keys();
+    const registryName = MASTER_PREFIX + 'release_manifests';
+    let response = predecessor.releaseId && names.includes(registryName) ? await (await caches.open(registryName)).match(new URL('./__manifest__/' + encodeURIComponent(predecessor.releaseId), self.registration.scope)) : null;
+    if (!response) {
+      const name = MASTER_PREFIX + 'shell_v' + predecessor.version;
+      if (names.includes(name)) response = await (await caches.open(name)).match(new URL('./core/versions/runtime-assets.json', self.registration.scope));
+    }
+    const manifest = response ? await response.json() : null;
+    return manifest && (!predecessor.releaseId || !manifest.releaseId || manifest.releaseId === predecessor.releaseId) ? manifest : null;
+  } catch { return null; }
+}
+async function carryOverPredecessor(predecessor, oldManifest, manifest) {
+  const manifests = await caches.open(MASTER_PREFIX + 'release_manifests'), oldId = oldManifest.releaseId || 'legacy-' + predecessor.version;
+  await manifests.put(new URL('./__manifest__/' + encodeURIComponent(oldId), self.registration.scope), new Response(JSON.stringify(oldManifest)));
+  const pins = await caches.open(MASTER_PREFIX + 'client_releases');
+  for (const client of await self.clients.matchAll({type:'window', includeUncontrolled:true})) {
+    const key = new URL('./__client__/' + client.id, self.registration.scope);
+    if (!(await pins.match(key))) await pins.put(key, new Response(JSON.stringify({version:predecessor.version, releaseId:oldId})));
+  }
+  const meta = await caches.open(MASTER_PREFIX + 'bundle_meta');
+  for (const id of Object.keys(manifest.bundles)) {
+    const previouslyReady = oldManifest.bundles ? await meta.match(new URL('./__bundle_ready__/' + encodeURIComponent(oldManifest.releaseId) + '/' + id, self.registration.scope)) : Object.keys(oldManifest.assets || {}).some(file => manifest.bundles[id].includes(file));
+    if (previouslyReady) await prepareVerifiedBundle(id, manifest.releaseId);
+  }
+}
+
 /* ---------------- Install ---------------- */
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
+    // Identify the predecessor before writing anything: a downgrade must leave no trace.
+    const predecessor = self.registration.active ? await inspectPredecessor() : null;
+    if (predecessor?.version && compareAppVersions(predecessor.version, APP_VERSION) === 1) throw new Error('DOWNGRADE_REJECTED');
     const cache = await caches.open(SHELL_CACHE);
     const manifestResponse = await fetch(new URL('./core/versions/runtime-assets.json', self.registration.scope), {cache:'no-store'});
     if (!manifestResponse.ok) throw new Error('Release manifest unavailable');
@@ -90,30 +146,11 @@ self.addEventListener('install', (event) => {
     await (await caches.open(MASTER_PREFIX+'release_manifests')).put(new URL('./__manifest__/'+encodeURIComponent(manifest.releaseId),self.registration.scope),new Response(JSON.stringify(manifest)));
     await prepareVerifiedBundle('core',manifest.releaseId);
     // Preserve installed offline capabilities on upgrade. New installs prepare core only.
-    if (self.registration.active) {
-      const channel = new MessageChannel();
-      const active = await new Promise((resolve,reject) => {
-        const timer=setTimeout(()=>reject(new Error('Active release unavailable')),15000);
-        channel.port1.onmessage=e=>{clearTimeout(timer);channel.port1.close();resolve(e.data);};
-        self.registration.active.postMessage({type:'CASUR_UPDATE_INFO'},[channel.port2]);
-      });
-      const oldCache=await caches.open(MASTER_PREFIX+'shell_v'+active.version);
-      const oldResponse=active.releaseId?await(await caches.open(MASTER_PREFIX+'release_manifests')).match(new URL('./__manifest__/'+encodeURIComponent(active.releaseId),self.registration.scope)):await oldCache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope));
-      if(!oldResponse)throw new Error('Active manifest unavailable');
-      const oldManifest=await oldResponse.json();
-      const manifests=await caches.open(MASTER_PREFIX+'release_manifests'),oldId=oldManifest.releaseId||'legacy-'+active.version;
-      await manifests.put(new URL('./__manifest__/'+encodeURIComponent(oldId),self.registration.scope),new Response(JSON.stringify(oldManifest)));
-      const pins=await caches.open(MASTER_PREFIX+'client_releases');
-      for(const client of await self.clients.matchAll({type:'window',includeUncontrolled:true})) {
-        const key=new URL('./__client__/'+client.id,self.registration.scope);
-        if(!(await pins.match(key)))await pins.put(key,new Response(JSON.stringify({version:active.version,releaseId:oldId})));
-      }
-      const meta=await caches.open(MASTER_PREFIX+'bundle_meta');
-      for(const id of Object.keys(manifest.bundles)) {
-        const previouslyReady=oldManifest.bundles ? await meta.match(new URL('./__bundle_ready__/'+encodeURIComponent(oldManifest.releaseId)+'/'+id,self.registration.scope)) : Object.keys(oldManifest.assets).some(file=>manifest.bundles[id].includes(file));
-        if(previouslyReady)await prepareVerifiedBundle(id,manifest.releaseId);
-      }
-    }
+    // The predecessor is consulted ONLY to carry over what it can prove. Its absence
+    // (no reply, no manifest, no snapshot) must never block a new core that was just
+    // hash-verified, and nothing is invented for modules the predecessor never recorded.
+    const oldManifest = predecessor?.version ? await readPredecessorManifest(predecessor) : null;
+    if (oldManifest) await carryOverPredecessor(predecessor, oldManifest, manifest);
     const dataCache = await caches.open(DATA_CACHE);
     for(const name of await caches.keys()) {
       if(!name.startsWith(MASTER_PREFIX+'shell_v')||name===SHELL_CACHE)continue;
@@ -158,6 +195,66 @@ async function currentManifest() {
   if(manifest.releaseId!==RELEASE_ID||manifest.appVersion!==APP_VERSION)return null;
   if(fromShell)await registry.put(key,new Response(JSON.stringify(manifest)));
   return manifest;
+}
+/* ---------------- Recuperación del manifiesto de ESTA release ----------------
+   Si el manifiesto local de la release que este worker sirve desaparece (caché parcial,
+   limpieza del navegador, instalación interrumpida), se recupera ÚNICAMENTE desde la red y
+   solo si es exactamente esta release: mismo APP_VERSION, mismo releaseId y un releaseId que
+   coincide con el hash de su propio contenido. Después el core se prepara por hashes SHA-256
+   como en la instalación; nunca se sirve código sin verificar. No borra ninguna caché. */
+const RECOVERY_TIMEOUT_MS = 8000, RECOVERY_BACKOFF_MS = 10000;
+let manifestRecovery = null, lastRecovery = {code:null, at:0};
+async function sha256Hex(text) {
+  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))), byte => byte.toString(16).padStart(2,'0')).join('');
+}
+async function manifestMatchesRelease(manifest) {
+  if (!manifest || manifest.releaseId !== RELEASE_ID || manifest.appVersion !== APP_VERSION) return false;
+  if (!manifest.assets || !manifest.bundles?.core || !manifest.dependencies) return false;
+  return manifest.releaseId === APP_VERSION + '-' + (await sha256Hex(JSON.stringify({assets:manifest.assets, bundles:manifest.bundles, dependencies:manifest.dependencies}))).slice(0,16);
+}
+function recoverReleaseManifest() {
+  if (manifestRecovery) return manifestRecovery;
+  const work = (async () => {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), RECOVERY_TIMEOUT_MS);
+    let manifest;
+    try {
+      let response;
+      try { response = await fetch(new URL('./core/versions/runtime-assets.json', self.registration.scope), {cache:'no-store', signal:controller.signal}); }
+      catch { throw new Error('REPAIR_OFFLINE'); }
+      if (!response.ok) throw new Error('REPAIR_MANIFEST_HTTP');
+      try { manifest = await response.json(); } catch { throw new Error('REPAIR_MANIFEST_INVALID'); }
+    } finally { clearTimeout(timer); }
+    if (!(await manifestMatchesRelease(manifest))) throw new Error('REPAIR_RELEASE_MISMATCH');
+    const body = JSON.stringify(manifest), registry = await caches.open(MASTER_PREFIX + 'release_manifests');
+    await registry.put(new URL('./__manifest__/' + encodeURIComponent(RELEASE_ID), self.registration.scope), new Response(body));
+    await (await caches.open(SHELL_CACHE)).put(new URL('./core/versions/runtime-assets.json', self.registration.scope), new Response(body));
+    await prepareVerifiedBundle('core', RELEASE_ID);
+    await (await caches.open(SHELL_CACHE)).put(new URL('./__release_ready__', self.registration.scope), new Response(APP_VERSION));
+    await registry.put(new URL('./__release_ready__/' + encodeURIComponent(RELEASE_ID), self.registration.scope), new Response(RELEASE_ID));
+    pinnedManifests.set(RELEASE_ID, manifest);
+    lastRecovery = {code:null, at:Date.now()};
+    return manifest;
+  })();
+  manifestRecovery = work.then(manifest => manifest, error => { lastRecovery = {code:error.message, at:Date.now()}; throw error; }).finally(() => { manifestRecovery = null; });
+  return manifestRecovery;
+}
+/* Automatic attempt used by navigation/fetch: never throws; after a non-network failure
+   (wrong release, bad hash) it pauses so a broken deployment is not re-downloaded per request. */
+async function autoRecoverManifest() {
+  if (!manifestRecovery && lastRecovery.code && lastRecovery.code !== 'REPAIR_OFFLINE' && Date.now() - lastRecovery.at < RECOVERY_BACKOFF_MS) return null;
+  try { return await recoverReleaseManifest(); } catch { return null; }
+}
+const RECOVERY_MESSAGES = {
+  REPAIR_OFFLINE:'No hay conexión con el servidor, por lo que la versión instalada no se puede recuperar ahora.',
+  REPAIR_RELEASE_MISMATCH:'El servidor ofrece otra versión de la aplicación. Se rechazó por seguridad: solo se repara la versión instalada.',
+  'release-unavailable':'Esta ventana usa una versión anterior que ya no está disponible en este dispositivo. Abrí la versión actual.',
+};
+function recoveryResponse(reason) {
+  const code = reason || lastRecovery.code || 'unavailable';
+  const detail = RECOVERY_MESSAGES[code] || 'No se pudo verificar la versión instalada. El código no verificado nunca se ejecuta.';
+  const json = value => JSON.stringify(value).replace(/</g,'\\u003c');
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CASUR · Recuperar aplicación</title><style>:root{color-scheme:light dark;--bg:#f4f7f9;--fg:#18303a;--card:#fff;--line:#c9d6dc;--accent:#23647a}@media(prefers-color-scheme:dark){:root{--bg:#0f1a1f;--fg:#e3edf1;--card:#16262d;--line:#2c434d;--accent:#5fb0c9}}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;padding:16px}main{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;width:min(560px,100%)}h1{font-size:1.2rem;margin:0 0 8px}p{margin:8px 0}.keep{border-left:3px solid var(--accent);padding-left:10px}button{font:inherit;min-height:44px;margin:6px 8px 0 0;padding:8px 14px;border-radius:8px;border:1px solid var(--accent);background:var(--card);color:var(--fg);cursor:pointer}button.primary{background:var(--accent);color:#fff}button:disabled{opacity:.6;cursor:wait}#status{min-height:1.5em;font-weight:600}small{opacity:.8}</style></head><body><main><h1>La versión instalada no está disponible</h1><p>${detail}</p><p class="keep">Tus datos (IndexedDB, localStorage, borradores y cachés de los módulos) <strong>no se tocaron ni se borran</strong> con estas opciones.</p><p id="status" role="status" aria-live="polite"></p><div><button id="repair" class="primary" type="button">Reparar esta versión</button><button id="retry" type="button">Reintentar</button><button id="reregister" type="button">Re-registrar el servicio de la app</button></div><p><small>Reparar descarga de nuevo solo esta versión y verifica cada archivo (SHA-256). Re-registrar da de baja únicamente el Service Worker de esta aplicación (se registra de nuevo al reabrirla con conexión) y no limpia el almacenamiento. Si nada funciona: cerrá todas las ventanas de la app y abrila de nuevo con conexión.</small></p></main><script>(()=>{const scope=${json(self.registration.scope)},$=id=>document.getElementById(id),say=text=>{$('status').textContent=text};const target=()=>{try{return window.top&&window.top.location.origin===location.origin?window.top:window}catch{return window}};const lock=value=>{for(const button of document.querySelectorAll('button'))button.disabled=value};const explain=${json(RECOVERY_MESSAGES)};function ask(message,timeout){return new Promise((resolve,reject)=>{const worker=navigator.serviceWorker&&navigator.serviceWorker.controller;if(!worker){reject(new Error('NO_CONTROLLER'));return}const channel=new MessageChannel(),timer=setTimeout(()=>{channel.port1.close();reject(new Error('TIMEOUT'))},timeout);channel.port1.onmessage=event=>{clearTimeout(timer);channel.port1.close();resolve(event.data)};worker.postMessage(message,[channel.port2])})}$('retry').onclick=()=>target().location.reload();$('repair').onclick=async()=>{lock(true);say('Reparando y verificando la versión instalada…');try{const result=await ask({type:'CASUR_REPAIR_RELEASE'},60000);if(result&&result.ok){say('Versión verificada. Abriendo…');target().location.reload();return}say(explain[result&&result.code]||'No se pudo reparar ahora. No se borró ningún dato; reintentá con conexión.')}catch{say('No hubo respuesta del servicio de la app. No se borró ningún dato; probá Re-registrar o reintentá con conexión.')}lock(false)};$('reregister').onclick=async()=>{if(!confirm('Se dará de baja únicamente el Service Worker de esta aplicación; se registrará de nuevo al reabrirla. No se borran cachés ni datos guardados. Hace falta conexión. ¿Continuar?'))return;lock(true);say('Reiniciando el registro del servicio…');try{const registration=await navigator.serviceWorker.getRegistration(scope);if(registration){await registration.update();await registration.unregister()}say('Registro dado de baja. Cerrá todas las ventanas de la app y abrila de nuevo con conexión: se registrará otra vez y reutilizará lo ya verificado. No se tocó ningún dato.');return}catch{say('No se pudo reiniciar el registro: se necesita conexión con el servidor. No se cambió nada.')}lock(false)}})()</script></body></html>`;
+  return new Response(html, {status:503, statusText:'Recovery', headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
 }
 async function releaseReady(verifyHashes = false) {
   try {
@@ -213,22 +310,28 @@ async function verifiedBundleCache(manifest,id, verifyEntries = true) {
   return cache;
 }
 const clientReleasePins = new Map(), pinnedManifests = new Map();
+async function cachePresent(name) { return (await caches.keys()).includes(name); }
 async function pinnedManifest(event) {
   const pins=await caches.open(MASTER_PREFIX+'client_releases'),id=event.clientId;
   const key=new URL('./__client__/'+id,self.registration.scope);
   const newDocument=event.request.mode==='navigate'&&event.request.destination==='document';
   let pin=!newDocument&&id?clientReleasePins.get(id):null;
   if(!pin&&!newDocument&&id){const response=await pins.match(key);if(response){const text=await response.text();try{pin=JSON.parse(text);}catch{pin={version:text,releaseId:null};}}}
-  const cache=await caches.open(MASTER_PREFIX+'shell_v'+(pin?.version||APP_VERSION));
+  // An absent older snapshot is never materialised as an empty cache.
+  const shellName=MASTER_PREFIX+'shell_v'+(pin?.version||APP_VERSION);
+  const cache=!pin||pin.version===APP_VERSION||await cachePresent(shellName)?await caches.open(shellName):null;
   let manifest;
   if(pin?.releaseId){
     if(!pinnedManifests.has(pin.releaseId)){const response=await(await caches.open(MASTER_PREFIX+'release_manifests')).match(new URL('./__manifest__/'+encodeURIComponent(pin.releaseId),self.registration.scope));if(response)pinnedManifests.set(pin.releaseId,await response.json());}
     manifest=pinnedManifests.get(pin.releaseId);
-    if(!manifest||manifest.releaseId&&manifest.releaseId!==pin.releaseId)return {manifest:null,cache};
+    // Only THIS worker's release can be recovered; an absent older snapshot is never replaced by newer code.
+    if(!manifest&&pin.releaseId===RELEASE_ID)manifest=await autoRecoverManifest();
+    if(!manifest||manifest.releaseId&&manifest.releaseId!==pin.releaseId)return {manifest:null,cache,reason:pin.releaseId===RELEASE_ID?null:'release-unavailable'};
   } else {
-    const response=pin?await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope)):null;
+    const response=pin&&cache?await cache.match(new URL('./core/versions/runtime-assets.json',self.registration.scope)):null;
     manifest=pin?(response?await response.json():null):await currentManifest();
-    if(!manifest)return {manifest:null,cache};
+    if(!manifest&&(!pin||pin.version===APP_VERSION))manifest=await autoRecoverManifest();
+    if(!manifest)return {manifest:null,cache,reason:pin&&pin.version!==APP_VERSION?'release-unavailable':null};
     pin={version:pin?.version||APP_VERSION,releaseId:manifest.releaseId||'legacy-'+(pin?.version||APP_VERSION)};
     await(await caches.open(MASTER_PREFIX+'release_manifests')).put(new URL('./__manifest__/'+encodeURIComponent(pin.releaseId),self.registration.scope),new Response(JSON.stringify(manifest)));
     pinnedManifests.set(pin.releaseId,manifest);
@@ -238,11 +341,13 @@ async function pinnedManifest(event) {
   return {manifest,cache};
 }
 async function bundleRuntime(event) {
-  const {manifest,cache}=await pinnedManifest(event);
-  if(!manifest)return new Response('Versión instalada no disponible.',{status:503});
+  const {manifest,cache,reason}=await pinnedManifest(event);
+  // Documents get a usable recovery page; sub-resources keep a plain, never-cached 503.
+  if(!manifest)return event.request.mode==='navigate'?recoveryResponse(reason):new Response('Versión instalada no disponible.',{status:503});
   const url=new URL(event.request.url);url.search='';
   let file=url.pathname.slice(new URL(self.registration.scope).pathname.length);
   if(!file||file.endsWith('/'))file+='index.html';
+  if(!manifest.bundles&&!cache)return new Response('Recurso no disponible en la versión instalada.',{status:503});
   if(!manifest.bundles)return normalizeNavigationRedirect(await cache.match(url,{ignoreSearch:true})||await cache.match(new URL(file,self.registration.scope))||new Response('Recurso no disponible en la versión instalada.',{status:503}));
   if(file==='core/versions/runtime-assets.json')return new Response(JSON.stringify(manifest),{headers:{'Content-Type':'application/json'}});
   const id=Object.keys(manifest.bundles).find(id=>manifest.bundles[id].includes(file));
@@ -329,18 +434,20 @@ async function prepareVerifiedBundle(bundleId, releaseId, notify = () => {}, anc
   try { return await work; } finally { bundlePreparations.delete(key); }
 }
 self.addEventListener('message', (event) => {
-  if(event.data?.type==='BUNDLE_STATUS' && event.ports?.[0])event.waitUntil((async()=>{const manifest=await currentManifest();const bundles={};for(const id of Object.keys(manifest.bundles))bundles[id]=!!(await verifiedBundleCache(manifest,id));event.ports[0].postMessage({releaseId:manifest.releaseId,bundles,metrics:self.CASUR_BUNDLE_METRICS||[],readyMetrics:self.CASUR_READY_METRICS||[]});})());
+  if(event.data?.type==='BUNDLE_STATUS' && event.ports?.[0])event.waitUntil((async()=>{const manifest=await currentManifest();const bundles={};for(const id of Object.keys(manifest?.bundles||{}))bundles[id]=!!(await verifiedBundleCache(manifest,id));event.ports[0].postMessage({releaseId:RELEASE_ID,bundles,missing:!manifest,metrics:self.CASUR_BUNDLE_METRICS||[],readyMetrics:self.CASUR_READY_METRICS||[]});})());
+  if(event.data?.type==='CASUR_REPAIR_RELEASE' && event.ports?.[0])event.waitUntil(recoverReleaseManifest().then(manifest=>({ok:true,version:APP_VERSION,releaseId:manifest.releaseId}),error=>({ok:false,code:error.message})).then(result=>event.ports[0].postMessage(result)));
   if (event.data?.type === 'PREPARE_BUNDLE' && event.ports?.[0]) {
     const port = event.ports[0];
-    event.waitUntil((async()=>{if(event.source?.id){const pins=await caches.open(MASTER_PREFIX+'client_releases'),pin=await pins.match(new URL('./__client__/'+event.source.id,self.registration.scope));if(pin){const text=await pin.text();let ref;try{ref=JSON.parse(text);}catch{ref={version:text};}if(ref.version!==APP_VERSION||ref.releaseId&&ref.releaseId!==event.data.releaseId)throw new Error('CLIENT_RELEASE_MISMATCH');}}return prepareVerifiedBundle(event.data.bundleId,event.data.releaseId, message => port.postMessage(message));})()
+    event.waitUntil((async()=>{if(!(await currentManifest())&&event.data.releaseId===RELEASE_ID)await autoRecoverManifest();if(event.source?.id){const pins=await caches.open(MASTER_PREFIX+'client_releases'),pin=await pins.match(new URL('./__client__/'+event.source.id,self.registration.scope));if(pin){const text=await pin.text();let ref;try{ref=JSON.parse(text);}catch{ref={version:text};}if(ref.version!==APP_VERSION||ref.releaseId&&ref.releaseId!==event.data.releaseId)throw new Error('CLIENT_RELEASE_MISMATCH');}}return prepareVerifiedBundle(event.data.bundleId,event.data.releaseId, message => port.postMessage(message));})()
       .then(result => port.postMessage(result), error => port.postMessage({type:'ERROR',code:error.message,bundleId:event.data.bundleId,releaseId:event.data.releaseId})));
     return;
   }
   // Ignore legacy SKIP_WAITING: v1.3.4 cannot provide a safe checkpoint handshake.
   if (event.data?.type === 'CASUR_UPDATE_INFO') event.waitUntil((async () => {
     const previous = (await caches.keys()).filter(key => key.startsWith(MASTER_PREFIX+'shell_v') && key !== SHELL_CACHE).map(key => key.slice((MASTER_PREFIX+'shell_v').length));
-    const m=await currentManifest();
-    event.ports?.[0]?.postMessage({version:APP_VERSION,releaseId:m.releaseId,ready:await releaseReady(),previous});
+    const m=await currentManifest()||await autoRecoverManifest();
+    // The release identity is intrinsic to this worker: report it even when its manifest is gone.
+    event.ports?.[0]?.postMessage({version:APP_VERSION,releaseId:m?.releaseId||RELEASE_ID,ready:m?await releaseReady():false,previous});
   })());
   if (event.data?.type === 'CASUR_UPDATE_APPLY') event.waitUntil(coordinateUpdate().then(result => event.ports?.[0]?.postMessage(result)));
   if (event.data && event.data.type === 'WARM_GEO') {

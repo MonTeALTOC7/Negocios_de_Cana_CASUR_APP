@@ -2,6 +2,11 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.6.1] — pendiente de publicación · hotfix recuperación PWA (Issue #59)
+- PATCH del shell: la instalación de una versión nueva ya no se bloquea si falta la instantánea de la anterior; se rechazan downgrades y se conserva todo dato y caché.
+- Si falta el manifiesto local de la release instalada se recupera solo desde la misma release verificada (SHA-256) o se muestra una pantalla de reparación con Reparar, Reintentar y Re-registrar, en lugar de un 503 plano.
+- Sin borrado de cachés, localStorage ni IndexedDB; sin `skipWaiting` adicional. Módulos, datos, GIS e iconos sin cambios. Detalle: `docs/PWA_RECOVERY_161.md`.
+
 ## [1.6.0] — 18-nov-2026 · Rediseño «Petróleo · Pizarra»
 - Sistema de diseño único: azul petróleo, pizarra, gris y blanco; tipografía Inter local.
 - Shell en tema claro con barra lateral en escritorio, Inicio agrupado por uso y ruta en la barra de módulo.

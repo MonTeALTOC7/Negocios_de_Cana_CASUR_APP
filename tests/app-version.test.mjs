@@ -29,7 +29,7 @@ test("Maestro de Suertes muestra V1.8.2 de forma consistente sin alterar otros m
   assert.match(registry, /name: 'Maestro de Suertes'[\s\S]*?version: 'V1\.8\.2'/);
   assert.match(productionVersion, /^V1\.8\.2 CASUR/m);
   assert.equal(productionPackage.version, "1.8.2");
-  assert.match(index, /id="appVersion">v1\.5\.7</);
+  assert.match(index, /id="appVersion">v1\.6\.0</);
   assert.match(versions, /tch: '2\.8\.1'/);
 });
 

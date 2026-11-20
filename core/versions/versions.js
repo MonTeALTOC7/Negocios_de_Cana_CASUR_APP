@@ -5,11 +5,12 @@
    número de un módulo aquí no afecta a los demás.
    ============================================================ */
 
-export const APP_VERSION = '1.6.1';
+export const APP_VERSION = '1.6.2';
 export const APP_CHANNEL = 'GitHub Pages';
 
 // Historial de código instalado, independiente de las publicaciones SIAGRI/GEO.
 export const PRODUCTION_RELEASES = [
+  {id:'produccion',moduleVersion:'V1.8.3',historicalVersion:'V2.9',appVersion:'1.6.2',type:'PATCH',publishedAt:null,changes:['Cronológico General y de finca con las mismas pestañas Distribución, Estimados Z26/27 y Suertes; tablas compactas y orden agronómico por número de cortes.','Semilla con área y suertes reales, estimado de molienda «No aplica»; composición de la finca, buscador siempre arriba y un único Exportar PDF/PNG. Motores, datos e informes conservados.']},
   {id:'produccion',moduleVersion:'V1.8.2',historicalVersion:'V2.9',appVersion:'1.5.6',type:'PATCH',publishedAt:null,changes:['Buscador general antes del análisis en escritorio.','Conserva fichas, motores, datos e informes.']},
   {id:'produccion',moduleVersion:'V1.8.1',historicalVersion:'V2.9',appVersion:'1.5.5',type:'PATCH',publishedAt:null, changes:['Protege la presentación inicial mientras se preparan la interfaz y los datos.','Conserva la recuperación y los controles existentes de actualización.']},
   {id:'produccion',moduleVersion:'V1.8.0',historicalVersion:'V2.9',appVersion:'1.5.4',type:'MINOR',publishedAt:null,
@@ -35,7 +36,7 @@ export const PRODUCTION_RELEASES = [
    informativas (placeholders); al integrar cada módulo real se
    confirmarán/leerán de su propio version.json cuando exista. */
 export const MODULE_VERSIONS = {
-  produccion: 'V1.8.2',
+  produccion: 'V1.8.3',
   tch: '2.8.1',
   riego: 'v6',
   insumos: '1.0',
@@ -54,7 +55,7 @@ export function moduleVersion(id) {
    de su fase. El TCH está integrado técnicamente; cámara/GPS/Android
    requieren validación final en dispositivo real tras publicar. */
 export const MODULE_STATUS = {
-  produccion: 'integrado · V1.8.2 (código) · datos oficiales íntegros y generaciones locales conservadas',
+  produccion: 'integrado · V1.8.3 (código) · datos oficiales íntegros y generaciones locales conservadas',
   tch: 'integrado · cámara/GPS: validar en dispositivo',
   riego: 'integrado · fuente/backend Supabase propios',
   insumos: 'integrado · fuente/Maestro propios (conexión al Maestro Central en Fase 5.1)',
@@ -69,6 +70,7 @@ export function moduleStatus(id) {
 }
 
 export const APP_RELEASES = Object.freeze([
+  Object.freeze({id:'shell',version:'1.6.2',type:'PATCH',publishedAt:null,changes:Object.freeze(['Actualización coordinada del manifiesto offline para Producción V1.8.3 (UX13 Etapa A: Cronológico General/Finca y Estimados Z26/27). Sin cambios en Service Worker, datos ni otros módulos.'])}),
   Object.freeze({id:'shell',version:'1.6.1',type:'PATCH',publishedAt:null,changes:Object.freeze(['Recuperación segura de la versión instalada: si falta su manifiesto local se restaura solo desde la misma release verificada por SHA-256, o se ofrece una pantalla de reparación en lugar de un error 503 plano.','La instalación de una versión nueva ya no queda bloqueada porque falte la instantánea anterior; se rechazan downgrades y se conservan datos, cachés de módulos y checkpoint multiventana.'])}),
   Object.freeze({id:'shell',version:'1.6.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Rediseño Petróleo y Pizarra con nueva navegación empresarial y móvil.','Iconos definitivos por módulo y búsqueda Histórico móvil accesible.','Se conservan datos, motores y actualización segura PWA.'])}),
   Object.freeze({id:'shell',version:'1.5.6',type:'PATCH',publishedAt:null,changes:Object.freeze(['Preparación verificada por módulo y apertura prioritaria del Maestro.'])}),

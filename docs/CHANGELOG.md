@@ -6,6 +6,7 @@ Formato: [versión] — fecha · resumen.
 - PATCH de presentación del Maestro de Suertes: Cronológico General y de finca comparten un único renderer con pestañas Distribución, Estimados Z26/27 y Suertes, selector «Agrupar por» y tablas compactas con TOTAL.
 - N.º de cortes en orden agronómico fijo (Plantilla → 2.º corte → 3–4 → 5–6 → 7+). Semilla muestra su área y suertes reales; su estimado de molienda se presenta como «No aplica» (no N/D). Molienda sin estimado se distingue.
 - «Composición de la finca» concisa en lugar de «Detalle complementario»/«Composición y metodología»; acciones Mapa/Histórico compactas y un único «Exportar» (PDF/PNG existentes). Buscador `#cronoQ` arriba en todas las vistas; el SELECT de finca se conserva como control interno.
+- Revisión #5986548357: corrige el cierre de sugerencias de `#cronoQ` al escribir justo después de abrir una finca (temporizador de blur con identidad), banda móvil sin metadatos huérfanos, sin nota de semilla duplicada en Destino y «Otros datos de finca» fuera de la composición.
 - Sin cambios en motores, fórmulas, datos oficiales, GIS, generadores PDF/PNG ni Service Worker (solo APP_VERSION/RELEASE_ID derivados). QA: `tools/qa-maestro-ux13-a.cjs`.
 
 ## [1.6.1] — pendiente de publicación · hotfix recuperación PWA (Issue #59)

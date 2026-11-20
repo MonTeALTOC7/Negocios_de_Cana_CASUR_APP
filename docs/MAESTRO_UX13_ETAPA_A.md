@@ -36,16 +36,23 @@ La Etapa B (Histórico de finca y suerte, ítems 9–15 del Issue) **no** se toc
 | Finca 10 El Salitre (captura 4) | Molienda 334.94 ha · 21,336.35 t · 63.70; Semilla AS `0.00 · N/D` | Molienda idéntica; Semilla AS 49.78 ha · 5 suertes · «No aplica» |
 | General · estimado | 9,115.65 ha · 563,187.97 t · 61.78 TCH | idéntico; semilla 459.01 ha · 47 suertes informada aparte |
 
+## Revisión #5986548357 (sobre `f6a3274`) — correcciones
+
+| Punto | Causa / decisión | Corrección |
+|---|---|---|
+| P1 · búsqueda inmediata tras abrir finca | Al tocar una sugerencia `#cronoQ` pierde el foco y el `onblur` original programa `setTimeout(hideCronoSuggestions,180)` sin identidad; si se vuelve a escribir en esos 180 ms, el temporizador viejo cierra la lista nueva (no era el informe asíncrono). Existía también en V1.6.1. | `maestro-ux.js` sustituye ese handler por uno con token: foco o escritura en `#cronoQ` lo cancelan y nunca cierra si el foco está en el input o en la lista; mismo retardo para que el clic en sugerencias siga funcionando. `index.html` intacto. |
+| P2 · banda móvil | Metadatos «Código · zona · tenencia» partidos por los 3 iconos | ≤600 px: nombre + acciones en la primera fila; metadatos completos en una línea debajo. Sin ocultar datos ni iconos. |
+| P2 · semilla repetida | Nota «Semilla … no aplica» en el aforo duplicaba la tabla Destino | Se omite solo con «Agrupar por = Destino»; se conserva en los demás agrupamientos y en «¿Qué incluye el estimado?». |
+| P2 · composición | «Suertes sin área activa» y «Distancia ponderada» dentro del panel | Movidos a un desplegable «Otros datos de finca» bajo la composición; cifras sin cambios. |
+
 ## QA
 
-- `tools/qa-maestro-ux13-a.cjs`: 100/100 en 360, 390, 768, 1280 y 1536 px (pestañas, buscador arriba en General/finca/suerte/volver/recarga,
-  sin scroll horizontal, orden agronómico, TOTAL = motor, Destino/Semilla, drill y Volver, Exportar PNG y PDF reales, mapa GIS, Suertes,
-  selección múltiple, histórico, captura 4, sin errores de página).
-- Suites: `npm test --prefix modules/produccion` 212/212 · `node --test tests/*.test.mjs` 160/160 · `check-release-policy`, `sync-versions`,
-  `runtime-assets`, `production-integrity`, `check-context-hotfix` y validación TCH en verde.
-- Smoke PWA: SW registrado, shell v1.6.2 y módulo listo dentro del iframe.
+- `tools/qa-maestro-ux13-a.cjs`: **22 casos × 5 anchos = 110** (360, 390, 768, 1280, 1536). Incluye P1 (escritura inmediata tras abrir finca ×5, tras volver de suerte, sin esperar el informe ni reintentos) y P2 (banda en una línea sin solapes, composición sin datos ajenos, nota de semilla según agrupamiento).
+  - Contra `f6a3274`: 95/110 (fallan exactamente P1 y P2 en los 5 anchos) → la prueba reproduce el defecto.
+  - Contra el HEAD final: 110/110 en 3 ejecuciones consecutivas (JSON por ejecución en el paquete de evidencias, con el SHA).
+- Suites: `npm test --prefix modules/produccion` 212/212 · `node --test tests/*.test.mjs` 160/160 · TCH 92/92 · `check-release-policy`, `sync-versions`, `runtime-assets`, `production-integrity`, `check-context-hotfix` en verde.
 
-## Hallazgo preexistente (no corregido en la Etapa A)
+## Preview y límites de la evidencia
 
-Si se escribe en `#cronoQ` durante los ~300 ms posteriores a abrir una finca, el montaje asíncrono del informe cierra la lista de
-sugerencias. Ocurre igual en V1.6.1; volver a escribir la reabre. Se deja documentado para no ampliar el alcance.
+- Capturas y QA con Chromium headless (Playwright) sobre `tools/serve-maestro-preview.mjs` local; no se ha probado en Brave ni en un dispositivo físico.
+- Preview HTTPS: no disponible desde esta sesión (ver PR). No hacer merge sin revisión visual del propietario.

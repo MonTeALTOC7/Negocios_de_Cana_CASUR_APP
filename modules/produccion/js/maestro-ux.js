@@ -182,7 +182,8 @@
       if(estimate&&mode==='general'){
         const overview=presentation(el('section','ux09-forecast-overview')),top=el('div','ux13-overview-head');top.append(el('h3','','Aforo y producción proyectada · Z'+(summary.estimateSeason||'N/D')),estimateHelp(summary));overview.append(top);
         const stats=el('dl','ux09-forecast-stats');[['Área con estimado',fmt(summary.estimateArea)+' ha'],['Toneladas estimadas',fmt(summary.estimateTons)+' t'],['TCH estimado',fmt(summary.estimateTch)+' t/ha'],['Suertes con estimado',fmt(summary.estimateLots,0)]].forEach(([k,v])=>{const item=el('div');item.append(el('dt','',k),el('dd','',v));stats.append(item);});overview.append(stats);
-        const notes=[];if(summary.seedLots>0)notes.push('Semilla: '+fmt(summary.seedArea)+' ha · '+fmt(summary.seedLots,0)+' suertes · no aplica estimado de molienda');if(applied&&summary.pendingMillingLots>0)notes.push('Molienda sin estimado: '+fmt(summary.pendingMillingArea)+' ha · '+fmt(summary.pendingMillingLots,0)+' suertes');
+        const notes=[];// UX13 P2: with Destino the table already reports Semilla as «No aplica».
+        if(summary.seedLots>0&&field!=='destino')notes.push('Semilla: '+fmt(summary.seedArea)+' ha · '+fmt(summary.seedLots,0)+' suertes · no aplica estimado de molienda');if(applied&&summary.pendingMillingLots>0)notes.push('Molienda sin estimado: '+fmt(summary.pendingMillingArea)+' ha · '+fmt(summary.pendingMillingLots,0)+' suertes');
         if(notes.length){const list=el('ul','ux13-overview-notes');notes.forEach(n=>list.append(el('li','',n)));overview.append(list);}
         content.append(overview);
       }
@@ -472,6 +473,14 @@
     const updateTray=()=>{tray.replaceChildren();const state=selection();tray.hidden=!state.mode&&!state.keys.length;const title=document.createElement('b');title.textContent=state.keys.length+' suertes seleccionadas';tray.append(title);state.keys.forEach(key=>{const [code,lot]=key.split('::');const p=window.CRONO_DATA.producers.find(p=>String(p.code)===code),r=p?.details.find(r=>String(r.suerte)===lot);const b=document.createElement('button');b.type='button';b.textContent=(r?.codLote||key)+' ×';b.setAttribute('aria-label','Quitar '+(r?.codLote||key));b.onclick=()=>{window.toggleCronoSuerteSelection(key,false);updateTray();};tray.append(b);});for(const[label,fn]of[['Limpiar selección',()=>window.clearCronoMultiSelection()],['Aplicar selección',()=>window.renderCronoMultiSummary()]]){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=()=>{fn();updateTray();};tray.append(b);}};
     new MutationObserver(updateTray).observe(byId('cronoMultiCount'),{childList:true});updateTray();
     const clearSearch=presentation(button('🧹',()=>{input.value='';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus({preventScroll:true});}));clearSearch.setAttribute('aria-label','Limpiar búsqueda');clearSearch.title='Limpiar búsqueda';clearSearch.classList.add('ux04-clear-search');search.append(clearSearch);
+    // UX13 P1: the original inline onblur schedules an anonymous hide 180 ms later. After picking a
+    // suggestion (which blurs #cronoQ) a stale timer closed the list the user had just reopened by
+    // typing. Same delay (so clicks on suggestions still land), but each blur gets an identity that
+    // focus/typing cancels, and it never hides while focus is back on the input or inside the list.
+    let blurToken=0;const cancelBlur=()=>{blurToken++;};
+    const scheduleHide=()=>{const token=++blurToken;setTimeout(()=>{if(token!==blurToken)return;const active=document.activeElement;if(active===input||box.contains(active))return;window.hideCronoSuggestions?.();},180);};
+    input.onblur=scheduleHide;box.addEventListener('focusout',scheduleHide);box.addEventListener('focusin',cancelBlur);
+    input.addEventListener('focus',cancelBlur,true);input.addEventListener('input',cancelBlur,true);
     input.addEventListener('focus',()=>{if(!selection().mode&&input.value){input.select();window.showCronoSuggestions();}});
     const reopen=()=>{input.value='';input.focus({preventScroll:true});box.replaceChildren(el('div','ux04-search-prompt','Escribí un código o nombre para agregar otra suerte.'));box.style.display='block';updateTray();};
     let priorKeys='';box.addEventListener('pointerdown',e=>{if(selection().mode){priorKeys=JSON.stringify(selection().keys);e.preventDefault();}});
@@ -502,7 +511,9 @@
         [['milling','Molienda',scopeSummary.millingArea,scopeSummary.millingLots],['seed','Semilla',scopeSummary.seedArea,scopeSummary.seedLots]].forEach(([kind,name,area,lots])=>{if(!(lots>0))return;const seg=el('i','ux13-seg-'+kind);seg.style.width=(compositionTotal>0?area/compositionTotal*100:0)+'%';track.append(seg);const item=el('li','ux13-'+kind);item.append(el('b','',name),el('span','',fmt(area)+' ha · '+fmt(lots,0)+(lots===1?' suerte':' suertes')),el('small','',shareOf(area)));legend.append(item);});
         if(compositionTotal>0)composition.append(track);composition.append(legend);
         const extra=[];if(scopeSummary.estimateState==='applied'&&scopeSummary.pendingMillingLots>0)extra.push('Molienda sin estimado: '+fmt(scopeSummary.pendingMillingArea)+' ha · '+fmt(scopeSummary.pendingMillingLots,0)+' suertes');if(scopeSummary.inactiveLots>0)extra.push(fmt(scopeSummary.inactiveLots,0)+' suertes del catálogo sin área activa');const distance=sourceKpi(/Distancia/i);if(distance)extra.push('Distancia ponderada: '+readKpi(/Distancia/i));
-        if(extra.length)composition.append(el('p','ux13-composition-extra',extra.join(' · ')));overview.append(composition);original.classList.add('ux09-farm-original');original.after(overview);
+        overview.append(composition);
+        // UX13 P2: farm facts that are not Molienda/Semilla composition live in a secondary disclosure.
+        if(extra.length){const more=el('details','ux13-farm-more'),list=el('ul','ux13-farm-more-list');more.append(el('summary','','Otros datos de finca'));extra.forEach(t=>list.append(el('li','',t)));more.append(list);overview.append(more);}original.classList.add('ux09-farm-original');original.after(overview);
         const explorer=contextualExplorer(producer.details,'farm-'+producer.code,{farm:true,mapPanel,table});explorer.append(mapPanel);overview.after(explorer);
         // Secondary actions live in the farm band: compact Mapa / Histórico next to the single «Exportar».
         const bandActions=presentation(el('div','ux13-band-actions')),mapAction=button('Mapa',()=>{const showing=explorer.dataset.objective==='map';explorer.setObjective(showing?(mapAction.dataset.previous||'area'):'map');if(!showing)mapPanel.scrollIntoView({block:'start',behavior:'instant'});});

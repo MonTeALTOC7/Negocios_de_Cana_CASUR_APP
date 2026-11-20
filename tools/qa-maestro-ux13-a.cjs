@@ -168,25 +168,56 @@ const check = (name, fn) => fn().then(() => results.push(['PASS', name]), e => {
         await page.locator('#cronoSuggestions button').first().click();
         await page.waitForSelector(ex);
         await searchFirst('tras búsqueda por nombre');
-        // Pre-existing (also V1.6.1): the asynchronous report finish closes suggestions opened
-        // in the first ~300 ms after a farm renders. Wait for it, as a person would.
-        await page.waitForSelector('#cronoContent .ficha-band .context-report-trigger', {timeout: 30000});
+        // UX13 P1: type IMMEDIATELY after the farm opens (no wait for the report, no sleeps).
         await page.locator('.ux04-clear-search').click();
         assert.equal(await page.locator('#cronoQ').inputValue(), '');
         await page.locator('#cronoQ').fill('99301');
         const lot = page.locator('#cronoSuggestions button', {hasText: '99301'}).first();
-        await page.waitForTimeout(400);
-        if (!(await lot.isVisible())) { await page.locator('#cronoQ').fill(''); await page.locator('#cronoQ').fill('99301'); }
-        await lot.waitFor({state: 'visible'});
+        await lot.waitFor({state: 'visible', timeout: 2000});
         await lot.click();
         await page.waitForFunction(() => document.querySelector('#cronoContent').dataset.geoScope === 'lot');
         await searchFirst('suerte'); await noHScroll('suerte');
         await page.locator('#maestroBackFarm').click();
         await page.waitForSelector(ex);
         await searchFirst('volver a finca');
+        // P1: also immediately after returning from the lot, then pick a farm suggestion.
+        await page.locator('#cronoQ').fill('Pansaco');
+        const farmHit = page.locator('#cronoSuggestions button').first();
+        await farmHit.waitFor({state: 'visible', timeout: 2000});
+        await farmHit.click(); await page.waitForSelector(ex);
         await page.reload(); await page.waitForFunction(() => window.CASUR_PRODUCTION_READY && window.CASUR_MAESTRO_UX, null, {timeout: 60000});
         await page.evaluate(() => { CASUR_MAESTRO_UX.activate('cronologico'); renderCronoProducer('993'); });
         await page.waitForSelector(ex); await searchFirst('recarga');
+      });
+      await check(W + ' P1: sugerencias abiertas al escribir inmediatamente tras abrir finca (5 repeticiones)', async () => {
+        for (let i = 0; i < 5; i++) {
+          await page.evaluate(() => renderCronoHome());
+          await page.locator('#cronoQ').fill('Pansaco');
+          await page.locator('#cronoSuggestions button').first().click();
+          await page.locator('#cronoQ').fill('9930');
+          await page.waitForTimeout(450); // longer than the 180 ms blur delay: the list must stay open
+          assert.ok(await page.locator('#cronoSuggestions button').first().isVisible(), 'iteración ' + i);
+        }
+        await page.locator('#cronoQ').press('Escape');
+        await page.locator('#cronoQ').fill('99302');
+        await page.locator('#cronoSuggestions button', {hasText: '99302'}).first().click();
+        await page.waitForFunction(() => document.querySelector('#cronoContent').dataset.geoScope === 'lot');
+      });
+      await check(W + ' P2: banda sin metadatos huérfanos ni solapes; composición y nota de semilla', async () => {
+        await page.evaluate(() => { CASUR_MAESTRO_UX.activate('cronologico'); renderCronoProducer('993'); });
+        await page.waitForSelector('#cronoContent .ficha-band .context-report-trigger', {timeout: 30000});
+        const band = await page.evaluate(() => { const b = document.querySelector('#cronoContent .ficha-band'), r = n => n.getBoundingClientRect(), sm = b.querySelector('small'), act = b.querySelector('.ficha-actions'), h = b.querySelector('h2'); const lines = Math.round(r(sm).height / parseFloat(getComputedStyle(sm).lineHeight || 14)); const overlap = (x, y) => !(x.right <= y.left || y.right <= x.left || x.bottom <= y.top || y.bottom <= x.top); return {lines, text: sm.textContent, overlapSmall: overlap(r(sm), r(act)), overlapTitle: overlap(r(h), r(act)), inside: r(act).right <= r(b).right + 1}; });
+        assert.ok(band.lines <= 1, 'metadatos en ' + band.lines + ' líneas: ' + band.text);
+        assert.ok(!band.overlapSmall && !band.overlapTitle && band.inside, JSON.stringify(band));
+        assert.match(band.text, /Código 993/); assert.match(band.text, /CV/);
+        const comp = await page.locator('.ux13-composition').innerText();
+        assert.doesNotMatch(comp, /Distancia|sin área activa/);
+        const more = page.locator('.ux13-farm-more'); assert.equal(await more.locator('summary').innerText(), 'Otros datos de finca');
+        assert.match(await more.evaluate(n => n.textContent), /Distancia ponderada: .* km/);
+        const fx = '#cronoContent .context-explorer[data-context="farm-993"]';
+        const view = dim => page.evaluate(([fx, dim]) => { const b = document.querySelector(fx); b.setObjective('estimate'); const s = b.querySelector('.ux05-dimension-select'); s.value = dim; s.dispatchEvent(new Event('change')); }, [fx, dim]);
+        await view('destino'); assert.equal(await page.locator(fx + ' .ux13-overview-notes').count(), 0, 'nota repetida en Destino');
+        await view('stage'); assert.match(await page.locator(fx + ' .ux13-overview-notes').innerText(), /Semilla: .* no aplica/);
       });
       await check(W + ' Histórico desde la finca', async () => {
         await page.locator('#cronoContent .ux13-band-action', {hasText: 'Histórico'}).click();

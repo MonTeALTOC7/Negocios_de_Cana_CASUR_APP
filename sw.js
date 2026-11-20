@@ -9,8 +9,8 @@
    neutralizados dentro de la Maestra: aquí no se registran.
    ============================================================ */
 
-const APP_VERSION = '1.6.1';
-const RELEASE_ID = '1.6.1-4369527e88d00489';
+const APP_VERSION = '1.6.2';
+const RELEASE_ID = '1.6.2-4b5e2ec388c29b91';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;

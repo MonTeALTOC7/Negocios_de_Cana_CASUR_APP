@@ -2,6 +2,12 @@
 
 Formato: [versión] — fecha · resumen.
 
+## [1.6.2] / Producción [V1.8.3] — pendiente de publicación · UX13 Etapa A (Issue #61)
+- PATCH de presentación del Maestro de Suertes: Cronológico General y de finca comparten un único renderer con pestañas Distribución, Estimados Z26/27 y Suertes, selector «Agrupar por» y tablas compactas con TOTAL.
+- N.º de cortes en orden agronómico fijo (Plantilla → 2.º corte → 3–4 → 5–6 → 7+). Semilla muestra su área y suertes reales; su estimado de molienda se presenta como «No aplica» (no N/D). Molienda sin estimado se distingue.
+- «Composición de la finca» concisa en lugar de «Detalle complementario»/«Composición y metodología»; acciones Mapa/Histórico compactas y un único «Exportar» (PDF/PNG existentes). Buscador `#cronoQ` arriba en todas las vistas; el SELECT de finca se conserva como control interno.
+- Sin cambios en motores, fórmulas, datos oficiales, GIS, generadores PDF/PNG ni Service Worker (solo APP_VERSION/RELEASE_ID derivados). QA: `tools/qa-maestro-ux13-a.cjs`.
+
 ## [1.6.1] — pendiente de publicación · hotfix recuperación PWA (Issue #59)
 - PATCH del shell: la instalación de una versión nueva ya no se bloquea si falta la instantánea de la anterior; se rechazan downgrades y se conserva todo dato y caché.
 - Si falta el manifiesto local de la release instalada se recupera solo desde la misma release verificada (SHA-256) o se muestra una pantalla de reparación con Reparar, Reintentar y Re-registrar, en lugar de un 503 plano.

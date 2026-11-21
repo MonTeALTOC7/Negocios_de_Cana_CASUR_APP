@@ -973,3 +973,94 @@ body.casur-maestro-premium:not(.print-export) #cronoSection:has(.context-explore
  body.casur-maestro-premium:not(.print-export) #cronoContent[data-geo-scope="farm"] .ficha-band .ficha-actions {grid-column:2;grid-row:1;position:static!important}
  body.casur-maestro-premium:not(.print-export) #cronoContent[data-geo-scope="farm"] .ficha-band > div:first-child > small {grid-column:1 / -1;grid-row:2;display:block;white-space:normal}
 }
+
+/* UX13 · Etapa B — Histórico de finca y de suerte. Solo pantalla: PDF/PNG usan .print-export
+   y clonan el informe original sin los controles añadidos (.no-print/.export-excluded). */
+@media screen {
+ #fichaSection .ux13-internal-select {display:none!important}
+ body.casur-maestro-premium:not(.print-export) #fichaSection .searchbox {grid-template-columns:minmax(0,1fr) auto!important}
+ body.casur-maestro-premium:not(.print-export) #fichaSection .searchbox .suggestion-wrap {grid-column:1!important}
+ body.casur-maestro-premium:not(.print-export) #fichaSection .maestro-report-links {display:none!important}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ficha-screen-title {display:none!important}
+ /* Hero compacto: nombre/código a la izquierda; estado, Mapa y Exportar como acciones compactas. */
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ficha-band {display:flex!important;flex-direction:row!important;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;min-height:0!important;padding:12px 14px!important}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ficha-band > div:first-child {min-width:0;flex:1 1 180px}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ficha-band h2 {margin:0;font-size:20px;line-height:1.2;overflow-wrap:anywhere}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ficha-band .ficha-actions {display:flex!important;flex-direction:row!important;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;width:auto!important;flex:0 1 auto}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ficha-band .status-pill {font-size:11px;padding:4px 8px}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ficha-band .casur-visual-actions {display:flex!important;flex-direction:row!important;flex-wrap:nowrap;gap:6px;width:auto!important}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ficha-band :is(.context-report-trigger,.ux13-band-map) {display:inline-flex!important;align-items:center;gap:6px;width:auto!important;min-width:44px;min-height:44px;height:auto;padding:8px 12px!important;border:1px solid #ccdcdf;border-radius:8px;background:#f7fcf9;color:#133742;font-size:13px!important;font-weight:700;box-shadow:none}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-band-map .ico {display:inline-flex;width:20px;height:20px;background:none;margin:0}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-band-map .copy {display:inline}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-band-map .copy small {display:none}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-band-map .copy b {font-size:13px;color:inherit}
+ /* Período: selector compacto + rango discreto; las opciones originales siguen siendo la fuente. */
+ body.casur-maestro-premium:not(.print-export) #fichaContent .historical-period-card {padding:10px 12px!important;margin:8px 0!important}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .historical-period-card:has(.ux13-period) :is(.historical-period-summary,.historical-period-presets) {display:none!important}
+ .ux13-period {display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
+ .ux13-period-field {display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#173b46}
+ .ux13-period-field select {min-height:44px;min-width:150px;border:1px solid #beced1;border-radius:8px;background:#fff;color:#154149;font-weight:650;font-size:14px;padding:6px 10px}
+ .ux13-period-meta {display:flex;flex-direction:column;line-height:1.25;font-variant-numeric:tabular-nums}
+ .ux13-period-range {font-size:15px;color:#173b46}
+ .ux13-period-meta small {font-size:11px;color:#4f686e}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .historical-season-picker:not([hidden]) {margin-top:8px}
+ /* KPI: TCH, KATM, Área y Edad primero (2×2 móvil, 4 en PC); el resto compacto debajo. */
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-kpis {display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin-top:8px!important}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-kpis > .kpi {min-height:0!important;padding:10px 12px!important;margin:0!important}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-kpis > [data-ux13-kpi=tch] {order:1}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-kpis > [data-ux13-kpi=katm] {order:2}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-kpis > [data-ux13-kpi=area] {order:3}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-kpis > [data-ux13-kpi=edad] {order:4}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-kpis > .ux13-kpi-divider {order:5}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-kpis > [data-ux13-kpi=secondary] {order:6;padding:8px 10px!important}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-kpis > .kpi strong {font-variant-numeric:tabular-nums}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-kpis > [data-ux13-kpi=secondary] strong {font-size:17px!important}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-kpis > [data-ux13-kpi=secondary] .label {font-size:10.5px!important}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-kpis > [data-ux13-kpi=secondary] em {font-size:11px!important;line-height:1.3}
+ body.casur-maestro-premium:not(.print-export) #fichaContent :is(.ux13-kpis,.historical-drilldown-kpi) .ux13-ornamental {display:none!important}
+ .ux13-kpi-divider {grid-column:1 / -1;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 10px;margin-top:4px;font-size:12px;font-weight:700;letter-spacing:.2px;color:#4f686e}
+ body.casur-maestro-premium:not(.print-export) .ux13-kpi-divider button.ux13-help-trigger,
+ body.casur-maestro-premium:not(.print-export) .ux13-lot-history button.ux13-help-trigger {min-height:44px;padding:0 2px;border:0;background:transparent;box-shadow:none;color:#1f4e5c;font-size:12px;font-weight:650;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+ /* Comparar TCH: plegable (cerrado en móvil); el bloque original se muestra solo al abrir. */
+ body.casur-maestro-premium:not(.print-export) #fichaContent .historical-comparison-title {display:none!important}
+ body.casur-maestro-premium:not(.print-export) #fichaContent #printPanel:has(> .ux13-compare:not([open])) > .delta-grid {display:none!important}
+ .ux13-compare {margin:12px 0 6px;border:1px solid #d5dfe1;border-radius:10px;background:#fff}
+ .ux13-compare > summary {display:list-item;min-height:44px;padding:10px 12px;cursor:pointer;font-size:14px;font-weight:700;color:#173b46}
+ .ux13-compare > summary small {margin-left:8px;font-size:11px;font-weight:500;color:#4f686e}
+ .ux13-compare[open] {border-bottom-left-radius:0;border-bottom-right-radius:0;margin-bottom:0;border-bottom:0}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-compare[open] + .historical-comparison-title + .delta-grid {margin-top:0;padding:8px;border:1px solid #d5dfe1;border-top:0;border-radius:0 0 10px 10px;gap:8px}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .delta-grid .delta small {display:none}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .delta-grid .delta {padding:8px 10px;min-height:0}
+ /* Ficha de suerte (Cronológico): métrica segmentada, período compacto y un solo panel de detalle. */
+ .ux13-lot-history .context-history-controls {display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+ .ux13-lot-history .context-history-controls > * {flex:0 0 auto}
+ .ux13-metric {display:inline-flex;border:1px solid #c9d7da;border-radius:8px;overflow:hidden}
+ .ux13-lot-history .ux13-metric button {flex:none;min-width:64px;min-height:44px;border:0;border-radius:0;background:#f1f7f5;color:#154149;font-weight:700;cursor:pointer}
+ .ux13-lot-history .ux13-metric button + button {border-left:1px solid #c9d7da}
+ .ux13-lot-history .ux13-metric button[aria-pressed=true] {background:#154149;color:#fff}
+ .ux13-lot-history .context-history-controls .context-control {flex:0 1 auto;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+ .ux13-lot-history .context-history-controls .context-control select {min-height:44px;border:1px solid #beced1;border-radius:8px;background:#fff;padding:6px 8px;font-size:14px}
+ .ux13-lot-history .ux13-table-action {flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;margin-left:auto;padding:6px 12px;border:1px solid #c9d7da;border-radius:8px;background:#fff;color:#154149;font-weight:650;cursor:pointer}
+ .ux13-lot-history .ux13-table-action .maestro-icon {width:18px;height:18px}
+ .ux13-point {cursor:pointer;outline:none}
+ .ux13-point .ux13-ring {opacity:0}
+ .ux13-point.is-selected .ux13-ring {opacity:1}
+ .ux13-point:focus-visible .ux13-ring {opacity:1;stroke-dasharray:3 2}
+ .ux13-point:focus-visible > text:first-child {text-decoration:underline}
+ .ux13-season-detail {margin-top:8px;padding:10px 12px;border:1px solid #d9e2e3;border-radius:10px;background:#f7faf9}
+ .ux13-season-detail:empty {display:none}
+ .ux13-season-detail h4 {margin:0 0 6px;font-size:14px;color:#173b46}
+ .ux13-season-facts {display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:6px 12px;margin:0}
+ .ux13-season-facts dt {font-size:11px;color:#4f686e}
+ .ux13-season-facts dd {margin:2px 0 0;font-size:15px;font-weight:700;color:#173b46;font-variant-numeric:tabular-nums}
+ .ux13-season-facts .is-metric dd {color:#0f5d52;box-shadow:inset 0 -2px #d4b35f;display:inline-block}
+ .ux13-history-note {margin:6px 0 0;font-size:12px;color:#4f686e}
+}
+@media screen and (min-width:768px) {
+ body.casur-maestro-premium:not(.print-export) #fichaContent .ux13-kpis {grid-template-columns:repeat(4,minmax(0,1fr))!important}
+ body.casur-maestro-premium:not(.print-export) #fichaContent .delta-grid {grid-template-columns:repeat(4,minmax(0,1fr))!important}
+}
+@media screen and (max-width:420px) {
+ .ux13-lot-history .ux13-table-action {margin-left:0}
+ .ux13-period-field select {min-width:132px}
+}

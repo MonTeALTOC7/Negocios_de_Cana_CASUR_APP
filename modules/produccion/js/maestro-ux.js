@@ -68,19 +68,6 @@
   const presentation=n=>{n.classList.add('no-print','export-excluded');n.dataset.exportExclude='true';return n;};
   const engine=()=>window.CASUR_CRONO_PARTICIPATION;
   const groupRows=(rows,field,key)=>rows.filter(r=>engine().agronomicGroups([r],field).length&&(field==='stage'?engine().cropStage(r):String(r[field]??'').trim()||'Sin clasificar')===key);
-  function detailTip(target,lines){
-    target.tabIndex=0;target.setAttribute('aria-label',lines.join('. '));
-    const show=()=>{
-      let tip=byId('maestroAnalyticTip');if(!tip){tip=presentation(el('div','maestro-analytic-tip'));tip.id='maestroAnalyticTip';tip.setAttribute('role','tooltip');document.body.append(tip);}
-      tip.replaceChildren(...lines.map((line,i)=>el(i?'span':'b','',line)));tip.hidden=false;
-      target.setAttribute('aria-describedby',tip.id);const r=target.getBoundingClientRect();
-      tip.style.left=Math.max(8,Math.min(innerWidth-tip.offsetWidth-8,r.left))+'px';
-      tip.style.top=Math.max(8,Math.min(innerHeight-tip.offsetHeight-8,r.bottom+6))+'px';
-    };
-    const hide=()=>{const tip=byId('maestroAnalyticTip');if(tip)tip.hidden=true;target.removeAttribute('aria-describedby');};
-    target.addEventListener('mouseenter',show);target.addEventListener('focus',show);target.addEventListener('click',show);
-    target.addEventListener('mouseleave',hide);target.addEventListener('blur',hide);target.addEventListener('keydown',e=>{if(e.key==='Escape')hide();});
-  }
   // UX13: fixed agronomic sequence for crop stage; categories still come from cropStage().
   const stageSequence=['Plantilla','2.º corte','Cortes 3–4','Cortes 5–6','Cortes 7+'];
   const stageRank=key=>{const i=stageSequence.indexOf(key);if(i>=0)return i;if(/^(sin clasificar|sin dato|n\/d)$/i.test(key))return 1e6;const n=Number(String(key).match(/\d+/)?.[0]);return Number.isFinite(n)?stageSequence.length+n:1e5;};
@@ -380,36 +367,61 @@
       menu.addEventListener('click',e=>{if(e.target.closest('button'))queueMicrotask(()=>{if(menu.matches(':popover-open'))menu.hidePopover();});},true);
     });
   }
+  // UX13-B: lot history chart. Same engine model (buildHistoricalChartModel / groupHistoricalBySeason);
+  // one detail panel under the chart instead of a floating tooltip plus a duplicated status block.
   function historicalProjection(lotId){
     const h=window.CASUR_HISTORICAL_ENGINE,rows=h.normalizeHistoricalRows([window.lotByCode(lotId)]),seasons=h.resolvePeriod(rows.map(r=>r.zafra),'all');
-    const root=presentation(el('section','context-history'));let metric='tch',period='last5';
+    const root=presentation(el('section','context-history ux13-lot-history'));let metric='tch',period='last5',selectedSeason=null;
     const controls=el('div','context-history-controls'),chart=el('div','context-history-chart');
+    const label=z=>String(z).padStart(4,'0').replace(/(..)(..)/,'$1/$2');
+    // Missing stays missing: «—» on screen and «sin dato» for assistive tech; zero is shown as 0.00.
+    const value=(v,digits=2)=>v==null||!Number.isFinite(Number(v))?dash:fmt(v,digits);
+    const spoken=(v,unit='')=>v==null||!Number.isFinite(Number(v))?'sin dato':fmt(v)+unit;
+    const metrics=el('div','ux13-metric');metrics.setAttribute('role','group');metrics.setAttribute('aria-label','Métrica del gráfico');
+    ['tch','katm'].forEach(key=>{const b=button(key.toUpperCase(),()=>{metric=key;render();});b.dataset.metric=key;metrics.append(b);});
+    const table=button('Tabla histórica',()=>{
+      const wrap=el('div','context-technical'),tableNode=el('table'),head=el('tr');['Zafra','TCH','KATM','Área ha','Toneladas','Edad'].forEach(t=>head.append(el('th','',t)));const thead=el('thead');thead.append(head);tableNode.append(thead);const body=el('tbody');h.groupHistoricalBySeason(rows).forEach(r=>{const tr=el('tr');[String(r.zafra).replace(/(..)(..)/,'$1/$2'),fmt(r.tch),fmt(r.katm),fmt(r.area),fmt(r.ton),fmt(r.edad)].forEach(v=>tr.append(el('td','',v)));body.append(tr);});tableNode.append(body);wrap.append(tableNode);openDrawer('Histórico completo · TCH/KATM',wrap);
+    });table.className='ux13-table-action';table.insertAdjacentHTML('afterbegin',icon('table'));
+    controls.append(metrics,chooseControl('Período',[['last3','Últimas 3'],['last5','Últimas 5'],['all','Todas']],period,v=>{period=v;render();}),table);
     const render=()=>{
       const model=h.buildHistoricalChartModel(rows,h.resolvePeriod(seasons,period),metric);root.dataset.model=JSON.stringify(model);const points=model.points.filter(p=>p.selected);chart.replaceChildren();
-      controls.querySelectorAll('[data-metric]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.metric===metric)));
+      metrics.querySelectorAll('[data-metric]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.metric===metric)));
       chart.append(el('h3','',metric==='tch'?'Rendimiento histórico · TCH':'Azúcar por tonelada de caña · KATM'));
       if(!model.points.length){chart.append(el('p','','Sin registros históricos para esta suerte.'));return;}
-      const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');const chartWidth=points.length>5?points.length*64+48:360;svg.setAttribute('viewBox','0 0 '+chartWidth+' 240');if(points.length>5)svg.style.minWidth=chartWidth+'px';svg.setAttribute('role','img');svg.setAttribute('aria-label','Histórico '+metric.toUpperCase()+' de la suerte '+lotId);
-      const node=(tag,attrs,text)=>{const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));if(text!=null)n.textContent=text;svg.append(n);return n;};
-      const x=i=>34+i*(chartWidth-68)/Math.max(1,points.length-1),y=v=>190-(v-model.min)/(model.max-model.min||1)*140;
+      if(!points.some(p=>p.zafra===selectedSeason))selectedSeason=([...points].reverse().find(p=>p.value!==null)||points[points.length-1])?.zafra??null;
+      const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');const chartWidth=points.length>5?points.length*64+48:360;svg.setAttribute('viewBox','0 0 '+chartWidth+' 240');if(points.length>5)svg.style.minWidth=chartWidth+'px';svg.setAttribute('role','group');svg.setAttribute('aria-label','Histórico '+metric.toUpperCase()+' de la suerte '+lotId+'. Elegí una zafra para ver su detalle.');
+      const node=(tag,attrs,text,parent=svg)=>{const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));if(text!=null)n.textContent=text;parent.append(n);return n;};
+      const x=i=>34+i*(chartWidth-68)/Math.max(1,points.length-1),y=v=>190-(v-model.min)/(model.max-model.min||1)*140,color=metric==='katm'?'#2388b9':'#087d56';
       if(model.min!==null){[model.min,(model.min+model.max)/2,model.max].forEach(v=>{node('line',{x1:35,x2:chartWidth-20,y1:y(v),y2:y(v),stroke:'#dce8e6'});node('text',{x:0,y:y(v)+4,'font-size':12,fill:'#456975'},fmt(v,0));});}
       let previous=null;
+      points.forEach((point,i)=>{if(point.value===null){previous=null;return;}if(previous&&point.zafra-previous.point.zafra===101)node('line',{x1:x(previous.i),y1:y(previous.point.value),x2:x(i),y2:y(point.value),stroke:color,'stroke-width':3});previous={point,i};});
+      const groups=[];
       points.forEach((point,i)=>{
-        const label=String(point.zafra).padStart(4,'0').replace(/(..)(..)/,'$1/$2');node('text',{x:x(i),y:220,'text-anchor':'middle','font-size':13,fill:'#244b56'},label);
-        if(point.value===null){node('text',{x:x(i),y:215,'text-anchor':'middle','font-size':12},'N/D');previous=null;return;}
-        if(previous&&point.zafra-previous.point.zafra===101)node('line',{x1:x(previous.i),y1:y(previous.point.value),x2:x(i),y2:y(point.value),stroke:metric==='katm'?'#2388b9':'#087d56','stroke-width':3});
-        node('circle',{cx:x(i),cy:y(point.value),r:6,fill:metric==='katm'?'#2388b9':'#087d56',stroke:'white','stroke-width':2});const dot=node('circle',{cx:x(i),cy:y(point.value),r:28,fill:'transparent',tabindex:0,'data-season':point.zafra});
-        const detail=['Zafra '+label,'TCH '+fmt(point.tch)+' · KATM '+fmt(point.katm),fmt(point.ton)+' t · '+fmt(point.area)+' ha','Edad '+fmt(point.edad)+' meses',point.katm===null?'KATM no disponible; sin interpolación':'KATM ponderado por toneladas'];const seasonRows=rows.filter(r=>r.zafra===point.zafra),valid=seasonRows.filter(r=>r.katm!==null&&r.ton!==null&&r.ton>=0);detail.push('Cobertura KATM: '+valid.length+'/'+seasonRows.length+' registros; '+fmt(valid.reduce((n,r)=>n+r.ton,0))+' t con KATM');
-        detailTip(dot,detail);dot.addEventListener('click',()=>{status.replaceChildren(...detail.map(t=>el('span','',t)));});dot.addEventListener('focus',()=>{status.replaceChildren(...detail.map(t=>el('span','',t)));});
-        node('text',{x:x(i),y:y(point.value)-14,'text-anchor':'middle','font-size':13,fill:'#173b46'},fmt(point.value));previous={point,i};
+        const g=node('g',{class:'ux13-point',tabindex:0,role:'button','data-season':point.zafra,'aria-label':'Zafra '+label(point.zafra)+': '+metric.toUpperCase()+' '+spoken(point.value)});
+        node('text',{x:x(i),y:220,'text-anchor':'middle','font-size':13,fill:'#244b56'},label(point.zafra),g);
+        if(point.value===null)node('text',{x:x(i),y:200,'text-anchor':'middle','font-size':14,fill:'#5c7470'},dash,g);
+        else{node('circle',{class:'ux13-ring',cx:x(i),cy:y(point.value),r:11,fill:'none',stroke:color,'stroke-width':2},null,g);node('circle',{cx:x(i),cy:y(point.value),r:6,fill:color,stroke:'white','stroke-width':2},null,g);node('text',{x:x(i),y:y(point.value)-16,'text-anchor':'middle','font-size':13,fill:'#173b46'},fmt(point.value),g);}
+        node('rect',{x:x(i)-30,y:10,width:60,height:220,fill:'transparent'},null,g);
+        const choose=focus=>{selectedSeason=point.zafra;paint();if(focus)g.focus();};
+        g.addEventListener('click',()=>choose(false));
+        g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose(false);}else if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const j=e.key==='Home'?0:e.key==='End'?groups.length-1:Math.max(0,Math.min(groups.length-1,i+(e.key==='ArrowRight'?1:-1)));groups[j].dispatchEvent(new Event('click'));groups[j].focus();}});
+        groups.push(g);
       });
-      const plot=el('div','context-history-plot');plot.append(svg);chart.append(plot);const status=el('div','context-history-status','Tocá una zafra para consultar TCH, KATM, toneladas, área y edad.');status.setAttribute('aria-live','polite');chart.append(status);
-      chart.append(el('small','context-hint',points.filter(p=>p.value!==null).length+' de '+points.length+' zafras del período con '+metric.toUpperCase()+'. Los valores ausentes permanecen N/D.'));
+      const plot=el('div','context-history-plot');plot.append(svg);chart.append(plot);
+      const detail=el('section','ux13-season-detail');detail.setAttribute('aria-live','polite');chart.append(detail);
+      const missing=points.filter(p=>p.value===null);
+      if(missing.length)chart.append(el('p','ux13-history-note','Sin '+metric.toUpperCase()+' en '+missing.map(p=>label(p.zafra)).join(', ')+'; la línea no se interpola.'));
+      const paint=()=>{
+        groups.forEach(g=>{const on=Number(g.dataset.season)===selectedSeason;g.classList.toggle('is-selected',on);g.setAttribute('aria-pressed',String(on));});
+        const p=points.find(p=>p.zafra===selectedSeason);detail.replaceChildren();if(!p)return;
+        detail.append(el('h4','','Zafra '+label(p.zafra)));const dl=el('dl','ux13-season-facts');
+        [['area','Área (ha)',p.area],['tch','TCH',p.tch],['katm','KATM',p.katm],['ton','Toneladas (t)',p.ton],['edad','Edad (meses)',p.edad]].forEach(([key,name,v])=>{const item=el('div');item.dataset.fact=key;if(key===metric)item.classList.add('is-metric');const dd=el('dd','',value(v));if(dd.textContent===dash)dd.setAttribute('aria-label','sin dato');item.append(el('dt','',name),dd);dl.append(item);});
+        detail.append(dl);
+        const g=groups.find(g=>g.classList.contains('is-selected'));if(g&&plot.scrollWidth>plot.clientWidth){const r=g.getBoundingClientRect(),box=plot.getBoundingClientRect();if(r.left<box.left||r.right>box.right)plot.scrollLeft+=r.left-box.left-(box.width-r.width)/2;}
+      };
+      paint();
     };
-    ['tch','katm'].forEach(key=>{const b=button(key.toUpperCase(),()=>{metric=key;render();});b.dataset.metric=key;controls.append(b);});
-    controls.append(button('Ampliar',()=>{const marker=document.createComment('chart');chart.before(marker);openDrawer('Histórico de la suerte '+lotId,chart,()=>marker.replaceWith(chart));}),button('Tabla histórica',()=>{
-      const wrap=el('div','context-technical'),table=el('table'),head=el('tr');['Zafra','TCH','KATM','Área ha','Toneladas','Edad'].forEach(t=>head.append(el('th','',t)));const thead=el('thead');thead.append(head);table.append(thead);const body=el('tbody');h.groupHistoricalBySeason(rows).forEach(r=>{const tr=el('tr');[String(r.zafra).replace(/(..)(..)/,'$1/$2'),fmt(r.tch),fmt(r.katm),fmt(r.area),fmt(r.ton),fmt(r.edad)].forEach(v=>tr.append(el('td','',v)));body.append(tr);});table.append(body);wrap.append(table);openDrawer('Histórico completo · TCH/KATM',wrap);
-    }));controls.append(chooseControl('Período',[['last3','3 zafras'],['last5','5 zafras'],['all','Todas']],period,v=>{period=v;render();}));root.append(controls,chart);render();return root;
+    root.append(controls,chart);render();return root;
   }
   function installPremiumFicha(){
     const host=byId('cronoContent');let map=null,report=null;
@@ -459,6 +471,64 @@
     };new MutationObserver(refresh).observe(host,{childList:true,subtree:true});refresh();
   }
 
+  // UX13 P1: the original inline onblur of #cronoQ/#q schedules an anonymous hide 180 ms later. After
+  // picking a suggestion (which blurs the input) a stale timer closed the list the user had just reopened
+  // by typing. Same delay (so clicks on suggestions still land), but each blur gets an identity that
+  // focus/typing cancels, and it never hides while focus is back on the input or inside the list.
+  function guardSuggestionBlur(input,box,hideName){
+    if(!input||!box||input.dataset.ux13BlurGuard)return;input.dataset.ux13BlurGuard='true';
+    let blurToken=0;const cancelBlur=()=>{blurToken++;};
+    const scheduleHide=()=>{const token=++blurToken;setTimeout(()=>{if(token!==blurToken)return;const active=document.activeElement;if(active===input||box.contains(active))return;window[hideName]?.();},180);};
+    input.onblur=scheduleHide;box.addEventListener('focusout',scheduleHide);box.addEventListener('focusin',cancelBlur);
+    input.addEventListener('focus',cancelBlur,true);input.addEventListener('input',cancelBlur,true);
+  }
+  // UX13-B: presentation adapter for the Histórico ficha (farm and lot share the original renderer).
+  // Original nodes, handlers, HISTORICAL_PERIOD_STATE and exporters stay authoritative: controls added
+  // here are export-excluded and only call the original actions; report nodes are never moved.
+  let historicoCompareOpen=null;
+  function installHistoricoUx13(){
+    const host=byId('fichaContent'),selector=byId('producerSelect');if(!host)return;
+    guardSuggestionBlur(byId('q'),byId('searchSuggestions'),'hideSearchSuggestions');
+    if(selector){selector.classList.add('ux13-internal-select');selector.tabIndex=-1;selector.setAttribute('aria-hidden','true');}
+    const kpiKind=text=>/^Área/i.test(text)?'area':/^TCH ponderado/i.test(text)?'tch':/^KATM/i.test(text)?'katm':/^Edad/i.test(text)?'edad':'secondary';
+    // Formula captions move to «¿Cómo se calculan?»; captions that qualify validity or scope stay visible.
+    const ornamental=/^(Toneladas ÷ área|Ponderado por toneladas|Ponderada por área válida|Suma de las suertes|lotId únicos|Cosechada en la zafra)$/i;
+    const help=(id,title,lines)=>{const wrap=el('span','ux13-help-wrap'),trigger=el('button','ux13-help-trigger',title),pop=presentation(el('div','maestro-help ux13-help'));trigger.type='button';trigger.setAttribute('popovertarget',id);pop.id=id;pop.setAttribute('popover','');pop.append(el('b','',title),...lines.map(t=>el('p','',t)));const close=el('button','','Cerrar');close.type='button';close.setAttribute('popovertarget',id);close.setAttribute('popovertargetaction','hide');pop.append(close);wrap.append(trigger,pop);return wrap;};
+    const refresh=()=>{
+      const panel=host.querySelector('#printPanel');if(!panel)return;
+      // Hero: one «Exportar» (original PDF/PNG buttons inside) and a compact GIS map action.
+      installReportMenus(host);
+      panel.querySelectorAll('.ficha-band [data-casur-geo-action]').forEach(map=>{map.classList.remove('premium-original-analysis');map.classList.add('ux13-band-map');map.title=map.getAttribute('aria-label')||'Mapa';});
+      panel.querySelectorAll('.historical-drilldown-kpi small').forEach(n=>n.classList.toggle('ux13-ornamental',ornamental.test(n.textContent.trim())));
+      const card=panel.querySelector('.historical-period-card');
+      if(card&&!card.querySelector('.ux13-period')){
+        const presets=[...card.querySelectorAll('.historical-period-preset')],summary=card.querySelector('.historical-period-summary');
+        const row=presentation(el('div','ux13-period')),field=el('label','ux13-period-field','Período'),select=el('select');select.setAttribute('aria-label','Período histórico');
+        presets.forEach((b,i)=>{const o=el('option','',b.textContent.trim());o.value=String(i);if(b.getAttribute('aria-pressed')==='true')o.selected=true;select.append(o);});
+        select.onchange=()=>presets[Number(select.value)]?.click();field.append(select);
+        const rawRange=summary?.querySelector('strong')?.textContent.trim()||'',seasonsIn=rawRange.match(/\d{2}\/\d{2}/g)||[],consecutive=seasonsIn.length>2&&seasonsIn.every((z,i)=>!i||Number(z.slice(0,2))===Number(seasonsIn[i-1].slice(0,2))+1),range=consecutive?seasonsIn[0]+'–'+seasonsIn[seasonsIn.length-1]:rawRange,scope=(summary?.querySelector('small')?.innerHTML.split(/<br\s*\/?>/i)[0]||'').replace(/<[^>]+>/g,'').trim();
+        const meta=el('div','ux13-period-meta');meta.append(el('strong','ux13-period-range',range),el('small','',scope));row.append(field,meta);card.prepend(row);
+      }
+      const kpis=panel.querySelector('.historical-agronomic-kpis');
+      if(kpis&&!kpis.querySelector('.ux13-kpi-divider')){
+        kpis.classList.add('ux13-kpis');
+        kpis.querySelectorAll(':scope > .kpi').forEach(k=>{const label=k.querySelector('.label')?.textContent.trim()||'',kind=kpiKind(label);k.dataset.ux13Kpi=kind;const caption=k.querySelector('em');if(caption)caption.classList.toggle('ux13-ornamental',ornamental.test(caption.textContent.trim()));});
+        const divider=presentation(el('div','ux13-kpi-divider'));divider.append(el('span','','Otros indicadores'),help('ux13-kpi-method-'+Math.random().toString(36).slice(2),'¿Cómo se calculan?',['TCH ponderado = toneladas ÷ área cosechada del período.','KATM ponderado por toneladas de las zafras con KATM.','Edad ponderada por área válida.','La distancia es la referencia actual del Cronológico, no un valor histórico.']));
+        kpis.append(divider);
+      }
+      const title=panel.querySelector('.historical-comparison-title'),grid=panel.querySelector('.delta-grid');
+      if(title&&grid&&!panel.querySelector('.ux13-compare')){
+        const details=presentation(el('details','ux13-compare')),n=grid.querySelectorAll('.delta').length;
+        details.append(el('summary','','Comparar TCH'));details.querySelector('summary').append(el('small','',n+' comparadores · mismas zafras del período'));
+        details.open=historicoCompareOpen??innerWidth>=768;details.addEventListener('toggle',()=>{historicoCompareOpen=details.open;});
+        // «toggle» is async: record the choice on activation too, so an immediate period change keeps it.
+        details.querySelector('summary').addEventListener('click',()=>{historicoCompareOpen=!details.open;});
+        title.before(details);
+      }
+    };
+    new MutationObserver(refresh).observe(host,{childList:true,subtree:true});refresh();
+  }
+
   function installIteration03() {
     if(!byId('cronoMultiCount')){setTimeout(installIteration03,100);return;}
     const host=byId('cronoContent'),input=byId('cronoQ'),box=byId('cronoSuggestions');
@@ -473,14 +543,7 @@
     const updateTray=()=>{tray.replaceChildren();const state=selection();tray.hidden=!state.mode&&!state.keys.length;const title=document.createElement('b');title.textContent=state.keys.length+' suertes seleccionadas';tray.append(title);state.keys.forEach(key=>{const [code,lot]=key.split('::');const p=window.CRONO_DATA.producers.find(p=>String(p.code)===code),r=p?.details.find(r=>String(r.suerte)===lot);const b=document.createElement('button');b.type='button';b.textContent=(r?.codLote||key)+' ×';b.setAttribute('aria-label','Quitar '+(r?.codLote||key));b.onclick=()=>{window.toggleCronoSuerteSelection(key,false);updateTray();};tray.append(b);});for(const[label,fn]of[['Limpiar selección',()=>window.clearCronoMultiSelection()],['Aplicar selección',()=>window.renderCronoMultiSummary()]]){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=()=>{fn();updateTray();};tray.append(b);}};
     new MutationObserver(updateTray).observe(byId('cronoMultiCount'),{childList:true});updateTray();
     const clearSearch=presentation(button('🧹',()=>{input.value='';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus({preventScroll:true});}));clearSearch.setAttribute('aria-label','Limpiar búsqueda');clearSearch.title='Limpiar búsqueda';clearSearch.classList.add('ux04-clear-search');search.append(clearSearch);
-    // UX13 P1: the original inline onblur schedules an anonymous hide 180 ms later. After picking a
-    // suggestion (which blurs #cronoQ) a stale timer closed the list the user had just reopened by
-    // typing. Same delay (so clicks on suggestions still land), but each blur gets an identity that
-    // focus/typing cancels, and it never hides while focus is back on the input or inside the list.
-    let blurToken=0;const cancelBlur=()=>{blurToken++;};
-    const scheduleHide=()=>{const token=++blurToken;setTimeout(()=>{if(token!==blurToken)return;const active=document.activeElement;if(active===input||box.contains(active))return;window.hideCronoSuggestions?.();},180);};
-    input.onblur=scheduleHide;box.addEventListener('focusout',scheduleHide);box.addEventListener('focusin',cancelBlur);
-    input.addEventListener('focus',cancelBlur,true);input.addEventListener('input',cancelBlur,true);
+    guardSuggestionBlur(input,box,'hideCronoSuggestions');
     input.addEventListener('focus',()=>{if(!selection().mode&&input.value){input.select();window.showCronoSuggestions();}});
     const reopen=()=>{input.value='';input.focus({preventScroll:true});box.replaceChildren(el('div','ux04-search-prompt','Escribí un código o nombre para agregar otra suerte.'));box.style.display='block';updateTray();};
     let priorKeys='';box.addEventListener('pointerdown',e=>{if(selection().mode){priorKeys=JSON.stringify(selection().keys);e.preventDefault();}});
@@ -694,7 +757,6 @@
       new MutationObserver(refreshLinks).observe(host, {childList:true,subtree:true});
       refreshLinks();
     }
-    const dismissAnalyticTip=()=>{const tip=byId('maestroAnalyticTip');if(tip)tip.hidden=true;};window.addEventListener('scroll',dismissAnalyticTip,{passive:true});document.addEventListener('click',e=>{if(!e.target.closest('.context-row,[data-season]'))dismissAnalyticTip();});
     // Present existing sections as a single active view, preserving their DOM and engines.
     const tabSections=(sectionId,ids,labels)=>{const section=byId(sectionId);if(!section)return;const panels=ids.map(id=>byId(id)).filter(p=>p&&section.contains(p));if(!panels.length||section.querySelector('.ux09-section-tabs'))return;const nav=presentation(el('nav','ux09-section-tabs'));nav.setAttribute('aria-label',sectionId==='zoneMainSection'?'Vistas de zonas':'Vistas de análisis');
       const show=id=>{panels.forEach(p=>{const on=p.id===id;p.classList.toggle('ux09-view-inactive',!on);p.open=on;});nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.target===id)));window.dispatchEvent(new Event('resize'));};
@@ -706,6 +768,7 @@
     installPremiumFicha();
     installGeneralPanels();
     installIteration03();
+    installHistoricoUx13();
     document.body.classList.add('casur-maestro-premium');
     document.dispatchEvent(new Event('casur-premium-ready'));
     // The shell already owns mobile bottom navigation; keep only module tabs.

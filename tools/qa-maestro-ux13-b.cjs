@@ -86,7 +86,7 @@ const figures = page => page.evaluate(() => {
         await noHScroll('período');
       });
       await check(W + ' KPI: TCH, KATM, Área y Edad primero (2×2 móvil / 4 PC) y fórmulas a demanda', async () => {
-        const order = await page.evaluate(() => [...document.querySelectorAll('.ux13-kpis > .kpi')].map(k => ({kind: k.dataset.ux13Kpi, r: k.getBoundingClientRect()})).sort((a, b) => a.r.top - b.r.top || a.r.left - b.r.left).map(x => [x.kind, Math.round(x.r.top)]));
+        const order = await page.evaluate(() => [...document.querySelectorAll('.ux13-kpis > .kpi')].filter(k => k.getClientRects().length).map(k => ({kind: k.dataset.ux13Kpi, r: k.getBoundingClientRect()})).sort((a, b) => a.r.top - b.r.top || a.r.left - b.r.left).map(x => [x.kind, Math.round(x.r.top)]));
         assert.deepEqual(order.slice(0, 4).map(x => x[0]), ['tch', 'katm', 'area', 'edad']);
         const tops = new Set(order.slice(0, 4).map(x => x[1]));
         assert.equal(tops.size, mobile ? 2 : 1, 'filas ' + JSON.stringify(order.slice(0, 4)));

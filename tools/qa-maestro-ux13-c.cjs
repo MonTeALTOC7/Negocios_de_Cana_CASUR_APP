@@ -85,7 +85,7 @@ const farm = async (page, code, objective, dim) => {
         await i.click(); await page.waitForSelector('.ux13-help:popover-open'); const pop = await page.locator('.ux13-help:popover-open').evaluate(n => n.textContent);
         assert.match(pop, /Promedio del área cosechada en cada zafra del período/); assert.match(pop, /Acumulado del periodo: [\d,.]+ ha-zafra/i);
         await page.keyboard.press('Escape');
-        assert.equal(await page.locator('#fichaContent .ux13-kpis > :not([data-ux13-kpi=secondary]) .ux13-info').count(), 1, 'una sola «i» en los KPI principales');
+        assert.equal(await page.locator('#fichaContent .ux13-info').count(), 1, 'una sola «i»');
       });
       await check(W + ' H5 Otros indicadores: cerrado al inicio, conserva cálculos y estado al cambiar período', async () => {
         const more = page.locator('.ux13-more');
@@ -95,8 +95,7 @@ const farm = async (page, code, objective, dim) => {
         const sec = page.locator('.ux13-kpis [data-ux13-kpi=secondary]');
         assert.equal(await sec.count(), 4); assert.ok(await sec.first().isVisible());
         assert.match(await sec.filter({hasText: /Distancia/i}).locator('em').innerText(), /\S/);
-        await sec.filter({hasText: /Distancia/i}).locator('.ux13-info').click(); await page.waitForSelector('.ux13-help:popover-open');
-        assert.match(await page.locator('.ux13-help:popover-open').evaluate(n => n.textContent), /no es un valor histórico/); await page.keyboard.press('Escape');
+        assert.match(await sec.filter({hasText: /Distancia/i}).innerText(), /actual/i); // self-explanatory: no extra «i»
         await page.evaluate(() => setHistoricalPeriodMode('last5'));
         await page.waitForFunction(() => HISTORICAL_PERIOD_STATE.periodMode === 'last5' && document.querySelector('.ux13-more'));
         assert.equal(await page.locator('.ux13-more').evaluate(d => d.open), true);

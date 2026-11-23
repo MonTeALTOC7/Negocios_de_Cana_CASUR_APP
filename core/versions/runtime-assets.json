@@ -1,6 +1,6 @@
 {
   "appVersion": "1.6.2",
-  "releaseId": "1.6.2-232788130559ef50",
+  "releaseId": "1.6.2-ab7d3d913690f12d",
   "assets": {
     "404.html": "13e468776893ea36d86e0a6b83935bafd4c5f3782fb3a302959337f8e14a19fe",
     "app.js": "2e62cbe84f75fec94e99de5d467bd96f75a260c5bd75e721b8b588f69559cb2f",
@@ -72,7 +72,7 @@
     "modules/produccion/js/casur-enhancements.js": "2d66ef53b0b82cf9531b74f9c0be3806f3c9dec564ef38b5850ed990ce08e087",
     "modules/produccion/js/effective-data-date.js": "32a26d5acb069e9a37ca18e806121f68693947fb1f5e0cde7fd9b330f16ae2c9",
     "modules/produccion/js/historical-engine.js": "299ab93c929894a7dd89d197c54bec2c6de3362799afdd6a119cf9b00513c35d",
-    "modules/produccion/js/maestro-ux.js": "e1bfdf20c5c3551e8dc9b88461254422270d2e9e371ac5d5397821e77b00eb9d",
+    "modules/produccion/js/maestro-ux.js": "b95ca2a7c2b14a0d18fbde369a3403215aee78ce8ae932f6aff1549179a57bf0",
     "modules/produccion/js/official-data-updates.js": "204fd8607df350d4fe9aff7cd8c030fc79456deb07b4df534cab22437dee1b11",
     "modules/produccion/js/official-source-policy.js": "c415e44b78997b69f02c9e720f59286816af01799e7a5b46d610deb759961d14",
     "modules/produccion/js/operational-import-ui.js": "68a2ab81c5e7682185e2def9be74ef6cf776e1601ec5172b9d27970a3dc61a48",

@@ -20,7 +20,7 @@ exportadores ni Service Worker (solo `RELEASE_ID` derivado). No se rediseña An�
 | H2 Área | «ÁREA COSECHADA PROMEDIO 360.91 ha/zafra» + «Acumulado del período…» | **«Área por zafra · 360.91 ha»**; la «i» muestra «Promedio del área cosechada en cada zafra del período» y el acumulado original |
 | H3 Edad | «EDAD PONDERADA» + subtítulo | **«Edad»**; mismo valor ponderado |
 | H3 Rejilla | Alturas distintas | 4 KPI (TCH, KATM, Área por zafra, Edad) solo con etiqueta y valor: alturas iguales, 2×2 en móvil y 4 columnas en PC |
-| H4 Ayudas | Enlace «¿Cómo se calculan?» | Retirado. Una «i» en Área por zafra y otra en Distancia (referencia actual, no histórica) |
+| H4 Ayudas | Enlace «¿Cómo se calculan?» | Retirado. Una sola «i», en Área por zafra (Distancia ya dice «actual» en su etiqueta y leyenda) |
 | H5 Otros indicadores | Bloque siempre visible | `details` **cerrado al inicio** en móvil y PC; conserva estado al cambiar período y advertencias legítimas |
 | H6 Gráfico | Párrafo «Serie completa; …» | Retirado; leyenda, referencia ponderada y selección intactas. También se oculta en pantalla «Una fila por zafra…» de la tabla |
 

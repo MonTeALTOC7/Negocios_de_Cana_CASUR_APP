@@ -532,8 +532,7 @@
         kpis.querySelectorAll(':scope > .kpi').forEach(k=>{const label=k.querySelector('.label')?.textContent.trim()||'',kind=kpiKind(label);k.dataset.ux13Kpi=kind;const caption=k.querySelector('em');if(caption)caption.classList.toggle('ux13-ornamental',ornamental.test(caption.textContent.trim()));
           // H2: the area KPI is an area per season (ha/zafra), never the period total.
           if(kind==='area'){const raw=k.querySelector('strong')?.textContent.trim()||'',value=raw.replace(/\s*ha\/zafra$/i,' ha'),note=caption?.textContent.trim()||'',several=/acumulado/i.test(note);relabel(k,'Área por zafra',value).append(info('Detalle de área por zafra',[several?'Promedio del área cosechada en cada zafra del período.':'Área cosechada en la zafra seleccionada.',...(several?[note]:[])]));}
-          if(kind==='edad')relabel(k,'Edad');
-          if(kind==='secondary'&&/^Distancia/i.test(label))k.querySelector('.label')?.append(info('Detalle de distancia',['Referencia actual del Cronológico, ponderada por área vigente; no es un valor histórico.']));});
+          if(kind==='edad')relabel(k,'Edad');});
         // H5: secondary indicators collapse like «Comparar TCH» (closed by default; choice kept across periods).
         const more=presentation(el('details','ux13-more')),n=kpis.querySelectorAll(':scope > [data-ux13-kpi=secondary]').length;
         more.append(el('summary','','Otros indicadores'));more.querySelector('summary').append(el('small','',String(n)));

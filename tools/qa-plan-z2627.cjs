@@ -91,15 +91,15 @@ const lot = (page, code, suerte) => page.evaluate(([c, s]) => { CASUR_MAESTRO_UX
       const k = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#cronoZoneContent .kpis .kpi')].map(n => [n.querySelector('.label').textContent.trim(), Number(n.querySelector('strong').textContent.replace(/[^\d.]/g, ''))])));
       near(k['Área con riego'] + k['Secano'], k['Área activa'], 0.05);
     });
-    await check('PWA: la generación 1102 queda disponible sin conexión', async () => {
-      await page.evaluate(async () => { await navigator.serviceWorker?.ready; });
-      const root = base.replace(/modules\/produccion\/?$/, '');
-      const shell = await ctx.newPage(); await shell.goto(root); await shell.waitForFunction(() => navigator.serviceWorker?.controller, null, {timeout: 60000}).catch(() => {});
-      await shell.waitForTimeout(4000); await ctx.setOffline(true);
-      const v = await shell.evaluate(async () => { try { const r = await fetch('modules/produccion/data/version.json', {cache: 'no-store'}); return (await r.json()).version; } catch (e) { return 'offline-error: ' + e.message; } });
-      await ctx.setOffline(false); await shell.close();
-      assert.equal(v, '2026.11.22-aforo.1102');
-    });
+    await check('PWA: la generación 1102 se abre sin conexión tras la primera visita', async () => {
+      const shell = await ctx.newPage(); await shell.goto(base);
+      await shell.waitForFunction(() => !!navigator.serviceWorker?.controller, null, {timeout: 90000});
+      const probe = await ctx.newPage(); await probe.goto(base + 'modules/produccion/'); await probe.waitForFunction(() => window.CASUR_PRODUCTION_READY, null, {timeout: 60000}); await probe.close();
+      await ctx.setOffline(true);
+      try { const off = await ctx.newPage(); await off.goto(base + 'modules/produccion/', {timeout: 60000}); await off.waitForFunction(() => window.CASUR_PRODUCTION_READY, null, {timeout: 60000});
+        assert.equal(await off.evaluate(() => CRONO_DATA.meta.dataVersion), '2026.11.22-aforo.1102'); await off.close(); }
+      finally { await ctx.setOffline(false); await shell.close(); }
+    }, 300000);
     await ctx.close();
     // ---------------- Presentación en 5 anchos ----------------
     for (const width of [360, 390, 768, 1280, 1536]) {

@@ -87,6 +87,11 @@ const col = letter => [...letter].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64
       // ---- Generación con el motor de la app ----
       const base = window.CRONO_DATA.producers.flatMap(p => p.details.map(r => ({...r, code: r.code || p.code, name: r.name || p.name, dataVersion: r.dataVersion || window.CRONO_DATA.meta.dataVersion})));
       const proposal = E.prepareUpdate(base, parsed, {dataVersion: DATA_VERSION, importedAt: IMPORTED_AT, decisions: window.CASUR_OPERATIONAL_DECISIONS});
+      // BE/BF son el plan de cosecha de MOLIENDA: en Semilla, inactivas, Investigación y catálogo no se
+      // presenta fecha ni corte (el consolidado los deja vacíos); el valor bruto queda en la procedencia.
+      let planCleared = 0;
+      for (const r of proposal.catalog) if (!E.participation(r).milling && r.plan && (r.plan.date?.iso || r.plan.date?.raw != null || r.plan.cut)) {
+        r.plan = {...r.plan, date: E.dateValue(null), cut: null, excluded: 'Sin participación en molienda: BE/BF no aplican'}; planCleared++; }
       // Escenario optimista AF/AG: solo Molienda con estimado utilizable; nunca alimenta los KPI oficiales.
       const optimistic = {tons: 0, area: 0, lots: 0, belowOfficial: []};
       const sheet = sheets.find(s => s.name === candidate.sheetName);
@@ -132,7 +137,7 @@ const col = letter => [...letter].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64
         for (const [name, a, b, numeric] of checks) if (numeric ? !near(a, b) : (a ?? null) !== (b ?? null)) mismatches.push([key, name, a, b]);
       }
       const t = proposal.totals;
-      return {crono, mismatches, applied, normalized, dashes, alerts, optimistic, mappingAudit, issues: proposal.issues, differences: proposal.differences,
+      return {crono, mismatches, applied, normalized, dashes, planCleared, alerts, optimistic, mappingAudit, issues: proposal.issues, differences: proposal.differences,
         totals: {catalog: t.catalog, inventoried: t.inventoried, active: t.active, milling: t.milling, seed: t.seed, absent: t.absent, inactive: t.inactive, activeArea: t.activeArea, millingArea: t.millingArea, seedArea: t.seedArea, millingTons: t.millingTons, millingTch: t.millingTch, usable: t.usable, pendingMillingArea: t.pendingMillingArea, byClass: t.byClass},
         producers: crono.producers.length};
     }, {aforoB64: aforoBytes.toString('base64'), consB64: consBytes.toString('base64'), SOURCES, MAPPING, DATA_VERSION, SOURCE_DATE, IMPORTED_AT, adjustments});
@@ -147,7 +152,7 @@ const col = letter => [...letter].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64
       ['fuera de producción 58', t.inactive === 58], ['sin estimado pendiente', near(t.pendingMillingArea, 0)], ['ajustes aplicados 13', result.applied.length === 13],
       ['alerta 6/04', result.alerts.some(a => a.key === '604')], ['0 diferencias con el consolidado', result.mismatches.length === 0]];
     const report = {dataVersion: DATA_VERSION, sources: SOURCES, mapping: result.mappingAudit, totals: t, optimistic: result.optimistic, controls: controls.map(([n, ok]) => ({control: n, ok})),
-      authorizedAdjustments: result.applied, destinationNormalized: result.normalized.length, dashAsEmpty: result.dashes, planAlerts: result.alerts, mismatches: result.mismatches,
+      authorizedAdjustments: result.applied, destinationNormalized: result.normalized.length, dashAsEmpty: result.dashes, planClearedNonMilling: result.planCleared, planAlerts: result.alerts, mismatches: result.mismatches,
       warnings: result.issues.reduce((m, i) => (m[i.code] = (m[i.code] || 0) + 1, m), {}), differences: result.differences.reduce((m, d) => { const k = d.kind + (d.field ? ':' + d.field : ''); m[k] = (m[k] || 0) + 1; return m; }, {})};
     fs.writeFileSync(path.join(outDir, 'informe-generacion.json'), JSON.stringify(report, null, 2) + '\n');
     fs.writeFileSync(path.join(outDir, 'diferencias-por-campo.json'), JSON.stringify(result.differences, null, 1) + '\n');

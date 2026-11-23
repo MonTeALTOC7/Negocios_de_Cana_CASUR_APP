@@ -38,10 +38,10 @@
   "files": {
     "version.json": "e93d4f3b143df205c505497b9084332808796d00bb44db7f0214dc3e2f0837a6",
     "version.js": "f3f050b58e67295ab871c268d80ca2183a53af986a9cb1e408686b1432e9c563",
-    "cronologico.json": "8fc14a6488c42cfd7416d8566eb76574be3de68cdf8b92ffd0d385ddbfb9b1cc",
-    "cronologico.js": "86a43d2c96d83a107acab1f51a961dfab29c6d2ff24084cdad927fbb6959afc0",
+    "cronologico.json": "2c806ab7f34f0afafb6c38db53c6ac0c71af16d96cb25c65b714716fdc2085c8",
+    "cronologico.js": "78e5f59fd88e8de80b230db9e95aa73f3329d8bdb52dda146dd08a964a50a260",
     "historico.json": "231a72c5ccadcf3897191896d8198100752a3129c601792aabe9658aa940a472",
     "historico.js": "e2687e721c648cb7b39341149b1d863fe7de3ece9851b0182da9690a6949ee08",
-    "integrity.json": "fb72827ad300ed9a38e2fb4795e7faa43f9877d6cb11dc9c86b2ed94d6cc9f09"
+    "integrity.json": "2394eeccb4d9844d2174631d52128999bf315b4be43dd689e20c9a2280f0252f"
   }
 }

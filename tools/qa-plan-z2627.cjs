@@ -91,13 +91,15 @@ const lot = (page, code, suerte) => page.evaluate(([c, s]) => { CASUR_MAESTRO_UX
       const k = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#cronoZoneContent .kpis .kpi')].map(n => [n.querySelector('.label').textContent.trim(), Number(n.querySelector('strong').textContent.replace(/[^\d.]/g, ''))])));
       near(k['Área con riego'] + k['Secano'], k['Área activa'], 0.05);
     });
-    await check('PWA: la generación 1102 se abre sin conexión tras la primera visita', async () => {
-      const shell = await ctx.newPage(); await shell.goto(base);
+    await check('PWA: la generación 1102 se abre sin conexión desde la app tras la primera visita', async () => {
+      // Real flow: the shell prepares the verified Producción bundle when the module is opened from the app.
+      const frameVersion = async pg => { for (let i = 0; i < 120; i++) { const f = pg.frames().find(f => /modules\/produccion\//.test(f.url()));
+        if (f) { try { const v = await f.evaluate(() => window.CASUR_PRODUCTION_READY && window.CRONO_DATA?.meta?.dataVersion); if (v) return v; } catch {} } await pg.waitForTimeout(500); } return null; };
+      const shell = await ctx.newPage(); await shell.goto(base + '#/modulo/produccion');
       await shell.waitForFunction(() => !!navigator.serviceWorker?.controller, null, {timeout: 90000});
-      const probe = await ctx.newPage(); await probe.goto(base + 'modules/produccion/'); await probe.waitForFunction(() => window.CASUR_PRODUCTION_READY, null, {timeout: 60000}); await probe.close();
+      assert.equal(await frameVersion(shell), '2026.11.22-aforo.1102'); await shell.waitForTimeout(3000);
       await ctx.setOffline(true);
-      try { const off = await ctx.newPage(); await off.goto(base + 'modules/produccion/', {timeout: 60000}); await off.waitForFunction(() => window.CASUR_PRODUCTION_READY, null, {timeout: 60000});
-        assert.equal(await off.evaluate(() => CRONO_DATA.meta.dataVersion), '2026.11.22-aforo.1102'); await off.close(); }
+      try { const off = await ctx.newPage(); await off.goto(base + '#/modulo/produccion', {timeout: 60000}); assert.equal(await frameVersion(off), '2026.11.22-aforo.1102'); await off.close(); }
       finally { await ctx.setOffline(false); await shell.close(); }
     }, 300000);
     await ctx.close();

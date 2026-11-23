@@ -514,6 +514,9 @@
     // Screen labels are a presentation layer: the original label/value/caption stay in the DOM for exports.
     const relabel=(k,label,value)=>{k.dataset.ux13Relabel='true';const name=presentation(el('span','ux13-kpi-label',label));k.prepend(name);if(value!=null)(k.querySelector('strong')||name).after(presentation(el('strong','ux13-kpi-value',value)));return name;};
     const refresh=()=>{
+      // Institutional date format (DD-MMM-AAAA) for the report timestamp built by the original renderer
+      // («Consulta: 23/11/2026, 10:42 a. m.»); it is also what PDF/PNG print.
+      host.querySelectorAll('.print-meta span').forEach(n=>{const m=n.textContent.match(/^Consulta: (\d{2})\/(\d{2})\/(\d{4}),?\s*(.*)$/);if(m)n.textContent='Consulta: '+window.CASUR_CRONO_PARTICIPATION.formatDate(`${m[3]}-${m[2]}-${m[1]}`)+(m[4]?' · '+m[4]:'');});
       const panel=host.querySelector('#printPanel');if(!panel)return;
       // Hero: one «Exportar» (original PDF/PNG buttons inside) and a compact GIS map action.
       installReportMenus(host);

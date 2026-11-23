@@ -47,10 +47,11 @@
     return Math.round(number * factor) / factor;
   };
   const fmt = (value, suffix = "") => finite(value) === null ? "—" : `${nf.format(Number(value))}${suffix}`;
+  // Institutional date format DD-MMM-AAAA (12-Oct-2026); single formatter: formatCronoDate.
   const formatDate = (value) => {
     if (!value) return "—";
-    const parts = String(value).slice(0, 10).split("-");
-    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : String(value);
+    const shown = formatCronoDate(value);
+    return shown === '—' ? String(value) : shown;
   };
   const weighted = (rows, field) => {
     let numerator = 0;
@@ -90,7 +91,7 @@
     const iso = window.CASUR_OPERATIONAL_IMPORT.dateValue(value).iso;
     if (!iso) return '—';
     const [year, month, day] = iso.split('-');
-    return `${day}-${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][Number(month)-1]}-${year}`;
+    return `${day}-${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][Number(month)-1]}-${year}`;
   }
   function cutTypeText(value) {
     const original = text(value), key = normal(original);
@@ -1479,7 +1480,7 @@
       : (context.source === "cronologico"
         ? `${context.name || ("Finca " + context.farmCode)} · Código ${context.farmCode}`
         : `Finca ${context.farmCode} · ${context.name || context.farmCode}`);
-    const generated = new Date().toLocaleString("es-NI", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    const generated = formatCronoDate(new Date().toLocaleDateString("sv-SE")) + " · " + new Date().toLocaleTimeString("es-NI", { hour: "2-digit", minute: "2-digit" });
     sheet.innerHTML = `
       <header class="casur-geo-export-head"><div><span>Departamento de Negocios de Caña</span><h1>${esc(sourceTitle)}</h1><p>${esc(subject)}</p></div><strong>CASUR</strong></header>
       <div class="casur-geo-export-body"><figure><img alt="${esc(subject)}"><figcaption>${esc(geoExportAttribution(mapCapture.baseKey))}</figcaption></figure><aside class="casur-geo-card casur-geo-export-card">${geoCardMarkup(context, mode === "lot" ? selected : "", false)}</aside></div>

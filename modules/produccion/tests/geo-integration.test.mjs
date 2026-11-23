@@ -215,8 +215,8 @@ test("mapa cronológico 24201 identifica la unidad SIAGRI y muestra ficha sin in
     "Destino", "TCH 25/26", "TCH hist. pond.", "Est. 26/27", "N.º riegos"]
     .forEach((label) => assert.match(card, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));
   assert.match(card, /1\.65 m/);
-  assert.match(card, /31\/12\/2025/);
-  assert.match(card, /02\/06\/2017/);
+  assert.match(card, /31-Dic-2025/);
+  assert.match(card, /02-Jun-2017/);
   assert.match(card, /data-geo-center-selected="24201"/);
   assert.match(card, /data-geo-open-selected="24201"/);
   assert.match(card, /Coordenadas no disponibles/, "sin geometría cargada no se inventa una ubicación");

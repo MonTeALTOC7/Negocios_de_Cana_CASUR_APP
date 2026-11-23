@@ -50,13 +50,13 @@ test('sexta tarjeta muestra propuesta y tipo; conserva el último corte y no usa
  assert.equal(d.label,'Fecha para cosecha');assert.equal(d.type,'proposed');assert.equal(d.date,'2026-12-24');
  assert.equal(d.detail,'Corte mecánico');assert.equal(d.cutType,'CORTE MECANICO');assert.equal(d.provenance.row,1020);assert.equal(d.provenance.column,68);
  assert.equal(d.cutProvenance.column,69);assert.equal(d.dataVersion,'test-generation');assert.equal(d.season,'26/27');assert.equal(d.source.sha256,approvedSource.sha256);
- assert.equal(api.dateSummary([r]).display,'24-dic-2026');assert.match(api.dateKpi([r]),/Corte mecánico/);
+ assert.equal(api.dateSummary([r]).display,'24-Dic-2026');assert.match(api.dateKpi([r]),/Corte mecánico/);
  assert.equal(api.summary([r]).estimateTons,579.15);assert.equal(JSON.stringify(r),before);
 });
 
 test('fecha propuesta pasada no se descarta ni se convierte en corte ejecutado',()=>{
  const api=view().CASUR_CRONO_PARTICIPATION,r=proposed({plan:{date:{iso:'2020-04-11'},cut:'MANUAL'}});
- assert.equal(api.referenceDate(r).type,'proposed');assert.equal(api.dateSummary([r]).display,'11-abr-2020');assert.equal(api.referenceDate(r).detail,'Manual');
+ assert.equal(api.referenceDate(r).type,'proposed');assert.equal(api.dateSummary([r]).display,'11-Abr-2020');assert.equal(api.referenceDate(r).detail,'Manual');
 });
 
 test('falta fecha: N/D sin usar corte real, siembra, base ni edad; falta tipo: fecha permanece',()=>{
@@ -85,20 +85,20 @@ test('propuesta exige fuente, zafra, generación y mapeo semántico; no una colu
 
 test('agregados no promedian fechas: completas/mixtas/parciales y vacío se distinguen',()=>{
  const api=view().CASUR_CRONO_PARTICIPATION,r=proposed(),other=proposed({plan:{date:{iso:'2027-04-11'},cut:'MANUAL'}});
- assert.equal(api.dateSummary([r,r]).display,'24-dic-2026');assert.equal(api.dateSummary([r,other]).display,'Varias fechas');
+ assert.equal(api.dateSummary([r,r]).display,'24-Dic-2026');assert.equal(api.dateSummary([r,other]).display,'Varias fechas');
  assert.equal(api.dateSummary([r,{}]).display,'Varias fechas');assert.equal(api.dateSummary([{},{}]).display,'N/D');
  assert.match(api.dateSummary([r,{}]).detail,/1\/2/);
 });
 
 test('formato Cronológico dd-mmm-aaaa deja ISO intacto y no modifica otras fechas GEO',()=>{
  const api=view().CASUR_CRONO_PARTICIPATION;
- for(const [input,expected] of [['2026-12-24','24-dic-2026'],['2026-01-02','02-ene-2026'],['2027-04-11','11-abr-2027'],[null,'—'],['2026-02-30','—']])assert.equal(api.formatDate(input),expected);
+ for(const [input,expected] of [['2026-12-24','24-Dic-2026'],['2026-01-02','02-Ene-2026'],['2027-04-11','11-Abr-2027'],[null,'—'],['2026-02-30','—']])assert.equal(api.formatDate(input),expected);
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');assert.match(html,/function dateTxt\(iso\)\{return window.CASUR_CRONO_PARTICIPATION.formatDate\(iso\);\}/);
 });
 
 test('subtexto del estimado usa fecha de aforo explícita, sin inferir cosecha ni completar faltantes',()=>{
  const api=view().CASUR_CRONO_PARTICIPATION;
- assert.equal(api.estimateCaption('Aforo autorizado','2026-10-12'),'Último Aforo\n12-oct-2026');
+ assert.equal(api.estimateCaption('Aforo autorizado','2026-10-12'),'Último Aforo\n12-Oct-2026');
  assert.equal(api.estimateCaption('Sin estimado en la fuente',null),'Sin estimado en la fuente');
  assert.equal(api.estimateCaption('Aforo autorizado','2026-02-30'),'Último Aforo');
  assert.doesNotMatch(api.estimateCaption('Aforo autorizado','2026-10-12'),/24-dic/);

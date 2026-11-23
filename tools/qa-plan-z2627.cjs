@@ -37,8 +37,8 @@ const lot = (page, code, suerte) => page.evaluate(([c, s]) => { CASUR_MAESTRO_UX
     });
     await check('Generación 2026.11.22-aforo.1102 aplicada como aforo autorizado', async () => {
       assert.equal(D.meta.dataVersion, '2026.11.22-aforo.1102'); assert.equal(D.meta.sheet, 'AFORO_26-27'); assert.equal(D.meta.harvestPlanLabel, 'Fecha para cosecha 26/27');
-      assert.equal(D.meta.tchEst2627EffectiveDate, '2026-10-12', 'Aforo oficial = 12-oct-2026');
-      assert.equal(D.meta.generated, '2026-11-22', 'Generación del paquete = 22-nov-2026');
+      assert.equal(D.meta.tchEst2627EffectiveDate, '2026-10-12', 'Aforo oficial = 12-Oct-2026');
+      assert.equal(D.meta.generated, '2026-11-22', 'Generación del paquete = 22-Nov-2026');
       assert.equal(D.s.estimateState, 'applied'); assert.equal(D.meta.sourceSha256, '2e3cfedb0682024753f7dca7f484326641e281bf018de44f823052369dfada60');
     });
     await check('Totales oficiales: 9,574.66 activa = 9,101.68 Molienda + 472.98 Semilla; 561,658.27 t; TCH 61.71', async () => {
@@ -72,10 +72,10 @@ const lot = (page, code, suerte) => page.evaluate(([c, s]) => { CASUR_MAESTRO_UX
       for (const k of ['90809', '90810', '90815']) { const r = D.lots[k]; assert.equal(r.cls, 'Semilla'); near(r.milling, 0); assert.equal(r.tons, null); assert.equal(r.destino, 'Semilla'); }
       assert.equal(D.lots['90806'].fSiembra, '2026-05-28'); assert.equal(D.lots['90816'].fSiembra, '2026-07-30');
     });
-    await check('125/03 Molienda con siembra 01-jul-2026 (base del ciclo), riego Secano sin cambio', async () => {
+    await check('125/03 Molienda con siembra 01-Jul-2026 (base del ciclo), riego Secano sin cambio', async () => {
       const r = D.lots['12503']; assert.equal(r.cls, 'Molienda'); near(r.area, 10.48); assert.equal(r.fSiembra, '2026-07-01'); assert.equal(r.fBase, '2026-07-01'); assert.equal(r.riego, 'Secano');
     });
-    await check('759/06 Semilla NC 1 con siembra 20-ago-2026; Pansaco 993/24A y 25 siembra nueva', async () => {
+    await check('759/06 Semilla NC 1 con siembra 20-Ago-2026; Pansaco 993/24A y 25 siembra nueva', async () => {
       const r = D.lots['75906']; assert.equal(r.cls, 'Semilla'); assert.equal(r.corte, '1'); assert.equal(r.fSiembra, '2026-08-20'); assert.equal(r.fBase, '2026-08-20');
       assert.equal(D.lots['99324A'].fSiembra, '2026-07-23'); assert.equal(D.lots['99325'].fSiembra, '2026-07-31');
     });
@@ -113,14 +113,26 @@ const lot = (page, code, suerte) => page.evaluate(([c, s]) => { CASUR_MAESTRO_UX
         await lot(page, '6', '04'); await page.waitForSelector('.casur-proposal-kpi');
         const t = await page.locator('.casur-proposal-kpi').innerText();
         assert.match(t, /^Fecha para cosecha 26\/27/);
-        assert.equal(await page.locator('.casur-proposal-kpi .label').evaluate(n => n.textContent.trim() + (getComputedStyle(n, '::after').content.replace(/^none$|^normal$/, '').replace(/^"|"$/g, ''))), 'Fecha para cosecha 26/27'); assert.match(t, /24-dic-2026/); assert.match(t, /Manual/); assert.match(t, /Revisar con Programación: 3\.55 meses desde 07-sep-2026/);
+        assert.equal(await page.locator('.casur-proposal-kpi .label').evaluate(n => n.textContent.trim() + (getComputedStyle(n, '::after').content.replace(/^none$|^normal$/, '').replace(/^"|"$/g, ''))), 'Fecha para cosecha 26/27'); assert.match(t, /24-Dic-2026/); assert.match(t, /Manual/); assert.match(t, /Revisar con Programación: 3\.55 meses desde 07-Sep-2026/);
         await noHScroll('6/04');
+      });
+      await check(W + ' Fecha oficial del aforo 12-Oct-2026 en el KPI y formato DD-MMM-AAAA sin formatos antiguos', async () => {
+        await lot(page, '6', '04');
+        const est = await page.locator('.single-suerte-kpis .kpi', {hasText: /TCH Estim/}).innerText();
+        assert.match(est, /Último Aforo\s*12-Oct-2026/); assert.doesNotMatch(est, /22-Nov-2026/);
+        const views = [['suerte', null], ['finca', () => renderCronoProducer('993')], ['general', () => renderCronoHome()], ['histórico', () => { CASUR_MAESTRO_UX.activate('historico'); renderEntity('993'); }]];
+        for (const [name, go] of views) {
+          if (go) { await page.evaluate(go); await page.waitForTimeout(900); }
+          const bad = await page.evaluate(() => { const t = document.body.innerText; return [...(t.match(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g) || []), ...(t.match(/\b\d{1,2}-(?:ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)-\d{4}\b/g) || []), ...(t.match(/\b20\d{2}-\d{2}-\d{2}\b/g) || [])]; });
+          assert.deepEqual(bad, [], name);
+        }
+        assert.match(await page.locator('#fichaContent .print-meta').innerText(), /Consulta: \d{2}-(?:Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic)-\d{4} · /);
       });
       await check(W + ' Ficha de suerte separa F. siembra y F. último corte de la fecha programada', async () => {
         await lot(page, '759', '06');
         const facts = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('.ux13-cycle-date')].map(n => [n.querySelector('dt').textContent, n.querySelector('dd').textContent])));
-        assert.equal(facts['F. siembra'], '20-ago-2026'); assert.ok('F. último corte' in facts);
-        assert.doesNotMatch(await page.locator('.casur-proposal-kpi').innerText(), /\d{2}-[a-z]{3}-\d{4}/, 'Semilla sin fecha de cosecha de molienda');
+        assert.equal(facts['F. siembra'], '20-Ago-2026'); assert.ok('F. último corte' in facts);
+        assert.doesNotMatch(await page.locator('.casur-proposal-kpi').innerText(), /\d{2}-[A-Z][a-z]{2}-\d{4}/, 'Semilla sin fecha de cosecha de molienda');
       });
       await check(W + ' Estimados: escenario optimista cerrado por defecto y separado del aforo oficial', async () => {
         await page.evaluate(() => { CASUR_MAESTRO_UX.activate('cronologico'); renderCronoHome(); });

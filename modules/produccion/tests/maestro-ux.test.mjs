@@ -23,7 +23,22 @@ test('Fase 1 conserva byte a byte el documento y los motores originales tras ret
  // Plan Z26/27 (#67): the only engine change allowed is registering the audited AFORO_26-27 source hash.
  const authorizedSource=/,\n    \/\/ 2e3c\.\.\.: AFORO_26-27 Z26\/27 \(22-nov-2026, Issue #67\)\.[^\n]*\n    \/\/ [^\n]*\n    '2e3cfedb0682024753f7dca7f484326641e281bf018de44f823052369dfada60'\]/;
  assert.match(current('js/casur-enhancements.js'),authorizedSource);
- assert.equal(current('js/casur-enhancements.js').replace(authorizedSource,']'),original('js/casur-enhancements.js'),'js/casur-enhancements.js');
+ // Institutional date format DD-MMM-AAAA (owner, PR #71): one formatter, capitalized months; dd/mm/yyyy and the GIS
+ // export timestamp delegate to it. These are the only other engine lines allowed to differ.
+ const institutionalDates=text=>text
+  .replace("['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']","['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']")
+  .replace(`  // Institutional date format DD-MMM-AAAA (12-Oct-2026); single formatter: formatCronoDate.
+  const formatDate = (value) => {
+    if (!value) return "—";
+    const shown = formatCronoDate(value);
+    return shown === '—' ? String(value) : shown;
+  };`,`  const formatDate = (value) => {
+    if (!value) return "—";
+    const parts = String(value).slice(0, 10).split("-");
+    return parts.length === 3 ? \`\${parts[2]}/\${parts[1]}/\${parts[0]}\` : String(value);
+  };`)
+  .replace('const generated = formatCronoDate(new Date().toLocaleDateString("sv-SE")) + " · " + new Date().toLocaleTimeString("es-NI", { hour: "2-digit", minute: "2-digit" });','const generated = new Date().toLocaleString("es-NI", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });');
+ assert.equal(institutionalDates(current('js/casur-enhancements.js').replace(authorizedSource,']')),original('js/casur-enhancements.js'),'js/casur-enhancements.js');
  // Data releases are verified by their integrity manifest; Histórico records stay byte-for-byte except its generation label.
  const integrity=JSON.parse(current('data/integrity.json'));
  for(const [name,hash] of Object.entries(integrity.files))assert.equal(createHash('sha256').update(fs.readFileSync(new URL('../data/'+name,import.meta.url))).digest('hex'),hash,name);

@@ -6,7 +6,9 @@ const [base, out, consolidado] = process.argv.slice(2);
 if (!base) throw Error('Usage: node tools/qa-plan-z2627.cjs BASE [OUT] [CONSOLIDADO.xlsx]');
 if (out) fs.mkdirSync(out, {recursive: true});
 const results = [];
-const check = (name, fn) => fn().then(() => results.push(['PASS', name]), e => results.push(['FAIL', name, e.message.split('\n').slice(0, 6).join(' ')]));
+// Each check is bounded (a hung step fails instead of blocking the run) and reported as soon as it ends.
+const check = (name, fn, ms = 180000) => { let timer; return Promise.race([fn(), new Promise((_, ko) => { timer = setTimeout(() => ko(Error('timeout ' + ms + ' ms')), ms); })])
+  .then(() => ['PASS', name], e => ['FAIL', name, e.message.split('\n').slice(0, 6).join(' ')]).then(r => { clearTimeout(timer); results.push(r); console.log(r.join(' · ')); }); };
 const near = (a, b, e = 0.005) => assert.ok(Math.abs(Number(a) - Number(b)) < e, `${a} ≠ ${b}`);
 async function open(browser, width, extra = {}) {
   const mobile = width < 700;
@@ -161,7 +163,6 @@ const lot = (page, code, suerte) => page.evaluate(([c, s]) => { CASUR_MAESTRO_UX
       await ctx.close();
     }
   } finally { await browser.close(); }
-  for (const r of results) console.log(r.join(' · '));
   const failed = results.filter(r => r[0] === 'FAIL').length;
   console.log(`\n${results.length - failed}/${results.length} PASS`);
   if (out) fs.writeFileSync(path.join(out, 'qa-plan-z2627.json'), JSON.stringify(results, null, 1));

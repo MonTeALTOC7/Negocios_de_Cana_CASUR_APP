@@ -16,6 +16,13 @@ El Issue documentaba el original como `7a44b75b…`. El archivo recibido es ese 
 
 El propietario autorizó continuar con este archivo.
 
+## Corrección de procedencia autorizada por el propietario (23-nov-2026)
+
+El aforo oficial AD/AE/AF/AG conserva fecha 12-oct-2026, aunque el plan BE/BF y los ajustes se consolidaron el 22-nov-2026.
+El generador ahora distingue AFORO_DATE (2026-10-12) de PACKAGE_GENERATED (2026-11-22). La versión técnica 2026.11.22-aforo.1102 permanece por compatibilidad.
+Tras ejecutar el generador se deben regenerar los archivos de datos, integrity.json y release-data-manifest.json. Exigir que las 1,053 identidades, 9,101.68 ha de Molienda, 561,658.27 t oficiales y 597,888.40 t optimistas, BE y BF permanezcan idénticos. Solo las fechas de procedencia pasan a 12-oct-2026.
+Este ajuste no autoriza publicación de SIAGRI ni merge a main.
+
 ## Construcción reproducible
 
 `tools/plan-z2627/build-aforo-z2627.cjs` ejecuta en Chromium los **mismos motores de la app**: `XLSX.read` → `workbookSheets` → `inspectSheets` → `parseCandidate` → `prepareUpdate` → `CASUR_BUILD_CRONO_DATA`. Detalle:
@@ -64,7 +71,7 @@ El propietario autorizó continuar con este archivo.
 - 759/06, 993/24A y 993/25: variedad sin cambio; no hay variedad destino.
 - 6/04: BE posiblemente desfasado (3.55 meses); requiere Programación.
 - 15 avisos de conflicto destino/clasificación, del mismo tipo que en 1101 (por ejemplo 1927 y 2003). Prevalece AH.
-- El libro mantiene en su cabecera «Version del 12.10.2026»; la fecha efectiva usada es la del consolidado, 22-nov-2026.
+- **Aforo oficial Z26/27: 12-oct-2026**, confirmado en la cabecera AFORO_26-27. El 22-nov-2026 corresponde a la consolidación del plan y ajustes; no hubo un nuevo aforo. source.sourceDate, forecast.source.sourceDate, meta.tchEst2627EffectiveDate y version.tchEst2627EffectiveDate deben indicar 2026-10-12. meta.generated, version.generated y el identificador 2026.11.22-aforo.1102 conservan la fecha de generación del paquete. BE/BF no se modifican por esta corrección.
 - La versión de App/Producción sigue en las candidatas 1.6.2/V1.8.3 (A+B+C+datos sin publicar). Debe consolidarse en un PR hacia `main` con el Release Gate real de PR.
 
 ## Plan de reversión

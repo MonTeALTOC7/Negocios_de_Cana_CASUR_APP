@@ -37,6 +37,8 @@ const lot = (page, code, suerte) => page.evaluate(([c, s]) => { CASUR_MAESTRO_UX
     });
     await check('Generación 2026.11.22-aforo.1102 aplicada como aforo autorizado', async () => {
       assert.equal(D.meta.dataVersion, '2026.11.22-aforo.1102'); assert.equal(D.meta.sheet, 'AFORO_26-27'); assert.equal(D.meta.harvestPlanLabel, 'Fecha para cosecha 26/27');
+      assert.equal(D.meta.tchEst2627EffectiveDate, '2026-10-12', 'Aforo oficial = 12-oct-2026');
+      assert.equal(D.meta.generated, '2026-11-22', 'Generación del paquete = 22-nov-2026');
       assert.equal(D.s.estimateState, 'applied'); assert.equal(D.meta.sourceSha256, '2e3cfedb0682024753f7dca7f484326641e281bf018de44f823052369dfada60');
     });
     await check('Totales oficiales: 9,574.66 activa = 9,101.68 Molienda + 472.98 Semilla; 561,658.27 t; TCH 61.71', async () => {

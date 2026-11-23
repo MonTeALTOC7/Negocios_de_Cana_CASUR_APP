@@ -64,7 +64,16 @@ check("estimados 26/27 conservan nulos", () => {
     assert.equal(seed.participatesMilling, false);
     assert.equal(seed.operationalDecision.destination, 'Semilla');
   } else assert.equal(valued.some((row) => row.tchEst2627 === 0), false);
-  assert.equal(version.tchEst2627EffectiveDate, plan ? "2026-11-22" : aforo ? "2026-10-12" : "2026-07-17");
+  assert.equal(version.tchEst2627EffectiveDate, aforo ? "2026-10-12" : "2026-07-17");
+  if (plan) {
+    assert.equal(version.generated, "2026-11-22", "La fecha de generación del plan no reemplaza la fecha oficial del aforo");
+    assert.equal(cronologico.meta.tchEst2627EffectiveDate, "2026-10-12");
+    assert.equal(cronologico.meta.generated, "2026-11-22");
+    records.filter(row => row.sourcePresence === "present").forEach(row => {
+      assert.equal(row.source?.sourceDate, "2026-10-12", `${row.codLote}: fecha fuente del aforo`);
+      if (row.forecast?.source?.sourceDate) assert.equal(row.forecast.source.sourceDate, "2026-10-12");
+    });
+  }
 });
 
 check("toneladas estimadas coherentes con contrato de generación", () => {

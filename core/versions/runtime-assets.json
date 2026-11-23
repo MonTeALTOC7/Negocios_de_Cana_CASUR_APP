@@ -1,6 +1,6 @@
 {
   "appVersion": "1.6.2",
-  "releaseId": "1.6.2-35f360511a33733e",
+  "releaseId": "1.6.2-21ce3b1fa9da6573",
   "assets": {
     "404.html": "13e468776893ea36d86e0a6b83935bafd4c5f3782fb3a302959337f8e14a19fe",
     "app.js": "2e62cbe84f75fec94e99de5d467bd96f75a260c5bd75e721b8b588f69559cb2f",
@@ -62,7 +62,7 @@
     "modules/produccion/assets/campo-iteracion03.webp": "f3492655c5ef97099db1f97eb1fb21c6e3d5d41e4aed84758c6d2d904f86f3cf",
     "modules/produccion/assets/negocios-de-cana.webp": "e2fb8e606a08aa60c233bf6a7dd33a15dbb598c8ca87bbd097b2d4f26353a767",
     "modules/produccion/css/casur-upgrade.css": "74384729d32c8bde707888125f919315e47040bf87454889980ff6bb95af63dd",
-    "modules/produccion/css/maestro-ux.css": "3d9d4c9d7fb960594c1dfe4952fc1006c31ac3d99d40c128c0ac07bb0644b9b7",
+    "modules/produccion/css/maestro-ux.css": "ea15dc1455727206f6f5c924f2037096ba142390045104fba93c4f3c1644bb72",
     "modules/produccion/favicon.png": "4de01c177e2b63f20b8013bb5e4f58a500bbbcd816193d2388a70b9c8fc2b2de",
     "modules/produccion/icon-192.png": "f1fd3cb04a25b802be6668330fd25d414b976d9ecd3ed2b1ba48963911956098",
     "modules/produccion/icon-512.png": "54c808784b136dbd73be9cd2ab556f3076d5d643b03d0edac0b0ee43a08b4081",

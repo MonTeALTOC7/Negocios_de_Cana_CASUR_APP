@@ -110,7 +110,8 @@ const lot = (page, code, suerte) => page.evaluate(([c, s]) => { CASUR_MAESTRO_UX
       await check(W + ' KPI «Fecha para cosecha 26/27» con BE y alerta de programación (6/04)', async () => {
         await lot(page, '6', '04'); await page.waitForSelector('.casur-proposal-kpi');
         const t = await page.locator('.casur-proposal-kpi').innerText();
-        assert.match(t, /^Fecha para cosecha 26\/27/); assert.match(t, /24-dic-2026/); assert.match(t, /Manual/); assert.match(t, /Revisar con Programación: 3\.55 meses desde 07-sep-2026/);
+        assert.match(t, /^Fecha para cosecha 26\/27/);
+        assert.equal(await page.locator('.casur-proposal-kpi .label').evaluate(n => n.textContent.trim() + (getComputedStyle(n, '::after').content.replace(/^none$|^normal$/, '').replace(/^"|"$/g, ''))), 'Fecha para cosecha 26/27'); assert.match(t, /24-dic-2026/); assert.match(t, /Manual/); assert.match(t, /Revisar con Programación: 3\.55 meses desde 07-sep-2026/);
         await noHScroll('6/04');
       });
       await check(W + ' Ficha de suerte separa F. siembra y F. último corte de la fecha programada', async () => {

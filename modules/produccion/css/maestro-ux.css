@@ -1153,3 +1153,5 @@ body.casur-maestro-premium:not(.print-export) #cronoSection:has(.context-explore
  .ux13-optimistic-note {margin:6px 0 0;font-size:11.5px;color:#4f686e}
  .ux13-plan-alert {display:block;margin-top:4px;font-size:11px;font-weight:700;color:#8a4b0f}
 }
+/* Plan Z26/27 (#67): el KPI se llama exactamente «Fecha para cosecha 26/27»; sin sufijo visual. */
+.casur-maestro-premium:not(.print-export) .premium-ficha-restored [data-ux09-kpi="proposal"] .label::after {content:none}

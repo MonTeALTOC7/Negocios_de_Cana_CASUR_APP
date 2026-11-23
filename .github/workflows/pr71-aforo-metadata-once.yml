@@ -1,0 +1,114 @@
+name: PR71 - One-time aforo provenance correction
+on:
+  push:
+    branches:
+      - claude/plan-z2627-fecha-aforo-12oct
+    paths:
+      - .github/workflows/pr71-aforo-metadata-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  correct-and-check:
+    if: github.repository == 'MonTeALTOC7/Negocios_de_Cana_CASUR_APP'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Patch provenance only and verify SHA-256
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+          
+          DATA = Path("modules/produccion/data")
+          release_path = Path("tools/release-data-manifest.json")
+          original = {n: (DATA / n).read_text(encoding="utf-8") for n in
+                      ("cronologico.json", "cronologico.js", "version.json", "version.js", "integrity.json")}
+          manifest_old = release_path.read_text(encoding="utf-8")
+          manifest = json.loads(manifest_old)
+          integrity = json.loads(original["integrity.json"])
+          h = lambda s: hashlib.sha256(s.encode("utf-8")).hexdigest()
+          
+          for n in ("cronologico.json", "cronologico.js", "version.json", "version.js"):
+              assert h(original[n]) == integrity["files"][n], f"SHA previo incorrecto: {n}"
+          assert h(original["integrity.json"]) == manifest["files"]["integrity.json"]
+          assert original["cronologico.js"] == "window.CASUR_REMOTE_CRONO=" + original["cronologico.json"].rstrip("\n") + ";\n"
+          assert original["version.js"] == "window.CASUR_RELEASE=" + original["version.json"].rstrip("\n") + ";\n"
+          
+          crono = json.loads(original["cronologico.json"])
+          assert crono["meta"]["dataVersion"] == "2026.11.22-aforo.1102"
+          assert crono["meta"]["generated"] == "2026-11-22"
+          assert crono["meta"]["tchEst2627EffectiveDate"] == "2026-11-22"
+          assert crono["global"]["estimateTons"] == 561658.27
+          assert crono["global"]["millingArea"] == 9101.68
+          assert crono["global"]["seedArea"] == 472.98
+          assert crono["global"]["estimateLots"] == 946
+          assert crono["global"]["catalogLots"] == 1053
+          
+          old_source = '"sourceDate":"2026-11-22"'
+          new_source = '"sourceDate":"2026-10-12"'
+          old_effective = '"tchEst2627EffectiveDate":"2026-11-22"'
+          new_effective = '"tchEst2627EffectiveDate":"2026-10-12"'
+          assert original["cronologico.json"].count(old_source) == 2092
+          assert original["cronologico.json"].count(old_effective) == 1
+          new_crono = original["cronologico.json"].replace(old_source, new_source).replace(old_effective, new_effective)
+          assert new_crono.replace(new_source, old_source).replace(new_effective, old_effective) == original["cronologico.json"]
+          new_data = json.loads(new_crono)
+          assert new_data["meta"]["generated"] == "2026-11-22"
+          assert new_data["meta"]["importedAt"] == "2026-11-22T12:00:00.000Z"
+          assert new_data["meta"]["tchEst2627EffectiveDate"] == "2026-10-12"
+          assert new_data["global"] == crono["global"]
+          new_version = original["version.json"].replace(old_effective, new_effective)
+          assert new_version != original["version.json"]
+          assert json.loads(new_version)["generated"] == "2026-11-22"
+          
+          updates = {
+              "cronologico.json": new_crono,
+              "cronologico.js": "window.CASUR_REMOTE_CRONO=" + new_crono.rstrip("\n") + ";\n",
+              "version.json": new_version,
+              "version.js": "window.CASUR_RELEASE=" + new_version.rstrip("\n") + ";\n",
+          }
+          for n, content in updates.items():
+              (DATA / n).write_text(content, encoding="utf-8")
+              integrity["files"][n] = h(content)
+              manifest["files"][n] = h(content)
+          integrity_content = json.dumps(integrity, indent=2, ensure_ascii=False) + "\n"
+          (DATA / "integrity.json").write_text(integrity_content, encoding="utf-8")
+          manifest["files"]["integrity.json"] = h(integrity_content)
+          release_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+          assert original["cronologico.js"].count(old_source) == 2092
+          assert (DATA / "cronologico.js").read_text(encoding="utf-8") == "window.CASUR_REMOTE_CRONO=" + new_crono.rstrip("\n") + ";\n"
+          assert json.loads((DATA / "version.json").read_text(encoding="utf-8"))["tchEst2627EffectiveDate"] == "2026-10-12"
+          assert manifest["files"]["historico.json"] == integrity["files"]["historico.json"]
+          assert manifest["files"]["historico.js"] == integrity["files"]["historico.js"]
+          print("OK: 2,092 sourceDate + meta/version efectivos = 12-oct; generated permanece 22-nov; totales/BE/BF invariables")
+          print("SHA de salida:", {n: h(c) for n,c in updates.items()})
+          PY
+      - name: Check integrity and production static tests
+        shell: bash
+        run: |
+          node tools/production-integrity.mjs
+          node tools/check-context-hotfix.mjs
+          npm test --prefix modules/produccion
+          npm run validate --prefix modules/tch
+      - name: Commit ONLY regenerated data metadata to draft branch
+        shell: bash
+        run: |
+          test "${GITHUB_REF_NAME}" = "claude/plan-z2627-fecha-aforo-12oct"
+          git add modules/produccion/data/cronologico.json modules/produccion/data/cronologico.js modules/produccion/data/version.json modules/produccion/data/version.js modules/produccion/data/integrity.json tools/release-data-manifest.json
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(plan-z2627): aforo 12-oct, SHA-256 íntegros, plan intacto"
+          git push origin HEAD:refs/heads/claude/plan-z2627-fecha-aforo-12oct
+      - name: Verify shell regressions after commit
+        run: node --test tests/*.test.mjs

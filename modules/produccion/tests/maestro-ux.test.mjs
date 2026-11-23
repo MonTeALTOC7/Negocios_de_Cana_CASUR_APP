@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {migrateModuleHtml} from '../../../tools/retheme-petroleo.mjs';
@@ -18,7 +19,16 @@ test('Fase 1 conserva byte a byte el documento y los motores originales tras ret
    return start+JSON.stringify(assets)+end;
  });
  assert.equal(normalizeRelease(restored),normalizeRelease(migrateModuleHtml(original('index.html'))));
- for(const p of['js/historical-engine.js','js/casur-enhancements.js','data/version.json','data/cronologico.json','data/historico.json','data/integrity.json'])assert.equal(current(p),original(p),p);
+ assert.equal(current('js/historical-engine.js'),original('js/historical-engine.js'),'js/historical-engine.js');
+ // Plan Z26/27 (#67): the only engine change allowed is registering the audited AFORO_26-27 source hash.
+ const authorizedSource=/,\n    \/\/ 2e3c\.\.\.: AFORO_26-27 Z26\/27 \(22-nov-2026, Issue #67\)\.[^\n]*\n    \/\/ [^\n]*\n    '2e3cfedb0682024753f7dca7f484326641e281bf018de44f823052369dfada60'\]/;
+ assert.match(current('js/casur-enhancements.js'),authorizedSource);
+ assert.equal(current('js/casur-enhancements.js').replace(authorizedSource,']'),original('js/casur-enhancements.js'),'js/casur-enhancements.js');
+ // Data releases are verified by their integrity manifest; Histórico records stay byte-for-byte except its generation label.
+ const integrity=JSON.parse(current('data/integrity.json'));
+ for(const [name,hash] of Object.entries(integrity.files))assert.equal(createHash('sha256').update(fs.readFileSync(new URL('../data/'+name,import.meta.url))).digest('hex'),hash,name);
+ const relabel=text=>{const h=JSON.parse(text);return JSON.stringify({...h,meta:{...h.meta,dataVersion:null,sourceDataVersion:null}});};
+ assert.equal(relabel(current('data/historico.json')),relabel(original('data/historico.json')),'data/historico.json');
 });
 
 test('El puente PWA mantiene su contrato original y solo añade la pestaña al snapshot',()=>{

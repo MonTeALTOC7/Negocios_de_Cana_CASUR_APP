@@ -174,6 +174,15 @@
         const notes=[];// UX13 P2: with Destino the table already reports Semilla as «No aplica».
         if(summary.seedLots>0&&field!=='destino')notes.push('Semilla: '+fmt(summary.seedArea)+' ha · '+fmt(summary.seedLots,0)+' suertes · no aplica estimado de molienda');if(applied&&summary.pendingMillingLots>0)notes.push('Molienda sin estimado: '+fmt(summary.pendingMillingArea)+' ha · '+fmt(summary.pendingMillingLots,0)+' suertes');
         if(notes.length){const list=el('ul','ux13-overview-notes');notes.forEach(n=>list.append(el('li','',n)));overview.append(list);}
+        // Plan Z26/27 (#67): AF/AG optimistic scenario, secondary and closed. Only usable Molienda rows in scope;
+        // official KPIs (AD/AE) above are never mixed with it.
+        const optimistic=scoped.filter(r=>r.forecastOptimistic&&window.CASUR_OPERATIONAL_IMPORT.participation(r).usable);
+        if(optimistic.length){
+          const tons=optimistic.reduce((n,r)=>n+r.forecastOptimistic.tons,0),area=optimistic.reduce((n,r)=>n+r.inventoryArea,0),official=optimistic.reduce((n,r)=>n+window.CASUR_OPERATIONAL_IMPORT.participation(r).estimatedTons,0);
+          const box=presentation(el('details','ux13-optimistic'));box.append(el('summary','','Escenario optimista'));
+          const dl=el('dl','ux09-forecast-stats');[['Toneladas optimistas',fmt(tons)+' t'],['TCH optimista',fmt(area?tons/area:null)+' t/ha'],['Diferencia con el aforo oficial',(tons-official>=0?'+':'')+fmt(tons-official)+' t'],['Suertes',fmt(optimistic.length,0)]].forEach(([k,v])=>{const item=el('div');item.append(el('dt','',k),el('dd','',v));dl.append(item);});
+          box.append(dl,el('p','ux13-optimistic-note','AF/AG del aforo. No sustituye el aforo oficial.'));overview.append(box);
+        }
         content.append(overview);
       }
       const head=el('div','ux05-heading');
@@ -631,7 +640,16 @@
         let farmMapFitted=false;const fitVisibleFarmMap=()=>{if(farmMapFitted||!farmMap||mapPanel.classList.contains('maestro-panel-inactive'))return;farmMapFitted=farmMap.fitToData();};mapPanel.addEventListener('casur:map-visible',fitVisibleFarmMap);(async()=>{try{const features=await window.CASUR_GEO_DATA.getLotGeometries(producer.details.map(r=>r.codLote));if(!mapPanel.isConnected)return;if(!features.length){mapPanel.querySelector('small').textContent='Sin geometrías oficiales disponibles para esta finca.';return;}farmMap=window.createCasurMap(mapPanel.querySelector('div'),{ariaLabel:'Mapa oficial de '+producer.name,autoFit:false});farmMap.setLots(features);requestAnimationFrame(fitVisibleFarmMap);}catch(e){if(mapPanel.isConnected)mapPanel.querySelector('small').textContent='Mapa no disponible: '+e.message;}})();
       }
       installReportMenus(host);
+      // Plan Z26/27 (#67): the harvest-plan KPI names its season, on screen and in exports.
+      const planLabel='Fecha para cosecha '+season();
+      host.querySelectorAll('.casur-proposal-kpi > .label').forEach(n=>{if(/^Fecha para cosecha$/.test(n.textContent.trim()))n.textContent=planLabel;});
       if(root&&host.dataset.geoScope==='lot'){
+        const record=window.CRONO_DATA?.producers?.flatMap(p=>p.details).find(r=>String(r.codLote)===String(host.dataset.geoLotId));
+        const facts=root.querySelector('.premium-ficha-info .context-technical-facts');
+        // Sowing (N) and last cut (O) are crop-cycle dates, distinct from the scheduled harvest date (BE).
+        if(record&&facts&&!facts.querySelector('.ux13-cycle-date'))[['F. siembra',record.fSiembra],['F. último corte',record.fUltCte]].forEach(([name,iso])=>{const pair=presentation(el('div','ux13-cycle-date'));pair.append(el('dt','',name),el('dd','',iso?window.CASUR_CRONO_PARTICIPATION.formatDate(iso):dash));facts.prepend(pair);});
+        const alert=(window.CRONO_DATA?.operational?.planAlerts||[]).find(a=>String(a.key)===String(host.dataset.geoLotId)),kpi=root.querySelector('.casur-proposal-kpi');
+        if(alert&&kpi&&!kpi.querySelector('.ux13-plan-alert')){const note=presentation(el('small','ux13-plan-alert','Revisar con Programación: '+fmt(alert.months)+' meses desde '+window.CASUR_CRONO_PARTICIPATION.formatDate(alert.base)));note.setAttribute('role','note');kpi.append(note);}
         root.querySelectorAll('.single-suerte-kpis .kpi').forEach(k=>{const label=k.querySelector('.label')?.textContent||'';let key=/TCH\s*Estim/i.test(label)?'estimate':/Fecha.*cosecha/i.test(label)?'proposal':/Área activa/i.test(label)?'area':/Edad actual/i.test(label)?'age':/TCH.*Ant/i.test(label)?'previous':/Variedad/i.test(label)?'variety':'';if(key)k.dataset.ux09Kpi=key;});
         const previous=root.querySelector('[data-ux09-kpi="previous"]'),technical=root.querySelector('.premium-ficha-info');if(previous&&technical&&!technical.querySelector('.ux09-previous')){const entry=presentation(el('p','ux09-previous'));entry.append(el('span','',previous.querySelector('.label')?.textContent.trim()||'TCH anterior'),el('strong','',previous.querySelector('strong')?.textContent.trim()||'N/D'));technical.append(entry);}
       }

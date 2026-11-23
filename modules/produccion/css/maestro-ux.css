@@ -1145,3 +1145,11 @@ body.casur-maestro-premium:not(.print-export) #cronoSection:has(.context-explore
  /* Z9 · filas de barras dentro de su caja en teléfonos estrechos (360 px). */
  body.casur-maestro-premium:not(.print-export) #cronoZoneContent .czhrow {grid-template-columns:minmax(70px,1fr) 46px minmax(104px,auto)!important;gap:6px!important}
 }
+@media screen {
+ /* Plan Z26/27 · escenario optimista AF/AG secundario y alerta de programación. */
+ .ux13-optimistic {margin-top:8px;border-top:1px solid #e2e8ea;padding-top:4px}
+ .ux13-optimistic > summary {display:list-item;min-height:44px;line-height:44px;cursor:pointer;font-size:13px;font-weight:700;color:#22545e}
+ .ux13-optimistic .ux09-forecast-stats {margin-top:2px}
+ .ux13-optimistic-note {margin:6px 0 0;font-size:11.5px;color:#4f686e}
+ .ux13-plan-alert {display:block;margin-top:4px;font-size:11px;font-weight:700;color:#8a4b0f}
+}

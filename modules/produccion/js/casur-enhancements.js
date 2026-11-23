@@ -14,7 +14,10 @@
   const decisionSources = ['82cd45c03b8c80ddda6ebc6078289df4f63b6a380403da6f103f2a52fa30e069',
     '716d374c63aa0e990f18cbabee9f391eee3d54d50fd8395488a8357e5bbcbbae',
     '849e3bac1fa0ff6abd49c690f25ab0910b18282674ddea833283c79d6d46fc04',
-    'aa9ab25b863dc399d5a6d445c0efe7907ca8956ef868429f308a404a46267fc6'];
+    'aa9ab25b863dc399d5a6d445c0efe7907ca8956ef868429f308a404a46267fc6',
+    // 2e3c...: AFORO_26-27 Z26/27 (22-nov-2026, Issue #67). Original 7a44... with AH of 908/09,10,15
+    // set to Semilla (authorized); audited cell by cell against consolidated 3277... (0 differences).
+    '2e3cfedb0682024753f7dca7f484326641e281bf018de44f823052369dfada60'];
   window.CASUR_OPERATIONAL_DECISIONS = Object.freeze([
     { id:'CASUR-2026-10-25-2003',key:'2003',season:'26/27',destination:'Semilla',approvedAt:'2026-10-25',
       reason:'Decisión expresa del usuario CASUR: Semilla activa, fuera de molienda.',sourceHashes:decisionSources,

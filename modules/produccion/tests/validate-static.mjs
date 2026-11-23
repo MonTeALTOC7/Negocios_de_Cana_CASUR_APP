@@ -12,7 +12,9 @@ const index = read("index.html");
 const cronologico = JSON.parse(read("data/cronologico.json"));
 const historico = JSON.parse(read("data/historico.json"));
 const version = JSON.parse(read("data/version.json"));
-const aforo = version.version === '2026.10.25-aforo.1101';
+// Plan de Cosecha Z26/27 (Issue #67): generación 1102 desde AFORO_26-27 con ajustes autorizados.
+const plan = version.version === '2026.11.22-aforo.1102';
+const aforo = plan || version.version === '2026.10.25-aforo.1101';
 assert.ok(aforo || version.version === '2026.09.06-siagri.1415', 'Generación oficial conocida');
 const enhancement = read("js/casur-enhancements.js");
 const historicalEngine = read("js/historical-engine.js");
@@ -27,12 +29,12 @@ check("base oficial completa", () => {
   assert.equal(cronologico.global.suertes, 1053);
   assert.equal(cronologico.global.productores, 100);
   assert.equal(cronologico.global.area, aforo ? 9574.66 : 10030.65);
-  assert.equal(cronologico.meta.sheet, aforo ? "Estimados_2627" : "REPORTE");
+  assert.equal(cronologico.meta.sheet, plan ? "AFORO_26-27" : aforo ? "Estimados_2627" : "REPORTE");
   if (aforo) {
     assert.equal(cronologico.meta.estimateSeason, '26/27');
-    assert.equal(cronologico.global.estimateLots, 948);
-    assert.equal(cronologico.global.estimateTons, 563187.97);
-    assert.equal(cronologico.global.estimateArea, 9115.65);
+    assert.equal(cronologico.global.estimateLots, plan ? 946 : 948);
+    assert.equal(cronologico.global.estimateTons, plan ? 561658.27 : 563187.97);
+    assert.equal(cronologico.global.estimateArea, plan ? 9101.68 : 9115.65);
   }
 });
 
@@ -49,7 +51,12 @@ check("estimados 26/27 conservan nulos", () => {
   const empty = records.filter((row) => row.tchEst2627 === null);
   assert.equal(valued.length + empty.length, records.length);
   assert.ok(empty.length > 0);
-  if (aforo) {
+  if (plan) {
+    // San Lucas 20/03 authorized at 90 TCH (AD) in Molienda; no zero estimates remain.
+    assert.deepEqual(valued.filter(row => row.tchEst2627 === 0).map(row => row.codLote), []);
+    const lot = valued.find(row => row.codLote === '2003');
+    assert.equal(lot.tchEst2627, 90); assert.equal(lot.participatesMilling, true); assert.equal(lot.operationalDecision, undefined);
+  } else if (aforo) {
     // Preserve the approved zero for active Semilla 2003, outside milling.
     assert.deepEqual(valued.filter(row => row.tchEst2627 === 0).map(row => row.codLote), ['2003']);
     const seed = valued.find(row => row.codLote === '2003');
@@ -57,12 +64,12 @@ check("estimados 26/27 conservan nulos", () => {
     assert.equal(seed.participatesMilling, false);
     assert.equal(seed.operationalDecision.destination, 'Semilla');
   } else assert.equal(valued.some((row) => row.tchEst2627 === 0), false);
-  assert.equal(version.tchEst2627EffectiveDate, aforo ? "2026-10-12" : "2026-07-17");
+  assert.equal(version.tchEst2627EffectiveDate, plan ? "2026-11-22" : aforo ? "2026-10-12" : "2026-07-17");
 });
 
 check("toneladas estimadas coherentes con contrato de generación", () => {
   records.filter((row) => row.tchEst2627 !== null).forEach((row) => {
-    if (aforo && row.codLote === '2003') assert.equal(row.tonEst2627, null);
+    if (aforo && !plan && row.codLote === '2003') assert.equal(row.tonEst2627, null);
     else {
       // Official aforo preserves original precision; baseline used two decimals.
       const expected = aforo ? row.area * row.tchEst2627 : Math.round(row.area * row.tchEst2627 * 100) / 100;

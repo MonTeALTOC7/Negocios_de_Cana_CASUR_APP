@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "issue": "#67",
+  "authority": "Propietario CASUR · comentario 7092045880 (2026-11-23) · hojas «CAMBIOS PARA JEFE» y «PLANTILLA CAMBIOS» del consolidado SHA-256 3277b48696d426b7906ccb6a0fedc0cfe2ceb55570cef0147455633c75d013fe",
+  "rule": "Cada ajuste se aplica sobre el registro leído de AFORO_26-27 solo si el valor de origen es exactamente «before»; si no, la construcción se detiene. BE/BF no se ajustan.",
+  "adjustments": [
+    {"key": "603", "field": "cut", "column": "H · NC", "before": "9", "after": "10", "note": "Freddy Sovalvarro 6/03; último corte 07-sep-2026 ya coincide en la fuente"},
+    {"key": "603A", "field": "cut", "column": "H · NC", "before": "9", "after": "10", "note": "Freddy Sovalvarro 6/03A"},
+    {"key": "603A", "field": "lastCut", "column": "O · F. Ult. Cte", "before": "2025-12-11", "after": "2026-06-10", "note": "Freddy Sovalvarro 6/03A"},
+    {"key": "604", "field": "cut", "column": "H · NC", "before": "9", "after": "10", "note": "Freddy Sovalvarro 6/04"},
+    {"key": "604", "field": "lastCut", "column": "O · F. Ult. Cte", "before": "2025-12-11", "after": "2026-09-07", "note": "Freddy Sovalvarro 6/04 · alerta: BE 24-dic-2026 a 3.55 meses; no se modifica BE"},
+    {"key": "607", "field": "lastCut", "column": "O · F. Ult. Cte", "before": "2026-01-18", "after": "2026-04-11", "note": "Freddy Sovalvarro 6/07; NC 12 sin cambio"},
+    {"key": "12503", "field": "sowing", "column": "N · F. Siembra", "before": null, "after": "2026-07-01", "note": "José Andrés Pérez Alemán 125/03 · Molienda, 10.48 ha, riego Secano sin cambio"},
+    {"key": "75906", "field": "cut", "column": "H · NC", "before": "7", "after": "1", "note": "Jesús María 759/06 · Semilla, plantilla; variedad sin cambio"},
+    {"key": "75906", "field": "sowing", "column": "N · F. Siembra", "before": "2020-02-20", "after": "2026-08-20", "note": "Jesús María 759/06"},
+    {"key": "90806", "field": "sowing", "column": "N · F. Siembra", "before": null, "after": "2026-05-28", "note": "AIDOSA 908/06 · Semilla"},
+    {"key": "90816", "field": "sowing", "column": "N · F. Siembra", "before": null, "after": "2026-07-30", "note": "AIDOSA 908/16 · Semilla"},
+    {"key": "99324A", "field": "sowing", "column": "N · F. Siembra", "before": null, "after": "2026-07-23", "note": "Pansaco 993/24A · Semilla; variedad sin cambio"},
+    {"key": "99325", "field": "sowing", "column": "N · F. Siembra", "before": null, "after": "2026-07-31", "note": "Pansaco 993/25 · Semilla; variedad sin cambio"}
+  ],
+  "alreadyInSource": [
+    {"key": "90809", "field": "classification", "value": "Semilla", "note": "AH editado en el archivo recibido (antes «Semilla AIDOSA»); retira estimado de molienda"},
+    {"key": "90810", "field": "classification", "value": "Semilla", "note": "Ídem"},
+    {"key": "90815", "field": "classification", "value": "Semilla", "note": "Ídem"},
+    {"key": "2003", "field": "estimateTch", "value": 90, "note": "San Lucas 20/03 · AD 90 / AE 985.50 t en la fuente"}
+  ]
+}

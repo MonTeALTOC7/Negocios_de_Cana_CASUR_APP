@@ -197,8 +197,8 @@ test("mapa cronológico 24201 identifica la unidad SIAGRI y muestra ficha sin in
   const context = { source: "cronologico", entityType: "lote", farmCode: "242", name: producer.name, currentRows: producer.details };
   const card = api.chronologicalCardMarkup(context, "24201", true);
   const exportCard = api.chronologicalCardMarkup(context, "24201", false);
-  const aforo = officialCrono.meta.dataVersion === '2026.10.25-aforo.1101';
-  assert.equal(officialCrono.meta.source, aforo ? "Estimados_para_APP_Z2627.xlsx" : "SIAGRI");
+  const plan = officialCrono.meta.dataVersion === '2026.11.22-aforo.1102', aforo = plan || officialCrono.meta.dataVersion === '2026.10.25-aforo.1101';
+  assert.equal(officialCrono.meta.source, plan ? "Productores _Servicios_Z2627.xlsx" : aforo ? "Estimados_para_APP_Z2627.xlsx" : "SIAGRI");
   assert.equal(producer.zone, "5-Productores");
   assert.equal(producer.name, "Agustin Boiorge Acevedo");
   assert.match(index, /name:\['Hacienda_Productor','Hacienda Productor','Hacienda','Productor'/);

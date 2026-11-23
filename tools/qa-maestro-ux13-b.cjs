@@ -57,7 +57,8 @@ const figures = page => page.evaluate(() => {
         await page.waitForSelector('#fichaContent .ficha-band .context-report-trigger', {timeout: 30000});
         assert.equal(await page.locator('#fichaContent .context-report-trigger').count(), 1);
         assert.equal(await page.locator('#fichaContent .ficha-band .casur-visual-action.pdf').isVisible(), false, 'PDF suelto');
-        const sizes = await page.evaluate(() => [...document.querySelectorAll('#fichaContent .ficha-band :is(.context-report-trigger,.ux13-band-map)')].map(n => { const r = n.getBoundingClientRect(); return [r.width, r.height]; }));
+        // UX13-C moved Mapa from the hero to a card after the chart: the touch targets that exist must be ≥44 px.
+        const sizes = await page.evaluate(() => [...document.querySelectorAll('#fichaContent :is(.ficha-band .context-report-trigger,.ficha-band .ux13-band-map,.ux13-map-card)')].filter(n => n.getClientRects().length).map(n => { const r = n.getBoundingClientRect(); return [r.width, r.height]; }));
         assert.equal(sizes.length, 2); for (const [w, h] of sizes) assert.ok(w >= 44 && h >= 44, JSON.stringify(sizes));
         const band = await page.locator('#fichaContent .ficha-band').evaluate(n => n.getBoundingClientRect().height);
         assert.ok(band <= (mobile ? 190 : 110), 'banda ' + band);
@@ -89,14 +90,16 @@ const figures = page => page.evaluate(() => {
         assert.deepEqual(order.slice(0, 4).map(x => x[0]), ['tch', 'katm', 'area', 'edad']);
         const tops = new Set(order.slice(0, 4).map(x => x[1]));
         assert.equal(tops.size, mobile ? 2 : 1, 'filas ' + JSON.stringify(order.slice(0, 4)));
+        await page.evaluate(() => { const d = document.querySelector('.ux13-more'); if (d) d.open = true; }); // UX13-C: secondary KPIs collapsed
         const text = await page.locator('.ux13-kpis').innerText();
         for (const gone of ['Toneladas ÷ área', 'Ponderado por toneladas', 'Ponderada por área válida']) assert.ok(!text.includes(gone), gone);
         assert.match(text, /DISTANCIA|Distancia/); // secondary KPIs remain
         const dist = await page.locator('.ux13-kpis [data-ux13-kpi=secondary]', {hasText: /Distancia/i}).locator('em').innerText();
         assert.ok(dist.length > 0, 'advertencia de distancia visible');
-        await page.locator('.ux13-kpi-divider .ux13-help-trigger').click();
-        assert.match(await page.locator('.ux13-help:popover-open').innerText(), /toneladas ÷ área/);
+        if (await page.locator('.ux13-kpi-divider .ux13-help-trigger').count()) { await page.locator('.ux13-kpi-divider .ux13-help-trigger').click(); assert.match(await page.locator('.ux13-help:popover-open').innerText(), /toneladas ÷ área/); }
+        else { await page.locator('.ux13-kpis [data-ux13-kpi=area] .ux13-info').click(); await page.waitForSelector('.ux13-help:popover-open'); assert.match(await page.locator('.ux13-help:popover-open').evaluate(n => n.textContent), /área cosechada/i); } // UX13-C: discreet «i»
         await page.keyboard.press('Escape');
+        await page.evaluate(() => { const d = document.querySelector('.ux13-more'); if (d) d.open = false; });
       });
       await check(W + ' Comparar TCH: ' + (mobile ? 'cerrado' : 'abierto') + ' al inicio, conserva período y valores', async () => {
         const det = page.locator('.ux13-compare');
@@ -138,7 +141,7 @@ const figures = page => page.evaluate(() => {
         }
       });
       await check(W + ' Mapa GIS de la finca desde el hero', async () => {
-        await page.locator('#fichaContent .ux13-band-map').click();
+        await page.locator('#fichaContent :is(.ux13-band-map,.ux13-map-card)').first().click(); // UX13-C: card after the chart
         await page.waitForSelector('#casurGeoLayer:not([hidden])', {timeout: 20000});
         await page.waitForSelector('#casurGeoLayer .leaflet-container, #casurGeoLayer .leaflet-pane', {timeout: 20000});
         await page.keyboard.press('Escape');

@@ -121,10 +121,12 @@
     const board=presentation(el('section','context-explorer ux13-explorer'));board.dataset.context=id;const toolbar=el('div','context-toolbar'),tabUI=el('div','ux04-navigation'),crumbs=el('nav','context-crumbs'),content=el('div','context-content');crumbs.setAttribute('aria-label','Ámbito analítico');
     const objectives=[['area','Distribución'],['estimate','Estimados Z'+season()],['directory',farm?'Suertes':'Consultar fincas'],...(mapPanel?[['map','Mapa GIS']]:[])];
     const objective=chooseControl('Consultar',objectives,state.objective,v=>{state.objective=v;render();});toolbar.append(objective);toolbar.hidden=true;
-    // A farm compares variables with at least two real categories; Destino stays available whenever it exists.
-    const farmDimensions=dimensions.filter(([key])=>['tipoRiego','textura','stage','variedad','destino'].includes(key)).filter(([key])=>{const n=engine().agronomicGroups(rows,key).filter(g=>g.area>0&&!/^(sin clasificar|sin dato|n\/d)$/i.test(g.key)).length;return key==='destino'?n>0:n>1;});
+    // UX13-C (C7): data availability, not diversity. A farm variable with one real category (100 %)
+    // stays available; one without any classified value is listed disabled («sin dato»), never as 0.
+    const farmDimensions=dimensions.filter(([key])=>['tipoRiego','textura','stage','variedad','destino'].includes(key)).map(([key,name])=>{const n=engine().agronomicGroups(rows,key).filter(g=>g.area>0&&!/^(sin clasificar|sin dato|n\/d)$/i.test(g.key)).length;return n?[key,name]:[key,name+' · sin dato',true];});
     const dims=farm?farmDimensions:dimensions;
-    if(dims.length&&!dims.some(([key])=>key===state.dimension))state.dimension=dims[0][0];
+    const usable=dims.filter(d=>!d[2]);
+    if(usable.length&&!usable.some(([key])=>key===state.dimension))state.dimension=usable[0][0];
     board.append(toolbar,tabUI,crumbs,content);
     const scopedRows=()=>state.scope.reduce((subset,filter)=>groupRows(subset,filter.field,filter.key),rows);
     const resetView=()=>{state.scope=[];state.category=null;state.detailField=null;state.detailValue=null;state.mode='general';state.expanded=false;};
@@ -137,11 +139,11 @@
         b.dataset.objective=key;b.setAttribute('aria-pressed',String(state.objective===key));primary.append(b);
       });
       tabUI.append(primary);
-      if(['area','estimate'].includes(state.objective)&&dims.length){
+      if(['area','estimate'].includes(state.objective)&&usable.length){
         const wrap=el('div','ux05-dimensions'),label=el('label','ux05-select-label',farm?'Agrupar por':state.objective==='estimate'?'Analizar TCH por':'Distribuir área por'),select=el('select','ux05-dimension-select');
-        select.setAttribute('aria-label',farm?'Agrupar por':'Variable agronómica');dims.forEach(([key,name])=>{const o=el('option','',name);o.value=key;select.append(o);});select.value=state.dimension;
+        select.setAttribute('aria-label',farm?'Agrupar por':'Variable agronómica');dims.forEach(([key,name,off])=>{const o=el('option','',name);o.value=key;o.disabled=!!off;select.append(o);});select.value=state.dimension;
         const choose=key=>{state.dimension=key;resetView();render();};select.onchange=()=>choose(select.value);label.append(select);wrap.append(label);
-        const chips=el('div','ux04-tabs ux04-dimensions ux05-chips');chips.setAttribute('role','group');chips.setAttribute('aria-label','Agrupar por');dims.forEach(([key,name])=>{const b=button(name,()=>choose(key));b.setAttribute('aria-pressed',String(key===state.dimension));chips.append(b);});wrap.append(chips);tabUI.append(wrap);
+        const chips=el('div','ux04-tabs ux04-dimensions ux05-chips');chips.setAttribute('role','group');chips.setAttribute('aria-label','Agrupar por');dims.forEach(([key,name,off])=>{const b=button(name,()=>choose(key));b.disabled=!!off;b.setAttribute('aria-pressed',String(key===state.dimension));chips.append(b);});wrap.append(chips);tabUI.append(wrap);
         if(general){
           const modes=el('div','ux05-modes');modes.setAttribute('role','group');modes.setAttribute('aria-label','Detalle de análisis');
           [['general',state.objective==='estimate'?'TCH por grupo':'Área CASUR'],['zones',state.dimension==='zona'?'Área por variedad':(state.objective==='estimate'?'TCH por zona':'Área por zona')],['farms',state.objective==='estimate'?'Ranking fincas':'Top fincas']].filter(([key])=>!(key==='zones'&&state.dimension==='zona'&&state.objective==='estimate')).forEach(([key,name])=>{
@@ -157,7 +159,7 @@
       const done=()=>board.onObjective?.(state.objective);
       if(mapPanel){mapPanel.classList.toggle('maestro-panel-inactive',state.objective!=='map');if(state.objective==='map'){requestAnimationFrame(()=>{window.dispatchEvent(new Event('resize'));mapPanel.dispatchEvent(new Event('casur:map-visible'));});done();return;}}
       if(state.objective==='directory'){if(general)content.append(scopedFarmDirectory(scoped,false,state));else{content.append(directory(scoped,true,state));if(table)content.append(button('Tabla técnica · 18 columnas',()=>showOriginalTable(table)));}done();return;}
-      if(farm&&!dims.length){content.append(el('p','context-hint','No hay variables con categorías suficientes para comparar en esta finca.'));done();return;}
+      if(farm&&!usable.length){content.append(el('p','context-hint','Esta finca no tiene variables agronómicas clasificadas.'));done();return;}
       const summary=engine().summary(scoped),applied=summary.estimateState==='applied';
       board.dataset.groups=JSON.stringify(engine().agronomicGroups(scoped,state.dimension));board.dataset.summary=JSON.stringify(summary);
       // UX 06 + UX13: same official grouping engine; mobile-first presentation only.
@@ -202,16 +204,24 @@
       thead.append(hdr);tableNode.append(thead);const tbody=el('tbody');tableNode.append(tbody);
       let displayedArea=0;
       // status: 'na' = no participa en molienda (semilla); 'pending' = molienda sin estimado utilizable.
-      const row=({title,area,tons,tch,share,onOpen,tooltip,note,status,lots})=>{
+      const suertes=n=>fmt(n,0)+(n===1?' suerte':' suertes');
+      const row=({title,area,tons,tch,share,onOpen,tooltip,note,status,lots,activeArea,reasons})=>{
         if(!estimate&&Number.isFinite(area))displayedArea+=area;
         const tr=el('tr','ux05-row');tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label',[title,tooltip,note,farm?'Ver suertes':'Abrir detalle'].filter(Boolean).join('. '));if(status)tr.dataset.status=status;
         tr.onclick=onOpen;tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onOpen();}};
         const key=el('td','ux05-key');key.append(el('span','',title));
         if(note)key.append(el('small','ux13-note',note));
-        else if(!estimate&&lots!=null)key.append(el('small','ux13-note',fmt(lots,0)+(lots===1?' suerte':' suertes')));
+        else if(!estimate&&lots!=null)key.append(el('small','ux13-note',suertes(lots)));
         if(estimate){
           const na=status==='na'?'No aplica':status==='pending'?'Pendiente':null;
-          if(!na)key.append(el('small','ux05-mobile-metrics',fmt(area)+' ha con estimado · '+fmt(tons)+' t'));
+          // UX13-C (C8): each figure appears once. Area/t are columns on PC; on the phone a single line.
+          // When the estimated area differs from the active area both are shown, never hidden.
+          if(!na){
+            const partial=activeArea!=null&&Math.abs(activeArea-(area||0))>=0.005;
+            if(lots!=null)key.append(el('small','ux13-note ux13-desktop-note',suertes(lots)+(partial?' · '+fmt(activeArea)+' ha activas':'')));
+            key.append(el('small','ux05-mobile-metrics',[(partial?fmt(area)+' de '+fmt(activeArea):fmt(area))+' ha',lots!=null?suertes(lots):null,fmt(tons)+' t'].filter(Boolean).join(' · ')));
+          }
+          if(reasons?.length)key.append(el('small','ux13-note',reasons.join(' · ')));
           const cell=(cls,value)=>{const td=el('td',cls,value);if(na)td.classList.add('ux13-muted');return td;};
           tr.append(key,cell('ux05-num ux05-desktop',na?dash:fmt(area)),cell('ux05-num ux05-desktop',na?dash:fmt(tons)),cell('ux05-num ux05-value',na||(Number.isFinite(tch)?fmt(tch):dash)));
           if(na)tr.lastChild.title=status==='na'?'La semilla no recibe estimado de molienda':'Molienda sin estimado utilizable';
@@ -232,19 +242,16 @@
         const gr=groupsFor(items,key),display=!estimate||state.expanded?gr:gr.slice(0,6);resultCount=gr.length;
         const members=estimate?rowsByCategory(items,key):null;
         display.forEach(g=>{
-          let note=null,status=null;
+          let note=null,status=null,reasons=[];
           if(estimate){
             // Destination and composition per category from the same engine: active area,
             // seed (not applicable) and milling still pending of a usable estimate.
             const s=engine().summary(members.get(g.key)||[]),seedOnly=s.millingLots===0&&s.seedLots>0;
             if(seedOnly)status='na';else if(applied&&s.millingLots>0&&s.estimateLots===0)status='pending';
-            const parts=[];
-            if(seedOnly||key==='destino')parts.push(fmt(g.area)+' ha activas · '+fmt(g.lots,0)+(g.lots===1?' suerte':' suertes'));
-            if(seedOnly)parts.push('semilla');else if(s.seedLots>0)parts.push('incluye semilla '+fmt(s.seedArea)+' ha');
-            if(applied&&s.pendingMillingLots>0&&status!=='pending')parts.push(fmt(s.pendingMillingArea)+' ha sin estimado');
-            note=parts.join(' · ')||null;
+            if(seedOnly)note=fmt(g.area)+' ha activas · '+suertes(g.lots)+(/semilla/i.test(g.key)?'':' · semilla');
+            else{if(s.seedLots>0)reasons.push('incluye semilla '+fmt(s.seedArea)+' ha');if(applied&&s.pendingMillingLots>0&&status!=='pending')reasons.push(fmt(s.pendingMillingArea)+' ha sin estimado');if(status==='pending')note=fmt(g.area)+' ha activas · '+suertes(g.lots);}
           }
-          row({title:g.key,area:estimate?g.estimateArea:g.area,tons:g.estimateTons,tch:g.estimateTch,share:pct(g.area),lots:g.lots,note,status,tooltip:'Área activa '+fmt(g.area)+' ha',onOpen:()=>{
+          row({title:g.key,area:estimate?g.estimateArea:g.area,tons:g.estimateTons,tch:g.estimateTch,share:pct(g.area),lots:g.lots,note,status,reasons,activeArea:estimate?g.area:null,tooltip:'Área activa '+fmt(g.area)+' ha',onOpen:()=>{
             if(farm){drillToLots(g.key);return;}
             if(mode==='general'){state.category=g.key;state.mode=estimate&&field==='zona'?'farms':'zones';state.detailField=null;state.detailValue=null;}
             else{state.detailField=key;state.detailValue=g.key;state.mode='farms';}
@@ -256,7 +263,7 @@
       else if(!resultCount)compact.append(el('p','ux05-empty','Sin resultados válidos para este ámbito.'));
       else{
         // TOTAL from the engine summary of the whole scope, never from summed TCH.
-        if(mode==='general'){const foot=el('tfoot'),tr=el('tr','ux06-area-total'),name=el('th','','TOTAL');name.scope='row';const total=el('td','ux05-num ux05-value',fmt(summary.estimateTch));name.append(el('small','ux05-mobile-metrics',fmt(summary.estimateArea)+' ha con estimado · '+fmt(summary.estimateTons)+' t'));tr.append(name,el('td','ux05-num ux05-desktop',fmt(summary.estimateArea)),el('td','ux05-num ux05-desktop',fmt(summary.estimateTons)),total);foot.append(tr);tableNode.append(foot);}
+        if(mode==='general'){const foot=el('tfoot'),tr=el('tr','ux06-area-total'),name=el('th','','TOTAL');name.scope='row';const total=el('td','ux05-num ux05-value',fmt(summary.estimateTch));name.append(el('small','ux05-mobile-metrics',fmt(summary.estimateArea)+' ha · '+fmt(summary.estimateTons)+' t'));tr.append(name,el('td','ux05-num ux05-desktop',fmt(summary.estimateArea)),el('td','ux05-num ux05-desktop',fmt(summary.estimateTons)),total);foot.append(tr);tableNode.append(foot);}
         compact.append(tableNode);
       }
       if(!estimate&&mode==='farms'&&resultCount)compact.append(el('p','pilot-hint','TOTAL de fincas mostradas; participación sobre el área activa del ámbito.'));
@@ -485,7 +492,7 @@
   // UX13-B: presentation adapter for the Histórico ficha (farm and lot share the original renderer).
   // Original nodes, handlers, HISTORICAL_PERIOD_STATE and exporters stay authoritative: controls added
   // here are export-excluded and only call the original actions; report nodes are never moved.
-  let historicoCompareOpen=null;
+  let historicoCompareOpen=null,historicoMoreOpen=false;
   function installHistoricoUx13(){
     const host=byId('fichaContent'),selector=byId('producerSelect');if(!host)return;
     guardSuggestionBlur(byId('q'),byId('searchSuggestions'),'hideSearchSuggestions');
@@ -493,12 +500,22 @@
     const kpiKind=text=>/^Área/i.test(text)?'area':/^TCH ponderado/i.test(text)?'tch':/^KATM/i.test(text)?'katm':/^Edad/i.test(text)?'edad':'secondary';
     // Formula captions move to «¿Cómo se calculan?»; captions that qualify validity or scope stay visible.
     const ornamental=/^(Toneladas ÷ área|Ponderado por toneladas|Ponderada por área válida|Suma de las suertes|lotId únicos|Cosechada en la zafra)$/i;
-    const help=(id,title,lines)=>{const wrap=el('span','ux13-help-wrap'),trigger=el('button','ux13-help-trigger',title),pop=presentation(el('div','maestro-help ux13-help'));trigger.type='button';trigger.setAttribute('popovertarget',id);pop.id=id;pop.setAttribute('popover','');pop.append(el('b','',title),...lines.map(t=>el('p','',t)));const close=el('button','','Cerrar');close.type='button';close.setAttribute('popovertarget',id);close.setAttribute('popovertargetaction','hide');pop.append(close);wrap.append(trigger,pop);return wrap;};
+    // UX13-C: one discrete «i» only where the figure needs precision (no visible documentation links).
+    const info=(label,lines)=>{const id='ux13-info-'+Math.random().toString(36).slice(2),wrap=presentation(el('span','ux13-info-wrap')),trigger=el('button','ux13-info'),pop=presentation(el('div','maestro-help ux13-help'));trigger.type='button';trigger.append(el('span','','i'));trigger.setAttribute('popovertarget',id);trigger.setAttribute('aria-label',label);pop.id=id;pop.setAttribute('popover','');pop.append(...lines.map(t=>el('p','',t)));const close=el('button','','Cerrar');close.type='button';close.setAttribute('popovertarget',id);close.setAttribute('popovertargetaction','hide');pop.append(close);wrap.append(trigger,pop);return wrap;};
+    // Screen labels are a presentation layer: the original label/value/caption stay in the DOM for exports.
+    const relabel=(k,label,value)=>{k.dataset.ux13Relabel='true';const name=presentation(el('span','ux13-kpi-label',label));k.prepend(name);if(value!=null)(k.querySelector('strong')||name).after(presentation(el('strong','ux13-kpi-value',value)));return name;};
     const refresh=()=>{
       const panel=host.querySelector('#printPanel');if(!panel)return;
       // Hero: one «Exportar» (original PDF/PNG buttons inside) and a compact GIS map action.
       installReportMenus(host);
-      panel.querySelectorAll('.ficha-band [data-casur-geo-action]').forEach(map=>{map.classList.remove('premium-original-analysis');map.classList.add('ux13-band-map');map.title=map.getAttribute('aria-label')||'Mapa';});
+      // H1: the band keeps only «Exportar». GIS is reached from a compact card after the TCH chart,
+      // which activates the original map button (same handler, lazy loading and layer).
+      const map=panel.querySelector('.ficha-band [data-casur-geo-action]'),chartBlock=panel.querySelector('.historical-chart-card')?.parentElement;
+      if(map&&chartBlock&&!panel.querySelector('.ux13-map-card')){
+        const card=presentation(button('',()=>map.click()));card.className='ux13-map-card no-print export-excluded';card.setAttribute('aria-label',map.getAttribute('aria-label')||'Abrir mapa');
+        const glyph=el('span','ux13-map-icon');glyph.innerHTML=icon('map');const copy=el('span','ux13-map-copy');copy.append(el('b','','Mapa'),el('small','',map.querySelector('.copy small')?.textContent.trim()||''));card.append(glyph,copy,el('span','ux13-map-arrow','→'));
+        (panel.querySelector('#historicalDrilldownMount')||chartBlock).after(card);
+      }
       panel.querySelectorAll('.historical-drilldown-kpi small').forEach(n=>n.classList.toggle('ux13-ornamental',ornamental.test(n.textContent.trim())));
       const card=panel.querySelector('.historical-period-card');
       if(card&&!card.querySelector('.ux13-period')){
@@ -510,11 +527,18 @@
         const meta=el('div','ux13-period-meta');meta.append(el('strong','ux13-period-range',range),el('small','',scope));row.append(field,meta);card.prepend(row);
       }
       const kpis=panel.querySelector('.historical-agronomic-kpis');
-      if(kpis&&!kpis.querySelector('.ux13-kpi-divider')){
+      if(kpis&&!kpis.querySelector('.ux13-more')){
         kpis.classList.add('ux13-kpis');
-        kpis.querySelectorAll(':scope > .kpi').forEach(k=>{const label=k.querySelector('.label')?.textContent.trim()||'',kind=kpiKind(label);k.dataset.ux13Kpi=kind;const caption=k.querySelector('em');if(caption)caption.classList.toggle('ux13-ornamental',ornamental.test(caption.textContent.trim()));});
-        const divider=presentation(el('div','ux13-kpi-divider'));divider.append(el('span','','Otros indicadores'),help('ux13-kpi-method-'+Math.random().toString(36).slice(2),'¿Cómo se calculan?',['TCH ponderado = toneladas ÷ área cosechada del período.','KATM ponderado por toneladas de las zafras con KATM.','Edad ponderada por área válida.','La distancia es la referencia actual del Cronológico, no un valor histórico.']));
-        kpis.append(divider);
+        kpis.querySelectorAll(':scope > .kpi').forEach(k=>{const label=k.querySelector('.label')?.textContent.trim()||'',kind=kpiKind(label);k.dataset.ux13Kpi=kind;const caption=k.querySelector('em');if(caption)caption.classList.toggle('ux13-ornamental',ornamental.test(caption.textContent.trim()));
+          // H2: the area KPI is an area per season (ha/zafra), never the period total.
+          if(kind==='area'){const raw=k.querySelector('strong')?.textContent.trim()||'',value=raw.replace(/\s*ha\/zafra$/i,' ha'),note=caption?.textContent.trim()||'',several=/acumulado/i.test(note);relabel(k,'Área por zafra',value).append(info('Detalle de área por zafra',[several?'Promedio del área cosechada en cada zafra del período.':'Área cosechada en la zafra seleccionada.',...(several?[note]:[])]));}
+          if(kind==='edad')relabel(k,'Edad');
+          if(kind==='secondary'&&/^Distancia/i.test(label))k.querySelector('.label')?.append(info('Detalle de distancia',['Referencia actual del Cronológico, ponderada por área vigente; no es un valor histórico.']));});
+        // H5: secondary indicators collapse like «Comparar TCH» (closed by default; choice kept across periods).
+        const more=presentation(el('details','ux13-more')),n=kpis.querySelectorAll(':scope > [data-ux13-kpi=secondary]').length;
+        more.append(el('summary','','Otros indicadores'));more.querySelector('summary').append(el('small','',String(n)));
+        more.open=historicoMoreOpen;more.addEventListener('toggle',()=>{historicoMoreOpen=more.open;});more.querySelector('summary').addEventListener('click',()=>{historicoMoreOpen=!more.open;});
+        kpis.append(more);
       }
       const title=panel.querySelector('.historical-comparison-title'),grid=panel.querySelector('.delta-grid');
       if(title&&grid&&!panel.querySelector('.ux13-compare')){
@@ -527,6 +551,27 @@
       }
     };
     new MutationObserver(refresh).observe(host,{childList:true,subtree:true});refresh();
+  }
+
+  // UX13-C (Z9): Zona KPI presentation. Figures come from the original zone renderer, which reads the same
+  // effective window.CRONO_DATA as Cronológico General. Only first-level noise is hidden on screen.
+  function installZonaUx13(){
+    const host=byId('cronoZoneContent'),select=byId('cronoZoneSelect');if(!host)return;
+    const ornamental=/^(Referencia · área activa|Área estimada × TCH|Ponderado por área|Cronológico)$/i;
+    // Coverage is hidden only when complete (N/N molienda · 100 % área); partial coverage stays visible.
+    const complete=t=>{const m=t.match(/^([\d,]+)\/([\d,]+) molienda · ([\d.,]+)% área$/);return !!m&&m[1]===m[2]&&Number(m[3].replace(/,/g,''))===100;};
+    const refresh=()=>{
+      const kpis=host.querySelector('.kpis');
+      if(kpis&&!kpis.dataset.ux13){kpis.dataset.ux13='true';kpis.classList.add('ux13-zone-kpis');
+        kpis.querySelectorAll(':scope > .kpi').forEach(k=>{const label=k.querySelector('.label')?.textContent.trim()||'',em=k.querySelector('em'),note=em?.textContent.trim()||'';
+          if(/^(Suertes activas|Suertes|Haciendas)$/i.test(label))k.dataset.ux13Secondary='true';
+          if(em&&(ornamental.test(note)||complete(note)||note===select?.value))em.classList.add('ux13-ornamental');
+          if(/^TCH estimado/i.test(label)&&em&&!complete(note))k.dataset.ux13Coverage='partial';});}
+      host.querySelectorAll('.crono-box > small').forEach(n=>{if(/^(Participación sobre .+\.|El porcentaje indica la participación en el área total CASUR\.)$/.test(n.textContent.trim()))n.classList.add('ux13-ornamental');});
+    };
+    new MutationObserver(refresh).observe(host,{childList:true,subtree:true});refresh();
+    // Pre-existing gap: an open zone view was not repainted when the effective generation changed.
+    document.addEventListener('casur-crono-effective-change',()=>{if(host.childElementCount)queueMicrotask(()=>window.selectCronoZone?.(select?.value||''));});
   }
 
   function installIteration03() {
@@ -769,6 +814,7 @@
     installGeneralPanels();
     installIteration03();
     installHistoricoUx13();
+    installZonaUx13();
     document.body.classList.add('casur-maestro-premium');
     document.dispatchEvent(new Event('casur-premium-ready'));
     // The shell already owns mobile bottom navigation; keep only module tabs.

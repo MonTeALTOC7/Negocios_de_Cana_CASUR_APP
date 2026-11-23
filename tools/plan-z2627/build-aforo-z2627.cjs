@@ -18,7 +18,9 @@ const SOURCES = {
   aforo: {file: 'Productores _Servicios_Z2627.xlsx', sheet: 'AFORO_26-27', sha256: '2e3cfedb0682024753f7dca7f484326641e281bf018de44f823052369dfada60', documentedOriginal: '7a44b75b50d5c7b8ed19b1d2f6447ca25122e73802e2c2ef2d1846bed8768f98'},
   consolidado: {file: 'CASUR_Actualizacion_Oficial_Propuesta_Plan_Z2627_Plantilla.xlsx', sheet: 'MAESTRO Z2627', sha256: '3277b48696d426b7906ccb6a0fedc0cfe2ceb55570cef0147455633c75d013fe'},
 };
-const DATA_VERSION = '2026.11.22-aforo.1102', SOURCE_DATE = '2026-11-22', IMPORTED_AT = '2026-11-22T12:00:00.000Z';
+// Fecha agronómica del AFORO en el encabezado oficial; NO cambia con revisiones del plan.
+// La fecha de generación/consolidación corresponde al paquete 1102, no al aforo AD/AE/AF/AG.
+const DATA_VERSION = '2026.11.22-aforo.1102', AFORO_DATE = '2026-10-12', PACKAGE_GENERATED = '2026-11-22', IMPORTED_AT = '2026-11-22T12:00:00.000Z';
 // Mapeo explícito, campo → letra de columna. Igual a la generación 1101 salvo AD (actTCH) y BE (Fecha Cosecha).
 const MAPPING = {code: 'B', lot: 'D', name: 'C', area: 'E', combined: 'AC', classification: 'AH', destination: 'R', estimateTch: 'AD', estimateTons: 'AE',
   previousTch: 'P', variety: 'G', cut: 'H', sowing: 'N', lastCut: 'O', km: 'F', spacing: 'K', texture: 'J', zone: 'AA', irrigation: 'V',
@@ -36,7 +38,7 @@ const col = letter => [...letter].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64
     const page = await browser.newPage(); const errors = []; page.on('pageerror', e => errors.push(e.message));
     await page.goto(base + 'modules/produccion/');
     await page.waitForFunction(() => window.CASUR_PRODUCTION_READY && window.CASUR_OPERATIONAL_IMPORT && window.CASUR_BUILD_CRONO_DATA, null, {timeout: 90000});
-    const result = await page.evaluate(async ({aforoB64, consB64, SOURCES, MAPPING, DATA_VERSION, SOURCE_DATE, IMPORTED_AT, adjustments}) => {
+    const result = await page.evaluate(async ({aforoB64, consB64, SOURCES, MAPPING, DATA_VERSION, AFORO_DATE, PACKAGE_GENERATED, IMPORTED_AT, adjustments}) => {
       if (window.CRONO_DATA.meta.dataVersion !== '2026.10.25-aforo.1101') throw Error('La base debe ser la generación oficial 1101, no una local: ' + window.CRONO_DATA.meta.dataVersion);
       if (!window.XLSX) await new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'vendor/xlsx.bundle.js'; s.onload = ok; s.onerror = ko; document.head.append(s); });
       const {workbookSheets} = await import(new URL('../../core/imports/workbook-reader.js', location.href).href);
@@ -52,7 +54,7 @@ const col = letter => [...letter].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64
       if (!candidate) throw Error('AFORO_26-27 no detectada como inventario');
       const overrides = Object.fromEntries(Object.keys(E.aliases).map(f => [f, MAPPING[f] ? col(MAPPING[f]) : -1]));
       const mappingAudit = Object.fromEntries(Object.entries(MAPPING).map(([f, l]) => [f, {column: l, header: candidate.headers[col(l)]}]));
-      const source = {file: SOURCES.aforo.file, sha256: SOURCES.aforo.sha256, sourceDate: SOURCE_DATE, season: '26/27', sheet: candidate.sheetName, headerRow: candidate.headerRow + 1,
+      const source = {file: SOURCES.aforo.file, sha256: SOURCES.aforo.sha256, sourceDate: AFORO_DATE, season: '26/27', sheet: candidate.sheetName, headerRow: candidate.headerRow + 1,
         headerVersion: 'Version del 12.10.2026', documentedOriginalSha256: SOURCES.aforo.documentedOriginal,
         consolidatedSha256: SOURCES.consolidado.sha256};
       const parsed = E.parseCandidate(sheets, candidate, source, overrides);
@@ -116,11 +118,11 @@ const col = letter => [...letter].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64
       const crono = window.CASUR_BUILD_CRONO_DATA(proposal.catalog, source.file);
       crono.meta = {...crono.meta, source: source.file, sheet: candidate.sheetName, rows: proposal.catalog.length, rawRows: parsed.records.length, sourceProfiles: parsed.profiles,
         rule: 'Catálogo permanente; área activa de Molienda/Semilla; estimado de molienda separado del TCH ejecutado.',
-        tchEst2627EffectiveDate: SOURCE_DATE, estimateSeason: '26/27', dataVersion: DATA_VERSION, sourceSha256: source.sha256, generated: SOURCE_DATE, publishedAt: null,
+        tchEst2627EffectiveDate: AFORO_DATE, estimateSeason: '26/27', dataVersion: DATA_VERSION, sourceSha256: source.sha256, generated: PACKAGE_GENERATED, publishedAt: null,
         importedAt: IMPORTED_AT, operationalContract: 1, previousDataVersion: window.CRONO_DATA.meta.dataVersion, manualChanges: false,
         harvestPlanLabel: 'Fecha para cosecha 26/27', sourceHeaderVersion: source.headerVersion, consolidatedSha256: SOURCES.consolidado.sha256,
         authorizedAdjustments: applied.length, optimisticScenario: {season: '26/27', tons: optimistic.tons, area: optimistic.area, tch: optimistic.tch, lots: optimistic.lots, columns: 'AF/AG', role: 'Escenario secundario; no sustituye AD/AE'}};
-      proposal.catalog.forEach(r => { r.tchEst2627Fecha = r.tchEst2627 !== null ? SOURCE_DATE : null; r.tchEst2627Fuente = r.tchEst2627 !== null ? source.file : null; });
+      proposal.catalog.forEach(r => { r.tchEst2627Fecha = r.tchEst2627 !== null ? AFORO_DATE : null; r.tchEst2627Fuente = r.tchEst2627 !== null ? source.file : null; });
       crono.operational = {totals: proposal.totals, harvestLines: [], planAudit: proposal.planAudit || null, planAlerts: alerts, optimisticBelowOfficial: optimistic.belowOfficial};
       E.validateGeneration({...proposal, cronologico: crono});
       // ---- Validación fila a fila contra el consolidado autorizado ----
@@ -140,7 +142,7 @@ const col = letter => [...letter].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64
       return {crono, mismatches, applied, normalized, dashes, planCleared, alerts, optimistic, mappingAudit, issues: proposal.issues, differences: proposal.differences,
         totals: {catalog: t.catalog, inventoried: t.inventoried, active: t.active, milling: t.milling, seed: t.seed, absent: t.absent, inactive: t.inactive, activeArea: t.activeArea, millingArea: t.millingArea, seedArea: t.seedArea, millingTons: t.millingTons, millingTch: t.millingTch, usable: t.usable, pendingMillingArea: t.pendingMillingArea, byClass: t.byClass},
         producers: crono.producers.length};
-    }, {aforoB64: aforoBytes.toString('base64'), consB64: consBytes.toString('base64'), SOURCES, MAPPING, DATA_VERSION, SOURCE_DATE, IMPORTED_AT, adjustments});
+    }, {aforoB64: aforoBytes.toString('base64'), consB64: consBytes.toString('base64'), SOURCES, MAPPING, DATA_VERSION, AFORO_DATE, PACKAGE_GENERATED, IMPORTED_AT, adjustments});
     assert.deepEqual(errors, [], 'errores de página');
     // ---- Controles de integridad del Issue #67 ----
     const t = result.totals, near = (a, b, e = 0.005) => Math.abs(a - b) < e;
@@ -161,7 +163,7 @@ const col = letter => [...letter].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64
     if (result.mismatches.length) console.log('Diferencias:', JSON.stringify(result.mismatches.slice(0, 20)));
     if (controls.some(([, ok]) => !ok)) throw Error('Controles de integridad no superados; no se escribe ningún dato.');
     // ---- Archivos de datos (mismo formato que la generación vigente) ----
-    const release = {version: DATA_VERSION, source: SOURCES.aforo.file, sheet: SOURCES.aforo.sheet, publishedAt: null, generated: SOURCE_DATE, tchEst2627EffectiveDate: SOURCE_DATE,
+    const release = {version: DATA_VERSION, source: SOURCES.aforo.file, sheet: SOURCES.aforo.sheet, publishedAt: null, generated: PACKAGE_GENERATED, tchEst2627EffectiveDate: AFORO_DATE,
       sourceSha256: SOURCES.aforo.sha256, cronologicoRows: result.crono.global?.suertes ?? 1053, historicoRows: JSON.parse(fs.readFileSync(path.join(dataDir, 'version.json'), 'utf8')).historicoRows};
     // Histórico: same records; only meta.dataVersion follows the generation (as the app packager does).
     const historico = JSON.parse(fs.readFileSync(path.join(dataDir, 'historico.json'), 'utf8'));

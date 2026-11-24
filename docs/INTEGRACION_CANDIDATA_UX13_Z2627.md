@@ -26,11 +26,23 @@ Estado al 24-Nov-2026. Este documento no autoriza merge ni publicación. GitHub 
 - **Proyecto que no se usa:** `casur-negocios-preview` (docs/PREVIEW_CLOUDFLARE.md) es la preview cifrada y protegida con Access de PR #45. Su constructor solo admite la rama `codex/estimados-plan-consulta-b2`.
 - **Producción:** no se toca. No hay despliegue a GitHub Pages ni cambio de `sw.js`. El SW fuente ya normaliza respuestas HTML redirigidas, por lo que no se requiere adaptación en el artefacto.
 
-### Bloqueo exacto en esta sesión
+### Bloqueo exacto (actualizado 24-Nov-2026)
 
-- **Credenciales:** el entorno cloud no tiene `CLOUDFLARE_API_TOKEN` ni `CLOUDFLARE_ACCOUNT_ID`. No hay workflow de despliegue de previews en GitHub Actions. Las previews anteriores las publicó el supervisor con sus propias credenciales.
-- **Red:** `api.cloudflare.com` y `*.pages.dev` son alcanzables.
-- **Requisito para desplegar:** un token de API de Cloudflare con permiso `Cloudflare Pages: Edit`, limitado a la cuenta del proyecto. Se guarda como secreto de red del entorno, nunca en el repositorio ni en el chat.
+- **Credencial:** el entorno «APP Negocios de Caña» tiene un secreto de red para `api.cloudflare.com` («Cloudflare Pages preview token»). Se guardó dos veces mediante el formulario seguro; el valor nunca se ve ni se imprime.
+- **Síntoma:** todas las llamadas responden `6003 / 6111 Invalid format for Authorization header`, también `GET /user/tokens/verify`.
+- **Diagnóstico:**
+  - El proxy de secretos sí inyecta el encabezado: sobrescribe `Authorization` aunque la petición no lo envíe o envíe un marcador. Por eso el problema no es un prefijo duplicado de nuestro lado ni la ausencia de inyección.
+  - Cloudflare devuelve 6111 cuando el valor no tiene forma `Bearer <token>`. Un token bien formado pero incorrecto o sin permisos daría `1000 Invalid API Token` o 10000/403.
+  - Por tanto, el valor guardado no tiene formato de token de API. Causas compatibles: se pegó «Bearer …» (queda «Bearer Bearer …»), hay espacios o saltos de línea, o se guardó la Global API Key o el ID del token en lugar del secreto.
+- **Corrección:** en el entorno, Network secrets, reemplazar el valor por **solo** el secreto del token de API, sin la palabra «Bearer», con el encabezado `Authorization` y el prefijo `Bearer` que pone el formulario. El token debe tener el permiso «Account · Cloudflare Pages · Edit» limitado a la cuenta del proyecto. Con eso se despliega el paquete existente sin reconstruirlo.
+
+### Condiciones de acceso de la preview
+
+- **Los despliegues de `casur-maestro-ux-review` son públicos.** Por ejemplo, `99b83c0e…/modules/produccion/data/cronologico.json` responde 200 sin autenticación. Solo llevan `X-Robots-Tag: noindex, nofollow`, que **no protege el acceso**.
+- No hay Cloudflare Access en ese proyecto. No se modifica Access sin autorización.
+- **Exposición:** el repositorio `MonTeALTOC7/Negocios_de_Cana_CASUR_APP` es **público**, y los datos de la generación 1102 ya están en la rama del PR #71. GitHub Pages de producción (1101) también es público.
+  - La preview no agrega datos que no estén ya publicados en GitHub, pero sí **una URL pública más** con el plan de cosecha.
+  - Si el propietario requiere acceso restringido, debe autorizar expresamente Access para ese proyecto antes de desplegar.
 
 ### Paquete reproducible
 
@@ -64,21 +76,44 @@ Estado al 24-Nov-2026. Este documento no autoriza merge ni publicación. GitHub 
 - Shell en frío, navegación de zona, regreso, recarga y offline a 390 px: PASS.
 - `qa-maestro-shell-e2e.cjs` a 1536 px espera un botón «Volver» que el shell de escritorio ya no muestra. Falla igual contra el servidor del repositorio, así que es una expectativa obsoleta del script y no un defecto del paquete.
 
-## 3. Estrategia de integración recomendada
+## 3. Estrategia final de consolidación
 
-**Un único PR de consolidación hacia `main`**, no merges en cascada.
+**Un único PR de consolidación hacia `main` que incluye también el PR #70.** No hay merges en cascada ni publicaciones intermedias.
 
 - **Por qué no en cascada:**
-  - Integrar #62, #64, #68, #69 y #71 uno a uno publicaría cinco estados intermedios en producción, porque Pages sirve `main`.
-  - Las PWA rechazan bajar de generación, así que un estado intermedio con datos 1101 seguido de 1102 obligaría a actualizar dos veces.
+  - Pages publica `main`. Integrar #62, #64, #68, #69, #71 y #70 por separado serían seis publicaciones.
+  - Habría estados intermedios con datos 1101 seguidos de 1102. Las PWA rechazan bajar de generación y actualizarían dos veces.
   - Cada paso exigiría su propia subida de versión según `check-release-policy`.
-- **Procedimiento**, solo con autorización explícita del propietario:
-  1. Confirmar que `main` sigue en `71d5e0b`. Si cambió, crear la rama de candidata desde `ecda05f` e integrar `main` con merge, sin rebase. Luego regenerar `tools/runtime-assets.mjs --write` y `sync-versions`, y repetir las suites y el QA del navegador.
-  2. Crear `claude/candidata-ux13-z2627` desde `ecda05f` y el commit de documentación posterior. Abrir un PR Draft hacia `main` para que el **Release Gate de PR** corra completo, con `check-release-policy` contra el SHA base real.
-  3. Integrar PR #70 antes o junto con la candidata, para eliminar la prueba intermitente del Gate.
-  4. Con la preview aprobada y el Gate de PR en verde, el propietario decide el merge, que es la publicación. Usar merge commit, no squash, para conservar la trazabilidad de los commits de datos.
-  5. Al publicar, cerrar #62, #64, #68, #69 y #71 como «consolidados en el PR de candidata». Los PR apilados no se fusionan individualmente.
-- **Reversión:** ver «Plan de reversión» en `docs/PLAN_COSECHA_Z2627.md`. Se restaura el código anterior y se publica una generación de datos posterior; nunca se publica una generación anterior.
+- **PR #70 (`a927dc1`, solo `tests/sw-release-recovery.test.mjs`):**
+  - Es un único commit de prueba, no toca el runtime ni el manifiesto.
+  - `git merge-tree` confirma un merge limpio sobre `ecda05f` y sobre el HEAD de documentación.
+  - Se incorpora a la rama de candidata con un **merge commit** que conserva `a927dc1`. Cuando la candidata llegue a `main`, GitHub marcará el PR #70 como integrado, sin fusionarlo por separado y sin publicación propia.
+
+**Procedimiento**, solo con autorización explícita del propietario:
+
+1. Verificar que `main` sigue en `71d5e0b`. Si cambió, integrar `main` en la candidata con merge, sin rebase. Luego regenerar `runtime-assets` y `sync-versions` y repetir las suites y el QA del navegador.
+2. Crear `claude/candidata-ux13-z2627` desde el HEAD del PR #71 y hacer `git merge --no-ff a927dc1` (PR #70). Comprobar que no cambian ni el runtime ni los datos.
+3. Abrir un PR Draft hacia `main`. Se ejecuta el **Release Gate de PR completo**, incluido `check-release-policy` contra el SHA base real.
+4. Repetir sobre ese HEAD el QA del navegador (Plan 55, UX13 A/B/C y shell e2e con el control de retorno vigente) y la preview HTTPS verificada por SHA.
+5. Con la preview aprobada y el Gate en verde, el propietario decide el merge, que es la publicación. Usar **merge commit**, no squash.
+6. Tras publicar, cerrar #62, #64, #68, #69 y #71 como «consolidados en el PR de candidata». El #70 queda integrado por su commit.
+
+- **Reversión:** ver «Plan de reversión» en `docs/PLAN_COSECHA_Z2627.md`. Se restaura el código anterior y se publica una generación de datos posterior; nunca una anterior.
+
+### Mantenimiento del QA del shell en escritorio
+
+- **Problema:** `tools/qa-maestro-shell-e2e.cjs` esperaba el botón `#mBack` a 1536 px.
+- **Causa:** desde la versión Petróleo (#58), `shared/styles/app.css` lo oculta a ≥1024 px. En escritorio el retorno se hace con la miga «Inicio» (`#mCrumb`), que usa el mismo manejador `navigateFromActiveModule('/', 'back-home')`.
+- **Corrección:** el script usa `#mBack` por debajo de 1024 px y `#mCrumb` desde 1024 px, y verifica que el otro control esté oculto. Registra `returnControl` y mantiene todas las comprobaciones:
+  - navegación de zona a Cronológico;
+  - regreso al inicio (iframe cerrado);
+  - segunda visita;
+  - recarga en línea;
+  - recarga sin conexión;
+  - 0 errores de consola;
+  - 0 peticiones fallidas.
+- **Resultado** contra el paquete `ecda05f`, dos ejecuciones consecutivas: PASS a 390 px (`mBack`) y a 1536 px (`mCrumb`). Una ejecución previa falló una vez a 390 px por tiempo en la recarga en línea y no se reprodujo; queda registrada como intermitente.
+- **Pendientes:** `qa-shell-module-icons.cjs`, `qa-startup-timing.cjs` y `qa-bundle-public-comparison.cjs` repiten la expectativa antigua de `#mBack` a 1536 px. Se corregirán con el mismo criterio en un mantenimiento aparte.
 
 ## 4. Release Gate: controles aplicables a la arquitectura vigente
 

@@ -76,57 +76,107 @@
    - Sus KPI son de la última zafra histórica (25/26), sin relación visible con el aforo 26/27. Hay riesgo de confundir el histórico con el estimado.
 5. **Cobertura.** Las alertas de cobertura del estimado deben mostrarse solo si la cobertura es incompleta y ocultarse cuando es total (Issue #66).
 
-## 3. UX14: reestructuración de Análisis por Zona
+## 3. Reglas comunes, refinadas con el propietario el 24-Nov-2026
 
-**Objetivo:** un único tablero de zona, mobile-first, con riego y secano separados en cada indicador.
+1. **Clasificación explícita del sistema:** Riego, Secano y Sin dato, con una tabla declarada y probada.
+   - Riego: Gravedad, Goteo, Aspersión, Pivote y Mini-Aspersión.
+   - Secano: `Secano`.
+   - Sin dato: vacío o cualquier valor desconocido. **Nunca se clasifica automáticamente como Riego.**
+   - **«Ventana» queda en una categoría propia y visible, «Por confirmar»,** hasta verificar su significado en la clasificación operativa CASUR. Pesa **325.65 ha activas y 23,269.85 t estimadas** (1-Sur 280.14 ha, 3-Norte 13.87 ha y 5-Productores 31.64 ha), así que la decisión cambia las cifras.
+2. **Conciliación obligatoria:** Riego + Secano + Ventana + Sin dato = Total, en área y toneladas, en cada vista y exportación.
+   - Verificado con la generación 1102:
+     - Área activa: 8,396.03 + 852.98 + 325.65 + 0.00 = **9,574.66 ha**.
+     - Área de molienda: 7,990.11 + 810.44 + 301.13 = **9,101.68 ha**.
+     - Toneladas estimadas: 507,072.02 + 31,316.40 + 23,269.85 = **561,658.27 t**.
+   - Hoy hay 0 suertes «Sin dato».
+3. **TCH = toneladas ÷ área válida,** nunca un promedio simple de TCH.
 
-1. **Selector único de zona** con una tabla de equivalencias Cronológico ↔ Histórico, declarada y probada.
-   - Las zonas solo históricas (6 y 7) se muestran como «sin presencia en el cronológico vigente». No se fusionan en silencio.
-2. **KPI prioritarios:** Área activa, TCH anterior, TCH estimado 26/27 y Ton. estimadas 26/27.
-   - Cada uno en el formato **Riego | Secano | Total**, con TCH ponderado por área y nunca promedio de promedios.
-   - El Total debe coincidir exactamente con `CASUR_CRONO_PARTICIPATION.summary`.
-3. **Gráficos:** barras agrupadas Riego/Secano por zona (área, TCH anterior frente a estimado 26/27, toneladas) y bandas de TCH por sistema. La leyenda y los colores son fijos para riego y secano.
-4. **Histórico de zona por sistema:** serie de TCH por zafra separada en Riego y Secano, más KATM y Potencial. Se indica que la clasificación usa el riego vigente del lote.
-5. **Navegación contextual:**
-   - Zona → finca → suerte en ambas pestañas, con miga de pan y retorno a la misma posición.
-   - Un solo cierre de flujo.
-   - Sin acordeones anidados.
-6. **Se conservan:** GIS de zona, PDF/PNG (con los mismos datos y sin nodos de presentación), la tabla de haciendas y la etiqueta «Aforo 12-Oct-2026».
-7. **Técnica:**
-   - Adaptador de presentación en `maestro-ux.js`, con el mismo patrón de `installZonaUx13`.
-   - Un agregador puro `riegoSecano(rows)` con pruebas de paridad contra los motores.
-   - Sin cambios en datos, motores ni `index.html` protegido, salvo autorización.
+   | Indicador | Cálculo |
+   |---|---|
+   | TCH estimado Z26/27 | toneladas estimadas ÷ área de molienda con estimado |
+   | TCH anterior (aforo, columna P «Tch.Ant») | ponderado por área de molienda |
+   | TCH ejecutado Z25/26 | toneladas cosechadas ÷ área cosechada del Histórico |
 
-## 4. UX15: reestructuración del submódulo Análisis
+4. **Áreas que no se mezclan:**
+   - Área activa (inventario vigente).
+   - Área de molienda (base del estimado).
+   - Área con estimado.
+   - Área cosechada histórica.
 
-**Objetivo:** pasar de 13 pestañas a 5 familias con jerarquía clara y un filtro global de sistema.
+   Cada tarjeta nombra cuál usa.
+5. **Ejecutado y estimado separados:** «TCH ejecutado Z25/26 (Histórico)» frente a «TCH estimado Z26/27 (Aforo 12-Oct-2026)». Se muestran en bloques y colores distintos, y «TCH anterior» del aforo no se presenta como ejecutado.
+6. **Histórico por sistema actual:** el Histórico solo tiene el riego **vigente** del lote, no el sistema de cada zafra. Todo análisis histórico por sistema se rotula «segmentado según el sistema de riego actual del lote».
+7. **Selector global Total / Riego / Secano** en lugar de triplicar valores dentro de cada KPI.
+   - Controla KPI, gráficos, rankings, tablas y exportaciones.
+   - Se conserva al navegar y se imprime en la cabecera del PDF/PNG.
+   - Los gráficos comparativos Riego frente a Secano se mantienen siempre visibles, sea cual sea el filtro.
+8. **Fechas** en formato `DD-MMM-AAAA` (docs/ESTANDAR_FECHAS.md).
 
-| Familia | Contenido actual que agrupa |
+## 4. UX14: reestructuración de Análisis por Zona
+
+**Maquetas** (propuesta, no implementada): `ux14-390.png` y `ux14-1280.png`, entregadas fuera del repositorio con datos reales de la generación 1102.
+
+1. **Zonas:**
+   - Selector único con las zonas del Cronológico (`1-Sur`, `2-Centro`, `3-Norte`, `5-Productores`).
+   - **`6-TRAPICHES` y `7-ZONA TISMA` se conservan solo en el Histórico,** marcadas «solo Histórico». No se inventan datos en el Cronológico.
+   - Equivalencia explícita: `1-Sur` ↔ `1-ZONA SUR`, y así con las demás.
+2. **KPI según el filtro:**
+   - Área activa y Área de molienda.
+   - TCH ejecutado Z25/26 (Histórico, sistema actual).
+   - TCH estimado Z26/27 y Ton. estimadas Z26/27 (Aforo 12-Oct-2026).
+3. **Conciliación visible** de área y toneladas por sistema, en una barra apilada con los valores.
+4. **Gráficos Riego frente a Secano por zona:**
+   - TCH estimado Z26/27.
+   - TCH ejecutado Z25/26 (rotulado por sistema actual).
+   - Bandas de TCH por sistema.
+   - Colores fijos: Riego petróleo `#1F4E5C`, Secano oro `#D4B35F`, Ventana salvia `#86A0AA`, Sin dato gris.
+5. **Tabla de haciendas** filtrada por sistema, con un toque para abrir la finca. Navegación con miga de pan Zonas › zona › finca › suerte y retorno a la misma posición. Sin acordeones anidados.
+6. **Se conservan:** GIS de zona, PDF/PNG con el filtro en la cabecera y «Consulta: DD-MMM-AAAA», y el Histórico de zona (KATM, potencial, variedades, comparación 25/26).
+7. **Implementación:**
+   - Adaptador de presentación en `maestro-ux.js`, como `installZonaUx13`.
+   - Agregador puro `systemBreakdown(rows)` con pruebas de paridad: el Total debe ser igual a `CASUR_CRONO_PARTICIPATION.summary` y a los totales oficiales.
+   - Sin cambios en motores ni datos.
+
+**Hallazgo agronómico para revisar:** Secano en 1-Sur tiene TCH estimado Z26/27 de **11.30** (1,706.90 t en 151.03 ha), frente a 59.61 ejecutado en Z25/26. Conviene confirmarlo con Campo antes de presentarlo como tendencia.
+
+## 5. UX15: reestructuración del submódulo Análisis
+
+**Maquetas** (propuesta, no implementada): `ux15-390.png` y `ux15-1280.png`.
+
+| Sección | Contenido actual que conserva |
 |---|---|
-| Resumen | Resumen, lectura ejecutiva automática y KPI de la última zafra, con etiqueta «Histórico 25/26» |
+| Resumen | Resumen y lectura ejecutiva automática (`executiveNarrative`) |
 | Desempeño | Tendencia TCH, Mejores desempeños, Caídas y TCH × KATM |
 | Decisiones | Decisiones, Prioridades, Oportunidades y Renovación |
-| Composición | Variedades y Zonas (enlazada con UX14) |
-| Técnica | Vista técnica y Maquila (caso aparte, sin mezclarse con caña propia) |
+| Composición | Variedades y Zonas (enlace a UX14) |
+| Técnica | Vista técnica |
+| **Maquila** | **Sección independiente.** No entra en los totales de caña propia |
 
-- **Filtro global Riego / Secano / Total:** aplica a todas las familias y se conserva al navegar. Los rankings y prioridades se calculan dentro de cada sistema.
-- **Estimado 26/27 separado del histórico:** se muestra como referencia separada, con el aforo del 12-Oct-2026, y nunca se mezcla con el plan de cosecha (BE/BF).
-- **Mobile-first:** familias en un selector compacto en 360/390 y pestañas en escritorio. Sin desplazamiento horizontal.
-- **Exportaciones:** cada familia exporta PDF/PNG con el filtro de sistema indicado en la cabecera y la fecha de consulta en formato `DD-MMM-AAAA`.
+- **Bloque ejecutado:** «Ejecutado · Histórico Z25/26».
+  - Paridad verificada con el motor actual: 63.94 t/ha, 9,735.96 ha cosechadas y 622,474 t, sin Maquila.
+  - Se muestran también Z24/25 y Z23/24.
+- **Bloque estimado:** «Estimado · Aforo Z26/27», separado, con 61.71 t/ha, 9,101.68 ha de molienda y 561,658.27 t.
+- **Filtro global** Total / Riego / Secano en las 6 secciones. Los rankings y prioridades se calculan dentro del sistema seleccionado.
+- **Mobile-first:** selector de secciones desplazable a 360/390 px y pestañas en escritorio. Sin desbordamiento horizontal, verificado en las maquetas.
 
-## 5. QA y entrega por etapa
+## 6. QA y entrega por etapa
 
-- **Paridad de cifras** de cada KPI frente a los motores actuales:
-  - Total = Riego + Secano en área y toneladas.
+- **Paridad:**
+  - Totales iguales a los motores actuales y a los oficiales (9,574.66 ha; 9,101.68 ha; 561,658.27 t; Z25/26 63.94 t/ha).
+  - Conciliación por sistema en cada vista.
   - TCH ponderado.
-  - Zonas y haciendas idénticas a las de hoy.
-- **Pruebas en navegador:** 360/390 (Android emulado), 768, 1280 y 1536. Navegación de ida y vuelta, PDF/PNG, PWA offline y tiempos de apertura.
+- **Navegador:** 360/390 (Android emulado), 768, 1280 y 1536. Ida y vuelta, PDF/PNG, PWA offline y tiempos de apertura.
 - **Regresiones:** UX13 A/B/C, Plan Z26/27 (55) y las suites 212/160/92.
-- **Entrega:** Draft PR por etapa (UX14 y luego UX15), con preview HTTPS en `casur-maestro-ux-review`. Sin merge ni publicación sin aprobación.
+- **Entrega:** un Draft PR por etapa (UX14 y luego UX15), con preview HTTPS en `casur-maestro-ux-review`. Sin merge ni publicación sin aprobación. **No se inicia hasta validar la candidata actual.**
 
-## 6. Decisiones que requieren al propietario
+## 7. Decisiones del propietario
 
-1. **Equivalencia de zonas:** confirmar que `6-TRAPICHES` y `7-ZONA TISMA` se muestran como zonas solo históricas.
-2. **Clasificación del riego:** confirmar que Secano = `tipoRiego` «Secano» y Riego = todos los demás (Gravedad, Goteo, Aspersión, Ventana, Pivote, Mini-Aspersión). En particular, si «Ventana» es riego.
-3. **Atributo de riego en el Histórico:** aceptar el riego vigente del lote para clasificar las zafras anteriores, o pedir un dato de riego por zafra.
-4. **Maquila:** confirmar si permanece en Análisis/Técnica o pasa a otra sección.
+| Tema | Estado |
+|---|---|
+| Zonas 6-TRAPICHES y 7-ZONA TISMA | **Decidido:** se conservan en el Histórico, sin datos inventados en el Cronológico |
+| Ventana | **Pendiente:** verificar su significado operativo. Mientras tanto queda como «Por confirmar», visible y conciliada |
+| Valores desconocidos de riego | **Decidido:** van a «Sin dato», nunca a Riego |
+| Riego en el Histórico | **Decidido:** segmentación por sistema actual, rotulada explícitamente |
+| Maquila | **Decidido:** sección independiente dentro de Análisis |
+| Selector global | **Propuesto:** Total / Riego / Secano en lugar de triplicar los KPI |
+| TCH Secano 1-Sur Z26/27 (11.30) | **A revisar** con Campo |

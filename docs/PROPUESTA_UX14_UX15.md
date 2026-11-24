@@ -136,7 +136,7 @@
    - Las comparaciones entre zonas solo aparecen en la vista general, rotuladas «comparación entre zonas».
 7. **TCH anterior (columna P) frente a TCH ejecutado Z25/26:**
    - Son indicadores distintos y no se mezclan.
-   - La columna P «Tch.Ant» del aforo coincide con el ejecutado Z25/26 del Histórico en 811 de 884 suertes de Molienda con Z25/26. Difiere en 73 suertes; por ejemplo, la finca 516 tiene diferencias de hasta 14 t/ha. Otras 62 suertes de Molienda no tienen Z25/26.
+   - La columna P «Tch.Ant» del aforo coincide con el ejecutado Z25/26 del Histórico en 811 de 884 suertes de Molienda con Z25/26. Difiere en 73 suertes; por ejemplo, la finca 516 tiene diferencias de hasta 15.94 t/ha (51603). Otras 62 suertes de Molienda no tienen Z25/26.
    - UX14 usa **TCH Z25/26 del Histórico** como KPI y en las tablas. La columna P queda disponible solo en la ficha de suerte, rotulada «TCH anterior (aforo)».
 8. **Se conservan:** abrir finca o suerte desde las tablas, el mapa GIS de la zona, PDF/PNG (con el filtro en la cabecera) y el acceso al Histórico de zona (KATM, potencial, variedades).
 

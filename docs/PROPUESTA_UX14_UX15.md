@@ -183,6 +183,20 @@ El detalle por finca y suerte está en el libro `Auditoria_TCH_Secano_1Sur.xlsx`
   - Puede ser un criterio conservador deliberado (Secano, sequía o rebrote joven) o un valor provisional.
   - **Requiere confirmación de Campo y Programación** antes de usarlo en comparaciones Riego frente a Secano. Mientras tanto, las maquetas lo muestran tal cual, sin corregirlo.
 
+## 5 ter. Observaciones del propietario para la implementación (24-Nov-2026)
+
+**Estado:** el concepto UX14/UX15 está aprobado. **No se hacen más maquetas.** El siguiente refinamiento se hará sobre la implementación funcional, después de validar la candidata UX13 + Plan Z26/27.
+
+1. **Recuento del KPI Área activa (ámbito Total):** mostrar **995 suertes activas** (`participatesCurrentArea`: 946 Molienda + 49 Semilla), no las 1,053 identidades del catálogo.
+2. **Android:** compactar el bloque «Estimado Z26/27» (una fila o tarjeta única, no tres tarjetas apiladas).
+3. **Tendencia:** diferenciar visualmente las series Total, Riego y Secano con color, grosor y trazo. Total no debe confundirse con Riego.
+4. **Categorías y textos:** no mostrar categorías vacías (por ejemplo, «Sin dato» con 0 ha) y evitar textos metodológicos innecesarios. Esos textos van en ayudas «i».
+5. **Ventana:** se mantiene pendiente de clasificación operativa. No se suma a Riego ni a Secano.
+6. **Precisión:** dos decimales en consultas detalladas y exportaciones (área, TCH y toneladas de suerte y finca). Las tarjetas resumidas pueden redondear toneladas.
+7. **Columna P:** no se usa como equivalente automático del TCH ejecutado Z25/26.
+8. **Preservar:** GIS, exportadores (PDF/PNG/HTML), navegación contextual, PWA/offline y motores oficiales, sin cambios de datos.
+9. **Datos oficiales:** la generación 1102 queda íntegra. No se modifican AD, AE, AF, AG, BE, BF ni clasificaciones. La auditoría de Secano 1-Sur (AD 10/15) sigue como hallazgo pendiente de confirmar con Campo.
+
 ## 6. QA y entrega por etapa
 
 - **Paridad:**

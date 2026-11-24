@@ -112,52 +112,76 @@
    - Los gráficos comparativos Riego frente a Secano se mantienen siempre visibles, sea cual sea el filtro.
 8. **Fechas** en formato `DD-MMM-AAAA` (docs/ESTANDAR_FECHAS.md).
 
-## 4. UX14: reestructuración de Análisis por Zona
+## 4. UX14: Análisis por Zona (refinamiento 2, 24-Nov-2026)
 
-**Maquetas** (propuesta, no implementada): `ux14-390.png` y `ux14-1280.png`, entregadas fuera del repositorio con datos reales de la generación 1102.
+**Maquetas:** `r2-ux14-general` (todas las zonas) y `r2-ux14-zona` (ficha de 1-Sur), a 360, 390 y 1280 px. Se entregan fuera del repositorio, sin desbordamiento horizontal.
 
-1. **Zonas:**
-   - Selector único con las zonas del Cronológico (`1-Sur`, `2-Centro`, `3-Norte`, `5-Productores`).
-   - **`6-TRAPICHES` y `7-ZONA TISMA` se conservan solo en el Histórico,** marcadas «solo Histórico». No se inventan datos en el Cronológico.
-   - Equivalencia explícita: `1-Sur` ↔ `1-ZONA SUR`, y así con las demás.
-2. **KPI según el filtro:**
-   - Área activa y Área de molienda.
-   - TCH ejecutado Z25/26 (Histórico, sistema actual).
-   - TCH estimado Z26/27 y Ton. estimadas Z26/27 (Aforo 12-Oct-2026).
-3. **Conciliación visible** de área y toneladas por sistema, en una barra apilada con los valores.
-4. **Gráficos Riego frente a Secano por zona:**
+1. **Navegación:**
+   - Conmutador **Cronológico | Histórico** fijo en la parte superior.
+   - Miga de pan Zonas › zona › finca › suerte.
+   - **Vista general** (todas las zonas) y **ficha de zona**, diferenciadas.
+2. **Filtros:**
+   - Selector global **Total / Riego / Secano** y selector de zona.
+   - Chips consultables «Ventana · por confirmar» y «Sin dato». Se activan solo cuando hay registros; «Sin dato» con 0 ha queda deshabilitado.
+3. **Cuatro KPI principales:**
+   - Área activa.
+   - **TCH Z25/26** (ejecutado, del Histórico).
    - TCH estimado Z26/27.
-   - TCH ejecutado Z25/26 (rotulado por sistema actual).
-   - Bandas de TCH por sistema.
-   - Colores fijos: Riego petróleo `#1F4E5C`, Secano oro `#D4B35F`, Ventana salvia `#86A0AA`, Sin dato gris.
-5. **Tabla de haciendas** filtrada por sistema, con un toque para abrir la finca. Navegación con miga de pan Zonas › zona › finca › suerte y retorno a la misma posición. Sin acordeones anidados.
-6. **Se conservan:** GIS de zona, PDF/PNG con el filtro en la cabecera y «Consulta: DD-MMM-AAAA», y el Histórico de zona (KATM, potencial, variedades, comparación 25/26).
-7. **Implementación:**
-   - Adaptador de presentación en `maestro-ux.js`, como `installZonaUx13`.
-   - Agregador puro `systemBreakdown(rows)` con pruebas de paridad: el Total debe ser igual a `CASUR_CRONO_PARTICIPATION.summary` y a los totales oficiales.
-   - Sin cambios en motores ni datos.
+   - Ton. estimadas Z26/27.
+   - **Área de molienda** se muestra como indicador complementario compacto.
+4. **Metodología en ayudas contextuales** (icono «i»): definición de cada área, cálculo del TCH, segmentación histórica por riego actual y estado de Ventana. No se muestran textos metodológicos fijos.
+5. **Composición compacta:** barra apilada de área activa y toneladas por sistema, con valor y porcentaje. Sustituye los bloques de conciliación; la suma del total sigue comprobándose en las pruebas.
+6. **Ámbito de los gráficos:**
+   - En la ficha de zona, todos los gráficos usan solo esa zona: «TCH por sistema · 1-Sur», ejecutado Z25/26 frente a estimado Z26/27.
+   - Las comparaciones entre zonas solo aparecen en la vista general, rotuladas «comparación entre zonas».
+7. **TCH anterior (columna P) frente a TCH ejecutado Z25/26:**
+   - Son indicadores distintos y no se mezclan.
+   - La columna P «Tch.Ant» del aforo coincide con el ejecutado Z25/26 del Histórico en 811 de 884 suertes de Molienda con Z25/26. Difiere en 73 suertes; por ejemplo, la finca 516 tiene diferencias de hasta 14 t/ha. Otras 62 suertes de Molienda no tienen Z25/26.
+   - UX14 usa **TCH Z25/26 del Histórico** como KPI y en las tablas. La columna P queda disponible solo en la ficha de suerte, rotulada «TCH anterior (aforo)».
+8. **Se conservan:** abrir finca o suerte desde las tablas, el mapa GIS de la zona, PDF/PNG (con el filtro en la cabecera) y el acceso al Histórico de zona (KATM, potencial, variedades).
 
-**Hallazgo agronómico para revisar:** Secano en 1-Sur tiene TCH estimado Z26/27 de **11.30** (1,706.90 t en 151.03 ha), frente a 59.61 ejecutado en Z25/26. Conviene confirmarlo con Campo antes de presentarlo como tendencia.
+## 5. UX15: Análisis (refinamiento 2)
 
-## 5. UX15: reestructuración del submódulo Análisis
+**Maqueta:** `r2-ux15-resumen`, a 360, 390 y 1280 px.
 
-**Maquetas** (propuesta, no implementada): `ux15-390.png` y `ux15-1280.png`.
+- **Seis secciones:** Resumen, Desempeño, Decisiones, Composición, Técnica y **Maquila**, esta última independiente y fuera de los totales de producción propia.
+- **Navegación:**
+  - En Android (360/390), **selector compacto «Sección»**. No hay pestañas cortadas ni desplazamiento horizontal.
+  - En escritorio, pestañas.
+- **Resumen · Histórico Z25/26 (ejecutado)**, con cuatro KPI con paridad exacta con el motor actual: TCH 63.94, área cosechada 9,735.96 ha, toneladas 622,474 y KATM 98.65.
+- **Tendencia en gráfico de líneas** Z16/17–Z25/26, con Total, Riego y Secano por el sistema actual del lote. Los TCH de otras zafras salen de las tarjetas y pasan al gráfico. Las barras quedan para comparaciones por categoría.
+- **Estimado Z26/27** en un bloque independiente: 61.71 t/ha, 561,658 t y 9,101.68 ha de molienda, con aforo del 12-Oct-2026.
+- **Sin textos de desarrollo:** no se muestran tablas de equivalencias ni notas de implementación al usuario.
 
-| Sección | Contenido actual que conserva |
-|---|---|
-| Resumen | Resumen y lectura ejecutiva automática (`executiveNarrative`) |
-| Desempeño | Tendencia TCH, Mejores desempeños, Caídas y TCH × KATM |
-| Decisiones | Decisiones, Prioridades, Oportunidades y Renovación |
-| Composición | Variedades y Zonas (enlace a UX14) |
-| Técnica | Vista técnica |
-| **Maquila** | **Sección independiente.** No entra en los totales de caña propia |
+## 5 bis. Auditoría agronómica: TCH estimado 11.30 en Secano de 1-Sur
 
-- **Bloque ejecutado:** «Ejecutado · Histórico Z25/26».
-  - Paridad verificada con el motor actual: 63.94 t/ha, 9,735.96 ha cosechadas y 622,474 t, sin Maquila.
-  - Se muestran también Z24/25 y Z23/24.
-- **Bloque estimado:** «Estimado · Aforo Z26/27», separado, con 61.71 t/ha, 9,101.68 ha de molienda y 561,658.27 t.
-- **Filtro global** Total / Riego / Secano en las 6 secciones. Los rankings y prioridades se calculan dentro del sistema seleccionado.
-- **Mobile-first:** selector de secciones desplazable a 360/390 px y pestañas en escritorio. Sin desbordamiento horizontal, verificado en las maquetas.
+El detalle por finca y suerte está en el libro `Auditoria_TCH_Secano_1Sur.xlsx`, entregado fuera del repositorio. No se modificó ningún dato oficial.
+
+- **Denominador correcto.**
+  - Son 24 suertes, todas Molienda.
+  - Área activa = área de molienda = área con estimado = **151.03 ha**, con cobertura completa.
+  - AE = AD × área. Las 1,706.90 t ÷ 151.03 ha dan **11.30 t/ha**.
+- **Causa: el AD del aforo.**
+  - Las 24 suertes tienen **AD plano de 10 o 15 TCH**, con AF de 10, 15 o 25:
+
+  | Finca | Suertes | AD (TCH) |
+  |---|---|---|
+  | Ojo de Agua | 6 | 10 |
+  | San Francisco | 7 | 10 |
+  | San Luis | 3 | 10 |
+  | El Socorro | 1 | 10 |
+  | San Felipe | 7 | 15 |
+
+  - Su TCH anterior ponderado es 63.41 (columna P) y su ejecutado Z25/26 es 63.40 (Histórico, 151.11 ha cosechadas).
+  - Entre Z22/23 y Z25/26, esos lotes registraron entre 37 y 117 TCH.
+- **Contexto.**
+  - En toda la empresa hay 31 suertes de Molienda con AD ≤ 15 (210.52 ha): 24 en 1-Sur Secano, 2 en 2-Centro Secano, 4 en 3-Norte y 1 en 1-Sur Gravedad.
+  - Las 24 suertes se cortaron entre Feb-2026 y Abr-2026 y tenían 6 a 7.6 meses al aforo.
+- **Comparabilidad.** El área histórica difiere poco de la vigente (por ejemplo, 22003: 8.79 ha frente a 8.73 ha). La comparación histórica es válida por suerte y por área cosechada.
+- **Conclusión.**
+  - El 11.30 no es un error de cálculo ni de denominador. Refleja un **valor de aforo uniforme y muy inferior al historial**.
+  - Puede ser un criterio conservador deliberado (Secano, sequía o rebrote joven) o un valor provisional.
+  - **Requiere confirmación de Campo y Programación** antes de usarlo en comparaciones Riego frente a Secano. Mientras tanto, las maquetas lo muestran tal cual, sin corregirlo.
 
 ## 6. QA y entrega por etapa
 
@@ -179,4 +203,5 @@
 | Riego en el Histórico | **Decidido:** segmentación por sistema actual, rotulada explícitamente |
 | Maquila | **Decidido:** sección independiente dentro de Análisis |
 | Selector global | **Propuesto:** Total / Riego / Secano en lugar de triplicar los KPI |
-| TCH Secano 1-Sur Z26/27 (11.30) | **A revisar** con Campo |
+| TCH Secano 1-Sur Z26/27 (11.30) | **Auditado:** el denominador es correcto y el AD es plano (10/15) en 24 suertes. Confirmar con Campo |
+| KPI histórico de UX14 | **Decidido:** TCH Z25/26 ejecutado del Histórico; la columna P solo en la ficha de suerte |

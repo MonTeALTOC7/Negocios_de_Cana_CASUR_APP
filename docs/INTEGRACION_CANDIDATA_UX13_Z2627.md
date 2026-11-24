@@ -36,6 +36,19 @@ Estado al 24-Nov-2026. Este documento no autoriza merge ni publicación. GitHub 
   - Por tanto, el valor guardado no tiene formato de token de API. Causas compatibles: se pegó «Bearer …» (queda «Bearer Bearer …»), hay espacios o saltos de línea, o se guardó la Global API Key o el ID del token en lugar del secreto.
 - **Corrección:** en el entorno, Network secrets, reemplazar el valor por **solo** el secreto del token de API, sin la palabra «Bearer», con el encabezado `Authorization` y el prefijo `Bearer` que pone el formulario. El token debe tener el permiso «Account · Cloudflare Pages · Edit» limitado a la cuenta del proyecto. Con eso se despliega el paquete existente sin reconstruirlo.
 
+### Solución viable: sesión local de Wrangler (procedimiento anterior)
+
+- **Origen del procedimiento:** las previews anteriores de `casur-maestro-ux-review` se desplegaron con Wrangler autenticado en el PC del propietario (`.wrangler/` en `.gitignore`; evidencias en `C:/Users/ctije/AppData/Local/CASUR/QA`). No se volverá a probar el token del proxy.
+- **Kit:** `deploy-candidata-ecda05f.mjs` más `SHA256SUMS.txt`, entregados fuera del repositorio. Hace lo siguiente:
+  1. Obtiene `ecda05f` desde Git y construye el paquete con la herramienta del propio commit.
+  2. Aplica los mismos ajustes del artefacto.
+  3. **Exige que los 198 archivos sean idénticos byte a byte** al paquete aprobado. Si no, se detiene.
+  4. Solo con `--deploy` ejecuta `wrangler pages deploy` en `casur-maestro-ux-review`, rama `claude-plan-z2627-fecha-aforo-12oct`, entorno Preview.
+- **Garantías:** no toca producción, GitHub Pages ni Access.
+- **Prueba en el entorno cloud:** «VERIFICADO: 198 archivos idénticos».
+- **Ejecución sin comandos del propietario:** el propietario habilita una carpeta del checkout en Claude Desktop (Ajustes → Claude Code → Remote Control). Esta sesión la solicita con aprobación explícita y ejecuta el kit allí, con la sesión de Wrangler existente; las credenciales nunca salen del PC.
+- **Verificación posterior:** `__preview.json.head` = `ecda05f…`, generación 1102, «Cron 22-Nov-2026», «Último Aforo 12-Oct-2026» y funcionamiento sin conexión.
+
 ### Condiciones de acceso de la preview
 
 - **Los despliegues de `casur-maestro-ux-review` son públicos.** Por ejemplo, `99b83c0e…/modules/produccion/data/cronologico.json` responde 200 sin autenticación. Solo llevan `X-Robots-Tag: noindex, nofollow`, que **no protege el acceso**.

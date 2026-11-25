@@ -84,3 +84,23 @@ Estimados Z26/27 **no es una vista registrada del shell**. Las vistas son Resume
 - Se reutilizan el agregador por sistema de UX14 y los motores oficiales, sin cambiar datos.
 
 **Dependencias:** UX14, que aporta el agregador por sistema y los enlaces contextuales, y UX15, que aporta las familias y los rankings compartidos.
+
+## 6. Requisito futuro: descomposición de variaciones de producción (registrado el 26-Nov-2026)
+
+Para comparar el estimado Z26/27 con el ejecutado Z25/26, UX16 descompondrá la variación de toneladas por zona, finca, sistema y variedad:
+
+| Componente | Definición |
+|---|---|
+| Variación de toneladas | ΔT = T₂₆/₂₇ estimadas − T₂₅/₂₆ ejecutadas |
+| Efecto rendimiento | (TCH₂₆/₂₇ − TCH₂₅/₂₆) × Área₂₅/₂₆ |
+| Efecto superficie | (Área₂₆/₂₇ − Área₂₅/₂₆) × TCH₂₅/₂₆ |
+| Efecto combinado | ΔTCH × ΔÁrea, informado aparte para que la suma cuadre |
+
+**Comparabilidad y cobertura:**
+- Separar las suertes presentes en ambas zafras (población equivalente) de las que entran (siembras, sin cosecha Z25/26) y las que salen (no Molienda, sin estimado).
+- Informar la cobertura en área y número de suertes de cada grupo.
+
+**Rotulación:**
+- La brecha **estimada** (AD/AE frente a Z25/26) es una proyección, **no una pérdida productiva observada**.
+- El optimista AF/AG se presenta como escenario.
+- Sin causas inventadas: las hipótesis agronómicas se rotulan como tales.

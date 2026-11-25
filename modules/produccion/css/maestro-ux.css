@@ -1195,9 +1195,26 @@ body.casur-maestro-premium:not(.print-export) #cronoSection:has(.context-explore
 .ux14-table { overflow-x:auto; } .ux14-farms table { width:100%; border-collapse:collapse; font-size:12.5px; }
 .ux14-farms th { background:#1F4E5C; color:#fff; text-align:right; padding:6px; font-weight:600; } .ux14-farms td { padding:7px 6px; text-align:right; border-bottom:1px solid #e3e7eb; }
 .ux14-farms :is(th,td):first-child { text-align:left; } .ux14-farm-link { border:0; background:none; padding:0; color:#1F4E5C; font-weight:700; text-align:left; cursor:pointer; min-height:32px; }
-.ux14-print-name { display:none; } .ux14-more, .ux14-legacy-toggle { margin-top:8px; border:1px solid #c5d0d5; background:#fff; border-radius:10px; padding:7px 12px; color:#1F4E5C; font-weight:700; cursor:pointer; }
+.ux14-print-name { display:none; } .ux14-more { margin-top:8px; border:1px solid #c5d0d5; background:#fff; border-radius:10px; padding:7px 12px; color:#1F4E5C; font-weight:700; cursor:pointer; }
 .ux14-links { display:flex; flex-wrap:wrap; gap:8px; } .ux14-links button { border:1px solid #1F4E5C; background:#fff; color:#1F4E5C; border-radius:10px; padding:8px 14px; font-weight:700; cursor:pointer; min-height:40px; }
-body .ux14-on:not(.ux14-legacy-open) #cronoZoneContent .ux13-zone-kpis { display:none!important; }
+/* UX14-B: superseded legacy rows (facts moved to UX14 KPIs, strip and farm table / ranking). */
+body.casur-maestro-premium:not(.print-export) #cronoZoneSection.ux14-on #cronoZoneContent .ux13-zone-kpis, body.casur-maestro-premium:not(.print-export) #cronoZoneSection.ux14-on #cronoZoneContent .crono-box.crono-zone-wide, body.casur-maestro-premium:not(.print-export) #zoneAnalysisSection.ux14h-on #zoneContent .zone-report > .kpis { display:none!important; }
 @media (max-width:520px) { .ux14-farms thead { display:none; } .ux14-farms :is(table,tbody) { display:block; } .ux14-farms tr { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:2px 6px; padding:8px 0; border-bottom:1px solid #e3e7eb; } .ux14-farms td { border:0; padding:0; text-align:left; font-size:12.5px; min-width:0; } .ux14-farms td:first-child { grid-column:1/-1; } .ux14-farms td[data-label]::before { content:attr(data-label); display:block; font-size:10.5px; color:#576579; } }
 @media (min-width:900px) { .ux14-kpis { grid-template-columns:repeat(4,minmax(0,1fr)); } .ux14-grid { grid-template-columns:1fr 1fr; } .ux14-group { grid-template-columns:120px minmax(0,1fr); } .ux14-composition ul { grid-template-columns:1fr 1fr; } }
 @media print { .ux14-print-name { display:inline; } }
+
+/* UX14-B · Histórico de Zona, strip, trend lines and contextual return. */
+.ux14-strip { display:flex; flex-wrap:wrap; gap:6px; } .ux14-strip-item { display:inline-flex; align-items:center; gap:6px; background:#fff; border:1px solid #e3e7eb; border-radius:999px; padding:5px 11px; font-size:12.5px; } .ux14-strip-item b { color:#173B46; }
+.ux14-note { margin:0; font-size:12px; color:#576579; }
+.ux14-detail-title { margin:18px 0 6px; font-size:14px; color:#173B46; border-top:1px solid #e3e7eb; padding-top:12px; }
+.ux14-trend { display:grid; gap:8px; } .ux14-metric button { padding:7px 11px; font-size:12.5px; }
+.ux14-lines .ux14-svg { width:100%; overflow:hidden; } .ux14-lines svg { width:100%; height:auto; display:block; }
+.ux14-lines .ux14-grid-line { stroke:#e3e7eb; stroke-width:1; } .ux14-lines .ux14-axis { font:11px system-ui,sans-serif; fill:#576579; }
+.ux14-line { fill:none; stroke-width:2.5; stroke-linejoin:round; stroke-linecap:round; }
+.ux14-line[data-series=Total] { stroke:#576579; stroke-width:3.5; stroke-dasharray:7 5; } .ux14-line[data-series=Riego] { stroke:#1F4E5C; } .ux14-line[data-series=Secano] { stroke:#D4B35F; } .ux14-line[data-series=Ventana] { stroke:#86A0AA; stroke-dasharray:2 4; }
+.ux14-dot[data-series=Total] { fill:#576579; } .ux14-dot[data-series=Riego] { fill:#1F4E5C; } .ux14-dot[data-series=Secano] { fill:#D4B35F; } .ux14-dot[data-series=Ventana] { fill:#86A0AA; }
+.ux14-line-key { display:inline-block; width:18px; height:0; border-top:3px solid #1F4E5C; } .ux14-line-key[data-series=Total] { border-top:3px dashed #576579; } .ux14-line-key[data-series=Secano] { border-top-color:#D4B35F; } .ux14-line-key[data-series=Ventana] { border-top:3px dotted #86A0AA; }
+.ux14-sort { display:inline-flex; gap:6px; align-items:center; font-size:12.5px; color:#576579; margin-bottom:6px; } .ux14-sort select { border:1px solid #c5d0d5; border-radius:8px; padding:6px 8px; font:inherit; color:#173B46; background:#fff; }
+.ux14-ranking td[data-sign=up] { color:#1F4E5C; font-weight:700; } .ux14-ranking td[data-sign=down] { color:#9a3412; font-weight:700; }
+.ux14-return { position:sticky; top:6px; z-index:20; margin:0 0 10px; border:1px solid #1F4E5C; background:#fff; color:#1F4E5C; border-radius:999px; padding:8px 14px; font-weight:700; cursor:pointer; box-shadow:0 4px 14px #173b4622; min-height:40px; }
+@media (max-width:520px) { .ux14-ranking tr { grid-template-columns:repeat(3,minmax(0,1fr)); } .ux14-ranking td:first-child { display:none; } .ux14-ranking td:nth-child(2) { grid-column:1/-1; } }

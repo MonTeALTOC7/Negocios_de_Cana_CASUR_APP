@@ -46,8 +46,45 @@ No hay cambios en datos, motores, versiones (App 1.6.2 y Producción V1.8.3, can
   - Formato de fechas.
 - **Responsive:** 360, 390, 768, 1280 y 1536 px sin desbordamiento horizontal y sin errores de página.
 
+## UX14-B (26-Nov-2026)
+
+### Histórico de Zona
+Nuevo tablero `installZonaHistUx14()` sobre la pestaña Histórico, con la misma estructura del Cronológico de Zona.
+
+| Elemento | Implementación |
+|---|---|
+| Totales | Motor oficial de zonas (`zoneAnalysis`): asignación finca → zona y última zafra. General = suma de zonas = Análisis (63.94 t/ha · 9,735.96 ha · 622,474 t · KATM 98.65) |
+| Riego / Secano / Ventana | Las mismas suertes oficiales de la última zafra (`entity.details`), por **riego actual del lote**. Se rotula siempre: «el Histórico no registra el sistema de cada zafra». Suma = Total |
+| KPI | TCH, área cosechada, toneladas y KATM de Z25/26. Franja: TCH histórico, TCH últimas 3, edad prom. y potencial (motor oficial) |
+| Tendencia | Líneas por zafra para TCH, área, toneladas y KATM. Total (oficial, línea discontinua gruesa), Riego, Secano y Ventana si existe. La ayuda informa la cobertura mínima de las series por sistema en zafras anteriores |
+| Comparación | General: TCH y KATM Riego frente a Secano entre zonas. Ficha: TCH y KATM por sistema, solo la zona |
+| Ranking de fincas | Área, TCH, KATM, TCH histórico y Δ frente al histórico; orden por TCH, toneladas, Δ o histórico; navegación a la ficha histórica |
+| Zonas solo históricas | 6-TRAPICHES y 7-ZONA TISMA muestran su última zafra (Z19/20 y la de Tisma) y el Total oficial. Sin desglose por sistema, porque el motor no tiene suertes de esas zonas; el filtro del usuario se conserva para las demás |
+| Diagnóstico oficial | Se conserva debajo (deltas, variedades, mejores desempeños, prioridad técnica, potencial). Solo se reemplaza su fila de 8 KPI, cuyos datos están en el tablero |
+
+**Diferencia documentada.** El TCH Z25/26 del Cronológico de Zona usa los lotes que el aforo ubica en la zona, para comparar la misma población con el estimado. El Histórico usa la asignación oficial finca → zona. Solo difieren 1-Sur y 2-Centro, porque la finca 2 (San Jerónimo, 189.62 ha) tiene lotes en 1-Sur pero el motor la asigna a 2-Centro. Las ayudas «i» lo explican.
+
+### Cronológico de Zona: refinamiento
+- **Sin «Ver indicadores anteriores».** La fila UX13 queda reemplazada:
+  - Haciendas y edad ponderada pasan a la franja; la edad usa la misma fórmula y da el mismo resultado.
+  - «TCH anterior» (columna P) y las bandas basadas en P no se migran, por la regla de no equiparar P con el ejecutado. En su lugar: «TCH est. Z26/27 < 45» (AD).
+- **Tabla de haciendas:** la tabla duplicada «Haciendas con mayor área» se oculta. La tabla UX14 suma **Suertes** y **Dist. pond. km**.
+- **Composición agronómica** (riego, tenencia, variedad, textura, destino): visible bajo su propio título.
+- **Enlaces con sistema:**
+  - Estimados Secano o Ventana: ámbito zona + riego exacto.
+  - Estimados Riego: desglose por tipo de riego dentro de la zona.
+  - Histórico y Cronológico comparten el sistema seleccionado.
+- **Retorno contextual:** al abrir una finca desde Zonas (Cronológico o Histórico), el chip «← Volver a Zona X» devuelve a la misma zona, pestaña y sistema.
+
+### QA
+- **UX14:** `tools/qa-maestro-ux14.cjs` **21/21**.
+- **UX13-C:** **85/85**, con los 4 controles Z9 migrados al tablero UX14 y la misma intención.
+
+### Exportadores y GIS
+Ver `docs/PROPUESTA_EXPORTADOR_ZONA.md`. Requiere modificar `index.html`, que está protegido. Se presenta para autorización previa; no está ejecutado.
+
 ## Pendiente dentro de UX14
 
 - **Exportación PDF/PNG del tablero de zona.** No existía antes: el motor de exportación solo cubre las fichas Histórico/Cronológico y las selecciones múltiples. Requiere registrar un nuevo tipo en el motor de `index.html`, que está protegido, así que se propone como cambio autorizado separado.
 - **GIS a nivel de zona.** Tampoco existía; hoy se accede al GIS desde la finca.
-- **Pestaña Histórico de zona.** Mantiene su presentación actual; la segmentación por sistema queda para el siguiente incremento.
+- **Pestaña Histórico de zona:** resuelta en UX14-B.

@@ -781,6 +781,15 @@
     return {analyses,ents,allEnts,details,latest,latestBySystem:Object.fromEntries(SYSTEMS.map(s=>[s,fig(details.filter(d=>productionSystem(d.riego)===s))])),seasons,official,bySystem,
       hist:system==='Total'&&one?one.hist.tch:histOf(series),last3:system==='Total'&&one?one.last3.tch:histOf(last3),last3Seasons:last3.map(x=>x.zafra),potential:system==='Total'&&one?one.potential:null,coverage,lots};
   }
+  // Farm-level figures shared by the Histórico de Zona ranking and UX15 (same official lots, current irrigation).
+  function histFarms(F,sys){
+    const farmCodes=[...new Set(F.allEnts.map(e=>String(e.code)))];
+    const farms=farmCodes.map(code=>{const e=F.allEnts.find(x=>String(x.code)===code),det=(e.details||[]).filter(d=>sys==='Total'||productionSystem(d.riego)===sys),latestE=F.ents.includes(e);
+      const area=latestE?det.reduce((n,d)=>n+d.area,0):0,ton=latestE?det.reduce((n,d)=>n+d.ton,0):0,codes=new Set(det.map(d=>String(d.codLote||d.hhhsss)));
+      let ha=0,ht=0;if(sys==='Total'){ha=e.hist?.area||0;ht=e.hist?.ton||0;}else F.lots.forEach(l=>{if(!codes.has(String(l[0])))return;(l[11]||[]).forEach(x=>{if(x[1]>0){ha+=x[1];ht+=x[2];}});});
+      return {code,name:e.name,zona:e.zona,area:latestE?area:null,ton:latestE?ton:null,tch:area?ton/area:null,katm:ton?det.reduce((n,d)=>n+(d.rto||0)*d.ton,0)/ton:null,hist:ha?ht/ha:null,lots:det.length};}).filter(x=>x.lots||x.hist!=null);
+    farms.forEach(x=>{x.delta=x.tch!=null&&x.hist!=null?x.tch-x.hist:null;});return farms;
+  }
   function installZonaHistUx14(){
     const section=byId('zoneAnalysisSection'),host=byId('zoneContent'),select=byId('zoneSelect');if(!section||!host||!select||!window.zoneAnalysis)return;
     const root=el('section','ux14-zone ux14-hist-zone');root.dataset.ux14Hist='true';host.before(root);section.classList.add('ux14h-on');
@@ -830,12 +839,7 @@
       }else{
         const series2=SYSTEMS.filter(s=>s!=='Sin dato'&&present(s));
         if(!noLatest){chartRow.append(ux14Bars('TCH y KATM '+exe+' por sistema · '+zone,'solo '+zone,[['TCH',Object.fromEntries(series2.map(s=>[s,presentTotal.latestBySystem[s].tch]))],['KATM',Object.fromEntries(series2.map(s=>[s,presentTotal.latestBySystem[s].katm]))]],series2,140));root.append(chartRow);}
-        const farmCodes=[...new Set(F.allEnts.map(e=>String(e.code)))];
-        const farms=farmCodes.map(code=>{const e=F.allEnts.find(x=>String(x.code)===code),det=(e.details||[]).filter(d=>sys==='Total'||productionSystem(d.riego)===sys),latestE=F.ents.includes(e);
-          const area=latestE?det.reduce((n,d)=>n+d.area,0):0,ton=latestE?det.reduce((n,d)=>n+d.ton,0):0,codes=new Set(det.map(d=>String(d.codLote||d.hhhsss)));
-          let ha=0,ht=0;if(sys==='Total'){ha=e.hist?.area||0;ht=e.hist?.ton||0;}else F.lots.forEach(l=>{if(!codes.has(String(l[0])))return;(l[11]||[]).forEach(x=>{if(x[1]>0){ha+=x[1];ht+=x[2];}});});
-          return {code,name:e.name,area:latestE?area:null,ton:latestE?ton:null,tch:area?ton/area:null,katm:ton?det.reduce((n,d)=>n+(d.rto||0)*d.ton,0)/ton:null,hist:ha?ht/ha:null,lots:det.length};}).filter(x=>x.lots||x.hist!=null);
-        farms.forEach(x=>{x.delta=x.tch!=null&&x.hist!=null?x.tch-x.hist:null;});
+        const farms=histFarms(F,sys);
         const order=noLatest?'hist':rankBy,keyOf={tch:x=>x.tch??-1e9,ton:x=>x.ton??-1e9,delta:x=>x.delta??-1e9,hist:x=>x.hist??-1e9}[order];farms.sort((a,b)=>keyOf(b)-keyOf(a));
         const card=el('section','ux14-card ux14-farms ux14-ranking'),cap=el('h4','','Ranking de fincas · '+zone+(sys==='Total'?'':' · '+sys));card.append(cap);
         if(root.dataset.ux14Export==='all'&&farms.length>8)card.dataset.pdfNewPage='';
@@ -857,6 +861,88 @@
     section.addEventListener('toggle',()=>{if(section.open)schedule();});document.addEventListener('casur-zone-system',schedule);
     ux14Exports['zona-historico']={root,render,schedule};
     ux14LogoReady.then(()=>schedule());
+    schedule();
+  }
+
+  // UX15 (#66, segunda etapa): Análisis en seis familias. Presentation over the existing executive panels and engines;
+  // no panel is rebuilt. Resumen/Desempeño/Decisiones gain Riego/Secano views from the official zone engine (same
+  // functions as UX14), contextual navigation keeps zone and system. Estimados Z26/27 appears only as a short reference
+  // (its full analysis belongs to UX16).
+  const UX15_FAMILIES=[['resumen','Resumen',['summaryAcc']],['desempeno','Desempeño',['trendAcc','bestAcc','fallingAcc','matrixAcc']],['decisiones','Decisiones',['committeeAcc','priorityAcc','potentialAcc','renewalAcc']],['composicion','Composición',['chartsAcc','zoneAcc']],['tecnica','Técnica',['techAcc']],['maquila','Maquila',['maquilaAcc']]];
+  function installAnalisisUx15(){
+    const section=byId('executiveAnalysisSection');if(!section)return;
+    let family='resumen',metric='tch',recoveryAll=false,building=false;
+    const familyOf=id=>UX15_FAMILIES.find(f=>f[2].includes(id))?.[0];
+    const back=(sectionId,label)=>{document.querySelectorAll('.ux14-return').forEach(n=>n.remove());const t=byId(sectionId);if(!t)return;const chip=presentation(button('← Volver a Análisis · '+label,()=>{chip.remove();activate('analisis');choose(family,false);}));chip.className='ux14-return';t.prepend(chip);};
+    const openHistZone=z=>{const label=UX15_FAMILIES.find(f=>f[0]===family)[1];activate('zonas');document.querySelector('#zoneMainSection .ux09-section-tabs button[data-target="zoneAnalysisSection"]')?.click();const hs=byId('zoneSelect');if(hs){hs.value=z;window.selectZone?.(z);}back('zoneMainSection',label);};
+    const openCronoZones=()=>{activate('zonas');document.querySelector('#zoneMainSection .ux09-section-tabs button[data-target="cronoZoneSection"]')?.click();back('zoneMainSection','Composición');};
+    const openFarm=code=>{const label=UX15_FAMILIES.find(f=>f[0]===family)[1];activate('historico');window.renderEntity?.(String(code));back('fichaSection',label);};
+    const openEstimates=sys=>{explorerStates.set('general',{objective:'estimate',dimension:'zona',secondary:'zona',scope:sys&&sys!=='Total'?[{field:'sistema',key:sys}]:[],mode:'general'});activate('cronologico');window.renderCronoHome?.();};
+    const famBar=presentation(el('nav','ux15-families'));famBar.setAttribute('aria-label','Familias de Análisis');
+    const famSelect=el('select','ux15-family-select');famSelect.setAttribute('aria-label','Sección de Análisis');UX15_FAMILIES.forEach(([k,l])=>{const o=el('option','',l);o.value=k;famSelect.append(o);});famSelect.onchange=()=>choose(famSelect.value);
+    const famTabs=el('div','ux15-family-tabs');famTabs.setAttribute('role','tablist');UX15_FAMILIES.forEach(([k,l])=>{const b=button(l,()=>choose(k));b.dataset.family=k;b.setAttribute('role','tab');famTabs.append(b);});
+    famBar.append(famSelect,famTabs);
+    function choose(k,show=true){
+      family=k;section.dataset.ux15Family=k;famSelect.value=k;famTabs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.family===k)));
+      const ids=UX15_FAMILIES.find(f=>f[0]===k)[2],nav=section.querySelector('.ux09-section-tabs');if(!nav)return;
+      nav.querySelectorAll('button').forEach(b=>b.hidden=!ids.includes(b.dataset.target));nav.hidden=ids.length<2;
+      if(show){const current=[...nav.querySelectorAll('button')].find(b=>b.getAttribute('aria-pressed')==='true');if(!current||!ids.includes(current.dataset.target))nav.querySelector(`button[data-target="${ids[0]}"]`)?.click();}
+    }
+    const body=id=>{const p=byId(id);return p?.querySelector(':scope > .accordion-body')||p;};
+    const mount=(id,cls)=>{const host=body(id);if(!host)return null;let n=host.querySelector(':scope > .'+cls);if(!n){n=el('section','ux15-panel '+cls);host.prepend(n);}return n;};
+    const legacyKpi=re=>{const k=[...document.querySelectorAll('#summaryAcc .kpi')].find(x=>re.test(x.querySelector('.label,span')?.textContent||''));return k?.querySelector('strong')?.textContent?.trim()||null;};
+    function render(){
+      if(building)return;building=true;try{
+      const nav=section.querySelector('.ux09-section-tabs');if(!nav||!byId('summaryAcc'))return;
+      if(!section.contains(famBar))nav.before(famBar);section.classList.add('ux15-on');choose(family,false);
+      if(typeof window.zoneAnalysis!=='function')return;
+      const T=histZoneFigures('','Total'),present=s=>T.details.some(d=>productionSystem(d.riego)===s);
+      if(!['Total','Riego','Secano'].includes(zoneScope.system)&&!present(zoneScope.system))zoneScope.system='Total';
+      const sys=zoneScope.system,F=sys==='Total'?T:histZoneFigures('',sys),L=F.latest,last=F.seasons[F.seasons.length-1],exe=seasonLabel(last),zones=histZones();
+      // ---- Resumen ----
+      const R=mount('summaryAcc','ux15-resumen');if(R){R.replaceChildren();R.dataset.system=sys;
+        R.append(ux14Controls(present,s=>T.latestBySystem[s].area,()=>{render();}),el('p','ux14-note','Histórico '+exe+' ejecutado · Riego / Secano según el sistema de riego actual del lote · Maquila excluida.'));
+        const k=ux14Break(el('div','ux14-kpis'));k.append(ux14Kpi('TCH '+exe,fmt(L.tch),'t/ha','ejecutado · producción propia','Toneladas ÷ área cosechada de la última zafra (motor oficial de zonas, sin Maquila).','ux14-hist'),ux14Kpi('Área cosechada '+exe,fmt(L.area),'ha',fmt(L.lots,0)+' suertes','Área cosechada histórica; no es área activa del aforo.','ux14-hist'),ux14Kpi('Toneladas '+exe,fmt(L.ton,0),'t','producción propia','Toneladas cosechadas sin Maquila.','ux14-hist'),ux14Kpi('KATM '+exe,fmt(L.katm),'kg/t','ponderado por toneladas','Kilogramos de azúcar por tonelada.','ux14-hist'));R.append(k);
+        const delta=L.tch!=null&&F.hist!=null?L.tch-F.hist:null,pot=sys==='Total'?legacyKpi(/potencial/i):null;
+        R.append(ux14Strip([['TCH histórico',fmt(F.hist),'Toneladas ÷ área de todas las zafras '+seasonLabel(F.seasons[0]).slice(1)+'–'+exe.slice(1)+'.'],['TCH últimas 3',fmt(F.last3),F.last3Seasons.map(z=>seasonLabel(z).slice(1)).join(' · ')],['Δ vs histórico',(delta!=null&&delta>=0?'+':'')+fmt(delta)+' t/ha','TCH '+exe+' menos TCH histórico del mismo ámbito. Diferencia observada; no identifica causas.'],['Edad a cosecha '+exe,fmt(L.edad)+' meses'],pot?['Potencial vs zona',pot,'Motor ejecutivo oficial: estimación técnica, no pérdida observada.']:null]));
+        const comp=el('div','ux14-grid');comp.append(ux14Composition('Área cosechada '+exe+' por sistema',Object.fromEntries(SYSTEMS.map(s=>[s,T.latestBySystem[s].area])),'ha',2),ux14Composition('Toneladas '+exe+' por sistema',Object.fromEntries(SYSTEMS.map(s=>[s,T.latestBySystem[s].ton])),'t',0));R.append(comp);
+        const metrics=[['tch','TCH','t/ha'],['area','Área cosechada','ha'],['ton','Toneladas','t'],['katm','KATM','kg/t']],mt=metrics.find(x=>x[0]===metric),mseg=presentation(el('div','ux14-seg ux14-metric'));mseg.setAttribute('aria-label','Métrica de la tendencia');
+        metrics.forEach(([key,l])=>{const b=button(l,()=>{metric=key;render();});b.setAttribute('aria-pressed',String(metric===key));mseg.append(b);});
+        const names=['Total','Riego','Secano',...(present('Ventana')?['Ventana']:[])],covs=T.coverage.filter(Number.isFinite);
+        const tr=el('div','ux14-trend');tr.append(mseg,ux14Lines('Tendencia CASUR por zafra · '+mt[1],T.seasons,names.map(n=>({name:n,values:(n==='Total'?T.official:T.bySystem(n)).map(x=>x[metric])})),mt[2],'Total: motor oficial de zonas. Riego y Secano: suertes de la última zafra seguidas en el Histórico según su riego actual; cubren al menos '+fmt((covs.length?Math.min(...covs):0)*100,0)+' % del área oficial en zafras anteriores.'));R.append(tr);
+        const c=cronoFigures(cronoSubset(zoneData(),'',sys)),m=window.CRONO_DATA?.meta||{},fd=window.CASUR_CRONO_PARTICIPATION?.formatDate||(x=>x);
+        const ref=ux14Break(el('div','ux15-estimate-ref'));ref.append(el('span','','Referencia '+seasonLabel(String(m.estimateSeason||'').replace('/',''))+' · Aforo '+fd(m.tchEst2627EffectiveDate)),el('b','','TCH est. '+fmt(c.estimateTch)+' t/ha · '+fmt(c.estimateTons,0)+' t'),presentation(button('Ver Estimados',()=>openEstimates(sys))));R.append(ref);
+      }
+      // ---- Desempeño: comparabilidad por zona ----
+      const D=mount('trendAcc','ux15-comparabilidad');if(D){D.replaceChildren();const card=ux14Break(el('section','ux14-card ux14-farms ux15-zones'));card.append(el('h4','','Comparabilidad por zona · '+exe+' frente a su histórico'+(sys==='Total'?'':' · '+sys)));
+        const t=el('table',''),th=el('thead'),hr=el('tr');['Zona','Área '+exe.slice(1)+' ha','TCH '+exe.slice(1),'TCH histórico','TCH últimas 3','Δ vs hist.'].forEach(x=>hr.append(el('th','',x)));th.append(hr);t.append(th);const tb=el('tbody');t.append(tb);
+        const short=['','Área ha','TCH','Histórico','Últimas 3','Δ hist.'];
+        zones.forEach(z=>{const f=histZoneFigures(z,sys),noL=!(f.latest.area>0),d=!noL&&f.hist!=null?f.latest.tch-f.hist:null,row=el('tr'),name=el('td'),link=presentation(button(z,()=>openHistZone(z)));link.className='ux14-farm-link';name.append(link,el('span','ux14-print-name',z));
+          const cell=(i,v)=>{const td=el('td','',v);td.dataset.label=short[i];return td;},dd=cell(5,d==null?dash:(d>=0?'+':'')+fmt(d));if(d!=null)dd.dataset.sign=d>=0?'up':'down';
+          row.dataset.zone=z;row.append(name,cell(1,noL?'sin '+exe.slice(1):fmt(f.latest.area)),cell(2,fmt(noL?null:f.latest.tch)),cell(3,fmt(f.hist)),cell(4,fmt(noL?null:f.last3)),dd);tb.append(row);});
+        const w=el('div','ux14-table');w.append(t);card.append(w,el('p','ux14-note','Tocá una zona para abrir su Histórico con el mismo sistema. Las zonas sin '+exe+' son solo históricas.'));D.append(card);}
+      // ---- Decisiones: recuperación por sistema ----
+      const P=mount('priorityAcc','ux15-recuperacion');if(P){P.replaceChildren();
+        const farms=zones.flatMap(z=>histFarms(histZoneFigures(z,sys),sys).map(x=>({...x,zona:z}))).filter(x=>x.delta!=null&&x.delta<0&&(x.area||0)>=10).sort((a,b)=>a.delta-b.delta);
+        const card=ux14Break(el('section','ux14-card ux14-farms ux15-recovery'));card.append(el('h4','','Recuperación · mayores caídas frente a su histórico'+(sys==='Total'?'':' · '+sys)));
+        card.append(el('p','ux14-note','Fincas con ≥ 10 ha cosechadas en '+exe+'. Δ t = (TCH '+exe.slice(1)+' − TCH histórico) × área '+exe.slice(1)+': diferencia observada frente a su propio histórico; no es una pérdida atribuida ni una causa.'));
+        const t=el('table',''),th=el('thead'),hr=el('tr');['Finca','Zona','Área ha','TCH '+exe.slice(1),'TCH histórico','Δ TCH','Δ t'].forEach(x=>hr.append(el('th','',x)));th.append(hr);t.append(th);const tb=el('tbody');t.append(tb);
+        const short=['','Zona','Área ha','TCH','Histórico','Δ TCH','Δ t'];
+        farms.slice(0,recoveryAll?farms.length:10).forEach(x=>{const row=el('tr'),name=el('td'),link=presentation(button(x.code+' · '+x.name,()=>openFarm(x.code)));link.className='ux14-farm-link';name.append(link,el('span','ux14-print-name',x.code+' · '+x.name));
+          const cell=(i,v)=>{const td=el('td','',v);td.dataset.label=short[i];return td;},d1=cell(5,fmt(x.delta)),d2=cell(6,fmt(x.delta*x.area,0));d1.dataset.sign='down';d2.dataset.sign='down';
+          row.append(name,cell(1,String(x.zona).replace(/-ZONA /i,'-')),cell(2,fmt(x.area)),cell(3,fmt(x.tch)),cell(4,fmt(x.hist)),d1,d2);tb.append(row);});
+        const w=el('div','ux14-table');w.append(t);card.append(w);
+        if(farms.length>10){const more=presentation(button(recoveryAll?'Mostrar 10':'Mostrar todas ('+farms.length+')',()=>{recoveryAll=!recoveryAll;render();}));more.className='ux14-more';card.append(more);}
+        P.append(card);}
+      // ---- Composición y Maquila ----
+      const C=mount('chartsAcc','ux15-composicion');if(C){C.replaceChildren();const card=el('div','ux15-link-card');card.append(el('span','','Composición territorial por sistema productivo (Riego / Secano) con área activa, ejecutado '+exe+' y estimado.'),presentation(button('Abrir Análisis por Zona',openCronoZones)));C.append(card);}
+      const M=mount('maquilaAcc','ux15-maquila');if(M){M.replaceChildren();M.append(el('p','ux14-note','Maquila se analiza como sección independiente: no entra en los totales de producción propia de Resumen, Desempeño ni Decisiones.'));}
+      }finally{building=false;}
+    }
+    let pending=0;const schedule=()=>{cancelAnimationFrame(pending);pending=requestAnimationFrame(render);};
+    new MutationObserver(m=>{if(m.some(x=>[...x.addedNodes].some(n=>n.nodeType===1&&!n.closest?.('.ux15-panel')&&!n.classList?.contains('ux15-panel')&&!n.classList?.contains('ux15-families'))))schedule();}).observe(section,{childList:true,subtree:true});
+    document.addEventListener('casur-zone-system',schedule);section.addEventListener('toggle',()=>{if(section.open)schedule();});
+    window.CASUR_ANALISIS_UX15=Object.freeze({families:UX15_FAMILIES.map(f=>({key:f[0],label:f[1],panels:[...f[2]]})),choose:k=>choose(k),family:()=>family,render:schedule});
     schedule();
   }
 
@@ -1112,6 +1198,7 @@
     installZonaUx13();
     installZonaUx14();
     installZonaHistUx14();
+    installAnalisisUx15();
     document.body.classList.add('casur-maestro-premium');
     document.dispatchEvent(new Event('casur-premium-ready'));
     // The shell already owns mobile bottom navigation; keep only module tabs.

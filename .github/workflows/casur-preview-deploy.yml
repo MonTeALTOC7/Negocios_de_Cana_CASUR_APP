@@ -93,7 +93,7 @@ jobs:
           echo "dir=$OUT" >> "$GITHUB_OUTPUT"
           for k in dataVersion aforoDate consolidated appVersion; do echo "$k=$(jq -r ".$k // \"\"" "$RUNNER_TEMP/build.json")" >> "$GITHUB_OUTPUT"; done
 
-      - name: Guarda Cloudflare (solo preview, nunca producción)
+      - name: Guarda Cloudflare · credenciales, cuenta, proyecto y rama de producción
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -108,13 +108,7 @@ jobs:
           DIR: ${{ steps.build.outputs.dir }}
           SHA: ${{ steps.req.outputs.sha }}
           ALIAS: ${{ steps.req.outputs.alias }}
-        run: |
-          set -euo pipefail
-          npx --yes "wrangler@${WRANGLER_VERSION}" pages deploy "$DIR" --project-name "$PROJECT" --branch "$ALIAS" \
-            --commit-hash "$SHA" --commit-message "Preview $ALIAS ${SHA:0:7}" --commit-dirty=false 2>&1 | tee "$RUNNER_TEMP/wrangler.log"
-          URL=$(grep -oE "https://[a-f0-9]{8}\.${PROJECT}\.pages\.dev" "$RUNNER_TEMP/wrangler.log" | head -1)
-          [ -n "$URL" ] || { echo "::error::Wrangler no informó la URL del despliegue"; exit 1; }
-          { echo "url=$URL"; echo "app_url=$URL/Negocios_de_Cana_CASUR_APP/"; echo "alias_url=https://$ALIAS.$PROJECT.pages.dev/Negocios_de_Cana_CASUR_APP/"; } >> "$GITHUB_OUTPUT"
+        run: node tools/preview/wrangler-deploy.mjs --dir "$DIR" --branch "$ALIAS" --sha "$SHA"
 
       - name: Confirmar entorno preview y SHA en Cloudflare
         env:

@@ -81,10 +81,26 @@ Nuevo tablero `installZonaHistUx14()` sobre la pestaña Histórico, con la misma
 - **UX13-C:** **85/85**, con los 4 controles Z9 migrados al tablero UX14 y la misma intención.
 
 ### Exportadores y GIS
-Ver `docs/PROPUESTA_EXPORTADOR_ZONA.md`. Requiere modificar `index.html`, que está protegido. Se presenta para autorización previa; no está ejecutado.
+Ver `docs/PROPUESTA_EXPORTADOR_ZONA.md`. UX14-C los implementó con autorización.
+
+## UX14-C (26-Nov-2026)
+
+- **PDF/PNG de Zona:** para Cronológico e Histórico, con el motor vigente. Los cambios autorizados en `index.html` están protegidos por SHA-256; ver `docs/PROPUESTA_EXPORTADOR_ZONA.md` §5.
+- **Conciliación de San Jerónimo:** `docs/CONCILIACION_ZONA_SAN_JERONIMO.md` documenta las fuentes, el criterio (suerte, lote o finca) y el impacto por zona y zafra. No se reasignaron datos.
+- **Riego en Estimados:** el filtro se conserva de verdad. El explorador recibe el ámbito «Sistema» (Riego, Secano o Ventana) junto con la zona, y sus cifras son iguales a las del tablero de zona (por ejemplo, 3-Norte Riego: 60.02 t/ha y 182,684.54 t).
+- **Edad:** cada indicador declara su población.
+
+  | Pestaña | Indicador | Población |
+  |---|---|---|
+  | Cronológico | «Edad actual · suertes activas» | Suertes activas, ponderada por área activa (la misma del KPI Área activa) |
+  | Histórico | «Edad a cosecha Z25/26» | Suertes cosechadas, motor oficial |
+
+  Las ayudas aclaran que no son comparables. Ya no se presenta la edad del Cronológico como equivalente al indicador anterior, que incluía todo el inventario.
+- **GIS de Zona:** queda registrado como mejora posterior, sin ampliar el alcance.
+- **QA:** `tools/qa-maestro-ux14.cjs` **23/23**, con exportación en PC y Android.
 
 ## Pendiente dentro de UX14
 
-- **Exportación PDF/PNG del tablero de zona.** No existía antes: el motor de exportación solo cubre las fichas Histórico/Cronológico y las selecciones múltiples. Requiere registrar un nuevo tipo en el motor de `index.html`, que está protegido, así que se propone como cambio autorizado separado.
+- **Exportación PDF/PNG del tablero de zona:** resuelta en UX14-C.
 - **GIS a nivel de zona.** Tampoco existía; hoy se accede al GIS desde la finca.
 - **Pestaña Histórico de zona:** resuelta en UX14-B.

@@ -13,7 +13,15 @@ const original=p=>execFileSync('git',['show',base+':modules/produccion/'+p],{cwd
 // Rediseño Petróleo·Pizarra: el documento actual debe ser exactamente el original
 // tras la migración de tema (solo color, tipografía y radios en CSS; ver tools/retheme-petroleo.mjs).
 test('Fase 1 conserva byte a byte el documento y los motores originales tras retirar los dos enlaces nuevos',()=>{
- const restored=current('index.html').replace('<link rel="stylesheet" href="css/maestro-ux.css">\n','').replace('<script src="js/maestro-ux.js"></script>\n','');
+ // UX14-C (owner authorization 26-Nov-2026, docs/PROPUESTA_EXPORTADOR_ZONA.md): exactly one inserted block,
+ // pinned by SHA-256, and one modified pagination line. Anything else in index.html still fails this test.
+ const ux14c=html=>{const start=html.indexOf('/* UX14-C (autorizado 26-Nov-2026'),end=html.indexOf('window.CASUR_VISUAL_EXPORT={version:VERSION,');
+  if(start<0)return html;assert.ok(end>start,'UX14-C block position');const block=html.slice(start,end);
+  assert.equal(createHash('sha256').update(block).digest('hex'),'a256c0e22e4927415fcc4a98ddb674ba9a5aeaf316ec824a8a24fdb584bf497e','UX14-C block is exactly the authorized one');
+  const authorized="(kind==='zona'||kind==='zona-historico')?'[data-pdf-break],.ux14-farms tbody tr':null;";
+  assert.equal(html.split(authorized).length,2,'single authorized pagination change');
+  return (html.slice(0,start)+html.slice(end)).replace(authorized,'null;');};
+ const restored=ux14c(current('index.html')).replace('<link rel="stylesheet" href="css/maestro-ux.css">\n','').replace('<script src="js/maestro-ux.js"></script>\n','');
  const normalizeRelease = html => html.replace(/<style>\n  html\.casur-booting[\s\S]*?<\/style>\n<script>document\.documentElement\.classList\.add\('casur-booting'\);<\/script>\n/, '').replace(/\n<div id="casurStartup"[\s\S]*?<\/script>/, '').replace(/var VERSION='V[\d.]+';/, 'var VERSION=RELEASE;').replace(/(<script id="casurEmbeddedPwaAssets"[^>]*>)([\s\S]*?)(<\/script>)/, (_, start, json, end) => {
    const assets=JSON.parse(json); for(const name of ['README_GITHUB.md','VERSION.txt']) assets[name]=Buffer.from(Buffer.from(assets[name],'base64').toString('utf8').replace(/V[\d.]+/g,'RELEASE')).toString('base64');
    return start+JSON.stringify(assets)+end;

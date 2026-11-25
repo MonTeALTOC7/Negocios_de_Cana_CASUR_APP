@@ -1,6 +1,6 @@
 # Propuesta: PDF/PNG de Análisis por Zona y GIS de Zona (UX14-B)
 
-Estado: **evaluado, no ejecutado.** Requiere modificar `modules/produccion/index.html`, que está protegido. Se presenta para autorización previa, como pide el propietario.
+Estado: **autorizado por el propietario y ejecutado en UX14-C (26-Nov-2026).** Ver la sección 5 para lo implementado.
 
 ## 1. Por qué no se puede hacer sin tocar `index.html`
 
@@ -44,3 +44,32 @@ Fuera de `index.html`:
 ## 4. Decisión solicitada
 
 Autorizar los cambios del punto 2 en `index.html` para implementar el exportador de zona en una iteración UX14-C. GIS de Zona (punto 3) queda como mejora posterior.
+
+## 5. Implementación UX14-C (ejecutada)
+
+### Cambios en `index.html` (los autorizados)
+1. **Un bloque insertado** justo antes de `window.CASUR_VISUAL_EXPORT`, marcado `/* UX14-C (autorizado 26-Nov-2026 … */`:
+   - Extiende `target` (tipos `zona` y `zona-historico`), `prepareClone` (`buildZona`) y `decorate` (inserta el grupo PDF/PNG del motor en el tablero).
+   - Agrega a `RENDER_CSS` los estilos del informe de zona, todos `!important`, para que la medición y el render den el mismo diseño en PC y Android.
+   - Las demás funciones del motor no cambian.
+2. **Una línea modificada:** el `safeSelector` de paginación incluye los nuevos tipos (`[data-pdf-break], .ux14-farms tbody tr`). Así no se cortan gráficos ni filas.
+
+### Guarda de bytes (`modules/produccion/tests/maestro-ux.test.mjs`)
+- Retira exactamente ese bloque **verificando su SHA-256 fijo** y restaura la línea original del `safeSelector`.
+- Cualquier otro cambio en `index.html`, o en el propio bloque, sigue fallando. Se comprobó alterando un carácter del bloque y, por separado, otra línea del documento: ambos casos fallan.
+
+### `maestro-ux.js`
+- **Encabezado del informe** (solo en impresión):
+  - Logo de Negocios de Caña incrustado como `data:image/webp`, porque `foreignObject` solo representa imágenes en línea.
+  - Título, zona · sistema, y fechas del aforo y la consolidación leídas de `CRONO_DATA.meta` (`tchEst2627EffectiveDate`, `generated`, `dataVersion`), sin fechas fijas en el código.
+  - Hora de consulta.
+- **Tablas completas en el informe:** `CASUR_ZONE_UX14.exportNode/exportDone` las dibujan completas durante la exportación. Si una tabla supera 8 filas, empieza en página nueva con su encabezado.
+- **Exportar:** el menú de la cabecera del tablero (PDF o PNG), en el mismo patrón de las fichas.
+
+### Resultado (QA `tools/qa-maestro-ux14.cjs`, 1280 y 390 px)
+- Logo, zona y sistema, fechas oficiales `DD-MMM-AAAA` y generación.
+- **0 controles** interactivos en el informe.
+- **KPI del informe iguales a la interfaz** y tabla con todas las filas.
+- PDF paginado por tarjetas y filas, y PNG de 1920 px de ancho (2×).
+- Nombre de archivo `Zona_{zona}_Sistema_{sistema}_{fecha}`.
+- **Exportadores anteriores** (ficha Cronológico de suerte e Histórico de finca): idénticos píxel a píxel frente a la candidata `7ee4dd3`.

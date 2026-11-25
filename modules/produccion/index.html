@@ -5318,7 +5318,7 @@ async function renderCanvas(kind,variant){
     var scale=Math.min(2,16000/width,16000/height);
     var canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
     var ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    var safeSelector=kind==='cronologico'?'.table-wrap tbody tr':kind==='historico-multiple'?'[data-pdf-break],.hist-multi-results-table tbody tr':null;
+    var safeSelector=kind==='cronologico'?'.table-wrap tbody tr':kind==='historico-multiple'?'[data-pdf-break],.hist-multi-results-table tbody tr':(kind==='zona'||kind==='zona-historico')?'[data-pdf-break],.ux14-farms tbody tr':null;
     var safeBreaks=safeSelector?qa(safeSelector,cloneNode).map(function(el){return Math.ceil((el.getBoundingClientRect().bottom-reportRect.top+2)*scale);}).filter(function(y){return y>0&&y<canvas.height;}):[];
     var forcedBreaks=qa('[data-pdf-new-page]',cloneNode).map(function(el){return Math.floor((el.getBoundingClientRect().top-reportRect.top-5)*scale);}).filter(function(y){return y>0&&y<canvas.height;});
     return{canvas:canvas,node:node,width:width,height:height,clone:cloneNode,safeBreaks:safeBreaks,forcedBreaks:forcedBreaks};
@@ -5418,6 +5418,64 @@ function decorate(){
 var timer=0;new MutationObserver(function(){clearTimeout(timer);timer=setTimeout(decorate,60);}).observe(document.body,{childList:true,subtree:true});
 window.printFicha=function(){var b=q('[data-casur-export-kind="historico"] .pdf');if(b)b.click();};
 window.printCronoFicha=function(){var b=q('[data-casur-export-kind="cronologico"] .pdf');if(b)b.click();};
+/* UX14-C (autorizado 26-Nov-2026, docs/PROPUESTA_EXPORTADOR_ZONA.md): PDF/PNG de Análisis por Zona. */
+(function(){
+var baseTarget=target,basePrepare=prepareClone,baseDecorate=decorate;
+var zoneNode=function(kind){return kind==='zona'?q('.ux14-zone:not(.ux14-hist-zone)'):kind==='zona-historico'?q('.ux14-hist-zone'):null;};
+target=function(kind){return zoneNode(kind)||baseTarget(kind);};
+function buildZona(node,kind){
+  var api=window.CASUR_ZONE_UX14,live=api&&api.exportNode?api.exportNode(kind):node;
+  try{
+    var styled=qa('.ux14-bar span,.ux14-stack span',live).map(function(n){return n.getAttribute('style')||'';});
+    var c=live.cloneNode(true);cleanElement(c);
+    qa('.ux14-bar span,.ux14-stack span',c).forEach(function(n,i){if(styled[i])n.setAttribute('style',styled[i]);});
+    c.classList.add('casur-report','casur-report-zona');c.appendChild(footer());return c;
+  }finally{if(api&&api.exportDone)api.exportDone(kind);}
+}
+prepareClone=function(node,kind,variant){return kind==='zona'||kind==='zona-historico'?buildZona(node,kind):basePrepare(node,kind,variant);};
+decorate=function(){baseDecorate();qa('[data-ux14-export-slot]').forEach(function(slot){var kind=slot.getAttribute('data-ux14-export-slot');if(!q('[data-casur-export-kind]',slot))slot.appendChild(group(kind));});};
+RENDER_CSS+='\n'+[
+'.casur-report-zona{gap:0!important;margin:0!important;line-height:1.25!important;width:960px!important;padding:22px 24px!important;color:#2b3542!important;font-family:Arial,"Segoe UI",Helvetica,sans-serif!important;display:block!important}',
+'.casur-report-zona .ux14-report-header{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:16px!important;background:#fff!important;border:0!important;border-bottom:3px solid #173B46!important;border-radius:0!important;padding:0 0 12px!important;margin:0 0 14px!important}',
+'.casur-report-zona .ux14-report-header img{width:96px!important;height:auto!important}',
+'.casur-report-zona .ux14-report-header h2{font-size:21px!important;color:#173B46!important;margin:0 0 4px!important;text-align:left!important}',
+'.casur-report-zona .ux14-report-header .print-meta{display:flex!important;flex-direction:column!important;align-items:flex-start!important;text-align:left!important;gap:2px!important;font-size:12px!important;color:#576579!important}',
+'.casur-report-zona .ux14-report-header .print-meta strong{font-size:15px!important;color:#1F4E5C!important}','.casur-report-zona .export-footer{color:#173B46!important;border-top-color:#86A0AA!important}',
+'.casur-report-zona .ux14-head{display:none!important}',
+'.casur-report-zona .ux14-kpis{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:8px!important;margin:0 0 10px!important}',
+'.casur-report-zona .ux14-kpi{border:1px solid #e3e7eb!important;border-top:4px solid #1F4E5C!important;border-radius:10px!important;padding:9px 11px!important}',
+'.casur-report-zona .ux14-kpi.ux14-hist{border-top-color:#D4B35F!important}.casur-report-zona .ux14-kpi.ux14-est{border-top-color:#3491b7!important}',
+'.casur-report-zona .ux14-kpi-label{display:block!important;font-size:11px!important;font-weight:700!important;color:#576579!important}',
+'.casur-report-zona .ux14-kpi strong{display:block!important;font-size:20px!important;color:#173B46!important;margin-top:2px!important}.casur-report-zona .ux14-kpi strong small{font-size:11px!important;margin-left:3px!important;color:#576579!important}',
+'.casur-report-zona .ux14-kpi em{display:block!important;font-style:normal!important;font-size:10.5px!important;color:#576579!important}',
+'.casur-report-zona .ux14-strip{display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin:0 0 10px!important}.casur-report-zona .ux14-strip-item{border:1px solid #e3e7eb!important;border-radius:999px!important;padding:4px 10px!important;font-size:11.5px!important}.casur-report-zona .ux14-strip-item b{color:#173B46!important;margin-left:5px!important}',
+'.casur-report-zona .ux14-note{font-size:11px!important;color:#576579!important;margin:0 0 8px!important}',
+'.casur-report-zona .ux14-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;margin:0 0 10px!important}',
+'.casur-report-zona .ux14-card{border:1px solid #e3e7eb!important;border-radius:10px!important;padding:10px 12px!important;margin:0 0 10px!important;page-break-inside:avoid!important;break-inside:avoid!important}',
+'.casur-report-zona .ux14-card figcaption,.casur-report-zona .ux14-card h4{display:flex!important;justify-content:space-between!important;gap:6px!important;font-size:13px!important;font-weight:700!important;color:#173B46!important;margin:0 0 7px!important}',
+'.casur-report-zona .ux14-scope{background:#e3e7eb!important;border-radius:999px!important;padding:1px 7px!important;font-size:10px!important;font-weight:600!important}',
+'.casur-report-zona [data-system=Riego]{background:#1F4E5C!important}.casur-report-zona [data-system=Secano]{background:#D4B35F!important}.casur-report-zona [data-system=Ventana]{background:#86A0AA!important}.casur-report-zona [data-system="Sin dato"]{background:#C9CED4!important}',
+'.casur-report-zona .ux14-stack{display:flex!important;height:13px!important;border-radius:6px!important;overflow:hidden!important;gap:2px!important}.casur-report-zona .ux14-stack span{display:block!important}',
+'.casur-report-zona .ux14-composition ul{list-style:none!important;display:grid!important;gap:3px!important;margin:7px 0 0!important}.casur-report-zona .ux14-composition li{display:flex!important;align-items:center!important;gap:6px!important;font-size:11.5px!important}.casur-report-zona .ux14-composition li b{margin-left:auto!important}.casur-report-zona .ux14-composition li small{width:48px!important;text-align:right!important;color:#576579!important}',
+'.casur-report-zona .ux14-swatch{display:inline-block!important;width:10px!important;height:10px!important;border-radius:2px!important}',
+'.casur-report-zona .ux14-legend{display:flex!important;flex-wrap:wrap!important;gap:5px 10px!important;align-items:center!important;font-size:11px!important;margin:0 0 5px!important}',
+'.casur-report-zona .ux14-group{display:grid!important;grid-template-columns:110px 1fr!important;gap:3px 8px!important;align-items:center!important;margin:6px 0!important}.casur-report-zona .ux14-group>b{grid-row:span 4!important;font-size:11.5px!important}',
+'.casur-report-zona .ux14-bar{display:flex!important;align-items:center!important;gap:6px!important}.casur-report-zona .ux14-bar span{display:block!important;height:11px!important;border-radius:3px!important}.casur-report-zona .ux14-bar em{font-style:normal!important;font-size:10.5px!important;color:#576579!important}',
+'.casur-report-zona .ux14-svg svg{width:100%!important;height:auto!important;display:block!important}.casur-report-zona .ux14-grid-line{stroke:#e3e7eb!important}.casur-report-zona .ux14-axis{font:10px Arial,sans-serif!important;fill:#576579!important}',
+'.casur-report-zona .ux14-line{fill:none!important;stroke-width:2.5!important}.casur-report-zona .ux14-line[data-series=Total]{stroke:#576579!important;stroke-width:3.5!important;stroke-dasharray:7 5!important}.casur-report-zona .ux14-line[data-series=Riego]{stroke:#1F4E5C!important}.casur-report-zona .ux14-line[data-series=Secano]{stroke:#D4B35F!important}.casur-report-zona .ux14-line[data-series=Ventana]{stroke:#86A0AA!important;stroke-dasharray:2 4!important}',
+'.casur-report-zona .ux14-dot[data-series=Total]{fill:#576579!important}.casur-report-zona .ux14-dot[data-series=Riego]{fill:#1F4E5C!important}.casur-report-zona .ux14-dot[data-series=Secano]{fill:#D4B35F!important}.casur-report-zona .ux14-dot[data-series=Ventana]{fill:#86A0AA!important}',
+'.casur-report-zona .ux14-line-key{display:inline-block!important;width:18px!important;border-top:3px solid #1F4E5C!important}.casur-report-zona .ux14-line-key[data-series=Total]{border-top:3px dashed #576579!important}.casur-report-zona .ux14-line-key[data-series=Secano]{border-top-color:#D4B35F!important}.casur-report-zona .ux14-line-key[data-series=Ventana]{border-top:3px dotted #86A0AA!important}',
+'.casur-report-zona table{width:100%!important;border-collapse:collapse!important;font-size:11px!important}.casur-report-zona th{background:#1F4E5C!important;color:#fff!important;text-align:right!important;padding:5px!important;font-weight:600!important}.casur-report-zona td{padding:5px!important;text-align:right!important;border-bottom:1px solid #e3e7eb!important}',
+'.casur-report-zona th:first-child,.casur-report-zona td:first-child,.casur-report-zona .ux14-ranking td:nth-child(2),.casur-report-zona .ux14-ranking th:nth-child(2){text-align:left!important}',
+'.casur-report-zona .ux14-print-name{display:inline!important}.casur-report-zona td[data-sign=up]{color:#1F4E5C!important;font-weight:700!important}.casur-report-zona td[data-sign=down]{color:#9a3412!important;font-weight:700!important}',
+'.casur-report-zona .ux14-zone-row{display:grid!important;grid-template-columns:1fr auto!important;gap:2px 8px!important;border-bottom:1px solid #e3e7eb!important;padding:6px 2px!important;font-size:11.5px!important}.casur-report-zona .ux14-zone-row small{grid-column:1/-1!important;color:#576579!important}',
+'.casur-report-zona .ux14-trend{display:block!important}',
+'.casur-report-zona .ux14-kpis{grid-template-columns:repeat(4,1fr)!important}.casur-report-zona .ux14-grid{grid-template-columns:1fr 1fr!important}.casur-report-zona .ux14-composition ul{grid-template-columns:1fr!important}',
+'.casur-report-zona .ux14-farms table{display:table!important}.casur-report-zona .ux14-farms thead{display:table-header-group!important}.casur-report-zona .ux14-farms tbody{display:table-row-group!important}',
+'.casur-report-zona .ux14-farms tr{display:table-row!important}.casur-report-zona .ux14-farms td,.casur-report-zona .ux14-farms td:first-child{display:table-cell!important;padding:5px!important;font-size:11px!important}.casur-report-zona .ux14-farms td[data-label]::before{content:none!important;display:none!important}',
+'.casur-report-zona .ux14-group{grid-template-columns:110px 1fr!important}.casur-report-zona .ux14-lines .ux14-svg{width:100%!important}'
+].join('\n');
+})();
 window.CASUR_VISUAL_EXPORT={version:VERSION,target:target,prepareClone:prepareClone,renderCanvas:renderCanvas,pdfBlobFromCanvas:pdfBlobFromCanvas,pdf:function(kind){var b=q('[data-casur-export-kind="'+kind+'"] .pdf');if(b)b.click();},image:function(kind){var b=q('[data-casur-export-kind="'+kind+'"] .image');if(b)b.click();},audit:function(){return{version:VERSION,historico:!!target('historico'),cronologico:!!target('cronologico'),histMulti:!!target('historico-multiple'),cronoMulti:!!target('cronologico-multiple'),buttons:qa('.casur-visual-action').length,printButtons:qa('.casur-visual-action.print').length};}};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',decorate);else decorate();
 })();

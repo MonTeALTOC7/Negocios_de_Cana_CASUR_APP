@@ -107,26 +107,32 @@ const kpis = page => page.$$eval(C + ' .ux14-kpi', ks => ks.map(k => ({label: k.
       assert.deepEqual(await page.evaluate(() => ({zone: CASUR_ZONE_SCOPE.zone, system: CASUR_ZONE_SCOPE.system})), {zone: '1-Sur', system: 'Total'});
       await page.evaluate(() => { CASUR_MAESTRO_UX.activate('zonas'); document.querySelector('[data-target="cronoZoneSection"]')?.click(); });
     });
-    await check('Cronológico: paneles anteriores reorganizados (sin toggle, sin duplicados) y edad ponderada = indicador anterior', async () => {
+    await check('Cronológico: paneles anteriores reorganizados (sin toggle, sin duplicados) y edad actual sobre suertes activas (población explícita)', async () => {
       await zone(page, '1-Sur');
       assert.equal(await page.locator('.ux14-legacy-toggle').count(), 0, 'sin botón «Ver indicadores anteriores»');
       assert.equal(await page.locator('#cronoZoneContent .ux13-zone-kpis').isVisible(), false); assert.equal(await page.locator('#cronoZoneContent .crono-zone-wide').isVisible(), false);
       assert.ok(await page.locator('#cronoZoneContent .crono-box:not(.crono-zone-wide)').count() >= 5, 'composición agronómica visible');
-      const strip = await page.textContent(C + ' .ux14-strip'), legacy = await page.evaluate(() => [...document.querySelectorAll('#cronoZoneContent .ux13-zone-kpis .kpi')].map(k => k.textContent.replace(/\s+/g, ' ')).find(x => /Edad pond/.test(x)));
-      near(num(strip.match(/Edad ponderada\s*(\d[\d.,]*)/)[1]), num(legacy.match(/pond\.\s*(\d[\d.,]*)\s*m/)[1]), 0.006);
+      // Edad actual: population = suertes activas weighted by active area (same population as «Área activa»), checked independently.
+      const strip = await page.textContent(C + ' .ux14-strip'), ref = await page.evaluate(() => { const O = CASUR_OPERATIONAL_IMPORT, rows = CRONO_DATA.producers.flatMap(p => p.details).filter(r => r.zona === '1-Sur' && O.participation(r).activeArea > 0);
+        const iso = v => v ? new Date(v + 'T00:00:00') : null, n0 = new Date(), now = new Date(n0.getFullYear(), n0.getMonth(), n0.getDate()); let n = 0, d = 0;
+        rows.forEach(r => { const a = O.participation(r).activeArea, c = iso(r.fUltCte), s = iso(r.fSiembra), b = c && s ? (s > c ? s : c) : (s || c || iso(r.fBase)); const m = r.renovacion && !r.fSiembra ? 0 : b ? Math.max(0, (now - b) / 86400000 / 30.4375) : null; if (a > 0 && m != null) { n += a * m; d += a; } }); return n / d; });
+      near(num(strip.match(/Edad actual · suertes activas\s*(\d[\d.,]*)/)[1]), ref, 0.006);
       const heads = await page.$$eval(C + ' .ux14-farms thead th', t => t.map(x => x.textContent)); assert.ok(heads.includes('Suertes') && heads.includes('Dist. pond. km'));
       const text = await page.textContent(C); assert.match(text, /Aforo 12-Oct-2026 · Consolidado 22-Nov-2026/);
       assert.doesNotMatch(text, /\d{4}-\d{2}-\d{2}|\b\d{2}\/\d{2}\/\d{4}\b|\d{2}-(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)-\d{4}/);
     });
-    await check('Enlaces con sistema: Estimados Secano (ámbito zona + riego), Riego (desglose por riego) e Histórico con el mismo sistema', async () => {
+    await check('Enlaces con sistema: Estimados conserva zona y sistema (Secano y Riego como ámbito real, cifras = Zona) e Histórico con el mismo sistema', async () => {
       await zone(page, '1-Sur'); await page.locator(C + ' .ux14-seg button', {hasText: 'Secano'}).click();
       await page.locator(C + ' .ux14-links button', {hasText: 'Estimados'}).click();
       await page.waitForFunction(() => document.querySelector('#cronoContent .context-explorer[data-context="general"]')?.dataset.objective === 'estimate');
-      let st = JSON.parse(await page.getAttribute('#cronoContent .context-explorer[data-context="general"]', 'data-state')); assert.deepEqual(st.scope, [{field: 'zona', key: '1-Sur'}, {field: 'tipoRiego', key: 'Secano'}]);
+      let st = JSON.parse(await page.getAttribute('#cronoContent .context-explorer[data-context="general"]', 'data-state')); assert.deepEqual(st.scope, [{field: 'zona', key: '1-Sur'}, {field: 'sistema', key: 'Secano'}]);
       const sum = JSON.parse(await page.getAttribute('#cronoContent .context-explorer[data-context="general"]', 'data-summary')); near(sum.estimateTch, 11.30); near(sum.estimateArea, 151.03, 0.01);
       await page.evaluate(() => CASUR_MAESTRO_UX.activate('zonas')); await page.locator(C + ' .ux14-seg button', {hasText: 'Riego'}).click(); await page.locator(C + ' .ux14-links button', {hasText: 'Estimados'}).click();
-      await page.waitForFunction(() => JSON.parse(document.querySelector('#cronoContent .context-explorer[data-context="general"]')?.dataset.state || '{}').dimension === 'tipoRiego');
-      st = JSON.parse(await page.getAttribute('#cronoContent .context-explorer[data-context="general"]', 'data-state')); assert.deepEqual(st.scope, [{field: 'zona', key: '1-Sur'}]);
+      await page.waitForFunction(() => JSON.parse(document.querySelector('#cronoContent .context-explorer[data-context="general"]')?.dataset.state || '{}').scope?.some(f => f.field === 'sistema' && f.key === 'Riego'));
+      st = JSON.parse(await page.getAttribute('#cronoContent .context-explorer[data-context="general"]', 'data-state')); assert.deepEqual(st.scope, [{field: 'zona', key: '1-Sur'}, {field: 'sistema', key: 'Riego'}]);
+      const riego = JSON.parse(await page.getAttribute('#cronoContent .context-explorer[data-context="general"]', 'data-summary')), zr = await page.evaluate(() => CASUR_ZONE_UX14.figures('1-Sur', 'Riego').crono);
+      near(riego.estimateTch, zr.estimateTch); near(riego.estimateTons, zr.estimateTons, 0.02); near(riego.estimateArea, zr.estimateArea, 0.01);
+      assert.match(await page.textContent('#cronoContent .context-explorer[data-context="general"] .context-crumbs'), /Sistema: Riego/);
       await page.evaluate(() => CASUR_MAESTRO_UX.activate('zonas')); await page.locator(C + ' .ux14-seg button', {hasText: 'Secano'}).click(); await page.locator(C + ' .ux14-links button', {hasText: 'Histórico de la zona'}).click();
       await page.waitForFunction(() => document.querySelector('.ux14-hist-zone')?.dataset.zone === '1-ZONA SUR' && document.querySelector('.ux14-hist-zone').dataset.system === 'Secano');
       await page.locator(H + ' .ux14-seg:not(.ux14-metric) button', {hasText: 'Total'}).click();
@@ -144,7 +150,7 @@ const kpis = page => page.$$eval(C + ' .ux14-kpi', ks => ks.map(k => ({label: k.
         await hzone(z); k = await hk(); const o = await page.evaluate(z => { const a = zoneAnalysis(z); return {tch: a.latest.tch, area: a.latest.area, ton: a.latest.ton, rto: a.latest.rto, hist: a.hist.tch, last3: a.last3.tch, edad: a.latest.edad, pot: a.potential}; }, z);
         near(num(k[0].value), o.tch); near(num(k[1].value), o.area, 0.01); near(num(k[2].value), o.ton, 1); near(num(k[3].value), o.rto);
         const strip = await page.textContent(H + ' .ux14-strip'); near(num(strip.match(/TCH histórico\s*([\d.,]+)/)[1]), o.hist); near(num(strip.match(/TCH últimas 3\s*([\d.,]+)/)[1]), o.last3);
-        near(num(strip.match(/Edad prom\. Z\d\d\/\d\d\s*(\d[\d.,]*)/)[1]), o.edad, 0.006); near(num(strip.match(/Potencial\s*([\d.,]+)/)[1]), o.pot, 1);
+        near(num(strip.match(/Edad a cosecha Z\d\d\/\d\d\s*(\d[\d.,]*)/)[1]), o.edad, 0.006); near(num(strip.match(/Potencial\s*([\d.,]+)/)[1]), o.pot, 1);
         assert.equal(await page.locator('#zoneContent .zone-report > .kpis').isVisible(), false, 'fila anterior de 8 KPI reemplazada');
         assert.ok(await page.locator('#zoneContent .zone-report .delta-grid').isVisible(), 'diagnóstico oficial conservado');
       }
@@ -192,6 +198,36 @@ const kpis = page => page.$$eval(C + ' .ux14-kpi', ks => ks.map(k => ({label: k.
       await page.locator('#cronoSection .ux14-return').click(); await page.waitForFunction(() => document.body.dataset.maestroView === 'zonas'); assert.equal(await page.getAttribute(C, 'data-zone'), '2-Centro');
       await page.locator(C + ' .ux14-seg button', {hasText: 'Total'}).click();
       assert.deepEqual(page.errors, []);
+    });
+    // ---------------- Exportadores de Zona (UX14-C) ----------------
+    const fs2 = require('fs');
+    for (const width of [1280, 390]) await check(`[${width}] Exportar PDF y PNG de Zona (Cronológico e Histórico): logo, zona, sistema, fechas oficiales, sin controles, tablas completas, paginado`, async () => {
+      const mobile = width < 700, c2 = await browser.newContext({viewport: {width, height: 900}, isMobile: mobile, hasTouch: mobile, acceptDownloads: true}), pg = await c2.newPage(); pg.errors = []; pg.on('pageerror', e => pg.errors.push(e.message));
+      await pg.goto(base + 'modules/produccion/'); await pg.waitForFunction(() => window.CASUR_PRODUCTION_READY && window.CASUR_ZONE_UX14, null, {timeout: 60000}); await pg.evaluate(() => CASUR_ZONE_UX14.logoReady());
+      const meta = await pg.evaluate(() => { const m = CRONO_DATA.meta, f = CASUR_CRONO_PARTICIPATION.formatDate; return {aforo: f(m.tchEst2627EffectiveDate), gen: f(m.generated), version: m.dataVersion}; });
+      assert.equal(meta.aforo, '12-Oct-2026'); assert.equal(meta.gen, '22-Nov-2026');
+      for (const [kind, tab, zoneSel, z, sys] of [['zona', 'cronoZoneSection', '#cronoZoneSelect', '3-Norte', 'Secano'], ['zona-historico', 'zoneAnalysisSection', '#zoneSelect', '3-ZONA NORTE', 'Riego']]) {
+        await pg.evaluate(([tab, sel, z]) => { CASUR_MAESTRO_UX.activate('zonas'); document.querySelector(`#zoneMainSection .ux09-section-tabs button[data-target="${tab}"]`).click(); const s = document.querySelector(sel); s.value = z; (sel === '#zoneSelect' ? selectZone : selectCronoZone)(z); }, [tab, zoneSel, z]);
+        const R = kind === 'zona' ? C : H; await pg.waitForFunction(([R, z]) => document.querySelector(R)?.dataset.zone === z, [R, z]);
+        await pg.locator(R + ' .ux14-seg:not(.ux14-metric) button', {hasText: sys}).click(); await pg.waitForFunction(([R, s]) => document.querySelector(R).dataset.system === s, [R, sys]);
+        const live = await pg.evaluate(R => ({kpis: [...document.querySelectorAll(R + ' .ux14-kpi strong')].map(x => x.firstChild.textContent), rows: (window.CASUR_ZONE_UX14.exportNode, null)}), R);
+        const rep = await pg.evaluate(async kind => { const x = await CASUR_VISUAL_EXPORT.renderCanvas(kind), c = x.clone; return {w: x.canvas.width, h: x.canvas.height, breaks: x.safeBreaks.length, text: c.textContent, controls: c.querySelectorAll('button,select,input,textarea,.ux14-crumbs,.ux14-controls,.ux14-links,.ux14-export').length,
+          logo: !!c.querySelector('.ux14-report-header img[src^="data:image/webp"]'), kpis: [...c.querySelectorAll('.ux14-kpi strong')].map(x => x.firstChild.textContent), rows: c.querySelectorAll('.ux14-farms tbody tr').length}; }, kind);
+        const total = await pg.evaluate(([R]) => { const b = document.querySelector(R + ' .ux14-more'); return b ? Number(b.textContent.match(/\((\d+)\)/)[1]) : document.querySelectorAll(R + ' .ux14-farms tbody tr').length; }, [R]);
+        assert.ok(rep.logo, 'logo institucional'); assert.equal(rep.controls, 0, 'sin controles interactivos'); assert.deepEqual(rep.kpis, live.kpis, 'KPI del informe = interfaz');
+        assert.equal(rep.rows, total, 'tabla completa'); assert.ok(rep.breaks > 0, 'puntos de corte seguros'); assert.equal(rep.w, 1920, 'PNG alta resolución (2×)');
+        assert.match(rep.text, new RegExp((kind === 'zona' ? 'Zona ' : '') + z + ' · Sistema ' + sys)); assert.doesNotMatch(rep.text, /\d{4}-\d{2}-\d{2}|\b\d{2}\/\d{2}\/\d{4}\b/);
+        if (kind === 'zona') { assert.match(rep.text, new RegExp('Aforo ' + meta.aforo + ' · Consolidado ' + meta.gen)); assert.match(rep.text, new RegExp('Generación ' + meta.version.replace(/\./g, '\\.'))); }
+        else assert.match(rep.text, /según el sistema de riego actual del lote/);
+        const trig = pg.locator(R + ' .context-report-trigger'); await trig.waitFor();
+        for (const [type, ext] of [['pdf', 'pdf'], ['image', 'png']]) {
+          await trig.click(); const [d] = await Promise.all([pg.waitForEvent('download'), pg.locator('.context-report-menu:popover-open .casur-visual-action.' + type).click()]);
+          assert.match(d.suggestedFilename(), new RegExp('^' + (kind === 'zona' ? 'Zona_' : '') + z.replace(/ /g, '_') + '_Sistema_' + sys + '_\\d{4}-\\d{2}-\\d{2}\\.' + ext + '$'));
+          const f = (out || require('os').tmpdir()) + `/ux14c-${width}-${kind}.${ext}`; await d.saveAs(f); const buf = fs2.readFileSync(f);
+          if (ext === 'png') assert.equal(buf.readUInt32BE(16), 1920); else assert.ok((buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length >= 1);
+        }
+      }
+      assert.deepEqual(pg.errors, []); await c2.close();
     });
     await ctx.close();
     for (const width of [360, 390, 768, 1280, 1536]) await check(`[${width}] Cronológico e Histórico sin desbordamiento, cuatro KPI y sin errores`, async () => {

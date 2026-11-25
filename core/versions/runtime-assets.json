@@ -1,6 +1,6 @@
 {
   "appVersion": "1.6.2",
-  "releaseId": "1.6.2-3075f8d9061bc03f",
+  "releaseId": "1.6.2-b00c9474bd393a52",
   "assets": {
     "404.html": "13e468776893ea36d86e0a6b83935bafd4c5f3782fb3a302959337f8e14a19fe",
     "app.js": "2e62cbe84f75fec94e99de5d467bd96f75a260c5bd75e721b8b588f69559cb2f",
@@ -62,7 +62,7 @@
     "modules/produccion/assets/campo-iteracion03.webp": "f3492655c5ef97099db1f97eb1fb21c6e3d5d41e4aed84758c6d2d904f86f3cf",
     "modules/produccion/assets/negocios-de-cana.webp": "e2fb8e606a08aa60c233bf6a7dd33a15dbb598c8ca87bbd097b2d4f26353a767",
     "modules/produccion/css/casur-upgrade.css": "74384729d32c8bde707888125f919315e47040bf87454889980ff6bb95af63dd",
-    "modules/produccion/css/maestro-ux.css": "ea15dc1455727206f6f5c924f2037096ba142390045104fba93c4f3c1644bb72",
+    "modules/produccion/css/maestro-ux.css": "669093e0c2df89ca2d405dcbf8c0a7cbb4a86d913a2a480813f88eed0a464df0",
     "modules/produccion/favicon.png": "4de01c177e2b63f20b8013bb5e4f58a500bbbcd816193d2388a70b9c8fc2b2de",
     "modules/produccion/icon-192.png": "f1fd3cb04a25b802be6668330fd25d414b976d9ecd3ed2b1ba48963911956098",
     "modules/produccion/icon-512.png": "54c808784b136dbd73be9cd2ab556f3076d5d643b03d0edac0b0ee43a08b4081",
@@ -72,7 +72,7 @@
     "modules/produccion/js/casur-enhancements.js": "775808182acfab563ece47fc0d12d71070707901dceb68a1eb6f5bd5a151780c",
     "modules/produccion/js/effective-data-date.js": "4be6eee64653dcd752b04a80079cf342d63810b9a86bce3603e20267c66f2fc3",
     "modules/produccion/js/historical-engine.js": "299ab93c929894a7dd89d197c54bec2c6de3362799afdd6a119cf9b00513c35d",
-    "modules/produccion/js/maestro-ux.js": "6a486f8d0222d8642c4b143814d030e8a2ab74dd894ec464e648ae63d9f55569",
+    "modules/produccion/js/maestro-ux.js": "2c7330bd73740b21b8c37d8ca96969ad822fc6648811a5fe2e3ba9efc522feb4",
     "modules/produccion/js/official-data-updates.js": "204fd8607df350d4fe9aff7cd8c030fc79456deb07b4df534cab22437dee1b11",
     "modules/produccion/js/official-source-policy.js": "c415e44b78997b69f02c9e720f59286816af01799e7a5b46d610deb759961d14",
     "modules/produccion/js/operational-import-ui.js": "68a2ab81c5e7682185e2def9be74ef6cf776e1601ec5172b9d27970a3dc61a48",

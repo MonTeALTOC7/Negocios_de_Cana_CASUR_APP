@@ -128,6 +128,26 @@ Estado al 24-Nov-2026. Este documento no autoriza merge ni publicación. GitHub 
 - **Resultado** contra el paquete `ecda05f`, dos ejecuciones consecutivas: PASS a 390 px (`mBack`) y a 1536 px (`mCrumb`). Una ejecución previa falló una vez a 390 px por tiempo en la recarga en línea y no se reprodujo; queda registrada como intermitente.
 - **Pendientes:** `qa-shell-module-icons.cjs`, `qa-startup-timing.cjs` y `qa-bundle-public-comparison.cjs` repiten la expectativa antigua de `#mBack` a 1536 px. Se corregirán con el mismo criterio en un mantenimiento aparte.
 
+## 3 bis. Integración conjunta de #73 (candidata) y #74 (previews), estado al 25-Nov-2026
+
+| Elemento | Estado |
+|---|---|
+| `main` | `71d5e0b`, sin cambios |
+| PR #73 | `7ee4dd3`, Release Gate de PR en verde, `mergeable_state: clean` |
+| PR #74 | `78da2c4`, Release Gate de PR en verde. Solo `.github/workflows/casur-preview-deploy.yml`, `tools/preview/*`, `tests/preview-deploy.test.mjs` y `docs/PREVIEW_AUTOMATIZADA.md` |
+| Archivos compartidos | Ninguno. `git merge-tree` de #73 con #74 es limpio |
+| Runtime | #74 no cambia el runtime ni las versiones. #73 lleva App 1.6.2 y Producción V1.8.3 |
+
+**Orden recomendado, solo con autorización explícita:**
+1. Integrar primero **#74**. Registra el workflow en `main` y habilita «Run workflow». No altera la app publicada; GitHub Pages republica los mismos activos.
+2. Integrar después **#73**. Es la publicación de la candidata.
+
+En ambos casos se usa merge commit y se repite el Release Gate de PR si `main` cambia entre una integración y otra.
+
+**Alternativa:** integrar ambos en una sola publicación incorporando #74 a la rama candidata con merge commit. Exige re-ejecutar el Gate de PR y el QA del navegador sobre el nuevo HEAD.
+
+**Después de integrar #74:** el Environment `casur-preview` debe permitir `preview-deploy/*` y `main`. Hoy solo permite `preview-deploy/pr-73`.
+
 ## 4. Release Gate: controles aplicables a la arquitectura vigente
 
 | Paso del Gate | Condición | ¿Aplica a la candidata? |

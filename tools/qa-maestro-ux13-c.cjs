@@ -17,7 +17,10 @@ async function open(browser, url, width) {
   return {ctx, page};
 }
 const hist = (page, code, mode = 'latest') => page.evaluate(([c, m]) => { CASUR_MAESTRO_UX.activate('historico'); renderEntity(c); setHistoricalPeriodMode(m); }, [code, mode]).then(() => page.waitForSelector('#printPanel .historical-agronomic-kpis'));
-const zone = (page, z) => page.evaluate(z => { CASUR_MAESTRO_UX.activate('zonas'); document.querySelector('#cronoZoneSelect').value = z; selectCronoZone(z); }, z).then(() => page.waitForSelector('#cronoZoneContent .kpis'));
+// UX14: the UX13 zone KPIs remain in the DOM behind «Ver indicadores anteriores»; open them so every
+// UX13-C assertion keeps running unchanged against the same panel.
+const zone = (page, z) => page.evaluate(z => { CASUR_MAESTRO_UX.activate('zonas'); document.querySelector('#cronoZoneSelect').value = z; selectCronoZone(z);
+  const s = document.querySelector('#cronoZoneSection'); if (s?.classList.contains('ux14-on') && !s.classList.contains('ux14-legacy-open')) document.querySelector('.ux14-legacy-toggle')?.click(); }, z).then(() => page.waitForSelector('#cronoZoneContent .kpis'));
 const farm = async (page, code, objective, dim) => {
   await page.evaluate(c => { CASUR_MAESTRO_UX.activate('cronologico'); renderCronoProducer(c); }, code);
   const ex = `#cronoContent .context-explorer[data-context="farm-${code}"]`; await page.waitForSelector(ex);

@@ -23,10 +23,10 @@ Mecanismo permanente para publicar previews de la App Maestra sin depender de Cl
    - Excluye `docs`, `tools`, `tests`, `.github`, Excel, ZIP y claves.
    - **Verifica:** los SHA-256 de los activos de runtime y los seis archivos de datos de Producción contra `integrity.json`.
    - **Añade:** `__preview.json` (SHA, PR, rama, versión de datos, aforo, consolidación), `_headers` (`noindex` y caché) y `_redirects` (raíz → app).
-3. **Guarda previa** (`cloudflare-guard.mjs before`). Consulta el proyecto en la API de Cloudflare, en modo solo lectura.
+3. **Guarda previa** (`cloudflare-guard.mjs before`). Normaliza las credenciales (`cloudflare-credentials.mjs`) y diagnostica por capas: token (`tokens/verify`), cuenta y proyecto, en modo solo lectura.
    - Cancela si el alias es `main`, `master`, `production` o coincide con la rama de producción del proyecto.
    - Cancela si el proyecto no declara rama de producción.
-4. **Despliegue:**
+4. **Despliegue** (`wrangler-deploy.mjs`, con las credenciales normalizadas):
    ```
    npx wrangler@4.159.0 pages deploy <paquete> --project-name casur-maestro-ux-review --branch <alias> --commit-hash <SHA> --commit-dirty=false
    ```
@@ -95,7 +95,10 @@ Actions → «CASUR Preview Deploy» → **Run workflow**, indicando el `sha` y 
 | Síntoma | Causa y acción |
 |---|---|
 | «Faltan CLOUDFLARE_API_TOKEN o CLOUDFLARE_ACCOUNT_ID» | El Environment no tiene los secretos o la rama no está permitida. Revisar la sección B. |
-| API Cloudflare 401/403 o 6003/6111 | Token incorrecto, mal pegado (con «Bearer » o espacios) o sin «Cloudflare Pages: Edit». Regenerar el token. |
+| «Headers.append … invalid header value» o 6003/6111 | El secreto contiene saltos de línea o texto adicional. Desde el 25-Nov-2026 `cloudflare-credentials.mjs` lo normaliza (quita saltos, espacios y «Bearer») si queda un único token; si hay ambigüedad se detiene. Conviene volver a guardar solo el token, en una línea. |
+| «TOKEN: Cloudflare no reconoce el token» | Token revocado, vencido o de otra cuenta. Crear uno nuevo. |
+| «PERMISOS: …» | Falta «Account · Cloudflare Pages · Edit» sobre la cuenta. Editar el token. |
+| «CUENTA/PROYECTO: …» | `CLOUDFLARE_ACCOUNT_ID` no corresponde a la cuenta de `casur-maestro-ux-review`. |
 | «El alias coincide con la rama de producción» | Cambiar el alias. Nunca forzar. |
 | Contenido publicado distinto | Propagación o caché. La verificación reintenta; si persiste, no usar la preview y revisar el registro. |
 | Fallo del navegador | Revisar el artefacto `qa/` y el registro. La preview queda creada, pero no se considera verificada. |

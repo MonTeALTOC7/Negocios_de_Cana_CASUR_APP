@@ -45,3 +45,21 @@ test('el workflow de previews solo usa disparadores confiables y el Environment 
   assert.match(wf, /cloudflare-guard\.mjs before/);
   assert.doesNotMatch(wf, /echo .*secrets\./);
 });
+
+test('las credenciales se normalizan sin ambigüedad y nunca se aceptan valores dudosos', async () => {
+  const {normalizeToken, normalizeAccount} = await import('../tools/preview/cloudflare-credentials.mjs');
+  const t = 'Ab3_' + 'x'.repeat(36);
+  assert.equal(normalizeToken(t).token, t);
+  assert.equal(normalizeToken(t + '\n').token, t);
+  assert.equal(normalizeToken('\r\n  ' + t + '  \r\n').token, t);
+  assert.equal(normalizeToken('Bearer ' + t).token, t);
+  assert.equal(normalizeToken('Authorization: Bearer ' + t + '\n').token, t);
+  assert.equal(normalizeToken(t + '\n' + t + '\n').token, t);
+  assert.match(normalizeToken(t + '\n').notes.join(' '), /salto de línea/);
+  assert.throws(() => normalizeToken(t + '\n' + 'Zz9-' + 'y'.repeat(36)), /no es un token único/);
+  assert.throws(() => normalizeToken('corto'), /no es un token único/);
+  assert.throws(() => normalizeToken(''), /Falta CLOUDFLARE_API_TOKEN/);
+  try { normalizeToken('secreto-' + 'q'.repeat(20) + '\notro-' + 'w'.repeat(30)); } catch (e) { assert.doesNotMatch(e.message, /qqqq|wwww/); }
+  assert.equal(normalizeAccount(' 0123456789ABCDEF0123456789abcdef\n'), '0123456789abcdef0123456789abcdef');
+  assert.throws(() => normalizeAccount('123'), /formato/);
+});

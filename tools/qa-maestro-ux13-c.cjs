@@ -183,7 +183,7 @@ const farm = async (page, code, objective, dim) => {
         const comp = await page.$$eval(UX14C + ' .ux14-composition', fs => fs[0].innerText);
         const part = n => num((comp.match(new RegExp(n + '[^\\d]*([\\d,]+\\.\\d{2})')) || [])[1]);
         assert.ok(part('Riego') > 0 && part('Secano') > 0, 'riego y secano visibles por separado');
-        const venta = /Ventana/.test(comp) ? part('Ventana · por confirmar') : 0;
+        const venta = /Ventana/.test(comp) ? part('Ventana') : 0; assert.doesNotMatch(comp, /por confirmar/);
         assert.ok(Math.abs(part('Riego') + part('Secano') + venta - num(k['Área activa'])) < 0.05, 'riego + secano (+ ventana) = área activa');
         assert.ok(!('Suertes activas' in k) && !('Haciendas' in k));
       });

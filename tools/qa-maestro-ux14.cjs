@@ -66,33 +66,51 @@ const kpis = page => page.$$eval(C + ' .ux14-kpi', ks => ks.map(k => ({label: k.
       near(num(v), 63.94); near(R.out.Total.hist, 63.94, 0.006);
       await page.evaluate(() => CASUR_MAESTRO_UX.activate('zonas'));
     });
-    await check('Composición por sistema con valores y porcentajes; Ventana pendiente y sin categorías vacías', async () => {
+    await check('Composición por sistema con valores y porcentajes alineados; «Ventana» sin sufijo y sin categorías vacías', async () => {
       const c = await page.$$eval(C + ' .ux14-composition', fs => fs.map(f => f.innerText));
-      assert.equal(c.length, 2); assert.match(c[0], /Riego\s+8,396\.03\s+87\.7 %/); assert.match(c[0], /Secano\s+852\.98\s+8\.9 %/); assert.match(c[0], /Ventana · por confirmar\s+325\.65\s+3\.4 %/);
-      assert.doesNotMatch(c.join(' '), /Sin dato/); assert.equal(await page.locator(C + ' .ux14-chip', {hasText: 'Sin dato'}).count(), 0);
-      assert.equal(await page.locator(C + ' .ux14-chip', {hasText: 'Ventana · por confirmar'}).count(), 1);
+      assert.equal(c.length, 2); assert.match(c[0], /Riego\s+8,396\.03\s+87\.7 %/); assert.match(c[0], /Secano\s+852\.98\s+8\.9 %/); assert.match(c[0], /Ventana\s+325\.65\s+3\.4 %/);
+      assert.doesNotMatch(c.join(' '), /Sin dato/); assert.doesNotMatch(await page.evaluate(() => document.body.innerText), /por confirmar/i, '«Ventana» sin «por confirmar» en toda la interfaz');
+      // UX15-R: one selector, same control for every system; Ventana only when it has records.
+      assert.deepEqual(await page.$$eval(C + ' .ux14-system button', b => b.map(x => x.textContent)), ['Total', 'Riego', 'Secano', 'Ventana']);
+      assert.equal(await page.locator(C + ' .ux14-chip').count(), 0, 'sin chips separados');
+      const cols = await page.$$eval(C + ' .ux14-composition li', ls => ls.map(l => [...l.children].map(c => Math.round(c.getBoundingClientRect().right))));
+      const firstCard = cols.slice(0, 3); assert.equal(new Set(firstCard.map(r => r[2])).size, 1, 'valores alineados'); assert.equal(new Set(firstCard.map(r => r[3])).size, 1, 'porcentajes alineados');
     });
-    await check('Selector Total / Riego / Secano y chip Ventana filtran KPI; Secano 1-Sur = 11.30 estimado y 59.61 ejecutado', async () => {
+    await check('Selector único Total / Riego / Secano / Ventana filtra los KPI; Secano 1-Sur = 11.30 estimado y 59.61 ejecutado', async () => {
       await zone(page, '1-Sur'); await page.locator(C + ' .ux14-seg button', {hasText: 'Secano'}).click();
       let k = await kpis(page); near(num(k[0].value), 151.03); assert.match(k[0].note, /^24 suertes/); near(num(k[1].value), 59.61); near(num(k[2].value), 11.30);
-      await page.locator(C + ' .ux14-chip', {hasText: 'Ventana'}).click(); k = await kpis(page); near(num(k[0].value), 280.14);
+      await page.locator(C + ' .ux14-system button', {hasText: 'Ventana'}).click(); k = await kpis(page); near(num(k[0].value), 280.14);
       assert.equal(await page.getAttribute(C, 'data-system'), 'Ventana');
       await page.locator(C + ' .ux14-seg button', {hasText: 'Total'}).click(); k = await kpis(page); near(num(k[0].value), 2071.00);
     });
-    await check('Vista general vs ficha: gráficos por ámbito; zonas solo históricas rotuladas', async () => {
+    await check('Gráfico único ejecutado Z25/26 vs estimado Z26/27 (= KPI por zona y sistema); tabla de zonas; zonas solo históricas rotuladas', async () => {
       await zone(page, '');
-      const g = await page.$$eval(C + ' .ux14-bars figcaption', fs => fs.map(f => f.textContent)); assert.equal(g.length, 2); g.forEach(t => assert.match(t, /comparación entre zonas/));
-      const rows = await page.$$eval(C + ' .ux14-zone-row', rs => rs.map(r => r.innerText.replace(/\s+/g, ' ')));
+      const g = await page.$$eval(C + ' .ux14-bars figcaption', fs => fs.map(f => f.textContent)); assert.equal(g.length, 1, 'los dos gráficos de TCH se consolidan en uno'); assert.match(g[0], /TCH 25\/26 vs estimado 26\/27.*por zona/);
+      for (const sys of ['Total', 'Secano']) { await page.locator(C + ' .ux14-system button', {hasText: sys}).click(); await page.waitForFunction(s => document.querySelector('.ux14-zone:not(.ux14-hist-zone)').dataset.system === s, sys);
+        const bars = await page.$$eval(C + ' .ux14-compare .ux14-group', gs => gs.map(g => [g.dataset.group, ...[...g.querySelectorAll('.ux14-bar em')].map(e => e.textContent)]));
+        for (const [z, exe, est] of bars) { const f = await page.evaluate(([z, s]) => CASUR_ZONE_UX14.figures(z, s), [z, sys]);
+          if (f.hist.tch != null) near(num(exe), f.hist.tch); if (f.crono.estimateTch != null) near(num(est.split('·')[0]), f.crono.estimateTch);
+          if (f.hist.tch != null && f.crono.estimateTch != null) near(num(est.split('Δ')[1]), Number((f.crono.estimateTch).toFixed(2)) - Number(f.hist.tch.toFixed(2)), 0.015); } }
+      await page.locator(C + ' .ux14-system button', {hasText: 'Total'}).click();
+      const rows = await page.$$eval(C + ' .ux14-zone-list tbody tr', rs => rs.map(r => r.innerText.replace(/\s+/g, ' ')));
       assert.equal(rows.filter(r => /solo Histórico/.test(r)).length, 2); assert.ok(rows.some(r => /6-TRAPICHES/.test(r)) && rows.some(r => /7-ZONA TISMA/.test(r)));
-      await page.locator(C + ' .ux14-zone-row[data-zone="2-Centro"]').click(); await page.waitForFunction(() => document.querySelector('.ux14-zone:not(.ux14-hist-zone)').dataset.zone === '2-Centro');
-      const f = await page.$$eval(C + ' .ux14-bars figcaption', fs => fs.map(f => f.textContent)); assert.equal(f.length, 1); assert.match(f[0], /TCH por sistema · 2-Centro.*solo 2-Centro/);
+      const zr = await page.$$eval(C + ' .ux14-zone-list tbody tr[data-zone="2-Centro"] td', t => t.map(x => x.textContent)), z2 = await page.evaluate(() => CASUR_ZONE_UX14.figures('2-Centro', 'Total'));
+      near(num(zr[1]), z2.crono.inventoryArea, 0.01); near(num(zr[2]), z2.hist.tch); near(num(zr[3]), z2.crono.estimateTch); near(num(zr[5]), z2.crono.estimateTons, 1);
+      await page.locator(C + ' .ux14-zone-list tr[data-zone="2-Centro"] .ux14-farm-link').click(); await page.waitForFunction(() => document.querySelector('.ux14-zone:not(.ux14-hist-zone)').dataset.zone === '2-Centro');
+      const f = await page.$$eval(C + ' .ux14-bars figcaption', fs => fs.map(f => f.textContent)); assert.equal(f.length, 1); assert.match(f[0], /TCH 25\/26 vs estimado 26\/27.*por sistema/);
+      assert.deepEqual(await page.$$eval(C + ' .ux14-compare .ux14-group', gs => gs.map(g => g.dataset.group)), ['Total', 'Riego', 'Secano']);
       assert.ok(await page.locator(C + ' .ux14-farms tbody tr').count() >= 1);
+      // Farm table: configurable order and Δ TCH = estimated − executed.
+      await page.selectOption(C + ' .ux14-sort select', 'delta');
+      const d = await page.$$eval(C + ' .ux14-farms tbody tr', rs => rs.map(r => [...r.children].map(c => c.textContent)));
+      d.forEach(r => { if (r[6] !== '—') near(num(r[6]), num(r[5]) - num(r[4]), 0.015); }); const ds = d.map(r => r[6]).filter(x => x !== '—').map(num); assert.deepEqual(ds, [...ds].sort((a, b) => b - a), 'orden por Δ TCH');
+      await page.selectOption(C + ' .ux14-sort select', 'area');
     });
     await check('Navegación Zona → Finca → Suerte, migas y retorno', async () => {
       await zone(page, '3-Norte'); const first = page.locator(C + ' .ux14-farm-link').first(), code = (await first.textContent()).split(' · ')[0];
       await first.click(); await page.waitForFunction(c => document.querySelector(`#cronoContent .context-explorer[data-context="farm-${c}"]`), code);
       assert.equal(await page.evaluate(() => document.body.dataset.maestroView), 'cronologico');
-      await page.evaluate(() => CASUR_MAESTRO_UX.activate('zonas')); await page.locator(C + ' .ux14-crumbs button', {hasText: 'Zonas'}).click();
+      await page.evaluate(() => CASUR_MAESTRO_UX.activate('zonas')); await page.locator(C + ' .ux14-all').click();
       await page.waitForFunction(() => document.querySelector('.ux14-zone:not(.ux14-hist-zone)').dataset.zone === '');
     });
     await check('Enlaces contextuales: Estimados conserva la zona; Histórico de la zona; Análisis', async () => {
@@ -116,7 +134,7 @@ const kpis = page => page.$$eval(C + ' .ux14-kpi', ks => ks.map(k => ({label: k.
       const strip = await page.textContent(C + ' .ux14-strip'), ref = await page.evaluate(() => { const O = CASUR_OPERATIONAL_IMPORT, rows = CRONO_DATA.producers.flatMap(p => p.details).filter(r => r.zona === '1-Sur' && O.participation(r).activeArea > 0);
         const iso = v => v ? new Date(v + 'T00:00:00') : null, n0 = new Date(), now = new Date(n0.getFullYear(), n0.getMonth(), n0.getDate()); let n = 0, d = 0;
         rows.forEach(r => { const a = O.participation(r).activeArea, c = iso(r.fUltCte), s = iso(r.fSiembra), b = c && s ? (s > c ? s : c) : (s || c || iso(r.fBase)); const m = r.renovacion && !r.fSiembra ? 0 : b ? Math.max(0, (now - b) / 86400000 / 30.4375) : null; if (a > 0 && m != null) { n += a * m; d += a; } }); return n / d; });
-      near(num(strip.match(/Edad actual · suertes activas\s*(\d[\d.,]*)/)[1]), ref, 0.006);
+      near(num(strip.match(/Edad actual\s*(\d[\d.,]*)/)[1]), ref, 0.006);
       const heads = await page.$$eval(C + ' .ux14-farms thead th', t => t.map(x => x.textContent)); assert.ok(heads.includes('Suertes') && heads.includes('Dist. pond. km'));
       const text = await page.textContent(C); assert.match(text, /Aforo 12-Oct-2026 · Consolidado 22-Nov-2026/);
       assert.doesNotMatch(text, /\d{4}-\d{2}-\d{2}|\b\d{2}\/\d{2}\/\d{4}\b|\d{2}-(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)-\d{4}/);
@@ -132,7 +150,7 @@ const kpis = page => page.$$eval(C + ' .ux14-kpi', ks => ks.map(k => ({label: k.
       st = JSON.parse(await page.getAttribute('#cronoContent .context-explorer[data-context="general"]', 'data-state')); assert.deepEqual(st.scope, [{field: 'zona', key: '1-Sur'}, {field: 'sistema', key: 'Riego'}]);
       const riego = JSON.parse(await page.getAttribute('#cronoContent .context-explorer[data-context="general"]', 'data-summary')), zr = await page.evaluate(() => CASUR_ZONE_UX14.figures('1-Sur', 'Riego').crono);
       near(riego.estimateTch, zr.estimateTch); near(riego.estimateTons, zr.estimateTons, 0.02); near(riego.estimateArea, zr.estimateArea, 0.01);
-      assert.match(await page.textContent('#cronoContent .context-explorer[data-context="general"] .context-crumbs'), /Sistema: Riego/);
+      assert.equal(await page.textContent('#cronoContent .context-explorer[data-context="general"] .ux15-explorer-system button[aria-pressed="true"]'), 'Riego', 'Estimados muestra el sistema en el mismo selector');
       await page.evaluate(() => CASUR_MAESTRO_UX.activate('zonas')); await page.locator(C + ' .ux14-seg button', {hasText: 'Secano'}).click(); await page.locator(C + ' .ux14-links button', {hasText: 'Histórico de la zona'}).click();
       await page.waitForFunction(() => document.querySelector('.ux14-hist-zone')?.dataset.zone === '1-ZONA SUR' && document.querySelector('.ux14-hist-zone').dataset.system === 'Secano');
       await page.locator(H + ' .ux14-seg:not(.ux14-metric) button', {hasText: 'Total'}).click();
@@ -177,8 +195,8 @@ const kpis = page => page.$$eval(C + ' .ux14-kpi', ks => ks.map(k => ({label: k.
       assert.match((await page.$$eval(H + ' .ux14-bars figcaption', f => f.map(x => x.textContent))).join(), /solo 1-ZONA SUR/);
     });
     await check('Histórico: zonas solo históricas (6-TRAPICHES, 7-ZONA TISMA) con su última zafra y Total oficial', async () => {
-      await hzone(''); const rows = await page.$$eval(H + ' .ux14-zone-row', rs => rs.map(r => r.innerText.replace(/\s+/g, ' ')));
-      assert.ok(rows.some(r => /6-TRAPICHES.*solo Histórico/.test(r)) && rows.some(r => /7-ZONA TISMA.*solo Histórico/.test(r)));
+      await hzone(''); const rows = await page.$$eval(H + ' .ux14-zone-list tbody tr', rs => rs.map(r => r.innerText.replace(/\s+/g, ' ')));
+      assert.ok(rows.some(r => /6-TRAPICHES.*sin 25\/26/.test(r)) && rows.some(r => /7-ZONA TISMA.*sin 25\/26/.test(r)));
       await page.locator(H + ' .ux14-seg:not(.ux14-metric) button', {hasText: 'Secano'}).click(); await hzone('6-TRAPICHES');
       const k = await hk(), o = await page.evaluate(() => { const t = zoneAnalysis('6-TRAPICHES').trend; return t[t.length - 1]; });
       assert.equal(await page.getAttribute(H, 'data-system'), 'Total'); assert.match(k[0].label, /Z19\/20/); near(num(k[0].value), o.tch); near(num(k[1].value), o.area, 0.01);

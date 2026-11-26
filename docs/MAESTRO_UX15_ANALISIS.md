@@ -19,7 +19,7 @@ No cambian los datos (generación 1102), los motores, las versiones (App 1.6.2 y
 |---|---|---|
 | **Resumen** | Resumen | Tablero con Total / Riego / Secano, KPI Z25/26, franja histórica, composición, tendencia y referencia corta a Estimados |
 | **Desempeño** | Tendencia TCH, TCH × KATM, Mejores desempeños, Caídas | Comparabilidad por zona: TCH de la última zafra frente a su histórico, por sistema |
-| **Decisiones** | Decisiones, Prioridades, Oportunidades, Renovación | «Recuperación»: mayores caídas observadas por finca, dentro del sistema |
+| **Decisiones** | Decisiones, Prioridades, Oportunidades, Renovación | Sin panel nuevo (el panel «Recuperación» se retiró en UX15-R) |
 | **Composición** | Variedades, Zonas | Acceso al Análisis por Zona (composición territorial por sistema) |
 | **Técnica** | Vista técnica | Sin cambios |
 | **Maquila** | Maquila | Nota: Maquila es independiente y no entra en los totales de producción propia |
@@ -31,7 +31,7 @@ No cambian los datos (generación 1102), los motores, las versiones (App 1.6.2 y
 
 ## Resumen
 
-- **Selector de sistema.** Total / Riego / Secano, con Ventana «por confirmar» como chip cuando tiene registros. Es el mismo ámbito que Zonas (`CASUR_ZONE_SCOPE`): lo elegido en Análisis se conserva en Cronológico, Histórico y Estimados.
+- **Selector de sistema.** Total / Riego / Secano / Ventana (Ventana y Sin dato solo cuando tienen registros), en la barra de familias y visible solo en Resumen y Desempeño, que son las familias que filtra. Es el mismo ámbito que Zonas y Estimados (`CASUR_ZONE_SCOPE`).
 - **KPI Z25/26.** TCH, área cosechada, toneladas y KATM.
   - **Total:** suma del motor oficial de zonas. Coincide exactamente con los KPI ejecutivos anteriores: 63.94 · 9,735.96 ha · 622,474 t · KATM 98.65.
   - **Riego y Secano:** las mismas suertes oficiales, por **riego actual del lote**. Se rotula siempre así.
@@ -52,13 +52,9 @@ No cambian los datos (generación 1102), los motores, las versiones (App 1.6.2 y
 - **Zonas solo históricas:** se rotulan «sin 25/26».
 - **Navegación:** al tocar una zona se abre su Histórico con el mismo sistema. «← Volver a Análisis · Desempeño» devuelve a la misma familia.
 
-## Decisiones: recuperación por sistema
+## Decisiones
 
-- **Población:** fincas con ≥ 10 ha cosechadas en Z25/26 y TCH por debajo de su propio histórico, dentro del sistema elegido.
-- **Orden:** por Δ TCH. Se muestran 10, con «Mostrar todas».
-- **Cálculo:** Δ t = (TCH Z25/26 − TCH histórico) × área Z25/26.
-- **Rotulación:** es una **diferencia observada frente al propio histórico**, no una pérdida atribuida ni una causa. No se inventan causas.
-- **Navegación:** al tocar una finca se abre su ficha histórica, con retorno a Análisis · Decisiones.
+Conserva los cuatro paneles ejecutivos existentes (Total CASUR). El panel «Recuperación» (Δ t por finca) se retiró en UX15-R por instrucción del propietario: no se implementan simuladores ni escenarios hipotéticos, y duplicaba el panel existente de caídas.
 
 ## Relación con UX16
 
@@ -82,10 +78,8 @@ UX15 no reproduce Estimados.
   - Tendencia con Total oficial y series por sistema; las 4 métricas.
   - Referencia Z26/27 igual al tablero de zona; Estimados recibe el ámbito «Sistema» con las mismas cifras.
 - **Desempeño:** paridad con `zoneAnalysis` (Total) y con el Histórico de Zona (Riego). Navegación y retorno.
-- **Decisiones:**
-  - Solo caídas, ≥ 10 ha, orden por Δ y Δ t = Δ TCH × área.
-  - Rotulación sin causas.
-  - Navegación a la ficha y retorno.
+- **Decisiones:** sin panel de recuperación ni simulador; los cuatro paneles existentes intactos; el selector de sistema solo aparece en Resumen y Desempeño.
+- **Coherencia de filtros:** el sistema elegido en Análisis es el mismo de Zonas y Estimados, en ambos sentidos.
 - **Composición y Técnica:** Composición abre Zonas con retorno; Técnica y los paneles anteriores quedan intactos.
 - **Responsive:** 360, 390, 768, 1280 y 1536 px sin desbordamiento horizontal y sin errores de página. Selector compacto en Android y pestañas en escritorio.
 
@@ -93,3 +87,7 @@ UX15 no reproduce Estimados.
 
 - **Exportación PDF/PNG de las familias de Análisis:** requiere un tipo nuevo en el motor de `index.html` protegido. Solo se propondría con autorización, igual que en UX14-C.
 - **GIS de Zona:** registrado como mejora posterior (UX14).
+
+## UX15-R (26-Nov-2026)
+
+El refinamiento consolidado de Zonas, Estimados y Análisis está en `docs/MAESTRO_REFINAMIENTO_CIERRE.md`.

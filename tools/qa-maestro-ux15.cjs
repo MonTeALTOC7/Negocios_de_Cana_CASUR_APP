@@ -24,7 +24,7 @@ async function open(browser, width) {
 }
 const analisis = (page, fam) => page.evaluate(f => { CASUR_MAESTRO_UX.activate('analisis'); CASUR_ANALISIS_UX15.choose(f); }, fam).then(() => page.waitForTimeout(250));
 const kpis = page => page.$$eval(RS + ' .ux14-kpi', ks => ks.map(k => ({label: k.querySelector('.ux14-kpi-label').firstChild.textContent.trim(), value: k.querySelector('strong').firstChild.textContent.trim()})));
-const system = (page, s) => page.locator(RS + ' .ux14-seg:not(.ux14-metric) button', {hasText: s}).first().click().then(() => page.waitForFunction(s => document.querySelector('.ux15-resumen')?.dataset.system === s, s));
+const system = (page, s) => page.locator(S + ' .ux15-system .ux14-system button', {hasText: s}).first().click().then(() => page.waitForFunction(s => document.querySelector('.ux15-resumen')?.dataset.system === s, s));
 (async () => {
   const browser = await chromium.launch();
   try {
@@ -67,7 +67,7 @@ const system = (page, s) => page.locator(RS + ' .ux14-seg:not(.ux14-metric) butt
       near(r.sa, r.a, 0.01); near(r.st, r.t, 0.5);
       await analisis(page, 'resumen'); await system(page, 'Total');
       const comp = await page.$$eval(RS + ' .ux14-composition', cs => cs.map(c => c.innerText)); assert.ok(comp.length >= 2); assert.ok(!/maquila/i.test(comp.join()), 'Maquila fuera de la composición');
-      assert.match(await page.textContent(RS), /Maquila excluida/);
+      assert.match(await page.textContent(S + ' .ux15-system'), /sin Maquila/);
       const mq = await page.evaluate(() => { const m = [...document.querySelectorAll('#maquilaAcc .kpi')].find(k => /Toneladas/i.test(k.textContent)); return m?.querySelector('strong')?.textContent; });
       if (mq) assert.ok(num(mq) > 0 && Math.abs(num((await kpis(page))[2].value) - 622474) < 1, 'Maquila se informa aparte');
       assert.match(await page.textContent(S + ' .ux15-maquila'), /no entra en los totales/);
@@ -111,23 +111,24 @@ const system = (page, s) => page.locator(RS + ' .ux14-seg:not(.ux14-metric) butt
       await page.locator('#zoneMainSection .ux14-return', {hasText: 'Análisis · Desempeño'}).click(); await page.waitForFunction(() => document.body.dataset.maestroView === 'analisis');
       assert.equal(await page.evaluate(() => CASUR_ANALISIS_UX15.family()), 'desempeno'); assert.ok(await page.locator(S + ' .ux15-zones').isVisible());
     });
-    await check('Decisiones · Recuperación: solo caídas observadas, ≥ 10 ha, orden por Δ TCH, Δ t = Δ TCH × área, dentro del sistema; rotulada sin causas', async () => {
-      await analisis(page, 'resumen'); await system(page, 'Riego'); await analisis(page, 'decisiones'); await page.locator(S + ' .ux09-section-tabs button[data-target="priorityAcc"]').click();
-      const card = S + ' .ux15-recovery'; assert.match(await page.textContent(card + ' h4'), /Riego/); assert.match(await page.textContent(card), /no es una pérdida atribuida ni una causa/);
-      const rows = await page.$$eval(card + ' tbody tr', rs => rs.map(r => [...r.querySelectorAll('td')].map(t => t.textContent.trim())));
-      assert.ok(rows.length >= 5 && rows.length <= 10); const d = rows.map(r => num(r[5]));
-      assert.ok(d.every(x => x < 0)); assert.deepEqual(d, [...d].sort((a, b) => a - b)); rows.forEach(r => { assert.ok(num(r[2]) >= 10); near(num(r[5]), num(r[3]) - num(r[4]), 0.011); near(num(r[6]), num(r[5]) * num(r[2]), Math.max(2, num(r[2]) * 0.006)); });
-      const all = await page.evaluate(() => [...document.querySelectorAll('.ux15-recovery tbody tr')].length); assert.ok(all > 0);
-      const more = page.locator(card + ' .ux14-more'); if (await more.count()) { const n = num(await more.textContent()); await more.click(); assert.equal(await page.locator(card + ' tbody tr').count(), n); await page.locator(card + ' .ux14-more').click(); }
+    await check('Decisiones sin simulador ni panel de recuperación; paneles existentes intactos; el selector de sistema solo aparece donde filtra', async () => {
+      await analisis(page, 'decisiones');
+      assert.equal(await page.locator(S + ' .ux15-recovery, ' + S + ' .ux15-recuperacion').count(), 0, 'sin panel «Recuperación»');
+      assert.doesNotMatch(await page.evaluate(() => document.body.innerText), /simulador|recuperación productiva/i);
+      for (const p of ['committeeAcc', 'priorityAcc', 'potentialAcc', 'renewalAcc']) { await page.locator(S + ` .ux09-section-tabs button[data-target="${p}"]`).click(); assert.ok(await page.locator('#' + p).isVisible(), p); }
+      for (const [f, vis] of [['resumen', true], ['desempeno', true], ['decisiones', false], ['composicion', false], ['tecnica', false], ['maquila', false]]) { await analisis(page, f); assert.equal(await page.locator(S + ' .ux15-system').isVisible(), vis, f); }
+      assert.equal(await page.locator(S + ' .ux14-system').count(), 1, 'un único selector de sistema en Análisis');
     });
-    await check('Decisiones → ficha histórica de la finca y retorno a Análisis · Decisiones', async () => {
-      await analisis(page, 'decisiones'); await page.locator(S + ' .ux09-section-tabs button[data-target="priorityAcc"]').click();
-      const code = (await page.textContent(S + ' .ux15-recovery tbody tr:first-child .ux14-print-name')).split(' · ')[0];
-      await page.locator(S + ' .ux15-recovery tbody tr:first-child .ux14-farm-link').click(); await page.waitForFunction(() => document.body.dataset.maestroView === 'historico');
-      assert.match(await page.textContent('#fichaSection'), new RegExp(code));
-      await page.locator('#fichaSection .ux14-return', {hasText: 'Análisis · Decisiones'}).click(); await page.waitForFunction(() => document.body.dataset.maestroView === 'analisis');
-      assert.equal(await page.evaluate(() => CASUR_ANALISIS_UX15.family()), 'decisiones');
-      await analisis(page, 'resumen'); await system(page, 'Total');
+    await check('Coherencia de filtros: el sistema elegido en Análisis es el mismo de Zonas y Estimados (y viceversa)', async () => {
+      await analisis(page, 'resumen'); await system(page, 'Secano');
+      await page.evaluate(() => { CASUR_MAESTRO_UX.activate('zonas'); document.querySelector('#zoneMainSection .ux09-section-tabs button[data-target="cronoZoneSection"]').click(); const s = document.querySelector('#cronoZoneSelect'); s.value = ''; selectCronoZone(''); });
+      await page.waitForFunction(() => document.querySelector('.ux14-zone:not(.ux14-hist-zone)')?.dataset.system === 'Secano');
+      await page.click('#maestro-shortcut-estimados'); const E = '#cronoContent .context-explorer[data-context="general"]';
+      await page.waitForFunction(E => document.querySelector(E)?.dataset.objective === 'estimate', E);
+      assert.equal(await page.textContent(E + ' .ux15-explorer-system button[aria-pressed="true"]'), 'Secano');
+      const sum = JSON.parse(await page.getAttribute(E, 'data-summary')), c = await page.evaluate(() => CASUR_ZONE_UX14.figures('', 'Secano').crono); near(sum.estimateTch, c.estimateTch); near(sum.estimateTons, c.estimateTons, 0.02);
+      await page.locator(E + ' .ux15-explorer-system button', {hasText: 'Total'}).click(); await page.waitForFunction(() => CASUR_ZONE_SCOPE.system === 'Total');
+      await analisis(page, 'resumen'); await page.waitForFunction(() => document.querySelector('.ux15-resumen')?.dataset.system === 'Total');
     });
     await check('Composición → Análisis por Zona (Cronológico) con el sistema; Técnica y paneles anteriores intactos', async () => {
       await analisis(page, 'composicion'); await page.locator(S + ' .ux15-composicion button').click();

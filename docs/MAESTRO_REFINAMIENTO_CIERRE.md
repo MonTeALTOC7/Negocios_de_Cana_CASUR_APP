@@ -81,3 +81,29 @@ No hay vista, motor ni familias nuevas. Todo vive en el objetivo «Estimados» d
 ## Fuera de alcance
 
 GIS de Zona, integración con el módulo de Riego, exportación PDF/PNG de Análisis y de Estimados (requiere cambiar `index.html`), merge y producción.
+
+## UX15-R2: correcciones finales (26-Nov-2026)
+
+Instrucción del propietario: retirar las clasificaciones artificiales y el acceso lateral. No se crea otro submódulo, motor, clasificación ni simulador.
+
+| Corrección | Resultado |
+|---|---|
+| Menú lateral | Se retira «Estimados Z26/27». El menú vuelve a Resumen, Cronológico, Histórico, Zonas y Análisis. |
+| Resumen › Consultas | Tercera tarjeta «Estimados Z26/27», junto a Cronológico e Histórico. Abre la función Estimados existente dentro del Cronológico (`openEstimatesShortcut`), sin ámbito adicional. |
+| Selector Total / Riego / Secano / Ventana | Retirado de Estimados, Zonas (Cronológico e Histórico) y Análisis. |
+| Dimensión «Sistema productivo» | Eliminada. Estimados conserva solo «Tipo de riego» con los valores de la fuente: Gravedad, Goteo, Aspersion, Mini-Aspersion, Pivote, Ventana y Secano. |
+| Zonas y Análisis | Las composiciones, el gráfico TCH ejecutado vs estimado (por zona o por tipo de riego) y las tendencias usan el **tipo de riego original** del lote, ordenado por área. No hay agrupaciones Riego / Secano. Los KPI, tablas y rankings son Total CASUR. |
+| Rótulo de cortes | «# de cortes (rangos)» en lugar de «N.º de cortes (rangos)». |
+
+**Detalles de presentación:**
+- **Colores:** cada tipo de riego tiene un color fijo de la paleta Petróleo; Secano y Ventana conservan el que tenían.
+- **Muestras de color:** se generan como `.ux14-stack span` con estilo en línea, el único estilo que el exportador de Zona conserva.
+- **Tendencias:** muestran el Total más los tipos de riego con al menos el 5 % del área de la última zafra, por legibilidad.
+- **Exportador de Zona:** el nombre del archivo y el encabezado ya no incluyen «Sistema»; ahora son «Zona 3-Norte».
+- **Recuadro anterior «Área por riego»:** se oculta en Zonas, porque la composición por tipo de riego lo reemplaza con los mismos datos.
+
+**QA:**
+- **Pruebas adaptadas:** UX14, UX15, Estimados y UX13-C ahora verifican que no existan selectores ni «Sistema productivo».
+- **Paridad:** se compara cada tipo de riego original con un cálculo independiente.
+
+**Exportadores:** ver `docs/AUDITORIA_EXPORTADORES.md` (diagnóstico) y `docs/PROPUESTA_REDISENO_INFORMES.md` (propuesta pendiente de autorización).

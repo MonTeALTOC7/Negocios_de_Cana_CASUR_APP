@@ -174,17 +174,17 @@ const farm = async (page, code, objective, dim) => {
         assert.equal(await page.locator('#cronoZoneContent .ux13-zone-kpis').isVisible(), false, 'fila anterior reemplazada por UX14');
         assert.equal(await page.locator('#zoneMainSection .ux09-tabs-hint').isVisible(), false);
       });
-      await check(W + ' Z9 Zona 5-Productores: cifras = motor y General; Riego y Secano separados y completos', async () => {
+      await check(W + ' Z9 Zona 5-Productores: cifras = motor y General; tipos de riego originales separados y completos', async () => {
         await zone(page, '5-Productores');
         const k = await page.$$eval(UX14C + ' .ux14-kpi', ks => Object.fromEntries(ks.map(n => [n.querySelector('.ux14-kpi-label').firstChild.textContent.trim(), n.querySelector('strong').firstChild.textContent.trim()])));
         const truth = await page.evaluate(() => { const E = CASUR_CRONO_PARTICIPATION, all = CRONO_DATA.producers.flatMap(p => p.details), rows = all.filter(r => String(r.zona || '') === '5-Productores'), s = E.summary(rows); return {area: E.agronomicGroups(all, 'zona').find(g => g.key === '5-Productores').area, tch: s.estimateTch, tons: s.estimateTons}; });
         assert.ok(Math.abs(num(k['Área activa']) - truth.area) < 0.02, 'área activa ' + k['Área activa'] + ' vs ' + truth.area);
         assert.equal(num(k['TCH estimado Z26/27']), truth.tch); assert.ok(Math.abs(num(k['Ton. estimadas Z26/27']) - truth.tons) < 1);
-        const comp = await page.$$eval(UX14C + ' .ux14-composition', fs => fs[0].innerText);
-        const part = n => num((comp.match(new RegExp(n + '[^\\d]*([\\d,]+\\.\\d{2})')) || [])[1]);
-        assert.ok(part('Riego') > 0 && part('Secano') > 0, 'riego y secano visibles por separado');
-        const venta = /Ventana/.test(comp) ? part('Ventana') : 0; assert.doesNotMatch(comp, /por confirmar/);
-        assert.ok(Math.abs(part('Riego') + part('Secano') + venta - num(k['Área activa'])) < 0.05, 'riego + secano (+ ventana) = área activa');
+        // UX15-R2: composition by the original Tipo de riego (no artificial Riego/Secano grouping).
+        const parts = await page.$$eval(UX14C + ' .ux14-composition:first-of-type li', ls => ls.map(l => [l.dataset.riego, Number(l.querySelector('b').textContent.replace(/,/g, ''))]));
+        assert.ok(parts.length >= 2 && parts.every(([t]) => t !== 'Riego'), 'tipos de riego originales visibles por separado');
+        assert.ok(Math.abs(parts.reduce((n, [, v]) => n + v, 0) - num(k['Área activa'])) < 0.05, 'suma de tipos de riego = área activa');
+        assert.doesNotMatch(await page.textContent(UX14C + ' .ux14-composition'), /por confirmar/);
         assert.ok(!('Suertes activas' in k) && !('Haciendas' in k));
       });
       await check(W + ' Z9 Zona: valores de las cajas sin recorte y sin scroll horizontal', async () => {

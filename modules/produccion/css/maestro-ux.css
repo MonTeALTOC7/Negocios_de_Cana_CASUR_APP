@@ -1244,11 +1244,6 @@ body.casur-maestro-premium:not(.print-export) #zoneMainSection .zone-searchbox .
 /* Encabezado del tablero: título, regreso a todas las zonas y exportar en una línea. */
 .ux14-head { align-items:center; } .ux14-title { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; min-width:0; }
 .ux14-title .ux14-meta { margin:0; } .ux14-all { border:0; background:none; color:#1F4E5C; font-weight:700; font-size:13px; padding:4px 0; cursor:pointer; min-height:32px; }
-/* Selector de sistema único: mismo control para Total, Riego, Secano, Ventana y Sin dato. */
-.ux14-system { display:inline-flex; flex-wrap:nowrap; max-width:100%; }
-.ux14-system button { flex:1 1 auto; white-space:nowrap; } .ux14-system button + button { border-left:1px solid #c5d0d5; }
-.ux14-controls .ux14-info-wrap { display:inline-flex; }
-@media (max-width:420px) { .ux14-system { display:flex; width:100%; } .ux14-system button { padding:8px 6px; font-size:12.5px; } }
 /* Indicadores complementarios: misma retícula que los KPI, etiqueta arriba y valor abajo. */
 .ux14-strip { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
 .ux14-strip-item { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:0 6px; border-radius:10px; padding:7px 10px; background:#f6f8f9; border-color:#e3e7eb; }
@@ -1272,11 +1267,7 @@ body.casur-maestro-premium:not(.print-export) #zoneMainSection .zone-searchbox .
 @media (max-width:520px) { .ux14-zone-list tr { grid-template-columns:repeat(3,minmax(0,1fr)); } .ux14-zone-list .ux14-only-note { grid-column:1 / -1; } }
 /* Recuadros anteriores sustituidos por la tabla de zonas y el gráfico consolidado. */
 body.casur-maestro-premium:not(.print-export) #cronoZoneSection.ux14-on #cronoZoneContent .crono-box.ux14-superseded { display:none!important; }
-/* Análisis: selector de sistema en la barra de familias (solo Resumen y Desempeño). */
-.ux15-system { display:flex; } .ux15-system[hidden] { display:none!important; } .ux15-system .ux14-controls { width:100%; }
-@media (min-width:700px) { .ux15-families { grid-template-columns:minmax(0,1fr) auto; align-items:center; } .ux15-family-tabs { grid-column:1; } .ux15-system { grid-column:2; grid-row:1; } }
 /* Estimados Z26/27 (explorador existente). */
-.ux15-explorer-system { margin:2px 0 6px; }
 .ux13-explorer .ux09-forecast-stats > div { background:#fff; border:1px solid #e3e7eb; border-top:4px solid #3491b7; border-radius:10px; padding:8px 10px; }
 .ux13-explorer .ux09-forecast-stats dt { font-size:11.5px; color:#576579; } .ux13-explorer .ux09-forecast-stats dd { margin:2px 0 0; font-size:17px; font-weight:700; color:#173B46; font-variant-numeric:tabular-nums; }
 .ux13-explorer .ux13-optimistic .ux09-forecast-stats > div { border-top-color:#86A0AA; }
@@ -1288,11 +1279,10 @@ body.casur-maestro-premium:not(.print-export) #cronoZoneSection.ux14-on #cronoZo
 .ux15-trail { display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:13px; color:#576579; margin:0 0 8px; } .ux15-trail button { border:0; background:none; color:#1F4E5C; font-weight:700; padding:4px 0; cursor:pointer; min-height:32px; } .ux15-trail b { color:#173B46; }
 .ux15-plan .ux05-table td, .ux15-plan .ux05-table th { font-variant-numeric:tabular-nums; }
 @media (max-width:767px) { .ux13-explorer .ux05-table.ux05-estimate th:first-child, .ux13-explorer .ux05-table.ux05-estimate td:first-child { width:58%; } .ux15-plan-table th:first-child, .ux15-plan-table td:first-child { width:52%; } }
-/* Acceso directo a Estimados en la navegación (abre el objetivo existente del Cronológico General). */
-.casur-maestro-premium:not(.print-export) #maestroTabs .maestro-shortcut { min-height:40px; padding:9px 20px 9px 34px; font-size:13px; opacity:.92; }
-.casur-maestro-premium:not(.print-export) #maestroTabs .maestro-shortcut svg { width:18px; height:18px; }
-body[data-maestro-view=cronologico]:has(#cronoContent .context-explorer[data-context="general"][data-objective="estimate"]) #maestroTabs .maestro-shortcut { background:#1a454d; box-shadow:inset 5px 0 var(--maestro-accent); font-weight:700; opacity:1; }
-body[data-maestro-view=cronologico]:has(#cronoContent .context-explorer[data-context="general"][data-objective="estimate"]) #maestroTabs #maestro-tab-cronologico { background:transparent; box-shadow:none; font-weight:500; }
-.ux14-controls { flex-wrap:nowrap; } .ux14-controls .ux14-system { flex:0 1 auto; min-width:0; }
-@media (max-width:420px) { .ux14-controls .ux14-system { flex:1 1 auto; } }
 .ux14-trend > .ux14-metric { justify-self:start; max-width:100%; }
+/* Tipo de riego original: muestras de color que conserva el exportador (estilo en línea en .ux14-stack span). */
+.ux14-swatch-stack { display:inline-flex; width:auto; height:10px; border-radius:2px; gap:3px; flex:0 0 auto; align-self:center; }
+.ux14-swatch-stack > span { display:block; height:100%; margin:0!important; }
+.ux14-line-swatch { height:4px; border-radius:2px; }
+.ux14-composition li { grid-template-columns:12px minmax(0,1fr) auto 56px; }
+.ux14-ranking :is(th,td):nth-child(2) { text-align:left; }

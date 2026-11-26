@@ -1,5 +1,5 @@
 // UX15-R — QA de Estimados Z26/27 sobre el explorador existente: KPI oficiales (AD/AE), comparación con Z25/26 en las
-// mismas suertes, participación, distribución por sistema/variedad/suelo/cortes, ranking configurable, plan mensual
+// mismas suertes, participación, distribución por tipo de riego/variedad/suelo/cortes, ranking configurable, plan mensual
 // BE/BF, navegación Zona → Finca → Suerte, escenario optimista separado, acceso directo y responsive.
 // Uso: node tools/qa-maestro-estimados.cjs BASE [EVIDENCIA_DIR]. Solo lectura.
 const {chromium} = require('playwright'), assert = require('assert/strict'), fs = require('fs'), path = require('path');
@@ -21,12 +21,10 @@ async function open(browser, width) {
   await estimates(page);
   return {ctx, page};
 }
-// Direct access (same explorer objective as Cronológico → Estimados).
+// Access from Resumen › Consultas (third card), which opens the existing Estimados objective of the Cronológico.
 async function estimates(page) {
-  await page.evaluate(() => { CASUR_ZONE_SCOPE.system = 'Total'; });
-  // Phone/tablet: the navigation lives in the menu drawer; desktop: in the sidebar.
-  if (await page.locator('#maestroMenu').isVisible()) { await page.click('#maestroMenu'); await page.waitForTimeout(300); }
-  await page.click('#maestro-shortcut-estimados');
+  await page.evaluate(() => CASUR_MAESTRO_UX.activate('resumen'));
+  await page.locator('#maestroDashboard [data-hub="estimados"]').click();
   await page.waitForFunction(E => document.querySelector(E)?.dataset.objective === 'estimate', E);
 }
 const state = page => page.getAttribute(E, 'data-state').then(JSON.parse);
@@ -62,19 +60,16 @@ const rows = page => page.$$eval(E + ' .ux05-table tbody tr', rs => rs.map(r => 
       near(share, 100, 0.25); near(tons, 561658.27, 0.05);
       const foot = await page.$$eval(E + ' .ux05-table tfoot td', t => t.map(x => x.textContent)); near(num(foot[0]), 9101.68, 0.01); near(num(foot[1]), 561658.27, 0.01); assert.equal(foot[2], '100.0 %'); near(num(foot[3]), 61.71); near(num(foot[4]), R.total.tch);
     });
-    await check('Distribución por sistema productivo (= Zonas), variedad, suelo y N.º de cortes: los grupos suman el total', async () => {
-      for (const key of ['sistema', 'variedad', 'textura', 'stage', 'zona']) { await dim(page, key);
+    await check('Distribución por tipo de riego original, variedad, suelo y # de cortes: los grupos suman el total; sin selector ni «Sistema productivo»', async () => {
+      for (const key of ['tipoRiego', 'variedad', 'textura', 'stage', 'zona']) { await dim(page, key);
         const g = JSON.parse(await page.getAttribute(E, 'data-groups')); near(g.reduce((n, x) => n + (x.estimateTons || 0), 0), 561658.27, 0.05); near(g.reduce((n, x) => n + x.area, 0), 9574.66, 0.02);
-        if (key === 'sistema') { assert.deepEqual(g.map(x => x.key), ['Riego', 'Secano', 'Ventana']);
-          for (const x of g) { const f = await page.evaluate(s => CASUR_ZONE_UX14.figures('', s).crono, x.key); near(x.estimateTch, f.estimateTch); near(x.estimateTons, f.estimateTons, 0.02); near(x.area, f.inventoryArea, 0.01); } } }
-      assert.ok(await page.locator(E + ' .ux05-chips button', {hasText: 'Sistema productivo'}).count() === 1); assert.ok(await page.locator(E + ' .ux05-chips button', {hasText: 'Tipo de riego'}).count() === 1);
-    });
-    await check('Selector de sistema (mismo control que Zonas y Análisis): Secano filtra KPI y tabla; Total los restaura', async () => {
-      assert.deepEqual(await page.$$eval(E + ' .ux15-explorer-system .ux14-system button', b => b.map(x => x.textContent)), ['Total', 'Riego', 'Secano', 'Ventana']);
-      await page.locator(E + ' .ux15-explorer-system button', {hasText: 'Secano'}).click(); await page.waitForFunction(E => JSON.parse(document.querySelector(E).dataset.state).scope.some(f => f.field === 'sistema' && f.key === 'Secano'), E);
-      const s = JSON.parse(await page.getAttribute(E, 'data-summary')), f = await page.evaluate(() => CASUR_ZONE_UX14.figures('', 'Secano').crono); near(s.estimateTch, f.estimateTch); near(s.estimateArea, f.estimateArea, 0.01);
-      assert.equal(await page.locator(E + ' .context-crumbs').isVisible(), false, 'el sistema no se repite como miga');
-      await page.locator(E + ' .ux15-explorer-system button', {hasText: 'Total'}).click(); await page.waitForFunction(E => !JSON.parse(document.querySelector(E).dataset.state).scope.length, E);
+        if (key === 'tipoRiego') { assert.deepEqual(g.map(x => x.key).sort(), ['Aspersion', 'Goteo', 'Gravedad', 'Mini-Aspersion', 'Pivote', 'Secano', 'Ventana'], 'categorías originales');
+          for (const x of g) { const f = await page.evaluate(s => CASUR_ZONE_UX14.figures('', s).crono, x.key); if (x.estimateTch != null) near(x.estimateTch, f.estimateTch); near(x.area, f.inventoryArea, 0.01); } } }
+      const chips = await page.$$eval(E + ' .ux05-chips button', b => b.map(x => x.textContent));
+      assert.ok(chips.includes('Tipo de riego') && chips.includes('# de cortes (rangos)')); assert.ok(!chips.some(c => /Sistema productivo|N\.º/.test(c)));
+      assert.equal(await page.locator(E + ' .ux14-system, ' + E + ' .ux15-explorer-system').count(), 0, 'sin selector Total / Riego / Secano / Ventana');
+      assert.doesNotMatch(await page.textContent(E), /Sistema productivo|N\.º de cortes/);
+      await dim(page, 'zona');
     });
     await check('Ranking configurable: criterio Δ TCH y TCH Z25/26, 10 / 20 / Todas', async () => {
       await mode(page, 'Ranking fincas'); assert.equal((await rows(page)).length, 10);
@@ -117,12 +112,14 @@ const rows = page => page.$$eval(E + ' .ux05-table tbody tr', rs => rs.map(r => 
       assert.deepEqual(await page.$$eval(E + ' .ux09-forecast-overview > .ux09-forecast-stats dd', d => d.map(x => x.textContent)), before);
       assert.equal(await page.locator(E + ' .ux13-optimistic .ux15-compare-stats').count(), 0, 'la comparación usa solo el oficial');
     });
-    await check('Acceso directo «Estimados Z26/27» en la navegación: abre el explorador existente y queda resaltado', async () => {
-      await page.evaluate(() => CASUR_MAESTRO_UX.activate('resumen')); await page.click('#maestro-shortcut-estimados');
+    await check('Acceso desde Resumen › Consultas (tercera tarjeta): abre la función Estimados existente del Cronológico; sin acceso en el menú lateral', async () => {
+      await page.evaluate(() => CASUR_MAESTRO_UX.activate('resumen'));
+      const cards = await page.$$eval('#maestroDashboard .ux09-hub-actions > button strong', s => s.map(x => x.textContent)); assert.deepEqual(cards, ['Cronológico', 'Histórico', 'Estimados Z26/27']);
+      assert.equal(await page.locator('#maestroTabs [data-maestro-shortcut], #maestro-shortcut-estimados').count(), 0, 'sin acceso en el menú lateral');
+      assert.deepEqual(await page.$$eval('#maestroTabs button', b => b.map(x => x.textContent.trim())), ['Resumen', 'Cronológico', 'Histórico', 'Zonas', 'Análisis']);
+      await page.locator('#maestroDashboard [data-hub="estimados"]').click();
       await page.waitForFunction(E => document.body.dataset.maestroView === 'cronologico' && document.querySelector(E)?.dataset.objective === 'estimate', E);
-      assert.equal(await page.textContent('#maestro-shortcut-estimados'), 'Estimados Z26/27');
-      const shadow = await page.evaluate(() => [getComputedStyle(document.querySelector('#maestro-shortcut-estimados')).boxShadow, getComputedStyle(document.querySelector('#maestro-tab-cronologico')).boxShadow]);
-      assert.match(shadow[0], /inset/); assert.doesNotMatch(shadow[1], /inset/);
+      assert.deepEqual(JSON.parse(await page.getAttribute(E, 'data-state')).scope, []);
       assert.deepEqual(page.errors, []);
     });
     await ctx.close();

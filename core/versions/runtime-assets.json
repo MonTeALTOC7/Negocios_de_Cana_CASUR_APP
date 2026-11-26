@@ -1,6 +1,6 @@
 {
   "appVersion": "1.6.2",
-  "releaseId": "1.6.2-8520f5e2227cda27",
+  "releaseId": "1.6.2-71adc67b15cf3ce5",
   "assets": {
     "404.html": "13e468776893ea36d86e0a6b83935bafd4c5f3782fb3a302959337f8e14a19fe",
     "app.js": "2e62cbe84f75fec94e99de5d467bd96f75a260c5bd75e721b8b588f69559cb2f",
@@ -68,7 +68,7 @@
     "modules/produccion/icon-512.png": "54c808784b136dbd73be9cd2ab556f3076d5d643b03d0edac0b0ee43a08b4081",
     "modules/produccion/icon-maskable-192.png": "599473a2f3ed5f5f8847d0cbae1199e269ba1de33cddfd44412f10663348bfdf",
     "modules/produccion/icon-maskable-512.png": "2cf3246ee0503b3b788f56adeb3aebcec52509a5bb19e1820d48430d44a03386",
-    "modules/produccion/index.html": "fec57509b4e6a13319f0d6727f5d30f7f90405820cedfd10abe269e43e79f14d",
+    "modules/produccion/index.html": "bd1e05679bc2574fed527699da233fafdb7239b8b4a76a3cd07f261b4cf1a071",
     "modules/produccion/js/casur-enhancements.js": "775808182acfab563ece47fc0d12d71070707901dceb68a1eb6f5bd5a151780c",
     "modules/produccion/js/effective-data-date.js": "4be6eee64653dcd752b04a80079cf342d63810b9a86bce3603e20267c66f2fc3",
     "modules/produccion/js/historical-engine.js": "299ab93c929894a7dd89d197c54bec2c6de3362799afdd6a119cf9b00513c35d",

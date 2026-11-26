@@ -51,7 +51,9 @@ const ENGINE = async kind => {
   const r = await E.renderCanvas(k), w = r.width, clone = r.clone;
   const frame = document.createElement('iframe'); frame.style.cssText = `position:fixed;left:-20000px;top:0;width:${w}px;height:6000px;border:0`; document.body.append(frame);
   const d = frame.contentDocument; d.open(); d.write('<!doctype html><html><head></head><body style="margin:0"></body></html>'); d.close();
-  const st = d.createElement('style'); st.textContent = window.__CASUR_RENDER_CSS || ''; d.head.append(st); const root = d.importNode(clone, true); d.body.append(root);
+  // Replica the foreignObject: <div class="casur-render-root" style="width"> + RENDER_CSS, no html/body rules involved.
+  const st = d.createElement('style'); st.textContent = (E.renderCss ? E.renderCss() : window.__CASUR_RENDER_CSS) || ''; d.head.append(st); d.body.style.cssText = 'margin:0;padding:0;font:16px serif';
+  const wrap = d.createElement('div'); wrap.className = 'casur-render-root'; wrap.style.width = w + 'px'; d.body.append(wrap); const root = d.importNode(clone, true); wrap.append(root);
   await new Promise(res => setTimeout(res, 200));
   const top = root.getBoundingClientRect().top; let need = root.getBoundingClientRect().bottom; root.querySelectorAll('*').forEach(x => { const b = x.getBoundingClientRect(); if (b.height > 0 && b.bottom > need) need = b.bottom; });
   const foot = root.querySelector('.export-footer'), footBottom = foot ? Math.ceil(foot.getBoundingClientRect().bottom - top) : null;

@@ -5535,7 +5535,7 @@ renderCanvas=async function(kind,variant){
 window.CASUR_VISUAL_EXPORT.renderCanvas=renderCanvas;window.CASUR_VISUAL_EXPORT.r1='isolated-measure';window.CASUR_VISUAL_EXPORT.renderCss=function(){return RENDER_CSS;};
 })();
 /* R1-EXPORT-END */
-/* R2-EXPORT (autorizado 26-Nov-2026, docs/PROPUESTA_REDISENO_INFORMES.md R2): Cronológico e Histórico de Finca y de Suerte. */
+/* R2-EXPORT (autorizado 26-Nov-2026, docs/PROPUESTA_REDISENO_INFORMES.md R2; nombres de archivo 27-Nov-2026, docs/ESTANDAR_EDITORIAL_INFORMES.md): Cronológico e Histórico de Finca y de Suerte. */
 (function(){
 // Los mismos botones «Descargar PDF / imagen» usan el motor de informes R2 (js/report-engine.js + js/report-models.js,
 // precargados por la PWA). Los demás informes (múltiples y Zona) siguen en el motor anterior hasta R3.
@@ -5551,7 +5551,7 @@ runAction=async function(kind,type,button,variant){
     toast(type==='pdf'?'Generando PDF…':'Generando imagen PNG…',5000);
     var R=await reports(),out=await R.export(kind,type,node);
     if(!out){button.disabled=false;button.innerHTML=original;return baseRun(kind,type,button,variant);}
-    downloadBlob(out.blob,filename(kind,node,type==='pdf'?'pdf':'png'));toast(type==='pdf'?'PDF descargado correctamente.':'Imagen PNG descargada correctamente.');
+    downloadBlob(out.blob,out.name||filename(kind,node,type==='pdf'?'pdf':'png'));toast(type==='pdf'?'PDF descargado correctamente.':'Imagen PNG descargada correctamente.');
   }catch(err){console.error(err);alert('No se pudo generar el reporte: '+(err.message||err));}
   finally{button.disabled=false;button.innerHTML=original;}
 };

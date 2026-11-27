@@ -86,19 +86,17 @@
         this.text(tx, M - 2, meta.title, 15, 'bold', C.ink);
         this.text(tx, M + 17, meta.subject, 10.5, 'semibold', C.petrol);
         let my = M + 31; (meta.lines || []).forEach(l => { this.text(tx, my, l, 7.3, 'normal', C.muted); my += 9.2; });
-        this.text(x + w, M - 1, 'Negocios de Caña · CASUR', 7.5, 'semibold', C.petrol, 'right');
-        this.text(x + w, M + 9, 'Consulta: ' + meta.consulta, 7.3, 'normal', C.muted, 'right');
-        const yy = Math.max(M + 44, my + 2); this.line(x, yy, x + w, yy, C.petrol, 1.4); return yy + 10;
+        this.text(x + w, M - 1, 'Consulta: ' + meta.consulta, 7.3, 'normal', C.muted, 'right');
+        const yy = Math.max(M + 44, my + 2); this.line(x, yy, x + w, yy, C.petrol, 1.2); return yy + 12;
       }
       this.text(x, M - 6, meta.title + ' · ' + meta.subject, 7.8, 'semibold', C.ink);
-      this.text(x + w, M - 6, 'Negocios de Caña · CASUR', 7.3, 'normal', C.muted, 'right');
       this.line(x, M + 6, x + w, M + 6, C.petrol, 0.8); return M + 14;
     }
     footers() {
       const n = this.pages.length;
       this.pages.forEach((p, i) => {
         const y = p.h - M - 8; p.ops.push({t: 'line', x1: M, y1: y, x2: p.w - M, y2: y, color: C.line, lw: 0.6});
-        p.ops.push({t: 'text', x: M, y: y + 5 + 7 * 0.82, str: 'CASUR · Negocios de Caña · Documento de consulta · ' + this.meta.footer, size: 6.8, weight: 'normal', color: C.muted, align: 'left'});
+        p.ops.push({t: 'text', x: M, y: y + 5 + 7 * 0.82, str: 'Negocios de Caña · CASUR', size: 6.8, weight: 'normal', color: C.muted, align: 'left'});
         p.ops.push({t: 'text', x: p.w - M, y: y + 5 + 7 * 0.82, str: 'Página ' + (i + 1) + ' de ' + n, size: 6.8, weight: 'semibold', color: C.muted, align: 'right'});
       });
     }
@@ -134,77 +132,88 @@
     measure(d) { return 14 + (sub ? 10 : 0); },
     draw(d, x, y, w) { d.text(x, y, title, 10.5, 'bold', C.ink); if (sub) d.text(x, y + 14, sub, 7.3, 'normal', C.muted); d.line(x, y + (sub ? 25 : 15), x + w, y + (sub ? 25 : 15), C.line, 0.5); }
   });
-  const kpis = (items, cols = items.length) => ({
-    rows(d, w) { const cw = (w - (cols - 1) * 8) / cols; return items.map(it => ({...it, lab: d.m.wrap(it.label, 7.2, 'semibold', cw - 16, 2), note: it.note ? d.m.wrap(it.note, 6.8, 'normal', cw - 16, 2) : []})); },
-    measure(d, w) { const r = this.rows(d, w), per = []; for (let i = 0; i < r.length; i += cols) per.push(Math.max(...r.slice(i, i + cols).map(x => 10 + x.lab.length * 8.6 + 18 + x.note.length * 8.2 + 6))); this._per = per; this._r = r; return per.reduce((a, b) => a + b, 0) + (per.length - 1) * 8; },
+  // KPI ejecutivo: etiqueta, valor y unidad; sin textos explicativos. compact = fila complementaria de menor jerarquía.
+  const kpis = (list, cols = list.length, compact = false) => { const items = list.map(k => /^(—|N\/D)?$/.test(String(k.value ?? '').trim()) ? {...k, value: k.value || '—', unit: ''} : k); return {
+    gap: compact ? 12 : 8,
+    measure(d, w) { if (compact) return 20; const cw = (w - (cols - 1) * 8) / cols; this._r = items.map(it => ({...it, lab: d.m.wrap(it.label, compact ? 6.9 : 7.2, 'semibold', cw - 16, 2)})); const L = Math.max(...this._r.map(x => x.lab.length));
+      this._h = compact ? 13 + L * 8.2 + 2 : 11 + L * 8.6 + 22; const rows = Math.ceil(items.length / cols); return rows * this._h + (rows - 1) * 8; },
     draw(d, x, y, w) {
-      const cw = (w - (cols - 1) * 8) / cols; let yy = y;
-      this._per.forEach((rh, ri) => {
-        this._r.slice(ri * cols, ri * cols + cols).forEach((k, i) => {
-          const cx = x + i * (cw + 8); d.rect(cx, yy, cw, rh, C.white, C.line, 4); d.rect(cx, yy, cw, 3, k.accent || C.petrol, null, 0);
-          let ty = yy + 9; k.lab.forEach(l => { d.text(cx + 8, ty, l, 7.2, 'semibold', C.muted); ty += 8.6; });
-          d.text(cx + 8, ty + 1, k.value, 14.5, 'bold', C.ink); if (k.unit) d.text(cx + 8 + d.m.width(k.value, 14.5, 'bold') + 3, ty + 6, k.unit, 7.5, 'semibold', C.muted);
-          ty += 19; k.note.forEach(l => { d.text(cx + 8, ty, l, 6.8, 'normal', C.muted); ty += 8.2; });
-        }); yy += rh + 8;
-      });
+      if (compact) { let cx = x + 10; d.rect(x, y, w, 20, null, C.line, 4, 0.5);
+        items.forEach((k, i) => { if (i) { d.line(cx - 12, y + 5, cx - 12, y + 15, C.line, 0.6); }
+          d.text(cx, y + 6.6, k.label, 7.2, 'semibold', C.muted); cx += d.m.width(k.label, 7.2, 'semibold') + 7; d.text(cx, y + 5, k.value, 9.6, 'bold', C.ink); cx += d.m.width(k.value, 9.6, 'bold') + 3;
+          if (k.unit) { d.text(cx, y + 6.6, k.unit, 7.2, 'semibold', C.muted); cx += d.m.width(k.unit, 7.2, 'semibold'); } cx += 24; }); return; }
+      const cw = (w - (cols - 1) * 8) / cols;
+      this._r.forEach((k, n) => { const cx = x + (n % cols) * (cw + 8), yy = y + Math.floor(n / cols) * (this._h + 8);
+        d.rect(cx, yy, cw, this._h, C.soft, null, 4); d.rect(cx, yy + 6, 2.4, this._h - 12, k.accent || C.petrol, null, 0);
+        let ty = yy + 9; k.lab.forEach(l => { d.text(cx + 10, ty, l, 7.2, 'semibold', C.muted); ty += 8.6; });
+        d.text(cx + 10, ty + 2, k.value, 15, 'bold', C.ink); if (k.unit) d.text(cx + 10 + d.m.width(k.value, 15, 'bold') + 3, ty + 7.4, k.unit, 7.5, 'semibold', C.muted); });
     }
-  });
-  // Grupos de variables (ficha): tarjetas en columnas, filas etiqueta / valor.
-  const groups = (list, cols = 2) => ({
-    lay(d, w) {
-      const cw = (w - (cols - 1) * 10) / cols, lw = cw * 0.46, vw = cw - lw - 18;
-      return list.map(g => { const rows = g.items.filter(Boolean).map(([l, v]) => ({l: d.m.wrap(l, 7.4, 'normal', lw, 2), v: d.m.wrap(v ?? '—', 8, 'semibold', vw, 4)})); return {g, rows, h: 22 + rows.reduce((n, r) => n + Math.max(r.l.length, r.v.length) * 9.6 + 3.2, 0) + 4}; });
+  }; };
+  // Fichas de variables: columnas de tarjetas apiladas (etiqueta / valor). La última tarjeta de cada columna se estira
+  // para igualar la altura de la columna más alta (sin huecos).
+  const groups = (columns) => ({
+    measure(d, w) {
+      const cw = (w - (columns.length - 1) * 10) / columns.length, lw = cw * 0.5, vw = cw - lw - 18;
+      this._C = columns.map(col => col.filter(Boolean).map(g => { const rows = g.items.filter(Boolean).map(([l, v]) => ({l: d.m.wrap(l, 7.4, 'normal', lw, 2), v: d.m.wrap(v ?? '—', 8, 'semibold', vw, 3)}));
+        return {g, rows, h: 22 + rows.reduce((n, r) => n + Math.max(r.l.length, r.v.length) * 9.6 + 3.4, 0) + 3}; }));
+      this._H = Math.max(...this._C.map(c => c.reduce((n, x) => n + x.h, 0) + (c.length - 1) * 8)); return this._H;
     },
-    measure(d, w) { const L = this.lay(d, w); this._L = L; const rows = []; for (let i = 0; i < L.length; i += cols) rows.push(Math.max(...L.slice(i, i + cols).map(x => x.h))); this._rows = rows; return rows.reduce((a, b) => a + b, 0) + (rows.length - 1) * 10; },
     draw(d, x, y, w) {
-      const cw = (w - (cols - 1) * 10) / cols, lw = cw * 0.46; let yy = y;
-      this._rows.forEach((rh, ri) => {
-        this._L.slice(ri * cols, ri * cols + cols).forEach((c, i) => {
-          const cx = x + i * (cw + 10); d.rect(cx, yy, cw, rh, C.softer, C.line, 4);
-          d.text(cx + 9, yy + 7, c.g.title, 8.4, 'bold', C.petrol); let ty = yy + 21;
-          c.rows.forEach((r, k) => { const rh2 = Math.max(r.l.length, r.v.length) * 9.6;
-            if (k) d.line(cx + 9, ty - 2, cx + cw - 9, ty - 2, '#E4EAED', 0.4);
-            r.l.forEach((t, j) => d.text(cx + 9, ty + j * 9.6, t, 7.4, 'normal', C.muted)); r.v.forEach((t, j) => d.text(cx + cw - 9, ty + j * 9.6, t, 8, 'semibold', C.ink, 'right')); ty += rh2 + 3.2; });
-        }); yy += rh + 10;
-      });
+      const cw = (w - (columns.length - 1) * 10) / columns.length;
+      this._C.forEach((col, ci) => { const cx = x + ci * (cw + 10); let yy = y, used = col.reduce((n, c) => n + c.h, 0) + (col.length - 1) * 8;
+        col.forEach((c, k) => { const h = c.h + (k === col.length - 1 ? this._H - used : 0); d.rect(cx, yy, cw, h, C.softer, null, 4);
+          d.text(cx + 9, yy + 7, c.g.title, 8.4, 'bold', C.petrol); let ty = yy + 22;
+          c.rows.forEach((r, j) => { const rh = Math.max(r.l.length, r.v.length) * 9.6; if (j) d.line(cx + 9, ty - 2.2, cx + cw - 9, ty - 2.2, '#E4EAED', 0.4);
+            r.l.forEach((t, i) => d.text(cx + 9, ty + i * 9.6, t, 7.4, 'normal', C.muted)); r.v.forEach((t, i) => d.text(cx + cw - 9, ty + i * 9.6, t, 8, 'semibold', C.ink, 'right')); ty += rh + 3.4; });
+          yy += h + 8; }); });
     }
   });
-  // Composición: lista con barra, valor y porcentaje (categorías originales, orden por valor).
-  const bars = (cards, cols = 2) => ({
-    measure(d, w) { const rows = []; for (let i = 0; i < cards.length; i += cols) rows.push(Math.max(...cards.slice(i, i + cols).map(c => 24 + Math.max(1, c.items.length) * 12.5 + (c.note ? 10 : 0)))); this._rows = rows; return rows.reduce((a, b) => a + b, 0) + (rows.length - 1) * 10; },
+  // Composición (diseño de Análisis por Zona): una barra horizontal apilada con los porcentajes reales del total y filas
+  // compactas alineadas (color · categoría · valor · %). Total en el encabezado de la tarjeta; altura adaptable.
+  const SEQ = ['#1F4E5C', '#3491b7', '#5B8E7D', '#8FB8A8', '#7C6A9E', '#86A0AA', '#D4B35F', '#B8C5CC'], OTHER = '#C9CED4';
+  const RIEGO = {Gravedad: '#1F4E5C', Goteo: '#3491b7', Aspersion: '#5B8E7D', 'Mini-Aspersion': '#8FB8A8', Pivote: '#7C6A9E', Ventana: '#86A0AA', Secano: '#D4B35F'};
+  const composition = (cards, cols = 2) => ({
+    measure(d) { const rows = []; for (let i = 0; i < cards.length; i += cols) rows.push(Math.max(...cards.slice(i, i + cols).map(c => 38 + Math.max(1, c.items.length) * 11.2 + 4))); this._rows = rows; return rows.reduce((a, b) => a + b, 0) + (rows.length - 1) * 10; },
     draw(d, x, y, w) {
       const cw = (w - (cols - 1) * 10) / cols; let yy = y;
       this._rows.forEach((rh, ri) => {
         cards.slice(ri * cols, ri * cols + cols).forEach((c, i) => {
-          const cx = x + i * (cw + 10); d.rect(cx, yy, cw, rh, C.white, C.line, 4); d.text(cx + 9, yy + 7, c.title, 8.4, 'bold', C.petrol);
-          if (c.total) d.text(cx + cw - 9, yy + 8, c.total, 7.2, 'semibold', C.muted, 'right');
-          const max = Math.max(...c.items.map(t => t.value), 1), lab = cw * 0.34, vw = 92, bw = cw - lab - vw - 24; let ty = yy + 22;
-          if (!c.items.length) d.text(cx + 9, ty, c.empty || 'Sin área activa.', 7.4, 'normal', C.muted);
-          c.items.forEach(t => { d.text(cx + 9, ty, d.m.wrap(t.label, 7.4, 'normal', lab - 4, 1)[0], 7.4, 'normal', C.text);
-            d.rect(cx + 9 + lab, ty + 1.6, bw, 6, C.soft, null, 2); d.rect(cx + 9 + lab, ty + 1.6, Math.max(1, bw * t.value / max), 6, c.color || C.petrol, null, 2);
-            d.text(cx + cw - 9 - 36, ty, t.display, 7.4, 'semibold', C.ink, 'right'); d.text(cx + cw - 9, ty, t.pct, 7, 'normal', C.muted, 'right'); ty += 12.5; });
-          if (c.note) d.text(cx + 9, ty + 1, c.note, 6.6, 'normal', C.muted);
+          const cx = x + i * (cw + 10), bx = cx + 9, bw = cw - 18, tot = c.items.reduce((n, t) => n + t.value, 0);
+          d.rect(cx, yy, cw, rh, C.softer, null, 4); d.text(bx, yy + 7, c.title, 8.4, 'bold', C.petrol); if (c.total) d.text(cx + cw - 9, yy + 8, c.total, 7.4, 'semibold', C.ink, 'right');
+          if (!c.items.length || !(tot > 0)) { d.text(bx, yy + 24, c.empty || 'Sin área activa.', 7.4, 'normal', C.muted); return; }
+          let sx = bx; c.items.forEach((t, k) => { const sw = bw * t.value / tot; d.rect(sx, yy + 21, Math.max(0.4, sw - (k < c.items.length - 1 ? 0.8 : 0)), 8, t.color, null, 0); sx += sw; });
+          let ty = yy + 36; c.items.forEach(t => { d.rect(bx, ty + 1.2, 6, 6, t.color, null, 1); d.text(bx + 10, ty, d.m.wrap(t.label, 7.4, 'normal', bw - 120, 1)[0], 7.4, 'normal', C.text);
+            d.text(cx + cw - 52, ty, t.display, 7.4, 'semibold', C.ink, 'right'); d.text(cx + cw - 9, ty, t.pct, 7.2, 'normal', C.muted, 'right'); ty += 11.2; });
         }); yy += rh + 10;
       });
     }
   });
-  // Gráfico de líneas vectorial: series por zafra, etiquetas de valor y línea de referencia opcional.
+  // Gráfico de líneas vectorial: zafras completas en el eje, cuadrícula discreta, puntos con anillo blanco, etiquetas de
+  // valor por encima o por debajo del punto según la pendiente (sin superponerse a la línea) y promedio rotulado al final.
   const chart = (o) => ({
     measure() { return o.height || 150; },
     draw(d, x, y, w) {
-      const h = o.height || 150; d.rect(x, y, w, h, C.white, C.line, 4); d.text(x + 9, y + 7, o.title, 8.4, 'bold', C.petrol);
-      if (o.sub) d.text(x + 9, y + 18, o.sub, 6.8, 'normal', C.muted);
-      let lx = x + w - 9; [...o.series].filter(s => s.name).reverse().forEach(s => { const tw = d.m.width(s.name, 6.8, 'normal'); d.text(lx, y + 8, s.name, 6.8, 'normal', C.text, 'right'); lx -= tw + 4; d.line(lx - 12, y + 11.5, lx, y + 11.5, s.color, 2, s.dash); lx -= 20; });
+      const h = o.height || 150; d.rect(x, y, w, h, C.white, C.line, 4, 0.5); d.text(x + 10, y + 8, o.title, 8.6, 'bold', C.petrol);
       const all = o.series.flatMap(s => s.values).concat(o.ref != null ? [o.ref] : []).filter(Number.isFinite);
-      if (!all.length) { d.text(x + 9, y + 40, 'Sin datos.', 8, 'normal', C.muted); return; }
-      let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.14 || Math.abs(hi) * 0.12 || 1; lo = o.zero ? 0 : Math.max(0, lo - pad); hi += pad;
-      const pl = x + 42, pr = x + w - 18, pt = y + (o.sub ? 30 : 24), pb = y + h - 20, X = i => pl + (o.labels.length > 1 ? i * (pr - pl) / (o.labels.length - 1) : (pr - pl) / 2), Y = v => pb - (v - lo) * (pb - pt) / (hi - lo || 1);
-      for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo) * k / 4; d.line(pl, Y(v), pr, Y(v), '#E8EDF0', 0.5); d.text(pl - 5, Y(v) - 3.4, fmt(v, o.axisDigits ?? 0), 6.4, 'normal', C.muted, 'right'); }
-      o.labels.forEach((l, i) => d.text(X(i), pb + 5, l, 6.4, 'normal', C.muted, 'center'));
-      if (o.ref != null) { d.line(pl, Y(o.ref), pr, Y(o.ref), C.blue, 0.9, [3, 2]); const ly = Y(o.ref) - 9 < pt ? Y(o.ref) + 3 : Y(o.ref) - 9; d.text(pl + 4, ly, o.refLabel, 6.4, 'semibold', C.blue, 'left'); }
+      if (!all.length) { d.text(x + 10, y + 40, 'Sin datos.', 8, 'normal', C.muted); return; }
+      let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.18 || Math.abs(hi) * 0.12 || 1; lo = Math.max(0, lo - pad); hi += pad;
+      const refW = o.ref != null ? Math.max(d.m.width(o.refLabel, 6.6, 'semibold'), 30) + 10 : 0;
+      const pl = x + 40, pr = x + w - 16 - refW, pt = y + 30, pb = y + h - 20, n = o.labels.length;
+      const X = i => pl + 10 + (n > 1 ? i * (pr - pl - 20) / (n - 1) : (pr - pl - 20) / 2), Y = v => pb - (v - lo) * (pb - pt) / (hi - lo || 1);
+      for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo) * k / 4; d.line(pl, Y(v), pr, Y(v), k ? '#EEF2F4' : '#D9E0E4', k ? 0.5 : 0.7); d.text(pl - 6, Y(v) - 3.2, fmt(v, o.axisDigits ?? 0), 6.4, 'normal', C.muted, 'right'); }
+      o.labels.forEach((l, i) => d.text(X(i), pb + 6, l, 6.6, 'normal', C.text, 'center'));
+      if (o.ref != null) { d.line(pl, Y(o.ref), pr, Y(o.ref), C.gold, 0.9, [3, 2]); d.text(pr + 6, Y(o.ref) - 3.4, o.refLabel, 6.6, 'semibold', '#8A6A12', 'left'); }
       o.series.forEach(s => { const pts = s.values.map((v, i) => Number.isFinite(v) ? [X(i), Y(v)] : null);
-        let run = []; pts.forEach(p => { if (p) run.push(p); else { if (run.length > 1) d.poly(run, s.color, 1.6, s.dash); run = []; } }); if (run.length > 1) d.poly(run, s.color, 1.6, s.dash);
-        pts.forEach((p, i) => { if (!p) return; d.dot(p[0], p[1], 2.1, s.color); if (o.labelsOn !== false && s.label !== false) d.text(p[0], p[1] - 10.5, fmt(s.values[i], s.digits ?? 2), 6.2, 'semibold', C.ink, 'center'); }); });
+        let run = []; pts.forEach(p => { if (p) run.push(p); else { if (run.length > 1) d.poly(run, s.color, 1.7, s.dash); run = []; } }); if (run.length > 1) d.poly(run, s.color, 1.7, s.dash);
+        pts.forEach((p, i) => { if (!p) return; d.dot(p[0], p[1], 3.3, C.white); d.dot(p[0], p[1], 2.3, s.color);
+          // Etiqueta en el cuadrante libre de la línea: valle → debajo; pico → encima; subida → arriba a la izquierda;
+          // bajada → arriba a la derecha. Se corrige hacia dentro del área del gráfico.
+          const v = s.values[i], a = s.values[i - 1], b = s.values[i + 1], fa = Number.isFinite(a), fb = Number.isFinite(b);
+          const valley = (!fa || a > v) && (!fb || b > v) && (fa || fb), up = fa && fb && a < v && v < b, down = fa && fb && a > v && v > b;
+          let lx = p[0], ly = valley ? p[1] + 5.5 : p[1] - 13, al = 'center';
+          if (up) { lx = p[0] - 5; ly = p[1] - 11; al = 'right'; } else if (down) { lx = p[0] + 5; ly = p[1] - 11; al = 'left'; }
+          if (ly < pt - 10) ly = p[1] + 5.5; if (ly + 7 > pb) ly = p[1] - 13;
+          d.text(lx, ly, fmt(v, s.digits ?? 2), 6.6, 'semibold', C.ink, al); }); });
     }
   });
   const note = (str, size = 7) => ({
@@ -258,7 +267,7 @@
         else if (o.t === 'img' && doc.A.logo) pdf.addImage(doc.A.logo.url, 'PNG', o.x, o.y, o.w, o.h, 'logo', 'FAST');
       });
     });
-    pdf.setProperties({title: doc.meta.title + ' · ' + doc.meta.subject, subject: doc.meta.footer, author: 'Negocios de Caña · CASUR', creator: 'Maestro de Suertes · motor de informes R2'});
+    pdf.setProperties({title: doc.meta.title + ' · ' + doc.meta.subject, author: 'Negocios de Caña · CASUR', creator: 'Negocios de Caña · CASUR'});
     return pdf.output('blob');
   }
   function pngScale(pages) {
@@ -293,11 +302,12 @@
   const kpiLabel = k => { const l = k.querySelector('.label') || k.querySelector('span'); if (!l) return ''; const own = [...l.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim(); return (own || cellText(l)).replace(/\s*\?$/, ''); };
   const panelKpis = root => Object.fromEntries([...root.querySelectorAll('.kpis .kpi')].map(k => [kpiLabel(k), {value: cellText(k.querySelector('strong')), note: cellText(k.querySelector('em,small'))}]));
   const officialTable = (root, sel = '.table-wrap table') => { const t = root.querySelector(sel); if (!t) return null; const heads = [...t.querySelectorAll('thead th')].map(cellText); return {heads, rows: [...t.querySelectorAll('tbody tr')].map(tr => [...tr.children].map(cellText)), nodes: [...t.querySelectorAll('tbody tr')]}; };
-  const metaLines = () => { const m = window.CRONO_DATA?.meta || {}; return ['Aforo ' + date(m.tchEst2627EffectiveDate) + ' · Consolidado ' + date(m.generated) + ' · Generación ' + (m.dataVersion || 'N/D')]; };
-  const histLines = () => { const h = window.APP_DATA?.meta || {}, z = h.zafras || []; return ['Histórico · zafras ' + (z[0]?.label || '—') + ' a ' + (h.latestLabel || '—') + ' · Fuente ' + (h.source || 'N/D') + ' · sin Maquila']; };
+  // Nombre de archivo: Tipo_Finca[_Suerte_NN]_DD-MMM-AAAA (sin tildes ni espacios).
+  const fileSafe = v => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9-]+/g, '_').replace(/^_+|_+$/g, '');
+  const fileName = (kind, farm, suerte, ext) => [kind, fileSafe(farm), suerte ? 'Suerte_' + fileSafe(suerte) : null, date(new Date().toLocaleDateString('sv-SE'))].filter(Boolean).join('_') + '.' + ext;
   const ageOf = r => { // misma regla que ageMonths() del Cronológico (index.html): base = el más reciente entre último corte y siembra.
     if (r?.renovacion && !r.fSiembra) return 0; const iso = v => v ? new Date(String(v) + 'T00:00:00') : null, c = iso(r.fUltCte), s = iso(r.fSiembra), f = iso(r.fBase);
     const b = c && s ? (s > c ? s : c) : (s || c || f); if (!b) return null; const n = new Date(), t = new Date(n.getFullYear(), n.getMonth(), n.getDate()); return Math.max(0, (t - b) / 86400000 / 30.4375); };
 
-  window.CASUR_REPORT_ENGINE = Object.freeze({assets, Doc, C, M, heading, kpis, groups, bars, chart, note, row, table, toPdf, toPng, pngScale, fmt, date, now, zlabel, cellText, kpiLabel, panelKpis, officialTable, metaLines, histLines, ageOf, PNG_MAX_SIDE, PNG_MAX_AREA});
+  window.CASUR_REPORT_ENGINE = Object.freeze({assets, Doc, C, M, SEQ, OTHER, RIEGO, heading, kpis, groups, composition, chart, note, row, table, toPdf, toPng, pngScale, fmt, date, now, zlabel, cellText, kpiLabel, panelKpis, officialTable, fileName, ageOf, PNG_MAX_SIDE, PNG_MAX_AREA});
 })();

@@ -2,7 +2,7 @@
 // Verifica contenido (paridad con el panel oficial, todas las suertes), texto seleccionable, fuentes incrustadas,
 // orientación, límites, tamaño PNG, selección múltiple (motor R1) y exportación sin conexión (Service Worker).
 // Uso: node tools/qa-informes.cjs BASE OUT_DIR   (requiere pdftotext, pdfinfo, pdffonts, pdfimages y pdftoppm)
-const {chromium, devices} = require('playwright'), assert = require('assert/strict'), fs = require('fs'), path = require('path'), {execFileSync} = require('child_process');
+const norma = require('./qa-informes-norma.cjs'), {chromium, devices} = require('playwright'), assert = require('assert/strict'), fs = require('fs'), path = require('path'), {execFileSync} = require('child_process');
 const [base, out] = process.argv.slice(2);
 if (!base || !out) throw Error('Usage: node tools/qa-informes.cjs BASE OUT_DIR');
 fs.mkdirSync(out, {recursive: true});
@@ -54,15 +54,7 @@ async function exportBoth(page, dir, name, kind, setup) {
       execFileSync('pdftoppm', ['-r', '60', '-png', r.pdf, path.join(dir, 'pages-' + name)]);
       return P;
     });
-    // Norma editorial (docs/ESTANDAR_EDITORIAL_INFORMES.md): sin referencias internas, columnas de Excel, archivos fuente,
-    // versiones, fórmulas ni textos metodológicos; pie solo «Negocios de Caña · CASUR» y numeración.
-    const FORBIDDEN = [/\((AD|AE|AF|AG|BE|BF|P)\)/, /\b(AD|AE|AF|AG|BE|BF)\/(AD|AE|AF|AG|BE|BF)\b/, /\bcolumna\b/i, /\.xlsx?\b/i, /Generaci[oó]n/i, /aforo\.\d+/i, /\b\d{4}\.\d{2}\.\d{2}\b/, /Consolidad/i, /motor oficial/i,
-      /estimado utilizable/i, /universo de molienda/i, /no es aforo/i, /plan de cosecha;/i, /Ponderad[oa] por/i, /÷/, /\bFuente\b/i, /Participaci[oó]n/i, /Estado maestro/i, /Estado TCH/i, /Cambio TCH/i, /Variabilidad/i,
-      /\bVs (CASUR|zona|variedad|riego|hist)/i, /Alerta/i, /TCH ejecutado/i, /Rango de cortes/i, /Naturaleza/i, /Documento de consulta/i, /\bUso\b/, /\(aforo\)|\(Histórico\)/i, /Km pond/i, /Dist\. ref/i, /Acción/, /escenario; no sustituye/i, /Toneladas? ÷/i, /Referencia actual/i, /Parcial ·/i, /aforo/i];
-    const editorial = (T, name) => { for (const re of FORBIDDEN) assert.doesNotMatch(T, re, name + ' contiene ' + re);
-      // Encabezado uniforme aprobado: «Negocios de Caña · CASUR» y «Consulta: DD-MMM-AAAA · hora» en la cabecera de la página 1.
-      const top = T.split('\n').slice(0, 4).join('\n'); assert.match(top, /Negocios de Caña · CASUR/, name + ' marca en el encabezado'); assert.match(top, /Consulta: \d{2}-[A-Z][a-z]{2}-\d{4} · \d{2}:\d{2}/, name + ' consulta en el encabezado');
-      const foot = T.split('\f').filter(x => x.trim()).map(pg => pg.trim().split('\n').slice(-1)[0].trim()); foot.forEach((l, i) => assert.match(l, new RegExp('^Negocios de Caña · CASUR\\s+Página ' + (i + 1) + ' de ' + foot.length + '$'), name + ' pie p.' + (i + 1) + ': ' + l)); };
+    const editorial = norma.editorial;
     const today = await page.evaluate(() => CASUR_CRONO_PARTICIPATION.formatDate(new Date().toLocaleDateString('sv-SE')));
     const names = (r, base) => { assert.equal(r.pdfName, base + '_' + today + '.pdf'); assert.equal(r.pngName, base + '_' + today + '.png'); };
     const kpiOrder = (T, labels) => { const pos = labels.map(k => T.indexOf(k)); assert.ok(pos.every(x => x >= 0) && pos.every((x, i) => !i || x > pos[i - 1]), 'orden KPI ' + labels + ' ' + pos); };

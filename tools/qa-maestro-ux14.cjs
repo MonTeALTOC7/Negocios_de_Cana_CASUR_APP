@@ -233,9 +233,10 @@ const kpis = page => page.$$eval(C + ' .ux14-kpi', ks => ks.map(k => ({label: k.
         const trig = pg.locator(R + ' .context-report-trigger'); await trig.waitFor();
         for (const [type, ext] of [['pdf', 'pdf'], ['image', 'png']]) {
           await trig.click(); const [d] = await Promise.all([pg.waitForEvent('download'), pg.locator('.context-report-menu:popover-open .casur-visual-action.' + type).click()]);
-          assert.match(d.suggestedFilename(), new RegExp('^' + (kind === 'zona' ? 'Zona_' : '') + z.replace(/ /g, '_') + '_\\d{4}-\\d{2}-\\d{2}\\.' + ext + '$'));
+          // R3 (27-Nov-2026): la descarga de Zona usa el motor de informes; nombre Cronologico|Historico_Zona_{Zona}_DD-MMM-AAAA.
+          assert.match(d.suggestedFilename(), new RegExp('^' + (kind === 'zona' ? 'Cronologico' : 'Historico') + '_Zona_Norte_\\d{2}-[A-Z][a-z]{2}-\\d{4}\\.' + ext + '$'));
           const f = (out || require('os').tmpdir()) + `/ux14c-${width}-${kind}.${ext}`; await d.saveAs(f); const buf = fs2.readFileSync(f);
-          if (ext === 'png') assert.equal(buf.readUInt32BE(16), 1920); else assert.ok((buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length >= 1);
+          if (ext === 'png') assert.ok(buf.readUInt32BE(16) >= 1224, 'PNG alta resolución'); else assert.ok((buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length >= 1);
         }
       }
       assert.deepEqual(pg.errors, []); await c2.close();

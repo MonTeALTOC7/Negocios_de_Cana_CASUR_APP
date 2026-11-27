@@ -175,3 +175,41 @@ Se conservan las pruebas de PNG Android, la selección múltiple (R1) y la expor
 - **QA:**
   - `qa-informes.cjs` verifica el encabezado de la página 1, la ausencia de «aforo», «TCH estim. Z26/27» en Datos productivos, el TCH histórico frente al panel (KPI TCH − «Vs histórico») y el encabezado R1 de la selección múltiple.
   - `qa-maestro-ux14.cjs` verifica el encabezado uniforme del exportador de Zona, sin metadatos internos.
+
+## R3: homologación y cierre de exportadores (27-Nov-2026)
+
+Los cinco informes restantes pasan al **mismo motor** (`report-engine.js` + `report-models.js`, jsPDF, Inter) y a la norma `docs/ESTANDAR_EDITORIAL_INFORMES.md`. No hay otro motor ni otra biblioteca.
+
+- **Bloque `R2-EXPORT` de `index.html`:** despacha `cronologico-multiple`, `historico-multiple` (con su variante ejecutiva o completa) y `zona`/`zona-historico` al motor. Su huella está actualizada.
+- **Motor anterior:** solo quedan en él las vistas generales de inicio del Cronológico y del Histórico, que no estaban en el alcance de R3.
+- **Motor de informes:**
+  - Una tabla corta, de menos de media página, se mantiene entera.
+  - La fila de total nunca queda sola en otra página.
+
+| Informe | Fuente (no se imprime) | Contenido | Páginas de la muestra |
+|---|---|---|---|
+| **Cronológico múltiple** | `CASUR_CRONO_SELECTION`: claves `código::suerte` exactas, incluidas selecciones parciales. Usa los motores `summary`, `participation`, `agronomicGroups` y `forecastForRow`. El TCH anterior Z25/26 sale del Histórico por código de lote | **KPI:** área activa, TCH estimado Z26/27, TCH anterior Z25/26 y edad actual. **Complemento:** toneladas, distancia, fincas y suertes. Composición apilada. Detalle de 11 columnas agrupado **por finca**, sin repetir códigos | 1 (3 suertes en 3 fincas) |
+| **Histórico multifinca ejecutivo** | `getHistoricoDualSummary()`: período, serie por zafra, TCH del período completo y fincas. Usa también `historicoMultiReportCharts().rows`, filtrado por la selección exacta | **KPI del período:** área cosechada, TCH, KATM y edad. **Complemento:** toneladas, distancia, fincas y suertes. Gráficos TCH (con «TCH histórico») y KATM. Resumen por finca. TCH por finca y zafra | 1 |
+| **Histórico multifinca completo** | Las mismas fuentes que el ejecutivo | Todo el ejecutivo, más el resumen por zafra de la selección. Por cada finca: resumen por zafra y TCH por suerte y zafra **de las suertes seleccionadas** | 6 (Pansaco y San Jerónimo completas) |
+| **Cronológico de Zona** | Nodo de exportación de `CASUR_ZONE_UX14` (`exportNode`, todas las filas) y `agronomicGroups` sobre las suertes de la zona | KPI y complemento de la pantalla. Composición apilada por variedad, tipo de riego, # de cortes y destino. Comparación productiva por tipo de riego. Detalle por finca (o por zona, en «Todas las zonas») | 2 |
+| **Histórico de Zona** | `exportNode` y `histFigures(zona).official` para la serie oficial por zafra | KPI y complemento. Gráficos TCH (con «TCH histórico») y KATM. Composición de área y toneladas por tipo de riego. Comparación con el histórico. Resumen por zafra. Detalle por finca | 2 |
+
+**Decisiones de presentación:**
+- **TCH por finca y zafra** y **TCH por suerte y zafra:** cada valor es toneladas ÷ área de las filas de la selección. El QA comprueba que esta agregación reproduce la serie oficial por zafra en cada zafra.
+- **Tabla de Zona:** se omite la posición «#» del ranking, porque el orden ya la expresa. También se omiten las zonas que solo existen en el Histórico cuando el informe es del aforo, ya que no tienen ningún dato en él.
+- **«Todas las zonas»:** la comparación por zona no se repite, porque coincide con el detalle por zona.
+- **Mapa híbrido del Histórico multifinca completo:** no se incluye. Era una imagen de mosaicos que exigía conexión, y el encargo de R3 pide conservar el detalle histórico, no el mapa. El mapa sigue disponible en la pantalla.
+- **«Consolidado»** se reserva para la fecha de consolidación de datos y no se imprime. En multifinca, el total de la selección se rotula «Total selección».
+
+**QA (`tools/qa-informes-r3.cjs`, nueva), en PC y Android con los botones reales:**
+- **Escenarios:**
+  - Cronológico múltiple con 3 fincas y con una selección parcial de 3 suertes de Pansaco, que incluye una inactiva.
+  - Histórico multifinca ejecutivo, completo y parcial (3 suertes de Pansaco más San Jerónimo completa).
+  - Zona 2-Centro y «Todas las zonas».
+  - Histórico de 2-ZONA CENTRO.
+- **Comprobaciones:**
+  - Norma editorial compartida: `tools/qa-informes-norma.cjs`.
+  - Nombres de archivo, texto seleccionable, fuentes incrustadas, márgenes, páginas verticales, «Página X de Y» y páginas sin vacíos.
+  - Límites de PNG en Android.
+  - Paridad con la pantalla y con los motores, e integridad de registros: suertes, fincas, filas y zafras.
+- **Sin conexión:** se exportan desde la caché de la PWA el Cronológico múltiple y la Zona.

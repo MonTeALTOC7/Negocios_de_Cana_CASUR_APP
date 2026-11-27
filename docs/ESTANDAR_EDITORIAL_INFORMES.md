@@ -3,7 +3,8 @@
 **Norma permanente del repositorio** (vigente desde el 27-Nov-2026). Se aplica a todo informe que la aplicación
 exporte a PDF o PNG: Cronológico y Histórico de Finca y de Suerte (motor de informes,
 `modules/produccion/js/report-engine.js` + `report-models.js`) y, desde R3, a los informes múltiples y de Zona.
-Todo cambio a un exportador debe cumplirla y mantener verde su prueba editorial (`tools/qa-informes.cjs`).
+Todo cambio a un exportador debe cumplirla y mantener verdes sus pruebas editoriales (`tools/qa-informes.cjs` y
+`tools/qa-informes-r3.cjs`, con los patrones compartidos de `tools/qa-informes-norma.cjs`).
 
 ## 1. Destinatarios
 
@@ -21,6 +22,9 @@ impreso debe tener utilidad para decidir; lo demás se omite.
 - **Fechas:** DD-MMM-AAAA (p. ej. 12-Oct-2026).
 - **Nombres de archivo:** `Cronologico_{Finca}_{DD-MMM-AAAA}`, `Cronologico_{Finca}_Suerte_{NN}_{DD-MMM-AAAA}`,
   `Historico_{Finca}_{DD-MMM-AAAA}` e `Historico_{Finca}_Suerte_{NN}_{DD-MMM-AAAA}`, con la extensión `.pdf` o `.png`.
+  Informes múltiples y de Zona: `Cronologico_Multifinca_{DD-MMM-AAAA}`, `Historico_Multifinca_Ejecutivo_{DD-MMM-AAAA}`,
+  `Historico_Multifinca_Completo_{DD-MMM-AAAA}`, `Cronologico_Zona_{Zona}_{DD-MMM-AAAA}` e `Historico_Zona_{Zona}_{DD-MMM-AAAA}`
+  (p. ej. `Cronologico_Zona_Sur_27-Nov-2026.pdf`; sin zona elegida, `Zona_Todas`).
   El nombre no lleva tildes y los espacios se sustituyen por «_».
 
 ## 3. Qué no se imprime

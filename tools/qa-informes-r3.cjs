@@ -21,6 +21,8 @@ const SCEN = [
   ['hist-multi-ejecutivo', 'historico-multiple', 'executive', HIST + `addHistoricoMultiFarm('993');addHistoricoMultiFarm('2');renderHistoricoMultiSummary();`, 'Historico_Multifinca_Ejecutivo'],
   ['hist-multi-completo', 'historico-multiple', 'complete', '', 'Historico_Multifinca_Completo'],
   ['hist-multi-parcial', 'historico-multiple', 'complete', HIST + `toggleHistoricoSuerteSelection('99301',true);toggleHistoricoSuerteSelection('99302',true);toggleHistoricoSuerteSelection('99309',true);addHistoricoMultiFarm('2');renderHistoricoMultiSummary();`, 'Historico_Multifinca_Completo'],
+  ['hist-multi-5zafras', 'historico-multiple', 'executive', HIST + `addHistoricoMultiFarm('993');addHistoricoMultiFarm('2');renderHistoricoMultiSummary();||WAIT||changeHistoricoMultiPeriod('last5');`, 'Historico_Multifinca_Ejecutivo'],
+  ['hist-multi-2zafras', 'historico-multiple', 'executive', `changeHistoricoMultiPeriod('custom');||WAIT||toggleHistoricoMultiZafra(2425,true);`, 'Historico_Multifinca_Ejecutivo'],
   ['zona-crono-centro', 'zona', null, ZC('2-Centro'), 'Cronologico_Zona_Centro'],
   ['zona-crono-todas', 'zona', null, ZC(''), 'Cronologico_Zona_Todas'],
   ['zona-hist-centro', 'zona-historico', null, ZH('2-ZONA CENTRO'), 'Historico_Zona_Centro'],
@@ -49,12 +51,13 @@ async function exportOne(page, dir, name, kind, variant, type) {
           return {keys, area: S.inventoryArea, est: S.estimateTch, tons: S.estimateTons, tchAnt: a ? t / a : null, lots: rows.map(r => ({code: r.codLote, suerte: r.suerte, farm: r.code, tchEst: r.tchEst2627, active: O.participation(r).activeArea})),
             screen: [...document.querySelectorAll('.crono-multi-kpis .kpi')].map(k => [k.querySelector('.label').textContent.trim(), k.querySelector('strong').textContent.trim()])}; }
         if (kind === 'historico-multiple') { const S = getHistoricoDualSummary(), Rr = historicoMultiReportCharts();
-          return {sel: S.selection.map(f => ({code: f.farmCode, name: f.farmName, mode: f.mode, lots: f.lotIds.length})), period: S.period, full: S.full.tch, series: S.series.map(x => ({zafra: x.zafra, tch: x.tch, katm: x.katm, area: x.area})), farms: S.analysis.farms.map(f => ({name: f.farmName, tch: f.tch, area: f.area, katm: f.katm})),
+          return {sel: S.selection.map(f => ({code: f.farmCode, name: f.farmName, mode: f.mode, lots: f.lotIds.length, ids: f.lotIds})), period: S.period, full: S.full.tch, fullK: S.full.katm, zafras: S.selectedZafras, series: S.series.map(x => ({zafra: x.zafra, tch: x.tch, katm: x.katm, area: x.area})), farms: S.analysis.farms.map(f => ({name: f.farmName, tch: f.tch, area: f.area, katm: f.katm})),
             rows: Rr.rows.filter(x => S.selection.some(f => String(f.farmCode) === String(x.farmCode) && f.lotIds.map(String).includes(String(x.lotId)))).map(x => [x.farmCode, x.lotId, x.zafra, x.area, x.ton])}; }
         const root = document.querySelector(kind === 'zona' ? '.ux14-zone:not(.ux14-hist-zone)' : '.ux14-hist-zone'), zone = root.dataset.zone || '';
         const out = {zone, kpis: [...root.querySelectorAll('.ux14-kpis .ux14-kpi strong')].map(s => s.firstChild.textContent.trim()), strip: [...root.querySelectorAll('.ux14-strip-item b')].map(b => b.textContent.trim()), compare: [...root.querySelectorAll('figure.ux14-compare .ux14-group')].map(g => [g.querySelector('b').textContent.trim(), ...[...g.querySelectorAll('.ux14-bar em')].map(e => e.textContent.split(' · ')[0])])};
         if (kind === 'zona') { const rows = CRONO_DATA.producers.flatMap(p => p.details).filter(r => !zone || r.zona === zone); out.groups = Object.fromEntries(['variedad', 'tipoRiego', 'corte', 'destino'].map(f => [f, P.agronomicGroups(rows, f).map(g => [g.key, g.area])])); out.farms = CASUR_ZONE_UX14.figures(zone).crono.inventoryArea; }
-        else { const H = CASUR_ZONE_UX14.histFigures(zone, 'Total'); out.official = H.official.map(x => [x.zafra, x.area, x.ton, x.tch, x.katm]); out.hist = H.hist; }
+        else { const H = CASUR_ZONE_UX14.histFigures(zone, 'Total'); out.official = H.official.map(x => [x.zafra, x.area, x.ton, x.tch, x.katm]); out.hist = H.hist;
+          const t = H.official.reduce((n, x) => n + (x.katm != null ? x.ton : 0), 0); out.histK = H.official.reduce((n, x) => n + (x.katm != null ? x.katm * x.ton : 0), 0) / t; }
         return out; }, [kind]);
       const pdfX = await exportOne(page, dir, name, kind, variant, 'pdf'), pngX = variant === 'complete' ? null : await exportOne(page, dir, name, kind, variant, 'image');
       R[name] = {kind, variant, fname, ref, pdf: pdfX, png: pngX, today};
@@ -81,17 +84,30 @@ async function exportOne(page, dir, name, kind, variant, type) {
       }
     });
     await check(`[${device}] Histórico multifinca: KPI del período, TCH y KATM por zafra, TCH histórico, resumen por finca = motor; completo con todas las suertes seleccionadas; selección parcial`, async () => {
-      for (const name of ['hist-multi-ejecutivo', 'hist-multi-completo', 'hist-multi-parcial']) {
+      for (const name of ['hist-multi-ejecutivo', 'hist-multi-completo', 'hist-multi-parcial', 'hist-multi-5zafras', 'hist-multi-2zafras']) {
         const r = R[name], T = pdf(r.pdf.file).text, ref = r.ref, p0 = ref.period;
-        for (const v of [f2(p0.area), f2(p0.tch), f2(p0.katm), f2(p0.edad), 'TCH histórico ' + f2(ref.full)]) assert.ok(T.includes(v), name + ' ' + v);
+        for (const v of [f2(p0.area), f2(p0.tch), f2(p0.katm), f2(p0.edad), 'TCH histórico ' + f2(ref.full), 'KATM histórico ' + f2(ref.fullK)]) assert.ok(T.includes(v), name + ' ' + v);
+        // Fincas seleccionadas como fichas (nombre · código y alcance) y mapa con solo números de suerte, sin choques.
+        assert.match(T, /Fincas seleccionadas/); for (const f of ref.sel) { assert.ok(T.includes(f.name + ' · ' + f.code), 'ficha ' + f.name); assert.ok(T.includes(f.mode === 'full' ? 'Finca completa' : f.lots + ' suertes seleccionadas'), 'alcance ' + f.name); }
+        assert.match(T, /Mapa de fincas y suertes seleccionadas/); assert.doesNotMatch(T, /\bSuerte \d|CodSuerte/, 'rótulos solo con número');
+        const mp = r.pdf.last.check.map; assert.ok(mp.length >= 1 && mp.every(m => m.overlaps === 0 && m.shapes > 0), 'mapa ' + JSON.stringify(mp));
+        const lab = mp.reduce((n, m) => n + m.labels, 0), shown = mp.reduce((n, m) => n + m.shown, 0); assert.ok(shown >= lab * 0.85, 'rótulos visibles ' + shown + '/' + lab);
+        const partial = ref.sel.filter(f => f.mode !== 'full'); for (const f of partial) for (const id of f.ids) assert.match(T, new RegExp('\\s' + esc(String(id).slice(String(f.code).length)) + '\\s'), 'rótulo ' + id);
+        // Zafras: 1 → «Período 25/26»; 2 → «Período a a b · 2 zafras»; más de 2 → cantidad y listado.
+        const zl = z => String(z).padStart(4, '0').replace(/(..)(..)/, '$1/$2'), zs = ref.zafras, head = T.split('\n').slice(0, 6).join(' ');
+        if (zs.length === 1) { assert.match(head, new RegExp('Período ' + esc(zl(zs[0])))); assert.doesNotMatch(head, /Período: \d+ zafras/); }
+        else if (zs.length === 2) assert.match(head, new RegExp('Período ' + esc(zl(zs[0])) + ' a ' + esc(zl(zs[1])) + ' · 2 zafras'));
+        else assert.match(head, new RegExp('Período: ' + zs.length + ' zafras · ' + zs.map(z => esc(zl(z))).join(' · ')));
+        assert.match(head, /Histórico: 10 zafras · 16\/17 a 25\/26/);
         for (const z of ref.series) { assert.ok(T.includes(f2(z.tch)), 'TCH ' + z.zafra); assert.ok(T.includes(f2(z.katm)), 'KATM ' + z.zafra); }
         for (const f of ref.farms) assert.match(T, new RegExp(esc(f.name) + '\\s+\\S+\\s+\\S+\\s+' + esc(f2(f.area)) + '[\\s\\S]{0,60}' + esc(f2(f.tch))), 'finca ' + f.name);
         // Integridad: la agregación toneladas ÷ área de las filas de la selección reproduce la serie oficial por zafra.
         for (const z of ref.series) { const rs = ref.rows.filter(x => x[2] === z.zafra), a = rs.reduce((n, x) => n + x[3], 0), t = rs.reduce((n, x) => n + x[4], 0); assert.ok(Math.abs(t / a - z.tch) < 0.006, 'serie ' + z.zafra + ' ' + (t / a) + ' vs ' + z.tch); }
         if (r.variant === 'complete') { const lots = new Set(ref.rows.map(x => x[1])); assert.equal(r.pdf.last.check.lotsShown, lots.size, 'todas las suertes seleccionadas');
           for (const f of ref.sel) assert.match(T, new RegExp(esc(f.name) + ' · Código ' + esc(f.code) + (f.mode === 'full' ? '' : ' · ' + f.lots + ' suertes seleccionadas'))); }
-        else assert.equal(r.pdf.last.pages.length, 1, 'ejecutivo en una página');
-        if (name === 'hist-multi-parcial') { assert.equal(ref.sel.find(f => f.code === '993').lots, 3); assert.match(T, /Pansaco \(993\) · 3 suertes/); }
+        else assert.equal(r.pdf.last.pages.length, 2, 'ejecutivo: indicadores y mapa');
+        if (name === 'hist-multi-parcial') assert.equal(ref.sel.find(f => f.code === '993').lots, 3);
+        if (name === 'hist-multi-5zafras') assert.equal(ref.zafras.length, 5); if (name === 'hist-multi-2zafras') assert.equal(ref.zafras.length, 2);
       }
     });
     await check(`[${device}] Zona: KPI = pantalla, composición = área activa, comparación por tipo de riego, detalle de todas las fincas; «Todas las zonas»; Histórico con serie oficial y TCH histórico`, async () => {
@@ -102,7 +118,7 @@ async function exportOne(page, dir, name, kind, variant, type) {
         assert.equal(r.pdf.last.check.rows, await page.evaluate(z => z ? new Set(CRONO_DATA.producers.flatMap(p => p.details).filter(x => x.zona === z).map(x => String(x.code))).size : null, ref.zone) ?? r.pdf.last.check.rows, 'todas las fincas');
       }
       const r = R['zona-hist-centro'], T = pdf(r.pdf.file).text, ref = r.ref; for (const v of ref.kpis) assert.ok(T.includes(v), 'KPI ' + v);
-      assert.ok(T.includes('TCH histórico ' + f2(ref.hist)), 'TCH histórico'); assert.equal(r.pdf.last.check.zafras, ref.official.length);
+      assert.ok(T.includes('TCH histórico ' + f2(ref.hist)), 'TCH histórico'); assert.ok(T.includes('KATM histórico ' + f2(ref.histK)), 'KATM histórico'); assert.equal(r.pdf.last.check.zafras, ref.official.length);
       const lines = T.split('\n'); for (const [z, a, t, tch, k] of ref.official) { const lab = String(z).padStart(4, '0').replace(/(..)(..)/, '$1/$2'), l = lines.find(x => x.trim().startsWith(lab + ' ') && x.includes(f2(a))); assert.ok(l && l.includes(f0(t)) && l.includes(f2(tch)) && l.includes(f2(k)), 'zafra ' + lab); }
       assert.equal(r.pdf.last.check.rows, 16, 'detalle por finca completo');
     });

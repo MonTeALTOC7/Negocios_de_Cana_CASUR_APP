@@ -99,6 +99,8 @@ async function exportBoth(page, dir, name, kind, setup) {
     await check(`[${device}] Histórico de Finca Pansaco: KPI = panel oficial, solo gráficos TCH y KATM, resumen por zafra limpio, detalle de todos los lotes, norma editorial`, async () => {
       const r = R['hist-finca-pansaco'], T = pdf(r.pdf).text, o = r.official, lines = T.split('\n'), h = Object.fromEntries(o.heads.map((x, i) => [x, i])); names(r, 'Historico_Pansaco'); editorial(T, 'hist-finca');
       const vs = o.kpis.find(k => /histórico/i.test(k[0])), tchK = num(o.kpis.find(k => /^TCH/i.test(k[0]))[1]), ref = (tchK - num(vs[1])).toFixed(2); assert.match(T, new RegExp('TCH histórico ' + esc(ref)), 'línea TCH histórico = panel ' + ref);
+      { const code = r.pdfLast.template === 'historico-suerte' ? '99301' : null, k = await page.evaluate(c => { let a = 0, t = 0; APP_DATA.lotCompact.filter(l => c ? String(l[0]) === c : String(l[8]) === '993' && !/MAQUILA/i.test(l[2] || '')).forEach(l => l[11].forEach(x => { if (x[4] != null && x[2] > 0) { a += x[4] * x[2]; t += x[2]; } })); return (a / t).toFixed(2); }, code);
+        assert.match(T, new RegExp('KATM histórico ' + esc(Number(k).toLocaleString('en-US', {minimumFractionDigits: 2}))), 'línea KATM histórico ' + k); }
       kpiOrder(T, ['Área cosechada Z25/26', 'TCH Z25/26', 'KATM Z25/26', 'Edad Z25/26', 'Distancia', 'TCH por zafra', 'KATM por zafra', 'Resumen por zafra', 'TCH por suerte y zafra']);
       for (const v of ['428.96', '63.35', '98.15', '11.38', '7.55', 'Zona 5-PRODUCTORES', 'Zafras 16/17 a 25/26']) assert.ok(T.includes(v), v);
       assert.doesNotMatch(T, /Toneladas por zafra|Área cosechada \(ha\)\n|Variedad dom|TCH pond|KATM pond|Edad prom|Estado/);
@@ -112,6 +114,8 @@ async function exportBoth(page, dir, name, kind, setup) {
     await check(`[${device}] Histórico de Suerte 01: una página, 10 zafras = tabla oficial (7 columnas), variedad y riego vigentes en el encabezado, norma editorial`, async () => {
       const r = R['hist-suerte-pansaco-01'], T = pdf(r.pdf).text, o = r.official, lines = T.split('\n'), h = Object.fromEntries(o.heads.map((x, i) => [x, i])); names(r, 'Historico_Pansaco_Suerte_01'); editorial(T, 'hist-suerte');
       const vs = o.kpis.find(k => /histórico/i.test(k[0])), tchK = num(o.kpis.find(k => /^TCH/i.test(k[0]))[1]), ref = (tchK - num(vs[1])).toFixed(2); assert.match(T, new RegExp('TCH histórico ' + esc(ref)), 'línea TCH histórico = panel ' + ref);
+      { const code = r.pdfLast.template === 'historico-suerte' ? '99301' : null, k = await page.evaluate(c => { let a = 0, t = 0; APP_DATA.lotCompact.filter(l => c ? String(l[0]) === c : String(l[8]) === '993' && !/MAQUILA/i.test(l[2] || '')).forEach(l => l[11].forEach(x => { if (x[4] != null && x[2] > 0) { a += x[4] * x[2]; t += x[2]; } })); return (a / t).toFixed(2); }, code);
+        assert.match(T, new RegExp('KATM histórico ' + esc(Number(k).toLocaleString('en-US', {minimumFractionDigits: 2}))), 'línea KATM histórico ' + k); }
       assert.deepEqual(r.pdfLast.pages, ['portrait']); kpiOrder(T, ['Área cosechada Z25/26', 'TCH Z25/26', 'KATM Z25/26', 'Edad Z25/26', 'Distancia', 'TCH por zafra', 'KATM por zafra', 'Registro por zafra']);
       for (const v of ['Código 99301', 'Variedad CP 72-2086', 'Tipo de riego Gravedad', '8.09']) assert.ok(T.includes(v), v);
       assert.equal((T.match(/CP 72-2086/g) || []).length, 1, 'variedad no se repite por zafra'); assert.equal((T.match(/Gravedad/g) || []).length, 1, 'riego no se repite por zafra');

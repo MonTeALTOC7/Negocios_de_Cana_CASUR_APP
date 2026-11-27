@@ -13,8 +13,10 @@ impreso debe tener utilidad para decidir; lo demás se omite.
 ## 2. Qué se imprime
 
 - **KPI:** solo etiqueta, valor y unidad. Sin texto debajo del valor.
-- **Encabezado:** logo, título del informe, finca (o finca y suerte), datos de identificación necesarios (código,
-  zona, tenencia, variedad o tipo de riego cuando corresponda), fecha de aforo o período de zafras, y fecha de consulta.
+- **Encabezado (uniforme en todos los exportadores):** a la izquierda, logo, título del informe, finca (o finca y
+  suerte) y los datos de identificación necesarios: código, zona, tenencia, variedad o tipo de riego cuando
+  corresponda, y el período de zafras en los históricos. A la derecha, siempre «Negocios de Caña · CASUR» y debajo
+  «Consulta: DD-MMM-AAAA · hora». Los cronológicos no muestran la fecha de aforo.
 - **Pie:** solo «Negocios de Caña · CASUR» y «Página X de Y».
 - **Fechas:** DD-MMM-AAAA (p. ej. 12-Oct-2026).
 - **Nombres de archivo:** `Cronologico_{Finca}_{DD-MMM-AAAA}`, `Cronologico_{Finca}_Suerte_{NN}_{DD-MMM-AAAA}`,

@@ -161,3 +161,17 @@ Además verifica:
 - Las páginas verticales y los márgenes.
 
 Se conservan las pruebas de PNG Android, la selección múltiple (R1) y la exportación sin conexión.
+
+## R2-3: iteración fina (27-Nov-2026)
+- **Encabezado uniforme en todos los exportadores:** «Negocios de Caña · CASUR» y «Consulta: DD-MMM-AAAA · hora» en la esquina derecha.
+  - **Motor de informes:** se aplica en la página 1.
+  - **Motor R1** (múltiples y Zona): lo aplica `uniformHeader()` dentro del bloque `R1-EXPORT`, cuya huella está actualizada. Afecta solo a la copia exportada: la pantalla no cambia.
+  - En esos encabezados se quitan los metadatos internos que quedaban: generación, consolidado, AD/AE, motor oficial, fuente, notas metodológicas y consultas con otro formato de fecha.
+- **Cronológico de Finca y de Suerte:** sin «Fecha de aforo».
+- **Cronológico de Suerte · Datos productivos:** se añade «TCH estim. Z26/27» (AD).
+- **Histórico de Finca y de Suerte:** el gráfico TCH lleva la línea «TCH histórico».
+  - Se calcula como toneladas ÷ área de todas las zafras, con el mismo criterio que «Vs histórico» del panel: Pansaco 73.53 y suerte 01 89.58.
+  - Las etiquetas de valor llevan fondo blanco para leerse limpias sobre la línea.
+- **QA:**
+  - `qa-informes.cjs` verifica el encabezado de la página 1, la ausencia de «aforo», «TCH estim. Z26/27» en Datos productivos, el TCH histórico frente al panel (KPI TCH − «Vs histórico») y el encabezado R1 de la selección múltiple.
+  - `qa-maestro-ux14.cjs` verifica el encabezado uniforme del exportador de Zona, sin metadatos internos.

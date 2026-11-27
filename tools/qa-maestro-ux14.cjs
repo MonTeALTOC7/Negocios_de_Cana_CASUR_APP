@@ -226,8 +226,10 @@ const kpis = page => page.$$eval(C + ' .ux14-kpi', ks => ks.map(k => ({label: k.
         assert.ok(rep.logo, 'logo institucional'); assert.equal(rep.controls, 0, 'sin controles interactivos'); assert.deepEqual(rep.kpis, live.kpis, 'KPI del informe = interfaz');
         assert.equal(rep.rows, total, 'tabla completa'); assert.ok(rep.breaks > 0, 'puntos de corte seguros'); assert.equal(rep.w, 1920, 'PNG alta resolución (2×)');
         assert.match(rep.text, new RegExp((kind === 'zona' ? 'Zona ' : '') + z)); assert.doesNotMatch(rep.text, /Sistema|por confirmar/); assert.doesNotMatch(rep.text, /\d{4}-\d{2}-\d{2}|\b\d{2}\/\d{2}\/\d{4}\b/);
-        if (kind === 'zona') { assert.match(rep.text, new RegExp('Aforo ' + meta.aforo + ' · Consolidado ' + meta.gen)); assert.match(rep.text, new RegExp('Generación ' + meta.version.replace(/\./g, '\\.'))); }
-        else assert.match(rep.text, /Tipo de riego: categoría original actual del lote/);
+        // Encabezado uniforme aprobado (27-Nov-2026): marca y consulta; sin metadatos internos (docs/ESTANDAR_EDITORIAL_INFORMES.md).
+        assert.match(rep.text, /Negocios de Caña · CASURConsulta: \d{2}-[A-Z][a-z]{2}-\d{4} · /, 'encabezado uniforme');
+        assert.doesNotMatch(rep.text, /Generación|Consolidado|AD\/AE|Motor oficial|Fuente:|categoría original actual/, 'sin metadatos internos en el encabezado');
+        if (kind !== 'zona') assert.match(rep.text, /Zafras \d{2}\/\d{2}–\d{2}\/\d{2}/);
         const trig = pg.locator(R + ' .context-report-trigger'); await trig.waitFor();
         for (const [type, ext] of [['pdf', 'pdf'], ['image', 'png']]) {
           await trig.click(); const [d] = await Promise.all([pg.waitForEvent('download'), pg.locator('.context-report-menu:popover-open .casur-visual-action.' + type).click()]);

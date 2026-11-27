@@ -238,11 +238,15 @@
       const prep = o.rows.map(r => r.section ? {section: r.section, h: 14} : {cells: r.map((v, i) => d.m.wrap(v ?? '—', fs, cols[i].bold ? 'semibold' : 'normal', widths[i] - 6, cols[i].lines || 3)), raw: r, tone: r.tone});
       prep.forEach(r => { if (!r.section) r.h = Math.max(...r.cells.map(c => c.length)) * lh + 5; });
       const drawHead = () => { const y = d.y; d.rect(M, y, w, hh, C.petrol, null, 0); head.forEach((h, i) => h.forEach((t, j) => d.text(cols[i].align === 'right' ? X[i] + widths[i] - 3 : X[i] + 3, y + 3.5 + j * (lh - 0.6), t, fs - 0.4, 'semibold', C.white, cols[i].align === 'right' ? 'right' : 'left'))); d.y += hh; };
+      // Tabla corta (cabe en menos de la mitad de una página): se mantiene entera; si no cabe aquí, empieza en la siguiente.
+      const whole = (o.title ? 20 : 0) + hh + prep.reduce((n, r) => n + r.h, 0) + (o.total ? 16 : 0);
+      if (whole < (d.page.h - 2 * M - FOOT) * 0.5 && !d.space(whole) && d.y > d.pageTop() + 1) d.newPage();
       if (o.title) { const t = heading(o.title, o.sub, 0); const th = t.measure(d); if (!d.space(th + hh + (prep[0]?.h || 0) * 3) && d.y > d.pageTop() + 1) d.newPage(); t.draw(d, M, d.y, w); d.y += th + 6; }
       else if (!d.space(hh + (prep[0]?.h || 0) * 3) && d.y > d.pageTop() + 1) d.newPage();
       drawHead(); let zebra = 0;
       prep.forEach((r, k) => {
-        const nextH = r.section ? (prep[k + 1]?.h || 0) : 0;
+        // Un separador viaja con su primera fila y la última fila con el total: nunca quedan solos al pie o al inicio de página.
+        const nextH = r.section ? (prep[k + 1]?.h || 0) : (k === prep.length - 1 && o.total ? 16 : 0);
         if (!d.space(r.h + nextH)) { d.newPage(); if (o.title) { d.text(M, d.y, o.title + ' (continuación)', 8, 'semibold', C.muted); d.y += 13; } drawHead(); zebra = 0; }
         const y = d.y;
         if (r.section) { d.rect(M, y, w, r.h, C.section, null, 0); d.text(M + 4, y + 3.6, r.section, fs, 'bold', C.ink); d.y += r.h; zebra = 0; return; }

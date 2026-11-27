@@ -43,7 +43,7 @@
     const ent = (window.mainEntities?.() || []).find(e => String(e.code) === String(code)), part = r => O().participation(r);
     const first = off.get(String(rows[0]?.codLote)) || [];
     const d = new E.Doc(A, {title: 'Cronológico de Finca', subject: p.name + ' · Código ' + p.code, consulta: now(),
-      lines: ['Zona ' + (first[col['Zona']] || rows[0]?.zona || '—') + ' · Tenencia ' + (first[col['Tenencia']] || '—'), 'Fecha de aforo ' + date(m.tchEst2627EffectiveDate)]});
+      lines: ['Zona ' + (first[col['Zona']] || rows[0]?.zona || '—') + ' · Tenencia ' + (first[col['Tenencia']] || '—')]});
     d.newPage('portrait');
     const [aV, aU] = split(K['Área activa']?.value), [ageV] = split(K['Edad ponderada']?.value), [tV, tU] = split(K['Ton. Estim. Z' + est]?.value), [dV, dU] = split(K['Distancia ponderada (km)']?.value);
     d.add(kpis([
@@ -77,7 +77,7 @@
     const K = panelKpis(node), T = officialTable(node), m = window.CRONO_DATA.meta || {}, est = m.estimateSeason || '26/27';
     const col = Object.fromEntries(T.heads.map((h, i) => [h, i])), o = T.rows.find((x, i) => (cellText(T.nodes[i].children[0].querySelector('b')) || x[0]) === String(lot)) || T.rows[0] || [];
     const d = new E.Doc(A, {title: 'Cronológico de Suerte', subject: p.name + ' · Suerte ' + r.suerte, consulta: now(),
-      lines: ['Código ' + r.codLote + ' · Finca ' + p.code + ' · Zona ' + (o[col['Zona']] || r.zona || '—') + ' · Variedad ' + (o[col['Variedad']] || r.variedad || '—') + ' · Tenencia ' + (o[col['Tenencia']] || '—'), 'Fecha de aforo ' + date(m.tchEst2627EffectiveDate)]});
+      lines: ['Código ' + r.codLote + ' · Finca ' + p.code + ' · Zona ' + (o[col['Zona']] || r.zona || '—') + ' · Variedad ' + (o[col['Variedad']] || r.variedad || '—') + ' · Tenencia ' + (o[col['Tenencia']] || '—')]});
     d.newPage('portrait');
     const fk = K['Fecha para cosecha ' + est] || {}, [aV, aU] = split(K['Área activa']?.value), [ageV] = split(K['Edad actual']?.value);
     d.add(kpis([
@@ -94,7 +94,7 @@
     d.add(groups([
       [{title: 'Caracterización', items: [['# de cortes', o[col['# de Corte']]], ['Textura', o[col['Textura']]], ['Tipo de riego', o[col['Tipo de riego']]], ['Distancia entre surcos', surco && surco !== '—' ? surco + ' m' : '—'], ['Fecha de siembra', date(r.fSiembra)], ['Fecha de último corte', date(r.fUltCte)], ['Destino', o[col['Destino Cultivo']]]]},
         {title: 'Ubicación', items: [['Distancia', (o[col['Distancia (km)']] || '—') + (num(o[col['Distancia (km)']]) != null ? ' km' : '')]]}],
-      [{title: 'Datos productivos', items: [['TCH anterior Z' + latestL(), h ? fmt(h.tch) + ' t/ha' : '—'], ['Toneladas estimadas Z' + est, o[col['Ton. est. ' + est]]], ['Área cosechada Z' + latestL(), h ? fmt(h.area) + ' ha' : '—']]},
+      [{title: 'Datos productivos', items: [['TCH anterior Z' + latestL(), h ? fmt(h.tch) + ' t/ha' : '—'], ['TCH estim. Z' + est, num(o[col['TCH est. ' + est]]) != null ? o[col['TCH est. ' + est]] + ' t/ha' : '—'], ['Toneladas estimadas Z' + est, o[col['Ton. est. ' + est]]], ['Área cosechada Z' + latestL(), h ? fmt(h.area) + ' ha' : '—']]},
         {title: 'Plan de cosecha', items: [['Tipo de corte', r.plan?.cut ? P().cutTypeText(r.plan.cut) : '—'], ['Edad proyectada a cosecha', r.plan?.calculatedAge != null ? fmt(r.plan.calculatedAge) + ' meses' : '—']]},
         opt ? {title: 'Escenario optimista', items: [['TCH optimista', fmt(opt.tch) + ' t/ha'], ['Toneladas optimistas', fmt(opt.tons) + ' t']]} : null]]));
     return {doc: d, name: ext => E.fileName('Cronologico', p.name, r.suerte, ext), check: {lot: String(lot), trend: trend.length}};
@@ -114,9 +114,11 @@
     d.add(kpis([{label: 'Distancia', value: dV, unit: dU}], 4, true));
   }
   // fill: los dos gráficos ocupan el resto de la página (Histórico de Finca: página 1 = KPI + gráficos).
-  const histCharts = (d, labels, tch, katm, fill) => {
+  // TCH histórico = toneladas ÷ área de todas las zafras del Histórico (mismo criterio que «Vs histórico» del panel).
+  const histAvg = L => { let t = 0, a = 0; L.forEach(l => (l[11] || []).forEach(x => { t += x[2] || 0; a += x[1] || 0; })); return a ? t / a : null; };
+  const histCharts = (d, labels, tch, katm, fill, avg) => {
     const hh = fill ? Math.min(250, Math.floor((d.bottom - d.y - 10) / 2)) : 0;
-    d.add(chart({title: 'TCH por zafra', labels, series: [{name: 'TCH', color: C.petrol, values: tch}], height: hh || 170}));
+    d.add(chart({title: 'TCH por zafra', labels, series: [{name: 'TCH', color: C.petrol, values: tch}], ref: avg, refLabel: 'TCH histórico ' + fmt(avg), height: hh || 170}));
     d.add(chart({title: 'KATM por zafra', labels, series: [{name: 'KATM', color: '#5B8E7D', values: katm}], height: hh || 160}));
   };
 
@@ -125,7 +127,7 @@
     const c = Object.fromEntries(T.heads.map((h, i) => [h, i])), name = histName(node), ent = (window.mainEntities?.() || []).find(e => String(e.code) === String(code));
     const d = new E.Doc(A, {title: 'Histórico de Finca', subject: name + ' · Código ' + code, consulta: now(), lines: ['Zona ' + (ent?.latest?.zona || T.rows.at(-1)?.[c['Zona']] || '—'), zafraSpan()]});
     d.newPage('portrait'); histKpis(d, node, T);
-    const zf = T.rows.map(r => r[c['Zafra']]); histCharts(d, zf, T.rows.map(r => num(r[c['TCH pond.']])), T.rows.map(r => num(r[c['KATM pond.']])), true);
+    const zf = T.rows.map(r => r[c['Zafra']]); histCharts(d, zf, T.rows.map(r => num(r[c['TCH pond.']])), T.rows.map(r => num(r[c['KATM pond.']])), true, histAvg(lots().filter(l => String(l[8]) === String(code) && !/MAQUILA/i.test(l[2] || ''))));
     d.newPage();
     const cols = [['Zafra', 'Zafra', 0.7], ['Área', 'Área (ha)', 0.85], ['Ton', 'Toneladas', 0.95], ['TCH pond.', 'TCH', 0.75], ['KATM pond.', 'KATM', 0.75], ['Edad prom.', 'Edad (meses)', 0.8], ['Variedad dom.', 'Variedad', 1.15], ['Riego', 'Tipo de riego', 1], ['Suertes', 'Suertes', 0.65]].filter(([k]) => k in c);
     const right = new Set(['Área', 'Ton', 'TCH pond.', 'KATM pond.', 'Edad prom.', 'Suertes']);
@@ -148,7 +150,7 @@
     const d = new E.Doc(A, {title: 'Histórico de Suerte', subject: farm + ' · Suerte ' + suerte, consulta: now(),
       lines: ['Código ' + lot + ' · Finca ' + (lc[8] || '—') + ' · Zona ' + (lc[2] || '—'), 'Variedad ' + (lc[3] || '—') + ' · Tipo de riego ' + (lc[4] || '—') + ' · ' + zafraSpan()]});
     d.newPage('portrait'); histKpis(d, node, T);
-    histCharts(d, T.rows.map(r => r[c['Zafra']]), T.rows.map(r => num(r[c['TCH']])), T.rows.map(r => num(r[c['KATM']])));
+    histCharts(d, T.rows.map(r => r[c['Zafra']]), T.rows.map(r => num(r[c['TCH']])), T.rows.map(r => num(r[c['KATM']])), false, histAvg(lc.length ? [lc] : []));
     const cols = [['Zafra', 'Zafra'], ['Área', 'Área (ha)'], ['Ton', 'Toneladas'], ['TCH', 'TCH'], ['KATM', 'KATM'], ['Edad', 'Edad (meses)'], ['Corte', '# de cortes']].filter(([k]) => k in c);
     d.add(table({title: 'Registro por zafra', columns: cols.map(([k, l]) => ({label: l, w: 1, align: k === 'Zafra' ? 'left' : 'right', bold: k === 'Zafra'})), rows: T.rows.map(r => cols.map(([k]) => k === 'Corte' && num(r[c[k]]) != null ? fmt(num(r[c[k]]), 0) : r[c[k]]))}));
     return {doc: d, name: ext => E.fileName('Historico', farm, suerte, ext), check: {lot: String(lot), zafras: T.rows.length}};

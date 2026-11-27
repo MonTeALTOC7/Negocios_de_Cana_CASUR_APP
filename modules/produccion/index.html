@@ -5477,15 +5477,41 @@ RENDER_CSS+='\n'+[
 ].join('\n');
 })();
 window.CASUR_VISUAL_EXPORT={version:VERSION,target:target,prepareClone:prepareClone,renderCanvas:renderCanvas,pdfBlobFromCanvas:pdfBlobFromCanvas,pdf:function(kind){var b=q('[data-casur-export-kind="'+kind+'"] .pdf');if(b)b.click();},image:function(kind){var b=q('[data-casur-export-kind="'+kind+'"] .image');if(b)b.click();},audit:function(){return{version:VERSION,historico:!!target('historico'),cronologico:!!target('cronologico'),histMulti:!!target('historico-multiple'),cronoMulti:!!target('cronologico-multiple'),buttons:qa('.casur-visual-action').length,printButtons:qa('.casur-visual-action.print').length};}};
-/* R1-EXPORT (autorizado 26-Nov-2026, docs/PROPUESTA_REDISENO_INFORMES.md R1): medir y pintar en el mismo contexto CSS. */
+/* R1-EXPORT (autorizado 26-Nov-2026, docs/PROPUESTA_REDISENO_INFORMES.md R1): medir y pintar en el mismo contexto CSS.
+   Encabezado uniforme (autorizado 27-Nov-2026, docs/ESTANDAR_EDITORIAL_INFORMES.md): «Negocios de Caña · CASUR» y «Consulta» a la derecha. */
 (function(){
 // Same root rules in the measuring iframe and in the foreignObject: font, colour and line height live on the report root
 // (html/body do not exist inside the foreignObject); decorative app icons get a fixed size.
 RENDER_CSS+='\n'+[
 '.casur-render-root{font-family:Arial,"Liberation Sans","Segoe UI",Helvetica,sans-serif;color:#132019;line-height:1.25;background:#fff;text-align:left}',
 '.casur-render-root svg.maestro-icon{width:16px!important;height:16px!important;min-width:16px!important;flex:0 0 16px!important;display:inline-block!important;vertical-align:middle!important}',
-'.casur-render-root .ux09-kpi-icon,.casur-render-root .premium-kpi-icon{width:22px!important;height:22px!important;flex:0 0 22px!important}'
+'.casur-render-root .ux09-kpi-icon,.casur-render-root .premium-kpi-icon{width:22px!important;height:22px!important;flex:0 0 22px!important}',
+'.casur-render-root .print-header,.pdf-paged .print-header{display:flex!important;flex-wrap:wrap!important;align-items:flex-start!important;justify-content:flex-start!important;gap:12px 16px!important}',
+'.casur-render-root .print-header>:not(.casur-header-brand),.casur-render-root .print-header>:not(.casur-header-brand) *,.pdf-paged .print-header>:not(.casur-header-brand),.pdf-paged .print-header>:not(.casur-header-brand) *{text-align:left!important;align-items:flex-start!important;justify-content:flex-start!important;margin-left:0!important}',
+'.casur-render-root .print-header>.hist-multi-included,.pdf-paged .print-header>.hist-multi-included{flex:1 0 100%!important;order:3!important}',
+'.casur-render-root .casur-header-brand,.pdf-paged .casur-header-brand{order:2!important;margin-left:auto!important;flex:0 0 auto!important;text-align:right!important;white-space:nowrap!important;line-height:1.35!important}',
+'.casur-render-root .casur-header-brand strong,.pdf-paged .casur-header-brand strong{display:block!important;font-size:12.5px!important;font-weight:700!important;color:#1F4E5C!important}',
+'.casur-render-root .casur-header-brand span,.pdf-paged .casur-header-brand span{display:block!important;font-size:11.5px!important;font-weight:400!important;color:#576579!important}'
 ].join('\n');
+// Encabezado limpio y uniforme: sin metadatos internos (generación, consolidación, columnas, motor, fuente) ni fechas de
+// consulta en otros formatos; la marca y la consulta (DD-MMM-AAAA · hora) van siempre en la esquina derecha.
+var INTERNAL=/Generaci[oó]n|Consolidad|AD\/AE|Motor oficial|^Fuente|categor[ií]a original|Maquila excluida|^Aforo \d/i;
+function uniformHeader(root){
+  var h=q('.print-header',root);if(!h)return;
+  var meta=q('.print-meta',h),col=qa('h2',h)[0]&&qa('h2',h)[0].parentElement;
+  qa('p',h).forEach(function(p){if(/Negocios de Ca\u00f1a\s*\u00b7\s*CASUR/.test(p.textContent||''))remove(p);});
+  if(meta){
+    qa('span',meta).forEach(function(sp){
+      var parts=(sp.textContent||'').split(' \u00b7 ').filter(function(t){return t.trim()&&!/^Consulta/i.test(t.trim())&&!INTERNAL.test(t.trim());});
+      if(/^Consulta/i.test((sp.textContent||'').trim())||!parts.length)remove(sp);else sp.textContent=parts.join(' \u00b7 ');
+    });
+    if(meta.parentElement===h&&col&&col!==h)col.appendChild(meta);
+  }
+  var n=new Date(),f=window.CASUR_CRONO_PARTICIPATION&&window.CASUR_CRONO_PARTICIPATION.formatDate,iso=n.toLocaleDateString('sv-SE');
+  var b=document.createElement('div');b.className='casur-header-brand';
+  b.innerHTML='<strong>Negocios de Ca\u00f1a \u00b7 CASUR</strong><span>Consulta: '+esc((f?f(iso):iso)+' \u00b7 '+n.toLocaleTimeString('es-NI',{hour:'2-digit',minute:'2-digit'}))+'</span>';
+  h.appendChild(b);
+}
 function isolated(width){
   var frame=document.createElement('iframe');frame.setAttribute('aria-hidden','true');frame.tabIndex=-1;
   frame.style.cssText='position:fixed;left:-100000px;top:0;width:'+width+'px;height:10px;border:0;opacity:0;pointer-events:none;z-index:-99999';
@@ -5499,7 +5525,7 @@ function headingGuard(nodes,top,scale){
 }
 renderCanvas=async function(kind,variant){
   var node=target(kind);if(!node)throw new Error('Abra primero la ficha o el resumen que desea exportar.');
-  var cloneNode=prepareClone(node,kind,variant);
+  var cloneNode=prepareClone(node,kind,variant);uniformHeader(cloneNode);
   if(kind==='historico-multiple'&&variant){
     var mapHolder=document.createElement('div');var mapModel=null;
     try{mapModel=await historicalMapModel(window.getHistoricoDualSummary().selection);mapHolder.innerHTML=await historicalHybridReport(mapModel);}

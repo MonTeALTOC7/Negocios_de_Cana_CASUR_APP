@@ -86,7 +86,9 @@
         this.text(tx, M - 2, meta.title, 15, 'bold', C.ink);
         this.text(tx, M + 17, meta.subject, 10.5, 'semibold', C.petrol);
         let my = M + 31; (meta.lines || []).forEach(l => { this.text(tx, my, l, 7.3, 'normal', C.muted); my += 9.2; });
-        this.text(x + w, M - 1, 'Consulta: ' + meta.consulta, 7.3, 'normal', C.muted, 'right');
+        // Encabezado uniforme aprobado (todos los exportadores): marca y fecha de consulta a la derecha.
+        this.text(x + w, M - 1, 'Negocios de Caña · CASUR', 7.6, 'semibold', C.petrol, 'right');
+        this.text(x + w, M + 9.5, 'Consulta: ' + meta.consulta, 7.3, 'normal', C.muted, 'right');
         const yy = Math.max(M + 44, my + 2); this.line(x, yy, x + w, yy, C.petrol, 1.2); return yy + 12;
       }
       this.text(x, M - 6, meta.title + ' · ' + meta.subject, 7.8, 'semibold', C.ink);
@@ -213,7 +215,9 @@
           let lx = p[0], ly = valley ? p[1] + 5.5 : p[1] - 13, al = 'center';
           if (up) { lx = p[0] - 5; ly = p[1] - 11; al = 'right'; } else if (down) { lx = p[0] + 5; ly = p[1] - 11; al = 'left'; }
           if (ly < pt - 10) ly = p[1] + 5.5; if (ly + 7 > pb) ly = p[1] - 13;
-          d.text(lx, ly, fmt(v, s.digits ?? 2), 6.6, 'semibold', C.ink, al); }); });
+          // Fondo blanco bajo la etiqueta: se lee limpia aunque la cruce la línea de referencia o la cuadrícula.
+          const lab = fmt(v, s.digits ?? 2), lw = d.m.width(lab, 6.6, 'semibold'), bx = al === 'center' ? lx - lw / 2 : al === 'right' ? lx - lw : lx;
+          d.rect(bx - 1.6, ly - 1.2, lw + 3.2, 8.2, C.white, null, 1.5); d.text(lx, ly, lab, 6.6, 'semibold', C.ink, al); }); });
     }
   });
   const note = (str, size = 7) => ({

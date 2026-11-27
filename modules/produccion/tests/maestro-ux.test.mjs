@@ -23,7 +23,7 @@ test('Fase 1 conserva byte a byte el documento y los motores originales tras ret
   return (html.slice(0,start)+html.slice(end)).replace(authorized,'null;');};
  // Exportadores R1/R2 (owner authorization 26-Nov-2026, docs/PROPUESTA_REDISENO_INFORMES.md): each block is inserted
  // once, after window.CASUR_VISUAL_EXPORT, and pinned by SHA-256. Nothing else in the engine may change.
- const AUTHORIZED_EXPORT_BLOCKS=[['/* R1-EXPORT (autorizado','/* R1-EXPORT-END */\n','4501dd207e28ac2ced1f8fa681b777ac64eb62dca5c5e2f3dfbcdac5e2fbd311'],['/* R2-EXPORT (autorizado','/* R2-EXPORT-END */\n','3786b6c3cd2d8015e15b587178a7bc3679518bf9af657f2de1529500f3681c2a']];
+ const AUTHORIZED_EXPORT_BLOCKS=[['/* R1-EXPORT (autorizado','/* R1-EXPORT-END */\n','0a37ecd5d0bb2639d9636d15858dd3d82ae52943190edc8a96d75bdf70a10206'],['/* R2-EXPORT (autorizado','/* R2-EXPORT-END */\n','3786b6c3cd2d8015e15b587178a7bc3679518bf9af657f2de1529500f3681c2a']];
  const exportBlocks=html=>AUTHORIZED_EXPORT_BLOCKS.reduce((h,[open,close,sha])=>{const a=h.indexOf(open);if(a<0)return h;const b=h.indexOf(close,a);assert.ok(b>a,open+' block end');
   const block=h.slice(a,b+close.length);assert.equal(createHash('sha256').update(block).digest('hex'),sha,open+' block is exactly the authorized one');assert.equal(h.split(open).length,2,open+' inserted once');
   return h.slice(0,a)+h.slice(b+close.length);},html);

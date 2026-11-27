@@ -54,9 +54,11 @@ async function exportBoth(page, dir, name, kind, setup) {
       return P;
     });
     await common('crono-finca-pansaco', 'cronologico-finca', ['portrait', 'landscape']);
-    await check(`[${device}] Cronológico de Finca Pansaco: KPI (área, TCH est., TCH ejecutado, edad), 49 suertes con todas las variables y cifras = tabla oficial`, async () => {
+    await check(`[${device}] Cronológico de Finca Pansaco: KPI (área, TCH est., TCH ejecutado, edad del día), 49 suertes con todas las variables y cifras = tabla oficial`, async () => {
       const r = R['crono-finca-pansaco'], T = pdf(r.pdf).text, o = r.official, h = Object.fromEntries(o.heads.map((x, i) => [x, i]));
-      for (const v of ['368.44', '48.57', '63.35', '10.61', '17,452.08', '66.23']) assert.match(T, new RegExp(esc(v)), v);
+      // La edad actual depende de la fecha de consulta: se compara con la del panel oficial del mismo momento.
+      const age = o.kpis.find(k => /Edad/.test(k[0]))[1].split(' ')[0];
+      for (const v of ['368.44', '48.57', '63.35', age, '17,452.08', '66.23']) assert.match(T, new RegExp(esc(v)), v);
       assert.match(T, /TCH ejecutado Z25\/26/); assert.match(T, /TCH anterior Z25\/26 \(aforo\)/); assert.match(T, /Aforo 12-Oct-2026 · Consolidado 22-Nov-2026 · Generación 2026\.11\.22-aforo\.1102/);
       for (const k of ['Variedad', 'Tipo de riego', '# de cortes \\(rangos\\)', 'Destino', 'Activas · Molienda', 'Activas · Semilla', 'Inactivas']) assert.match(T, new RegExp(k));
       assert.equal(o.rows.length, 49); assert.equal(r.pdfLast.check.placed, 49); assert.equal(r.pdfLast.check.caracterizadas, 49);
@@ -70,7 +72,8 @@ async function exportBoth(page, dir, name, kind, setup) {
     await check(`[${device}] Cronológico de Suerte 01: KPI en orden (TCH est., fecha cosecha, área, edad), ficha sin tabla de 18 columnas, sin repetir variedad`, async () => {
       const r = R['crono-suerte-pansaco-01'], T = pdf(r.pdf).text, o = r.official, h = Object.fromEntries(o.heads.map((x, i) => [x, i])), row = o.rows[0];
       const pos = ['TCH estimado Z26/27', 'Fecha para cosecha 26/27', 'Área activa', 'Edad actual'].map(k => T.indexOf(k)); assert.ok(pos.every(x => x > 0) && pos.every((x, i) => !i || x > pos[i - 1]), 'orden KPI ' + pos);
-      for (const v of ['60.00', '17-Dic-2026', '19.00', '11.63', '84.24', '1,140.00 t', 'Corte mecánico', '138.08', '94.22']) assert.match(T, new RegExp(esc(v)), v);
+      const age = o.kpis.find(k => /Edad actual/.test(k[0]))[1].split(' ')[0];
+      for (const v of ['60.00', '17-Dic-2026', '19.00', age, '84.24', '1,140.00 t', 'Corte mecánico', '138.08', '94.22']) assert.match(T, new RegExp(esc(v)), v);
       assert.doesNotMatch(T, /Detalle por suerte/); assert.equal((T.match(/CP 72-2086/g) || []).length, 1, 'variedad solo en el encabezado');
       for (const k of ['Caracterización agronómica', 'Datos productivos', 'Plan de cosecha', 'Ubicación y estado', 'Escenario optimista']) assert.match(T, new RegExp(k));
       for (const k of ['Textura', 'Surco', 'Distancia (km)', 'Estado maestro', 'Estado TCH 25/26']) assert.ok(T.includes(row[h[k]]), k + ' ' + row[h[k]]);

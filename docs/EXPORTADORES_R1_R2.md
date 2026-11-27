@@ -213,3 +213,24 @@ Los cinco informes restantes pasan al **mismo motor** (`report-engine.js` + `rep
   - Límites de PNG en Android.
   - Paridad con la pantalla y con los motores, e integridad de registros: suertes, fincas, filas y zafras.
 - **Sin conexión:** se exportan desde la caché de la PWA el Cronológico múltiple y la Zona.
+
+## R3-2: ajustes del propietario (27-Nov-2026)
+- **Mapa del Histórico multifinca:** vuelve a incluirse en el ejecutivo, en el completo y en la PNG, como sección «Mapa de fincas y suertes seleccionadas».
+  - **Dibujo:** bloque vectorial `map` del motor, alimentado por las geometrías oficiales de `historicalMapModel`. Funciona sin conexión y no depende de mosaicos.
+  - **Polígonos:** relleno tenue del color de cada finca, con contornos finos y tintados, porque las suertes vienen fragmentadas por surcos y un trazo oscuro saturaba el mapa.
+  - **Selección parcial:** las suertes no seleccionadas quedan como contexto en gris.
+  - **Rótulos:** solo el número de suerte (`01`, `02`, `29A`), sin caja para no tapar los polígonos. Un rótulo se omite si chocaría con otro; en la muestra salen 133 de 146 y el QA exige al menos el 85 %.
+  - **Encuadre:** las fincas cercanas comparten un mapa y las lejanas van en mapas separados.
+- **Fincas seleccionadas:** fichas con el color de la finca en el mapa, «Nombre · código» y el alcance («Finca completa · N suertes» o «N suertes seleccionadas»). Aparecen en la página 1 y como leyenda del mapa.
+- **Zafras del multifinca:**
+  - **1 zafra:** «Período 25/26».
+  - **2 zafras:** «Período 24/25 a 25/26 · 2 zafras».
+  - **Más de 2:** «Período: 5 zafras · 21/22 · 22/23 · 23/24 · 24/25 · 25/26».
+  - **Siempre:** «Histórico: 10 zafras · 16/17 a 25/26».
+- **«KATM histórico» en todos los gráficos KATM** (finca, suerte, multifinca ejecutivo y completo, y Zona):
+  - **Cálculo:** Σ(KATM × toneladas) ÷ Σ toneladas de todas las zafras, el mismo criterio que el KATM ponderado.
+  - **Presentación:** se rotula al final de la línea, y las etiquetas de valor llevan fondo blanco.
+  - **Multifinca:** usa el KATM del período completo del motor del Histórico.
+- **QA:**
+  - `qa-informes-r3.cjs` tiene ahora 29 pruebas. Añade los escenarios de 5 y 2 zafras y verifica el mapa, los rótulos solo con número, las fichas, las zafras del período y la línea KATM histórico frente al motor.
+  - `qa-informes.cjs` verifica la línea KATM histórico del Histórico de Finca y de Suerte frente a `lotCompact`.

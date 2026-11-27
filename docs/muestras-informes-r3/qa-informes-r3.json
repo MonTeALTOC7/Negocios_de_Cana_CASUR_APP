@@ -22,6 +22,14 @@
   ],
   [
    "PASS",
+   "[pc] hist-multi-5zafras: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Ejecutivo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[pc] hist-multi-2zafras: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Ejecutivo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
    "[pc] zona-crono-centro: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Cronologico_Zona_Centro_DD-MMM-AAAA, norma editorial"
   ],
   [
@@ -67,6 +75,14 @@
   [
    "PASS",
    "[android] hist-multi-parcial: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Completo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] hist-multi-5zafras: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Ejecutivo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] hist-multi-2zafras: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Ejecutivo_DD-MMM-AAAA, norma editorial"
   ],
   [
    "PASS",
@@ -177,6 +193,7 @@
      "type": "pdf",
      "name": "Historico_Multifinca_Ejecutivo_27-Nov-2026.pdf",
      "pages": [
+      "portrait",
       "portrait"
      ],
      "check": {
@@ -184,13 +201,23 @@
       "rows": 1461,
       "lotsShown": 0,
       "zafras": 10,
-      "variant": "executive"
+      "period": 1,
+      "variant": "executive",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0
+       }
+      ]
      },
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 1,
+      "pages": 2,
       "orientations": [
+       "portrait",
        "portrait"
       ]
      },
@@ -198,7 +225,7 @@
     },
     "png": {
      "width": 1530,
-     "height": 1980,
+     "height": 4000,
      "scale": 2.5
     },
     "names": [
@@ -217,6 +244,7 @@
       "portrait",
       "portrait",
       "portrait",
+      "portrait",
       "portrait"
      ],
      "check": {
@@ -224,13 +252,23 @@
       "rows": 1461,
       "lotsShown": 168,
       "zafras": 10,
-      "variant": "complete"
+      "period": 1,
+      "variant": "complete",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0
+       }
+      ]
      },
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 6,
+      "pages": 7,
       "orientations": [
+       "portrait",
        "portrait",
        "portrait",
        "portrait",
@@ -256,6 +294,7 @@
       "portrait",
       "portrait",
       "portrait",
+      "portrait",
       "portrait"
      ],
      "check": {
@@ -263,13 +302,23 @@
       "rows": 997,
       "lotsShown": 110,
       "zafras": 10,
-      "variant": "complete"
+      "period": 1,
+      "variant": "complete",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 101,
+        "shown": 95,
+        "overlaps": 0
+       }
+      ]
      },
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 5,
+      "pages": 6,
       "orientations": [
+       "portrait",
        "portrait",
        "portrait",
        "portrait",
@@ -282,6 +331,98 @@
     "names": [
      "Historico_Multifinca_Completo_27-Nov-2026.pdf",
      null
+    ]
+   },
+   "hist-multi-5zafras": {
+    "pdf": {
+     "template": "historico-multiple-ejecutivo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Ejecutivo_27-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 1461,
+      "lotsShown": 0,
+      "zafras": 10,
+      "period": 5,
+      "variant": "executive",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Multifinca_Ejecutivo_27-Nov-2026.pdf",
+     "Historico_Multifinca_Ejecutivo_27-Nov-2026.png"
+    ]
+   },
+   "hist-multi-2zafras": {
+    "pdf": {
+     "template": "historico-multiple-ejecutivo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Ejecutivo_27-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 1461,
+      "lotsShown": 0,
+      "zafras": 10,
+      "period": 2,
+      "variant": "executive",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Multifinca_Ejecutivo_27-Nov-2026.pdf",
+     "Historico_Multifinca_Ejecutivo_27-Nov-2026.png"
     ]
    },
    "zona-crono-centro": {
@@ -531,6 +672,7 @@
      "type": "pdf",
      "name": "Historico_Multifinca_Ejecutivo_27-Nov-2026.pdf",
      "pages": [
+      "portrait",
       "portrait"
      ],
      "check": {
@@ -538,13 +680,23 @@
       "rows": 1461,
       "lotsShown": 0,
       "zafras": 10,
-      "variant": "executive"
+      "period": 1,
+      "variant": "executive",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0
+       }
+      ]
      },
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 1,
+      "pages": 2,
       "orientations": [
+       "portrait",
        "portrait"
       ]
      },
@@ -552,7 +704,7 @@
     },
     "png": {
      "width": 1530,
-     "height": 1980,
+     "height": 4000,
      "scale": 2.5
     },
     "names": [
@@ -571,6 +723,7 @@
       "portrait",
       "portrait",
       "portrait",
+      "portrait",
       "portrait"
      ],
      "check": {
@@ -578,13 +731,23 @@
       "rows": 1461,
       "lotsShown": 168,
       "zafras": 10,
-      "variant": "complete"
+      "period": 1,
+      "variant": "complete",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0
+       }
+      ]
      },
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 6,
+      "pages": 7,
       "orientations": [
+       "portrait",
        "portrait",
        "portrait",
        "portrait",
@@ -610,6 +773,7 @@
       "portrait",
       "portrait",
       "portrait",
+      "portrait",
       "portrait"
      ],
      "check": {
@@ -617,13 +781,23 @@
       "rows": 997,
       "lotsShown": 110,
       "zafras": 10,
-      "variant": "complete"
+      "period": 1,
+      "variant": "complete",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 101,
+        "shown": 95,
+        "overlaps": 0
+       }
+      ]
      },
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 5,
+      "pages": 6,
       "orientations": [
+       "portrait",
        "portrait",
        "portrait",
        "portrait",
@@ -636,6 +810,98 @@
     "names": [
      "Historico_Multifinca_Completo_27-Nov-2026.pdf",
      null
+    ]
+   },
+   "hist-multi-5zafras": {
+    "pdf": {
+     "template": "historico-multiple-ejecutivo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Ejecutivo_27-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 1461,
+      "lotsShown": 0,
+      "zafras": 10,
+      "period": 5,
+      "variant": "executive",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Multifinca_Ejecutivo_27-Nov-2026.pdf",
+     "Historico_Multifinca_Ejecutivo_27-Nov-2026.png"
+    ]
+   },
+   "hist-multi-2zafras": {
+    "pdf": {
+     "template": "historico-multiple-ejecutivo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Ejecutivo_27-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 1461,
+      "lotsShown": 0,
+      "zafras": 10,
+      "period": 2,
+      "variant": "executive",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Multifinca_Ejecutivo_27-Nov-2026.pdf",
+     "Historico_Multifinca_Ejecutivo_27-Nov-2026.png"
     ]
    },
    "zona-crono-centro": {

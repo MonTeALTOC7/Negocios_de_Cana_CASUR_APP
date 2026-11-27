@@ -2,11 +2,11 @@
  "results": [
   [
    "PASS",
-   "[pc] crono-finca-pansaco: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+   "[pc] crono-finca-pansaco: PDF vectorial con texto, fuentes incrustadas, portrait/portrait , sin desbordes; PNG dentro de límites Android"
   ],
   [
    "PASS",
-   "[pc] Cronológico de Finca Pansaco: KPI (área, TCH est., TCH ejecutado, edad), 49 suertes con todas las variables y cifras = tabla oficial"
+   "[pc] Cronológico de Finca Pansaco: KPI ejecutivos (TCH anterior Z25/26 = 63.35 del Histórico), composición apilada, una sola tabla de 11 columnas con las 49 suertes, norma editorial"
   ],
   [
    "PASS",
@@ -14,35 +14,35 @@
   ],
   [
    "PASS",
-   "[pc] Cronológico de Suerte 01: KPI en orden (TCH est., fecha cosecha, área, edad), ficha sin tabla de 18 columnas, sin repetir variedad"
+   "[pc] Cronológico de Suerte 01: una página, KPI en orden sin subtextos, fichas autorizadas, norma editorial"
   ],
   [
    "PASS",
-   "[pc] hist-finca-pansaco: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+   "[pc] hist-finca-pansaco: PDF vectorial con texto, fuentes incrustadas, portrait , sin desbordes; PNG dentro de límites Android"
   ],
   [
    "PASS",
-   "[pc] Histórico de Finca Pansaco: KPI y resumen por zafra = panel oficial; detalle de todos los lotes; área Z25/26 de los lotes = KPI"
+   "[pc] Histórico de Finca Pansaco: KPI = panel oficial, solo gráficos TCH y KATM, resumen por zafra limpio, detalle de todos los lotes, norma editorial"
   ],
   [
    "PASS",
-   "[pc] hist-suerte-pansaco-01: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+   "[pc] hist-suerte-pansaco-01: PDF vectorial con texto, fuentes incrustadas, portrait , sin desbordes; PNG dentro de límites Android"
   ],
   [
    "PASS",
-   "[pc] Histórico de Suerte 99301: 14 columnas en página horizontal, 10 zafras = tabla oficial; gráficos TCH y KATM"
+   "[pc] Histórico de Suerte 01: una página, 10 zafras = tabla oficial (7 columnas), variedad y riego vigentes en el encabezado, norma editorial"
   ],
   [
    "PASS",
-   "[pc] crono-finca-pequena-904: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+   "[pc] crono-finca-pequena-904: PDF vectorial con texto, fuentes incrustadas, portrait , sin desbordes; PNG dentro de límites Android"
   ],
   [
    "PASS",
-   "[pc] Finca pequeña 904 (Cronológico e Histórico): caracteres especiales y todas sus suertes"
+   "[pc] Finca pequeña 904 (Cronológico e Histórico): caracteres especiales, todas sus suertes, inactivas fuera de las cifras productivas"
   ],
   [
    "PASS",
-   "[pc] hist-finca-pequena-904: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+   "[pc] hist-finca-pequena-904: PDF vectorial con texto, fuentes incrustadas, portrait , sin desbordes; PNG dentro de límites Android"
   ],
   [
    "PASS",
@@ -54,11 +54,11 @@
   ],
   [
    "PASS",
-   "[android] crono-finca-pansaco: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+   "[android] crono-finca-pansaco: PDF vectorial con texto, fuentes incrustadas, portrait/portrait , sin desbordes; PNG dentro de límites Android"
   ],
   [
    "PASS",
-   "[android] Cronológico de Finca Pansaco: KPI (área, TCH est., TCH ejecutado, edad), 49 suertes con todas las variables y cifras = tabla oficial"
+   "[android] Cronológico de Finca Pansaco: KPI ejecutivos (TCH anterior Z25/26 = 63.35 del Histórico), composición apilada, una sola tabla de 11 columnas con las 49 suertes, norma editorial"
   ],
   [
    "PASS",
@@ -66,35 +66,35 @@
   ],
   [
    "PASS",
-   "[android] Cronológico de Suerte 01: KPI en orden (TCH est., fecha cosecha, área, edad), ficha sin tabla de 18 columnas, sin repetir variedad"
+   "[android] Cronológico de Suerte 01: una página, KPI en orden sin subtextos, fichas autorizadas, norma editorial"
   ],
   [
    "PASS",
-   "[android] hist-finca-pansaco: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+   "[android] hist-finca-pansaco: PDF vectorial con texto, fuentes incrustadas, portrait , sin desbordes; PNG dentro de límites Android"
   ],
   [
    "PASS",
-   "[android] Histórico de Finca Pansaco: KPI y resumen por zafra = panel oficial; detalle de todos los lotes; área Z25/26 de los lotes = KPI"
+   "[android] Histórico de Finca Pansaco: KPI = panel oficial, solo gráficos TCH y KATM, resumen por zafra limpio, detalle de todos los lotes, norma editorial"
   ],
   [
    "PASS",
-   "[android] hist-suerte-pansaco-01: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+   "[android] hist-suerte-pansaco-01: PDF vectorial con texto, fuentes incrustadas, portrait , sin desbordes; PNG dentro de límites Android"
   ],
   [
    "PASS",
-   "[android] Histórico de Suerte 99301: 14 columnas en página horizontal, 10 zafras = tabla oficial; gráficos TCH y KATM"
+   "[android] Histórico de Suerte 01: una página, 10 zafras = tabla oficial (7 columnas), variedad y riego vigentes en el encabezado, norma editorial"
   ],
   [
    "PASS",
-   "[android] crono-finca-pequena-904: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+   "[android] crono-finca-pequena-904: PDF vectorial con texto, fuentes incrustadas, portrait , sin desbordes; PNG dentro de límites Android"
   ],
   [
    "PASS",
-   "[android] Finca pequeña 904 (Cronológico e Histórico): caracteres especiales y todas sus suertes"
+   "[android] Finca pequeña 904 (Cronológico e Histórico): caracteres especiales, todas sus suertes, inactivas fuera de las cifras productivas"
   ],
   [
    "PASS",
-   "[android] hist-finca-pequena-904: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+   "[android] hist-finca-pequena-904: PDF vectorial con texto, fuentes incrustadas, portrait , sin desbordes; PNG dentro de límites Android"
   ],
   [
    "PASS",
@@ -115,46 +115,41 @@
     "pdf": {
      "template": "cronologico-finca",
      "type": "pdf",
+     "name": "Cronologico_Pansaco_27-Nov-2026.pdf",
      "pages": [
       "portrait",
-      "landscape",
-      "landscape",
-      "landscape",
-      "landscape"
+      "portrait"
      ],
      "check": {
       "suertes": 49,
-      "placed": 49,
-      "caracterizadas": 49
+      "placed": 49
      },
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 5,
+      "pages": 2,
       "orientations": [
        "portrait",
-       "landscape",
-       "landscape",
-       "landscape",
-       "landscape"
+       "portrait"
       ]
      },
      "png": null
     },
     "png": {
-     "width": 1980,
-     "height": 8260,
+     "width": 1530,
+     "height": 4000,
      "scale": 2.5
     },
     "names": [
-     "Pansaco_2026-11-26.pdf",
-     "Pansaco_2026-11-26.png"
+     "Cronologico_Pansaco_27-Nov-2026.pdf",
+     "Cronologico_Pansaco_27-Nov-2026.png"
     ]
    },
    "crono-suerte-pansaco-01": {
     "pdf": {
      "template": "cronologico-suerte",
      "type": "pdf",
+     "name": "Cronologico_Pansaco_Suerte_01_27-Nov-2026.pdf",
      "pages": [
       "portrait"
      ],
@@ -178,19 +173,19 @@
      "scale": 2.5
     },
     "names": [
-     "Pansaco_Suerte_01_2026-11-26.pdf",
-     "Pansaco_Suerte_01_2026-11-26.png"
+     "Cronologico_Pansaco_Suerte_01_27-Nov-2026.pdf",
+     "Cronologico_Pansaco_Suerte_01_27-Nov-2026.png"
     ]
    },
    "hist-finca-pansaco": {
     "pdf": {
      "template": "historico-finca",
      "type": "pdf",
+     "name": "Historico_Pansaco_27-Nov-2026.pdf",
      "pages": [
       "portrait",
-      "landscape",
-      "landscape",
-      "landscape"
+      "portrait",
+      "portrait"
      ],
      "check": {
       "zafras": 10,
@@ -200,33 +195,32 @@
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 4,
+      "pages": 3,
       "orientations": [
        "portrait",
-       "landscape",
-       "landscape",
-       "landscape"
+       "portrait",
+       "portrait"
       ]
      },
      "png": null
     },
     "png": {
-     "width": 1980,
-     "height": 6690,
+     "width": 1530,
+     "height": 6020,
      "scale": 2.5
     },
     "names": [
-     "Pansaco_2026-11-26.pdf",
-     "Pansaco_2026-11-26.png"
+     "Historico_Pansaco_27-Nov-2026.pdf",
+     "Historico_Pansaco_27-Nov-2026.png"
     ]
    },
    "hist-suerte-pansaco-01": {
     "pdf": {
      "template": "historico-suerte",
      "type": "pdf",
+     "name": "Historico_Pansaco_Suerte_01_27-Nov-2026.pdf",
      "pages": [
-      "portrait",
-      "landscape"
+      "portrait"
      ],
      "check": {
       "lot": "99301",
@@ -235,65 +229,63 @@
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 2,
+      "pages": 1,
       "orientations": [
-       "portrait",
-       "landscape"
+       "portrait"
       ]
      },
      "png": null
     },
     "png": {
-     "width": 1980,
-     "height": 3550,
+     "width": 1530,
+     "height": 1980,
      "scale": 2.5
     },
     "names": [
-     "Pansaco_Suerte_01_2026-11-26.pdf",
-     "Pansaco_Suerte_01_2026-11-26.png"
+     "Historico_Pansaco_Suerte_01_27-Nov-2026.pdf",
+     "Historico_Pansaco_Suerte_01_27-Nov-2026.png"
     ]
    },
    "crono-finca-pequena-904": {
     "pdf": {
      "template": "cronologico-finca",
      "type": "pdf",
+     "name": "Cronologico_Alba_Nora_Arguello_Martinez_27-Nov-2026.pdf",
      "pages": [
-      "portrait",
-      "landscape"
+      "portrait"
      ],
      "check": {
       "suertes": 2,
-      "placed": 2,
-      "caracterizadas": 2
+      "placed": 2
      },
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 2,
+      "pages": 1,
       "orientations": [
-       "portrait",
-       "landscape"
+       "portrait"
       ]
      },
      "png": null
     },
     "png": {
-     "width": 1980,
-     "height": 3550,
+     "width": 1530,
+     "height": 1980,
      "scale": 2.5
     },
     "names": [
-     "Alba_Nora_Arguello_Martinez_2026-11-26.pdf",
-     "Alba_Nora_Arguello_Martinez_2026-11-26.png"
+     "Cronologico_Alba_Nora_Arguello_Martinez_27-Nov-2026.pdf",
+     "Cronologico_Alba_Nora_Arguello_Martinez_27-Nov-2026.png"
     ]
    },
    "hist-finca-pequena-904": {
     "pdf": {
      "template": "historico-finca",
      "type": "pdf",
+     "name": "Historico_Alba_Nora_Arguello_Martinez_27-Nov-2026.pdf",
      "pages": [
       "portrait",
-      "landscape"
+      "portrait"
      ],
      "check": {
       "zafras": 10,
@@ -306,19 +298,19 @@
       "pages": 2,
       "orientations": [
        "portrait",
-       "landscape"
+       "portrait"
       ]
      },
      "png": null
     },
     "png": {
-     "width": 1980,
-     "height": 3550,
+     "width": 1530,
+     "height": 4000,
      "scale": 2.5
     },
     "names": [
-     "Alba_Nora_Arguello_Martinez_2026-11-26.pdf",
-     "Alba_Nora_Arguello_Martinez_2026-11-26.png"
+     "Historico_Alba_Nora_Arguello_Martinez_27-Nov-2026.pdf",
+     "Historico_Alba_Nora_Arguello_Martinez_27-Nov-2026.png"
     ]
    }
   },
@@ -327,46 +319,41 @@
     "pdf": {
      "template": "cronologico-finca",
      "type": "pdf",
+     "name": "Cronologico_Pansaco_27-Nov-2026.pdf",
      "pages": [
       "portrait",
-      "landscape",
-      "landscape",
-      "landscape",
-      "landscape"
+      "portrait"
      ],
      "check": {
       "suertes": 49,
-      "placed": 49,
-      "caracterizadas": 49
+      "placed": 49
      },
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 5,
+      "pages": 2,
       "orientations": [
        "portrait",
-       "landscape",
-       "landscape",
-       "landscape",
-       "landscape"
+       "portrait"
       ]
      },
      "png": null
     },
     "png": {
-     "width": 1980,
-     "height": 8260,
+     "width": 1530,
+     "height": 4000,
      "scale": 2.5
     },
     "names": [
-     "Pansaco_2026-11-26.pdf",
-     "Pansaco_2026-11-26.png"
+     "Cronologico_Pansaco_27-Nov-2026.pdf",
+     "Cronologico_Pansaco_27-Nov-2026.png"
     ]
    },
    "crono-suerte-pansaco-01": {
     "pdf": {
      "template": "cronologico-suerte",
      "type": "pdf",
+     "name": "Cronologico_Pansaco_Suerte_01_27-Nov-2026.pdf",
      "pages": [
       "portrait"
      ],
@@ -390,19 +377,19 @@
      "scale": 2.5
     },
     "names": [
-     "Pansaco_Suerte_01_2026-11-26.pdf",
-     "Pansaco_Suerte_01_2026-11-26.png"
+     "Cronologico_Pansaco_Suerte_01_27-Nov-2026.pdf",
+     "Cronologico_Pansaco_Suerte_01_27-Nov-2026.png"
     ]
    },
    "hist-finca-pansaco": {
     "pdf": {
      "template": "historico-finca",
      "type": "pdf",
+     "name": "Historico_Pansaco_27-Nov-2026.pdf",
      "pages": [
       "portrait",
-      "landscape",
-      "landscape",
-      "landscape"
+      "portrait",
+      "portrait"
      ],
      "check": {
       "zafras": 10,
@@ -412,33 +399,32 @@
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 4,
+      "pages": 3,
       "orientations": [
        "portrait",
-       "landscape",
-       "landscape",
-       "landscape"
+       "portrait",
+       "portrait"
       ]
      },
      "png": null
     },
     "png": {
-     "width": 1980,
-     "height": 6690,
+     "width": 1530,
+     "height": 6020,
      "scale": 2.5
     },
     "names": [
-     "Pansaco_2026-11-26.pdf",
-     "Pansaco_2026-11-26.png"
+     "Historico_Pansaco_27-Nov-2026.pdf",
+     "Historico_Pansaco_27-Nov-2026.png"
     ]
    },
    "hist-suerte-pansaco-01": {
     "pdf": {
      "template": "historico-suerte",
      "type": "pdf",
+     "name": "Historico_Pansaco_Suerte_01_27-Nov-2026.pdf",
      "pages": [
-      "portrait",
-      "landscape"
+      "portrait"
      ],
      "check": {
       "lot": "99301",
@@ -447,65 +433,63 @@
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 2,
+      "pages": 1,
       "orientations": [
-       "portrait",
-       "landscape"
+       "portrait"
       ]
      },
      "png": null
     },
     "png": {
-     "width": 1980,
-     "height": 3550,
+     "width": 1530,
+     "height": 1980,
      "scale": 2.5
     },
     "names": [
-     "Pansaco_Suerte_01_2026-11-26.pdf",
-     "Pansaco_Suerte_01_2026-11-26.png"
+     "Historico_Pansaco_Suerte_01_27-Nov-2026.pdf",
+     "Historico_Pansaco_Suerte_01_27-Nov-2026.png"
     ]
    },
    "crono-finca-pequena-904": {
     "pdf": {
      "template": "cronologico-finca",
      "type": "pdf",
+     "name": "Cronologico_Alba_Nora_Arguello_Martinez_27-Nov-2026.pdf",
      "pages": [
-      "portrait",
-      "landscape"
+      "portrait"
      ],
      "check": {
       "suertes": 2,
-      "placed": 2,
-      "caracterizadas": 2
+      "placed": 2
      },
      "audit": {
       "outOfBounds": 0,
       "samples": [],
-      "pages": 2,
+      "pages": 1,
       "orientations": [
-       "portrait",
-       "landscape"
+       "portrait"
       ]
      },
      "png": null
     },
     "png": {
-     "width": 1980,
-     "height": 3550,
+     "width": 1530,
+     "height": 1980,
      "scale": 2.5
     },
     "names": [
-     "Alba_Nora_Arguello_Martinez_2026-11-26.pdf",
-     "Alba_Nora_Arguello_Martinez_2026-11-26.png"
+     "Cronologico_Alba_Nora_Arguello_Martinez_27-Nov-2026.pdf",
+     "Cronologico_Alba_Nora_Arguello_Martinez_27-Nov-2026.png"
     ]
    },
    "hist-finca-pequena-904": {
     "pdf": {
      "template": "historico-finca",
      "type": "pdf",
+     "name": "Historico_Alba_Nora_Arguello_Martinez_27-Nov-2026.pdf",
      "pages": [
       "portrait",
-      "landscape"
+      "portrait"
      ],
      "check": {
       "zafras": 10,
@@ -518,19 +502,19 @@
       "pages": 2,
       "orientations": [
        "portrait",
-       "landscape"
+       "portrait"
       ]
      },
      "png": null
     },
     "png": {
-     "width": 1980,
-     "height": 3550,
+     "width": 1530,
+     "height": 4000,
      "scale": 2.5
     },
     "names": [
-     "Alba_Nora_Arguello_Martinez_2026-11-26.pdf",
-     "Alba_Nora_Arguello_Martinez_2026-11-26.png"
+     "Historico_Alba_Nora_Arguello_Martinez_27-Nov-2026.pdf",
+     "Historico_Alba_Nora_Arguello_Martinez_27-Nov-2026.png"
     ]
    }
   }

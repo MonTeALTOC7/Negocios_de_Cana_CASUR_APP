@@ -1,4 +1,4 @@
-// QA de informes R2 (Cronológico/Histórico de Finca y de Suerte) con los botones reales, en PC y Android.
+// QA de informes R2 (refinamiento ejecutivo, docs/ESTANDAR_EDITORIAL_INFORMES.md) (Cronológico/Histórico de Finca y de Suerte) con los botones reales, en PC y Android.
 // Verifica contenido (paridad con el panel oficial, todas las suertes), texto seleccionable, fuentes incrustadas,
 // orientación, límites, tamaño PNG, selección múltiple (motor R1) y exportación sin conexión (Service Worker).
 // Uso: node tools/qa-informes.cjs BASE OUT_DIR   (requiere pdftotext, pdfinfo, pdffonts, pdfimages y pdftoppm)
@@ -43,66 +43,91 @@ async function exportBoth(page, dir, name, kind, setup) {
     const common = (name, template, orient) => check(`[${device}] ${name}: PDF vectorial con texto, fuentes incrustadas, ${orient.join('/')} , sin desbordes; PNG dentro de límites Android`, async () => {
       const r = R[name], P = pdf(r.pdf); assert.equal(r.pdfLast.template, template);
       assert.ok(P.fonts.length >= 2 && P.fonts.every(l => / yes /.test(l)), 'fuentes incrustadas: ' + P.fonts.join(' | '));
-      assert.ok(P.images.length <= 1, 'solo el logo como imagen'); assert.ok(P.text.replace(/\s/g, '').length > 600, 'texto seleccionable');
-      assert.deepEqual(pageSizes(P.info), r.pdfLast.pages); assert.deepEqual(pageSizes(P.info).slice(0, orient.length), orient);
+      assert.ok(P.images.length <= 1, 'solo el logo como imagen'); assert.ok(P.text.replace(/\s/g, '').length > 400, 'texto seleccionable');
+      assert.deepEqual(pageSizes(P.info), r.pdfLast.pages); assert.deepEqual(pageSizes(P.info).slice(0, orient.length), orient); assert.ok(pageSizes(P.info).every(x => x === 'portrait'), 'todas verticales');
       const n = r.pdfLast.pages.length; for (let i = 1; i <= n; i++) assert.match(P.text, new RegExp('Página ' + i + ' de ' + n));
-      assert.match(P.text, /Negocios de Caña · CASUR/); assert.match(P.text, /Consulta: \d{2}-[A-Z][a-z]{2}-\d{4}/); assert.doesNotMatch(P.text, /\b\d{4}-\d{2}-\d{2}\b/, 'sin fechas ISO');
+      assert.match(P.text, /Negocios de Caña · CASUR/); assert.match(P.text, /Consulta: \d{2}-[A-Z][a-z]{2}-\d{4}/); assert.equal(r.pdfName.replace(/\.pdf$/, ''), r.pngName.replace(/\.png$/, '')); assert.doesNotMatch(P.text, /\b\d{4}-\d{2}-\d{2}\b/, 'sin fechas ISO');
       assert.equal(r.pdfLast.audit.outOfBounds, 0, 'elementos fuera de márgenes: ' + JSON.stringify(r.pdfLast.audit.samples));
       const g = r.pngLast.png; assert.ok(g.width <= 16000 && g.height <= 16000 && g.width * g.height <= 32e6, 'PNG ' + g.width + '×' + g.height); assert.ok(g.scale >= 1.5, 'resolución PNG ≥ 1.5×');
       const png = fs.readFileSync(r.png); assert.equal(png.readUInt32BE(16), g.width); assert.equal(png.readUInt32BE(20), g.height);
       execFileSync('pdftoppm', ['-r', '60', '-png', r.pdf, path.join(dir, 'pages-' + name)]);
       return P;
     });
-    await common('crono-finca-pansaco', 'cronologico-finca', ['portrait', 'landscape']);
-    await check(`[${device}] Cronológico de Finca Pansaco: KPI (área, TCH est., TCH ejecutado, edad del día), 49 suertes con todas las variables y cifras = tabla oficial`, async () => {
-      const r = R['crono-finca-pansaco'], T = pdf(r.pdf).text, o = r.official, h = Object.fromEntries(o.heads.map((x, i) => [x, i]));
-      // La edad actual depende de la fecha de consulta: se compara con la del panel oficial del mismo momento.
+    // Norma editorial (docs/ESTANDAR_EDITORIAL_INFORMES.md): sin referencias internas, columnas de Excel, archivos fuente,
+    // versiones, fórmulas ni textos metodológicos; pie solo «Negocios de Caña · CASUR» y numeración.
+    const FORBIDDEN = [/\((AD|AE|AF|AG|BE|BF|P)\)/, /\b(AD|AE|AF|AG|BE|BF)\/(AD|AE|AF|AG|BE|BF)\b/, /\bcolumna\b/i, /\.xlsx?\b/i, /Generaci[oó]n/i, /aforo\.\d+/i, /\b\d{4}\.\d{2}\.\d{2}\b/, /Consolidad/i, /motor oficial/i,
+      /estimado utilizable/i, /universo de molienda/i, /no es aforo/i, /plan de cosecha;/i, /Ponderad[oa] por/i, /÷/, /\bFuente\b/i, /Participaci[oó]n/i, /Estado maestro/i, /Estado TCH/i, /Cambio TCH/i, /Variabilidad/i,
+      /\bVs (CASUR|zona|variedad|riego|hist)/i, /Alerta/i, /TCH ejecutado/i, /Rango de cortes/i, /Naturaleza/i, /Documento de consulta/i, /\bUso\b/, /\(aforo\)|\(Histórico\)/i, /Km pond/i, /Dist\. ref/i, /Acción/, /escenario; no sustituye/i, /Toneladas? ÷/i, /Referencia actual/i, /Parcial ·/i];
+    const editorial = (T, name) => { for (const re of FORBIDDEN) assert.doesNotMatch(T, re, name + ' contiene ' + re);
+      const foot = T.split('\f').filter(x => x.trim()).map(pg => pg.trim().split('\n').slice(-1)[0].trim()); foot.forEach((l, i) => assert.match(l, new RegExp('^Negocios de Caña · CASUR\\s+Página ' + (i + 1) + ' de ' + foot.length + '$'), name + ' pie p.' + (i + 1) + ': ' + l)); };
+    const today = await page.evaluate(() => CASUR_CRONO_PARTICIPATION.formatDate(new Date().toLocaleDateString('sv-SE')));
+    const names = (r, base) => { assert.equal(r.pdfName, base + '_' + today + '.pdf'); assert.equal(r.pngName, base + '_' + today + '.png'); };
+    const kpiOrder = (T, labels) => { const pos = labels.map(k => T.indexOf(k)); assert.ok(pos.every(x => x >= 0) && pos.every((x, i) => !i || x > pos[i - 1]), 'orden KPI ' + labels + ' ' + pos); };
+    await common('crono-finca-pansaco', 'cronologico-finca', ['portrait', 'portrait']);
+    await check(`[${device}] Cronológico de Finca Pansaco: KPI ejecutivos (TCH anterior Z25/26 = 63.35 del Histórico), composición apilada, una sola tabla de 11 columnas con las 49 suertes, norma editorial`, async () => {
+      const r = R['crono-finca-pansaco'], T = pdf(r.pdf).text, o = r.official, h = Object.fromEntries(o.heads.map((x, i) => [x, i])); names(r, 'Cronologico_Pansaco'); editorial(T, 'crono-finca');
       const age = o.kpis.find(k => /Edad/.test(k[0]))[1].split(' ')[0];
-      for (const v of ['368.44', '48.57', '63.35', age, '17,452.08', '66.23']) assert.match(T, new RegExp(esc(v)), v);
-      assert.match(T, /TCH ejecutado Z25\/26/); assert.match(T, /TCH anterior Z25\/26 \(aforo\)/); assert.match(T, /Aforo 12-Oct-2026 · Consolidado 22-Nov-2026 · Generación 2026\.11\.22-aforo\.1102/);
-      for (const k of ['Variedad', 'Tipo de riego', '# de cortes \\(rangos\\)', 'Destino', 'Activas · Molienda', 'Activas · Semilla', 'Inactivas']) assert.match(T, new RegExp(k));
-      assert.equal(o.rows.length, 49); assert.equal(r.pdfLast.check.placed, 49); assert.equal(r.pdfLast.check.caracterizadas, 49);
+      kpiOrder(T, ['Área activa de la finca', 'TCH estimado Z26/27', 'TCH anterior Z25/26', 'Edad actual', 'Toneladas estimadas Z26/27', 'Distancia']);
+      for (const v of ['368.44', '48.57', '63.35', age, '17,452.08', '7.55', 'Fecha de aforo 12-Oct-2026', 'Zona 5-Productores', 'Tenencia Compra Venta']) assert.ok(T.includes(v), v);
+      assert.doesNotMatch(T, /66\.23/, 'TCH anterior del aforo no se muestra'); assert.equal((T.match(/TCH anterior Z25\/26/g) || []).length, 1, 'un solo KPI TCH anterior');
+      assert.doesNotMatch(T, /Molienda \/ Semilla|Ton\. est\.|Escenario optimista|caracterización y estado/i);
+      // Composición: áreas y % = agronomicGroups (área activa, categoría original); tipos de riego originales.
+      const G = await page.evaluate(() => { const rows = CRONO_DATA.producers.find(x => x.code === '993').details; return Object.fromEntries(['variedad', 'tipoRiego', 'corte', 'destino'].map(f => [f, CASUR_CRONO_PARTICIPATION.agronomicGroups(rows, f).map(g => [g.key, g.area])])); });
+      const fmt2 = v => v.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}), fmt1 = v => v.toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+      for (const [f, list] of Object.entries(G)) { const tot = list.reduce((n, x) => n + x[1], 0); assert.ok(Math.abs(tot - 368.44) < 0.01, f + ' total ' + tot);
+        for (const [k, a] of list) { const lab = f === 'corte' ? (k === '1' ? '1 corte' : k + ' cortes') : k; assert.match(T, new RegExp(esc(lab) + '\\s+' + esc(fmt2(a)) + ' ha\\s+' + esc(fmt1(a / tot * 100)) + ' %'), f + ' ' + lab); } }
+      assert.deepEqual(G.tipoRiego.map(x => x[0]), ['Gravedad'], 'tipo de riego original');
+      assert.equal(o.rows.length, 49); assert.equal(r.pdfLast.check.placed, 49);
+      for (const k of ['Molienda · 40 suertes · 359.30 ha', 'Semilla · 2 suertes · 9.14 ha', 'Inactivas · 7 suertes']) assert.ok(T.includes(k), k);
+      const hist = await page.evaluate(() => Object.fromEntries(APP_DATA.lotCompact.filter(l => l[8] === '993').map(l => [l[0], (l[11].find(z => z[0] === APP_DATA.meta.latestZafra) || [])[3] ?? null])));
       const lines = T.split('\n');
-      for (const row of o.rows) { const code = row[0], ls = lines.filter(l => new RegExp('^\\s*' + esc(code) + ' · ').test(l)); assert.equal(ls.length, 2, code + ' en las dos tablas de detalle');
-        const p = ls[0]; for (const k of ['Área', 'Variedad', '# de Corte', 'Tipo de riego', 'TCH', 'TCH est. 26/27', 'Ton. est. 26/27']) assert.ok(p.includes(row[h[k]]), code + ' ' + k + ' ' + row[h[k]]);
-        for (const k of ['Textura', 'Surco', 'Distancia (km)', 'Tenencia']) assert.ok(ls[1].includes(row[h[k]]), code + ' ' + k); }
-      for (const k of ['Fecha para', 'Corte \\(BF\\)', 'Edad']) assert.match(T, new RegExp(k));
+      for (const row of o.rows) { const code = row[0], suerte = code.slice(3), ls = lines.filter(l => new RegExp('^\\s*' + esc(suerte) + '\\s').test(l)); assert.equal(ls.length, 1, 'suerte ' + suerte + ' una vez'); const l = ls[0];
+        assert.ok(!l.includes(code), 'sin código completo junto a la suerte ' + code);
+        for (const k of ['Variedad', '# de Corte', 'Tipo de riego', 'Fecha corte/siembra', 'TCH est. 26/27']) assert.ok(l.includes(row[h[k]]), code + ' ' + k + ' ' + row[h[k]]);
+        assert.ok(l.includes(row[h['Área']].replace(' ha', '')), code + ' área');
+        const ht = hist[code]; assert.ok(ht == null ? / — /.test(l) : l.includes(ht.toFixed(2)), code + ' TCH anterior Histórico ' + ht); }
+      const head = lines.find(l => /Suerte\s+Área \(ha\)\s+Variedad/.test(l)); assert.ok(head, 'encabezado de 11 columnas');
     });
     await common('crono-suerte-pansaco-01', 'cronologico-suerte', ['portrait']);
-    await check(`[${device}] Cronológico de Suerte 01: KPI en orden (TCH est., fecha cosecha, área, edad), ficha sin tabla de 18 columnas, sin repetir variedad`, async () => {
-      const r = R['crono-suerte-pansaco-01'], T = pdf(r.pdf).text, o = r.official, h = Object.fromEntries(o.heads.map((x, i) => [x, i])), row = o.rows[0];
-      const pos = ['TCH estimado Z26/27', 'Fecha para cosecha 26/27', 'Área activa', 'Edad actual'].map(k => T.indexOf(k)); assert.ok(pos.every(x => x > 0) && pos.every((x, i) => !i || x > pos[i - 1]), 'orden KPI ' + pos);
+    await check(`[${device}] Cronológico de Suerte 01: una página, KPI en orden sin subtextos, fichas autorizadas, norma editorial`, async () => {
+      const r = R['crono-suerte-pansaco-01'], T = pdf(r.pdf).text, o = r.official, h = Object.fromEntries(o.heads.map((x, i) => [x, i])), row = o.rows[0]; names(r, 'Cronologico_Pansaco_Suerte_01'); editorial(T, 'crono-suerte');
+      assert.equal(r.pdfLast.pages.length, 1); kpiOrder(T, ['TCH estimado Z26/27', 'Fecha para cosecha', 'Área', 'Edad actual', 'TCH por zafra']);
       const age = o.kpis.find(k => /Edad actual/.test(k[0]))[1].split(' ')[0];
-      for (const v of ['60.00', '17-Dic-2026', '19.00', age, '84.24', '1,140.00 t', 'Corte mecánico', '138.08', '94.22']) assert.match(T, new RegExp(esc(v)), v);
-      assert.doesNotMatch(T, /Detalle por suerte/); assert.equal((T.match(/CP 72-2086/g) || []).length, 1, 'variedad solo en el encabezado');
-      for (const k of ['Caracterización agronómica', 'Datos productivos', 'Plan de cosecha', 'Ubicación y estado', 'Escenario optimista']) assert.match(T, new RegExp(k));
-      for (const k of ['Textura', 'Surco', 'Distancia (km)', 'Estado maestro', 'Estado TCH 25/26']) assert.ok(T.includes(row[h[k]]), k + ' ' + row[h[k]]);
+      for (const v of ['60.00', '17-Dic-2026', '19.00', age, 'Promedio', '138.08', '84.24 t/ha', '1,140.00 t', 'Corte mecánico', '12.32 meses', '8.09 km', '62.00 t/ha', '1,178.00 t', '16-Ene-2020', '07-Dic-2025', '1.65 m']) assert.ok(T.includes(v), v);
+      for (const k of ['Caracterización', 'Datos productivos', 'Plan de cosecha', 'Ubicación', 'Escenario optimista', '# de cortes', 'Textura', 'Tipo de riego', 'Distancia entre surcos', 'Fecha de siembra', 'Fecha de último corte', 'Destino', 'TCH anterior Z25/26', 'Toneladas estimadas Z26/27', 'Área cosechada Z25/26', 'Tipo de corte', 'Edad proyectada a cosecha', 'TCH optimista', 'Toneladas optimistas']) assert.ok(T.includes(k), k);
+      for (const k of ['Textura', 'Tipo de riego', 'Destino Cultivo']) assert.ok(T.includes(row[h[k]]), k);
+      assert.equal((T.match(/CP 72-2086/g) || []).length, 1, 'variedad solo en el encabezado'); assert.equal((T.match(/17-Dic-2026/g) || []).length, 1, 'fecha para cosecha una vez'); assert.equal((T.match(/60\.00/g) || []).length, 1, 'TCH estimado una vez');
+      assert.doesNotMatch(T, /Finca\s+Pansaco|Fecha corte\/siembra|Observación/);
     });
-    await common('hist-finca-pansaco', 'historico-finca', ['portrait', 'landscape']);
-    await check(`[${device}] Histórico de Finca Pansaco: KPI y resumen por zafra = panel oficial; detalle de todos los lotes; área Z25/26 de los lotes = KPI`, async () => {
-      const r = R['hist-finca-pansaco'], T = pdf(r.pdf).text, o = r.official, lines = T.split('\n');
-      for (const [, v] of o.kpis) { const val = v.split(' ')[0].replace('▼', '').trim(); if (/\d/.test(val)) assert.ok(T.includes(val), 'KPI ' + v); }
-      for (const z of o.rows) { const l = lines.find(x => x.trim().startsWith(z[0]) && x.includes(z[1])); assert.ok(l, 'zafra ' + z[0]); for (const i of [1, 2, 3, 4]) assert.ok(l.includes(z[i]), z[0] + ' col ' + o.heads[i]); }
+    await common('hist-finca-pansaco', 'historico-finca', ['portrait']);
+    await check(`[${device}] Histórico de Finca Pansaco: KPI = panel oficial, solo gráficos TCH y KATM, resumen por zafra limpio, detalle de todos los lotes, norma editorial`, async () => {
+      const r = R['hist-finca-pansaco'], T = pdf(r.pdf).text, o = r.official, lines = T.split('\n'), h = Object.fromEntries(o.heads.map((x, i) => [x, i])); names(r, 'Historico_Pansaco'); editorial(T, 'hist-finca');
+      kpiOrder(T, ['Área cosechada Z25/26', 'TCH Z25/26', 'KATM Z25/26', 'Edad Z25/26', 'Distancia', 'TCH por zafra', 'KATM por zafra', 'Resumen por zafra', 'TCH por suerte y zafra']);
+      for (const v of ['428.96', '63.35', '98.15', '11.38', '7.55', 'Zona 5-PRODUCTORES', 'Zafras 16/17 a 25/26']) assert.ok(T.includes(v), v);
+      assert.doesNotMatch(T, /Toneladas por zafra|Área cosechada \(ha\)\n|Variedad dom|TCH pond|KATM pond|Edad prom|Estado/);
+      for (const z of o.rows) { const l = lines.find(x => x.trim().startsWith(z[0] + ' ') && x.includes(z[1])); assert.ok(l, 'zafra ' + z[0]); for (const k of ['Área', 'Ton', 'TCH pond.', 'KATM pond.', 'Edad prom.', 'Variedad dom.', 'Riego', 'Suertes']) assert.ok(l.includes(z[h[k]]), z[0] + ' ' + k); }
       assert.equal(r.pdfLast.check.zafras, 10); assert.ok(Math.abs(r.pdfLast.check.latestArea - 428.96) < 0.01, 'área lotes Z25/26 ' + r.pdfLast.check.latestArea);
-      const lots = await page.evaluate(() => APP_DATA.lotCompact.filter(l => String(l[8]) === '993' && !/MAQUILA/i.test(l[2] || '')).map(l => String(l[0])));
-      assert.equal(r.pdfLast.check.lots, lots.length); for (const c of lots) assert.match(T, new RegExp('\\s' + esc(c) + '\\s'), 'lote ' + c);
-      for (const k of ['TCH ponderado por zafra', 'Área cosechada', 'Toneladas', 'KATM ponderado', 'Resumen de finca · por zafra', 'Detalle histórico por suerte']) assert.match(T, new RegExp(k));
+      const lots = await page.evaluate(() => APP_DATA.lotCompact.filter(l => String(l[8]) === '993' && !/MAQUILA/i.test(l[2] || '')).map(l => l[10]));
+      assert.equal(r.pdfLast.check.lots, lots.length); for (const sv of lots) assert.ok(lines.some(l => new RegExp('^\\s*' + esc(sv) + '\\s').test(l)), 'suerte ' + sv);
+      assert.ok(r.pdfLast.pages.length <= 3, 'páginas ' + r.pdfLast.pages.length);
     });
-    await common('hist-suerte-pansaco-01', 'historico-suerte', ['portrait', 'landscape']);
-    await check(`[${device}] Histórico de Suerte 99301: 14 columnas en página horizontal, 10 zafras = tabla oficial; gráficos TCH y KATM`, async () => {
-      const r = R['hist-suerte-pansaco-01'], T = pdf(r.pdf).text, o = r.official, lines = T.split('\n'), h = Object.fromEntries(o.heads.map((x, i) => [x, i]));
-      assert.equal(o.heads.length, 14); assert.deepEqual(r.pdfLast.pages, ['portrait', 'landscape']);
-      for (const z of o.rows) { const l = lines.find(x => x.trim().startsWith(z[0] + ' ') && x.includes(z[h['CodLote']])); assert.ok(l, z[0]); for (const k of ['Área', 'Ton', 'TCH', 'KATM', 'Edad', 'Estado']) assert.ok(l.includes(z[h[k]]), z[0] + ' ' + k); }
-      for (const k of ['TCH por zafra', 'KATM por zafra', 'Vs CASUR', 'Vs zona', 'Vs variedad', 'Vs riego']) assert.match(T, new RegExp(k));
+    await common('hist-suerte-pansaco-01', 'historico-suerte', ['portrait']);
+    await check(`[${device}] Histórico de Suerte 01: una página, 10 zafras = tabla oficial (7 columnas), variedad y riego vigentes en el encabezado, norma editorial`, async () => {
+      const r = R['hist-suerte-pansaco-01'], T = pdf(r.pdf).text, o = r.official, lines = T.split('\n'), h = Object.fromEntries(o.heads.map((x, i) => [x, i])); names(r, 'Historico_Pansaco_Suerte_01'); editorial(T, 'hist-suerte');
+      assert.deepEqual(r.pdfLast.pages, ['portrait']); kpiOrder(T, ['Área cosechada Z25/26', 'TCH Z25/26', 'KATM Z25/26', 'Edad Z25/26', 'Distancia', 'TCH por zafra', 'KATM por zafra', 'Registro por zafra']);
+      for (const v of ['Código 99301', 'Variedad CP 72-2086', 'Tipo de riego Gravedad', '8.09']) assert.ok(T.includes(v), v);
+      assert.equal((T.match(/CP 72-2086/g) || []).length, 1, 'variedad no se repite por zafra'); assert.equal((T.match(/Gravedad/g) || []).length, 1, 'riego no se repite por zafra');
+      const head = lines.find(l => /Zafra\s+Área \(ha\)\s+Toneladas\s+TCH\s+KATM\s+Edad \(meses\)\s+# de cortes/.test(l)); assert.ok(head, 'encabezado de 7 columnas');
+      for (const z of o.rows) { const l = lines.find(x => x.trim().startsWith(z[0] + ' ') && x.includes(z[h['Ton']])); assert.ok(l, z[0]); assert.ok(!l.includes('99301'), 'sin código por fila'); for (const k of ['Área', 'Ton', 'TCH', 'KATM', 'Edad']) assert.ok(l.includes(z[h[k]]), z[0] + ' ' + k); }
     });
-    await common('crono-finca-pequena-904', 'cronologico-finca', ['portrait', 'landscape']);
-    await check(`[${device}] Finca pequeña 904 (Cronológico e Histórico): caracteres especiales y todas sus suertes`, async () => {
-      const a = pdf(R['crono-finca-pequena-904'].pdf).text, b = pdf(R['hist-finca-pequena-904'].pdf).text;
-      for (const T of [a, b]) { assert.match(T, /Alba Nora Argüello Martinez/); assert.match(T, /Cronológico|Histórico/); assert.match(T, /Página 1 de/); assert.match(T, /Caña/); }
-      for (const code of ['90401', '90401A']) assert.match(a, new RegExp(esc(code) + ' · '));
-      assert.match(a, /Δ|≥|·/, 'símbolos');
+    await common('crono-finca-pequena-904', 'cronologico-finca', ['portrait']);
+    await check(`[${device}] Finca pequeña 904 (Cronológico e Histórico): caracteres especiales, todas sus suertes, inactivas fuera de las cifras productivas`, async () => {
+      const a = pdf(R['crono-finca-pequena-904'].pdf).text, b = pdf(R['hist-finca-pequena-904'].pdf).text; names(R['crono-finca-pequena-904'], 'Cronologico_Alba_Nora_Arguello_Martinez'); names(R['hist-finca-pequena-904'], 'Historico_Alba_Nora_Arguello_Martinez');
+      for (const T of [a, b]) { assert.match(T, /Alba Nora Argüello Martinez/); assert.match(T, /Página 1 de/); assert.match(T, /Caña/); }
+      editorial(a, 'crono-904'); editorial(b, 'hist-904');
+      assert.match(a, /Inactivas · 2 suertes/); for (const sv of ['01', '01A']) assert.match(a, new RegExp('^\\s*' + sv + '\\s', 'm')); assert.match(a, /Área activa de la finca\s[\s\S]*0\.00/);
     });
-    await common('hist-finca-pequena-904', 'historico-finca', ['portrait', 'landscape']);
+    await common('hist-finca-pequena-904', 'historico-finca', ['portrait']);
     await check(`[${device}] Selección múltiple (motor R1 hasta R3): PDF y PNG completos, pie visible`, async () => {
       await page.evaluate(() => { CASUR_MAESTRO_UX.activate('cronologico'); document.querySelector('#cronoSection').open = true; window.clearCronoMultiSelection?.(); toggleCronoSuerteSelection('993::36', true); toggleCronoSuerteSelection('19::27', true); toggleCronoSuerteSelection('20::03', true); renderCronoMultiSummary(); });
       await page.waitForTimeout(1500); const sel = '[data-casur-export-kind="cronologico-multiple"] .casur-visual-action.pdf'; await page.waitForSelector(sel, {state: 'attached'});

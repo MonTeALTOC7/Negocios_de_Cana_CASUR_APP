@@ -113,6 +113,51 @@
 - **PNG:** dimensiones ≤ 16,000 px y ≤ 32 MP, con escala ≥ 1.5×. Por ejemplo, el Cronológico de Finca sale de 1,980 × 9,830 px.
 - **Sin conexión:** shell PWA con Service Worker y red desconectada. El motor, jsPDF y las fuentes se cargan desde la caché y se descargan PDF y PNG.
 
-**Muestras:** `docs/muestras-informes-r2/` contiene PDF y PNG de las cuatro plantillas (Pansaco y suerte 01).
+**Muestras:** `docs/muestras-informes-r2/` contiene PDF y PNG de las cuatro plantillas (Pansaco y suerte 01), con los nombres de archivo vigentes (R2-2).
 
 **Pendiente (R3):** migrar los informes múltiples (Histórico ejecutivo/completo y Cronológico múltiple) y los de Zona al mismo motor, después de la revisión visual de estas cuatro plantillas.
+
+## R2-2: refinamiento ejecutivo (27-Nov-2026)
+
+Sustituye el contenido de las cuatro plantillas descritas arriba. La arquitectura no cambia: jsPDF, Inter, el motor y la exportación sin conexión siguen igual. Desde esta versión rige la norma permanente [`docs/ESTANDAR_EDITORIAL_INFORMES.md`](ESTANDAR_EDITORIAL_INFORMES.md).
+
+### Motor (`report-engine.js`)
+- **Pie:** solo «Negocios de Caña · CASUR» y «Página X de Y».
+- **Encabezado:** la fecha de consulta va a la derecha. No lleva metadatos internos.
+- **KPI:** etiqueta, valor y unidad sobre fondo suave, sin notas. Hay una fila complementaria compacta (`kpis(..., true)`).
+- **`composition`:** sustituye a `bars`. Usa el diseño de Análisis por Zona: barra apilada con los porcentajes reales y filas alineadas (color · categoría · área · %). Toma los colores de Zonas (`RIEGO` para tipo de riego y `SEQ` en secuencia Petróleo).
+- **`groups`:** son columnas de tarjetas apiladas. La última tarjeta de cada columna se estira para no dejar huecos.
+- **Gráfico:**
+  - Zafras completas y cuadrícula discreta.
+  - Puntos con anillo blanco.
+  - Etiquetas en el cuadrante libre de la línea.
+  - Promedio rotulado al final de la línea, sin subtítulos.
+- **Nombre de archivo:** `fileName()` genera `Tipo_Finca[_Suerte_NN]_DD-MMM-AAAA.ext`. El bloque R2-EXPORT de `index.html` usa `out.name`, y su huella está actualizada en `maestro-ux.test.mjs`.
+
+### Plantillas y trazabilidad (solo en código)
+| Plantilla | Páginas antes → ahora | Contenido visible | Fuente (no se imprime) |
+|---|---|---|---|
+| Cronológico de Finca | 5 → 2 | **KPI:** área activa, TCH estimado Z26/27, TCH anterior Z25/26 = **63.35** y edad actual. **Complemento:** toneladas estimadas y distancia. Composición apilada por variedad, tipo de riego, # de cortes y destino. Una tabla de 11 columnas agrupada en Molienda, Semilla e Inactivas | **KPI:** panel oficial. **TCH anterior:** `mainEntities().latest.tch` (Histórico). En la tabla, el TCH anterior por suerte sale de `lotCompact` por código exacto y zafra más reciente; si no hay registro se muestra «—», sin usar el TCH del aforo (p. ej. 99302A, 99324A). **Estimado:** AD. **Fecha y corte:** BE/BF |
+| Cronológico de Suerte | 1 → 1 | **KPI:** TCH estimado, fecha para cosecha, área y edad. Gráfico TCH por zafra con promedio. **Fichas:** caracterización, ubicación, datos productivos, plan de cosecha y escenario optimista | **Tabla oficial de la suerte:** AD/AE. **Plan:** BE/BF. **Escenario:** AF/AG. **TCH y área Z25/26:** Histórico del lote |
+| Histórico de Finca | 4 → 3 | **KPI Z25/26:** área cosechada, TCH, KATM y edad, más la distancia. Dos gráficos a todo el ancho: TCH y KATM. Resumen por zafra sin km, estado ni acción. TCH por suerte y zafra de los 61 lotes | Panel oficial y `lotCompact` (sin Maquila) |
+| Histórico de Suerte | 2 → 1 | Los mismos KPI y gráficos. Tabla de 7 columnas: zafra, área, toneladas, TCH, KATM, edad y # de cortes. Variedad y tipo de riego vigentes solo en el encabezado | Tabla oficial del lote |
+
+### QA editorial
+`tools/qa-informes.cjs` rechaza los patrones prohibidos en todos los PDF y comprueba el pie exacto de cada página. Los patrones son:
+- Referencias entre paréntesis: (AD), (AE), (AF), (AG), (BE), (BF), (P).
+- Cualquier mención a «columna» y los archivos .xlsx.
+- «Generación» o versiones aforo.NNNN, «Consolidado» y «motor oficial».
+- «Estimado utilizable», «universo de molienda», «no es aforo», «Ponderado por» y «Fuente».
+- «Participación», «Estado maestro», «Cambio TCH», «Variabilidad», «Vs …» y «Alerta».
+- «TCH ejecutado», «(aforo)», «Km pond.», «Dist. ref.» y «Documento de consulta».
+
+Además verifica:
+- Los nombres de archivo de PDF y PNG.
+- El orden de los KPI y la ausencia de 66.23 y de KPI duplicados.
+- Que área y % de cada composición son iguales a `agronomicGroups`.
+- El tipo de riego original.
+- Cada fila de la tabla frente a la tabla oficial y el TCH anterior frente al Histórico por código.
+- El resumen por zafra, los 61 lotes y las 10 zafras de la suerte.
+- Las páginas verticales y los márgenes.
+
+Se conservan las pruebas de PNG Android, la selección múltiple (R1) y la exportación sin conexión.

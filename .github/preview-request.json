@@ -1,5 +1,5 @@
 {
-  "sha": "7fe2b0ed1e695cd4d294fb9157f1cf27f0c35715",
+  "sha": "751f40950e9c363eefd2e8365508843fbac1451b",
   "pr": 77,
-  "nota": "UX15-R2: correcciones finales (Estimados en Consultas, tipo de riego original, # de cortes) y auditoría de exportadores. Preview acumulativa."
+  "nota": "R1 + R2: exportadores corregidos y motor de informes PDF vectorial/PNG con cuatro plantillas. Preview acumulativa."
 }

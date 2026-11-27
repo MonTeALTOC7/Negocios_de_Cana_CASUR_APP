@@ -23,7 +23,7 @@ test('Fase 1 conserva byte a byte el documento y los motores originales tras ret
   return (html.slice(0,start)+html.slice(end)).replace(authorized,'null;');};
  // Exportadores R1/R2 (owner authorization 26-Nov-2026, docs/PROPUESTA_REDISENO_INFORMES.md): each block is inserted
  // once, after window.CASUR_VISUAL_EXPORT, and pinned by SHA-256. Nothing else in the engine may change.
- const AUTHORIZED_EXPORT_BLOCKS=[['/* R1-EXPORT (autorizado','/* R1-EXPORT-END */\n','4501dd207e28ac2ced1f8fa681b777ac64eb62dca5c5e2f3dfbcdac5e2fbd311']];
+ const AUTHORIZED_EXPORT_BLOCKS=[['/* R1-EXPORT (autorizado','/* R1-EXPORT-END */\n','4501dd207e28ac2ced1f8fa681b777ac64eb62dca5c5e2f3dfbcdac5e2fbd311'],['/* R2-EXPORT (autorizado','/* R2-EXPORT-END */\n','26c2e343cb34d0bfd2c9a075f0b4f20d1d18c16f7367005f0f1022b10d5b56f8']];
  const exportBlocks=html=>AUTHORIZED_EXPORT_BLOCKS.reduce((h,[open,close,sha])=>{const a=h.indexOf(open);if(a<0)return h;const b=h.indexOf(close,a);assert.ok(b>a,open+' block end');
   const block=h.slice(a,b+close.length);assert.equal(createHash('sha256').update(block).digest('hex'),sha,open+' block is exactly the authorized one');assert.equal(h.split(open).length,2,open+' inserted once');
   return h.slice(0,a)+h.slice(b+close.length);},html);

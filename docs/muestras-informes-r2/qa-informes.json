@@ -1,0 +1,538 @@
+{
+ "results": [
+  [
+   "PASS",
+   "[pc] crono-finca-pansaco: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+  ],
+  [
+   "PASS",
+   "[pc] Cronológico de Finca Pansaco: KPI (área, TCH est., TCH ejecutado, edad), 49 suertes con todas las variables y cifras = tabla oficial"
+  ],
+  [
+   "PASS",
+   "[pc] crono-suerte-pansaco-01: PDF vectorial con texto, fuentes incrustadas, portrait , sin desbordes; PNG dentro de límites Android"
+  ],
+  [
+   "PASS",
+   "[pc] Cronológico de Suerte 01: KPI en orden (TCH est., fecha cosecha, área, edad), ficha sin tabla de 18 columnas, sin repetir variedad"
+  ],
+  [
+   "PASS",
+   "[pc] hist-finca-pansaco: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+  ],
+  [
+   "PASS",
+   "[pc] Histórico de Finca Pansaco: KPI y resumen por zafra = panel oficial; detalle de todos los lotes; área Z25/26 de los lotes = KPI"
+  ],
+  [
+   "PASS",
+   "[pc] hist-suerte-pansaco-01: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+  ],
+  [
+   "PASS",
+   "[pc] Histórico de Suerte 99301: 14 columnas en página horizontal, 10 zafras = tabla oficial; gráficos TCH y KATM"
+  ],
+  [
+   "PASS",
+   "[pc] crono-finca-pequena-904: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+  ],
+  [
+   "PASS",
+   "[pc] Finca pequeña 904 (Cronológico e Histórico): caracteres especiales y todas sus suertes"
+  ],
+  [
+   "PASS",
+   "[pc] hist-finca-pequena-904: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+  ],
+  [
+   "PASS",
+   "[pc] Selección múltiple (motor R1 hasta R3): PDF y PNG completos, pie visible"
+  ],
+  [
+   "PASS",
+   "[pc] Sin errores de página ni diálogos"
+  ],
+  [
+   "PASS",
+   "[android] crono-finca-pansaco: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+  ],
+  [
+   "PASS",
+   "[android] Cronológico de Finca Pansaco: KPI (área, TCH est., TCH ejecutado, edad), 49 suertes con todas las variables y cifras = tabla oficial"
+  ],
+  [
+   "PASS",
+   "[android] crono-suerte-pansaco-01: PDF vectorial con texto, fuentes incrustadas, portrait , sin desbordes; PNG dentro de límites Android"
+  ],
+  [
+   "PASS",
+   "[android] Cronológico de Suerte 01: KPI en orden (TCH est., fecha cosecha, área, edad), ficha sin tabla de 18 columnas, sin repetir variedad"
+  ],
+  [
+   "PASS",
+   "[android] hist-finca-pansaco: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+  ],
+  [
+   "PASS",
+   "[android] Histórico de Finca Pansaco: KPI y resumen por zafra = panel oficial; detalle de todos los lotes; área Z25/26 de los lotes = KPI"
+  ],
+  [
+   "PASS",
+   "[android] hist-suerte-pansaco-01: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+  ],
+  [
+   "PASS",
+   "[android] Histórico de Suerte 99301: 14 columnas en página horizontal, 10 zafras = tabla oficial; gráficos TCH y KATM"
+  ],
+  [
+   "PASS",
+   "[android] crono-finca-pequena-904: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+  ],
+  [
+   "PASS",
+   "[android] Finca pequeña 904 (Cronológico e Histórico): caracteres especiales y todas sus suertes"
+  ],
+  [
+   "PASS",
+   "[android] hist-finca-pequena-904: PDF vectorial con texto, fuentes incrustadas, portrait/landscape , sin desbordes; PNG dentro de límites Android"
+  ],
+  [
+   "PASS",
+   "[android] Selección múltiple (motor R1 hasta R3): PDF y PNG completos, pie visible"
+  ],
+  [
+   "PASS",
+   "[android] Sin errores de página ni diálogos"
+  ],
+  [
+   "PASS",
+   "[pc] Exportación PDF y PNG sin conexión (PWA, recursos precargados)"
+  ]
+ ],
+ "last": {
+  "pc": {
+   "crono-finca-pansaco": {
+    "pdf": {
+     "template": "cronologico-finca",
+     "type": "pdf",
+     "pages": [
+      "portrait",
+      "landscape",
+      "landscape",
+      "landscape",
+      "landscape"
+     ],
+     "check": {
+      "suertes": 49,
+      "placed": 49,
+      "caracterizadas": 49
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 5,
+      "orientations": [
+       "portrait",
+       "landscape",
+       "landscape",
+       "landscape",
+       "landscape"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1980,
+     "height": 8260,
+     "scale": 2.5
+    },
+    "names": [
+     "Pansaco_2026-11-26.pdf",
+     "Pansaco_2026-11-26.png"
+    ]
+   },
+   "crono-suerte-pansaco-01": {
+    "pdf": {
+     "template": "cronologico-suerte",
+     "type": "pdf",
+     "pages": [
+      "portrait"
+     ],
+     "check": {
+      "lot": "99301",
+      "trend": 8
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 1,
+      "orientations": [
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 1980,
+     "scale": 2.5
+    },
+    "names": [
+     "Pansaco_Suerte_01_2026-11-26.pdf",
+     "Pansaco_Suerte_01_2026-11-26.png"
+    ]
+   },
+   "hist-finca-pansaco": {
+    "pdf": {
+     "template": "historico-finca",
+     "type": "pdf",
+     "pages": [
+      "portrait",
+      "landscape",
+      "landscape",
+      "landscape"
+     ],
+     "check": {
+      "zafras": 10,
+      "lots": 61,
+      "latestArea": 428.96000000000004
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 4,
+      "orientations": [
+       "portrait",
+       "landscape",
+       "landscape",
+       "landscape"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1980,
+     "height": 6690,
+     "scale": 2.5
+    },
+    "names": [
+     "Pansaco_2026-11-26.pdf",
+     "Pansaco_2026-11-26.png"
+    ]
+   },
+   "hist-suerte-pansaco-01": {
+    "pdf": {
+     "template": "historico-suerte",
+     "type": "pdf",
+     "pages": [
+      "portrait",
+      "landscape"
+     ],
+     "check": {
+      "lot": "99301",
+      "zafras": 10
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "landscape"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1980,
+     "height": 3550,
+     "scale": 2.5
+    },
+    "names": [
+     "Pansaco_Suerte_01_2026-11-26.pdf",
+     "Pansaco_Suerte_01_2026-11-26.png"
+    ]
+   },
+   "crono-finca-pequena-904": {
+    "pdf": {
+     "template": "cronologico-finca",
+     "type": "pdf",
+     "pages": [
+      "portrait",
+      "landscape"
+     ],
+     "check": {
+      "suertes": 2,
+      "placed": 2,
+      "caracterizadas": 2
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "landscape"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1980,
+     "height": 3550,
+     "scale": 2.5
+    },
+    "names": [
+     "Alba_Nora_Arguello_Martinez_2026-11-26.pdf",
+     "Alba_Nora_Arguello_Martinez_2026-11-26.png"
+    ]
+   },
+   "hist-finca-pequena-904": {
+    "pdf": {
+     "template": "historico-finca",
+     "type": "pdf",
+     "pages": [
+      "portrait",
+      "landscape"
+     ],
+     "check": {
+      "zafras": 10,
+      "lots": 2,
+      "latestArea": 8.09
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "landscape"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1980,
+     "height": 3550,
+     "scale": 2.5
+    },
+    "names": [
+     "Alba_Nora_Arguello_Martinez_2026-11-26.pdf",
+     "Alba_Nora_Arguello_Martinez_2026-11-26.png"
+    ]
+   }
+  },
+  "android": {
+   "crono-finca-pansaco": {
+    "pdf": {
+     "template": "cronologico-finca",
+     "type": "pdf",
+     "pages": [
+      "portrait",
+      "landscape",
+      "landscape",
+      "landscape",
+      "landscape"
+     ],
+     "check": {
+      "suertes": 49,
+      "placed": 49,
+      "caracterizadas": 49
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 5,
+      "orientations": [
+       "portrait",
+       "landscape",
+       "landscape",
+       "landscape",
+       "landscape"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1980,
+     "height": 8260,
+     "scale": 2.5
+    },
+    "names": [
+     "Pansaco_2026-11-26.pdf",
+     "Pansaco_2026-11-26.png"
+    ]
+   },
+   "crono-suerte-pansaco-01": {
+    "pdf": {
+     "template": "cronologico-suerte",
+     "type": "pdf",
+     "pages": [
+      "portrait"
+     ],
+     "check": {
+      "lot": "99301",
+      "trend": 8
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 1,
+      "orientations": [
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 1980,
+     "scale": 2.5
+    },
+    "names": [
+     "Pansaco_Suerte_01_2026-11-26.pdf",
+     "Pansaco_Suerte_01_2026-11-26.png"
+    ]
+   },
+   "hist-finca-pansaco": {
+    "pdf": {
+     "template": "historico-finca",
+     "type": "pdf",
+     "pages": [
+      "portrait",
+      "landscape",
+      "landscape",
+      "landscape"
+     ],
+     "check": {
+      "zafras": 10,
+      "lots": 61,
+      "latestArea": 428.96000000000004
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 4,
+      "orientations": [
+       "portrait",
+       "landscape",
+       "landscape",
+       "landscape"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1980,
+     "height": 6690,
+     "scale": 2.5
+    },
+    "names": [
+     "Pansaco_2026-11-26.pdf",
+     "Pansaco_2026-11-26.png"
+    ]
+   },
+   "hist-suerte-pansaco-01": {
+    "pdf": {
+     "template": "historico-suerte",
+     "type": "pdf",
+     "pages": [
+      "portrait",
+      "landscape"
+     ],
+     "check": {
+      "lot": "99301",
+      "zafras": 10
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "landscape"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1980,
+     "height": 3550,
+     "scale": 2.5
+    },
+    "names": [
+     "Pansaco_Suerte_01_2026-11-26.pdf",
+     "Pansaco_Suerte_01_2026-11-26.png"
+    ]
+   },
+   "crono-finca-pequena-904": {
+    "pdf": {
+     "template": "cronologico-finca",
+     "type": "pdf",
+     "pages": [
+      "portrait",
+      "landscape"
+     ],
+     "check": {
+      "suertes": 2,
+      "placed": 2,
+      "caracterizadas": 2
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "landscape"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1980,
+     "height": 3550,
+     "scale": 2.5
+    },
+    "names": [
+     "Alba_Nora_Arguello_Martinez_2026-11-26.pdf",
+     "Alba_Nora_Arguello_Martinez_2026-11-26.png"
+    ]
+   },
+   "hist-finca-pequena-904": {
+    "pdf": {
+     "template": "historico-finca",
+     "type": "pdf",
+     "pages": [
+      "portrait",
+      "landscape"
+     ],
+     "check": {
+      "zafras": 10,
+      "lots": 2,
+      "latestArea": 8.09
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "landscape"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1980,
+     "height": 3550,
+     "scale": 2.5
+    },
+    "names": [
+     "Alba_Nora_Arguello_Martinez_2026-11-26.pdf",
+     "Alba_Nora_Arguello_Martinez_2026-11-26.png"
+    ]
+   }
+  }
+ }
+}

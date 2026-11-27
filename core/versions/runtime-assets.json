@@ -1,6 +1,6 @@
 {
   "appVersion": "1.6.2",
-  "releaseId": "1.6.2-71adc67b15cf3ce5",
+  "releaseId": "1.6.2-08506e1b6f6c9b44",
   "assets": {
     "404.html": "13e468776893ea36d86e0a6b83935bafd4c5f3782fb3a302959337f8e14a19fe",
     "app.js": "2e62cbe84f75fec94e99de5d467bd96f75a260c5bd75e721b8b588f69559cb2f",
@@ -60,6 +60,9 @@
     "modules/labores/index.html": "fd8a11540ef811e6b6a56ca855e87cf1f0d209f4847584435bcd7ea97af193c1",
     "modules/produccion/apple-touch-icon.png": "8b873f00f171c2fbe8c602d5f08a5555b0f5d01e26119f2776de4fab747c0e9e",
     "modules/produccion/assets/campo-iteracion03.webp": "f3492655c5ef97099db1f97eb1fb21c6e3d5d41e4aed84758c6d2d904f86f3cf",
+    "modules/produccion/assets/fonts/report/Inter-Bold.ttf": "101d1d4b524163e4cd5235b97322a13b4c1e5557dc32fa421ca60d8ecce8facb",
+    "modules/produccion/assets/fonts/report/Inter-Regular.ttf": "4cf964c9c4eaf430b4cf5a4b9f0ea3a635b34de92533b890a50b89297e815132",
+    "modules/produccion/assets/fonts/report/Inter-SemiBold.ttf": "8cc1f6bb2470f33366b7939cc568a8b0a566eebebf45d89acdaa1fb7ab6c19e1",
     "modules/produccion/assets/negocios-de-cana.webp": "e2fb8e606a08aa60c233bf6a7dd33a15dbb598c8ca87bbd097b2d4f26353a767",
     "modules/produccion/css/casur-upgrade.css": "74384729d32c8bde707888125f919315e47040bf87454889980ff6bb95af63dd",
     "modules/produccion/css/maestro-ux.css": "f3106e0f9551f5d0766610ccf3f5d205b69953366dc43e9f657f3d7971cace02",
@@ -68,7 +71,7 @@
     "modules/produccion/icon-512.png": "54c808784b136dbd73be9cd2ab556f3076d5d643b03d0edac0b0ee43a08b4081",
     "modules/produccion/icon-maskable-192.png": "599473a2f3ed5f5f8847d0cbae1199e269ba1de33cddfd44412f10663348bfdf",
     "modules/produccion/icon-maskable-512.png": "2cf3246ee0503b3b788f56adeb3aebcec52509a5bb19e1820d48430d44a03386",
-    "modules/produccion/index.html": "bd1e05679bc2574fed527699da233fafdb7239b8b4a76a3cd07f261b4cf1a071",
+    "modules/produccion/index.html": "4dc7dbbe042f5b1097a7c47b05914913fa02e87c1d2d52550c925a4ffaf849d7",
     "modules/produccion/js/casur-enhancements.js": "775808182acfab563ece47fc0d12d71070707901dceb68a1eb6f5bd5a151780c",
     "modules/produccion/js/effective-data-date.js": "4be6eee64653dcd752b04a80079cf342d63810b9a86bce3603e20267c66f2fc3",
     "modules/produccion/js/historical-engine.js": "299ab93c929894a7dd89d197c54bec2c6de3362799afdd6a119cf9b00513c35d",
@@ -77,6 +80,9 @@
     "modules/produccion/js/official-source-policy.js": "c415e44b78997b69f02c9e720f59286816af01799e7a5b46d610deb759961d14",
     "modules/produccion/js/operational-import-ui.js": "68a2ab81c5e7682185e2def9be74ef6cf776e1601ec5172b9d27970a3dc61a48",
     "modules/produccion/js/release-info.js": "4ab5bdb62d3bd31f52d83bdab897b2960e11aaa480de8ec18701cc2fbb31b644",
+    "modules/produccion/js/report-engine.js": "795548ab524fb84ca2b695c78613fe3f5ecb93636db97731cc091d93b48d58a3",
+    "modules/produccion/js/report-models.js": "d75699d9a74cd56d8e53ea9a496dec553430706a60c8bcb44f2a96aa54239c28",
+    "modules/produccion/vendor/jspdf/jspdf.umd.min.js": "e6551fcdc32f09d6853b2c5126d18d01d9447e0da618a41a11ebeee0f6c20d54",
     "modules/produccion/vendor/xlsx.bundle.js": "1c7abf2993ff2cd61e508f9268e9acda0098c9796f3925d2ba0d2579072653e2",
     "modules/riego/404.html": "a78766b6059c312f834811780ac97389aca739da75b8ce6fd50c6c1c87a5b114",
     "modules/riego/assets/html2canvas.esm-BfxBtG_O.js": "b471b10e16146893cfa97e18fc83cacd3996b63ce527b10dad4b44d232c64884",
@@ -284,6 +290,9 @@
     "produccion": [
       "modules/produccion/apple-touch-icon.png",
       "modules/produccion/assets/campo-iteracion03.webp",
+      "modules/produccion/assets/fonts/report/Inter-Bold.ttf",
+      "modules/produccion/assets/fonts/report/Inter-Regular.ttf",
+      "modules/produccion/assets/fonts/report/Inter-SemiBold.ttf",
       "modules/produccion/assets/negocios-de-cana.webp",
       "modules/produccion/css/casur-upgrade.css",
       "modules/produccion/css/maestro-ux.css",
@@ -301,6 +310,9 @@
       "modules/produccion/js/official-source-policy.js",
       "modules/produccion/js/operational-import-ui.js",
       "modules/produccion/js/release-info.js",
+      "modules/produccion/js/report-engine.js",
+      "modules/produccion/js/report-models.js",
+      "modules/produccion/vendor/jspdf/jspdf.umd.min.js",
       "modules/produccion/vendor/xlsx.bundle.js"
     ],
     "riego": [

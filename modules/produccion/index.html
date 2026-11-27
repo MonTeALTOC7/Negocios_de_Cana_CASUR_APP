@@ -5535,6 +5535,29 @@ renderCanvas=async function(kind,variant){
 window.CASUR_VISUAL_EXPORT.renderCanvas=renderCanvas;window.CASUR_VISUAL_EXPORT.r1='isolated-measure';window.CASUR_VISUAL_EXPORT.renderCss=function(){return RENDER_CSS;};
 })();
 /* R1-EXPORT-END */
+/* R2-EXPORT (autorizado 26-Nov-2026, docs/PROPUESTA_REDISENO_INFORMES.md R2): Cronológico e Histórico de Finca y de Suerte. */
+(function(){
+// Los mismos botones «Descargar PDF / imagen» usan el motor de informes R2 (js/report-engine.js + js/report-models.js,
+// precargados por la PWA). Los demás informes (múltiples y Zona) siguen en el motor anterior hasta R3.
+var baseRun=runAction,loading=null;
+function load(src){return new Promise(function(ok,ko){var s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=function(){ko(new Error('No se pudo cargar '+src));};document.head.appendChild(s);});}
+function reports(){if(window.CASUR_REPORTS)return Promise.resolve(window.CASUR_REPORTS);loading=loading||load('js/report-engine.js').then(function(){return load('js/report-models.js');}).then(function(){return window.CASUR_REPORTS;});loading.catch(function(){loading=null;});return loading;}
+runAction=async function(kind,type,button,variant){
+  if((kind!=='cronologico'&&kind!=='historico')||variant)return baseRun(kind,type,button,variant);
+  var node=target(kind);if(!node){alert('Abra primero la ficha o el resumen que desea exportar.');return;}
+  var original=button.innerHTML;button.disabled=true;
+  button.innerHTML='<span class="spinner"></span><span class="copy"><b>Procesando</b><small>un momento…</small></span>';
+  try{
+    toast(type==='pdf'?'Generando PDF…':'Generando imagen PNG…',5000);
+    var R=await reports(),out=await R.export(kind,type,node);
+    if(!out){button.disabled=false;button.innerHTML=original;return baseRun(kind,type,button,variant);}
+    downloadBlob(out.blob,filename(kind,node,type==='pdf'?'pdf':'png'));toast(type==='pdf'?'PDF descargado correctamente.':'Imagen PNG descargada correctamente.');
+  }catch(err){console.error(err);alert('No se pudo generar el reporte: '+(err.message||err));}
+  finally{button.disabled=false;button.innerHTML=original;}
+};
+window.CASUR_VISUAL_EXPORT.r2='report-engine';window.CASUR_VISUAL_EXPORT.reports=reports;
+})();
+/* R2-EXPORT-END */
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',decorate);else decorate();
 })();
 </script>

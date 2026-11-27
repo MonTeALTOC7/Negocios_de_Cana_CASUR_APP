@@ -43,3 +43,76 @@
 - Texto pequeño en el Cronológico múltiple (render de 1,600 px).
 - Una página con 3 filas en el Histórico múltiple completo.
 - PDF de imagen.
+
+## R2: motor de informes independiente de la pantalla
+
+### Decisión técnica: biblioteca PDF frente a escritor propio
+
+| Criterio | jsPDF 4.2.1 (MIT) | pdf-lib 1.17.1 (MIT) + fontkit | Escritor propio |
+|---|---|---|---|
+| Texto seleccionable con fuente TTF incrustada (Identity-H + ToUnicode) | Incluido | Requiere `@pdf-lib/fontkit` (~1 MB extra) | Hay que escribir un lector TTF, subconjunto, tabla de anchos y CMap |
+| Mantenimiento | Activo (versión de mar-2026) | Sin versiones desde 2021 | A cargo del proyecto |
+| Tamaño servido | 420 KB (UMD minificado; `canvg` y `dompurify` solo se usan en `html()`/SVG, que no se emplean) | ~500 KB + fontkit | ~15–25 KB, más el riesgo de errores de codificación |
+| Android / PWA sin conexión | JavaScript puro, sin red; precargado | Igual | Igual |
+| Riesgo técnico | **Bajo**: API estable de texto, líneas, rectángulos e imágenes | Medio (dependencia sin mantenimiento) | Alto (fuentes y Unicode) |
+
+**Decisión:** jsPDF 4.2.1. El archivo `jspdf.umd.min.js` va sin modificar en `modules/produccion/vendor/jspdf/`, con licencia y SHA-256 en su `README.txt`.
+
+- Se usa solo la API básica: `text`, `line`, `rect`, `roundedRect`, `circle`, `addImage` y la fuente TTF.
+- Se carga **solo al exportar**: el arranque del módulo no aumenta.
+- Queda incluido en el precaché del Service Worker para uso sin conexión.
+
+**Fuente:** Inter 4.1 (OFL-1.1) en Regular, SemiBold y Bold, convertida a TTF y reducida a Latin, Latin-1, Latin Extended-A y los símbolos que usan los informes («Δ», «≥», «→», «·», «–», «•», «…»).
+- Pesa ~50 KB por peso, en `modules/produccion/assets/fonts/report/`.
+- La misma fuente se registra en jsPDF (PDF) y como `FontFace` (PNG), de modo que la medición y el dibujo coinciden.
+
+### Arquitectura
+
+| Pieza | Archivo | Función |
+|---|---|---|
+| Motor | `js/report-engine.js` | Carga los recursos y define `Doc` (páginas en puntos con encabezado, pie y flujo de bloques). Bloques: título, KPI, grupos de variables, composición, gráfico de líneas vectorial, nota, fila y tabla paginada con encabezado repetido. Salidas `toPdf` y `toPng` |
+| Plantillas | `js/report-models.js` | Cronológico de Finca y de Suerte, Histórico de Finca y de Suerte. Leen el panel oficial y los motores expuestos; no recalculan cifras oficiales |
+| Despacho | Bloque `R2-EXPORT` en `index.html` | Los botones existentes de Cronológico e Histórico (finca o suerte) llaman a `CASUR_REPORTS`. Los múltiples y los de Zona siguen en el motor R1 hasta R3 |
+
+**Paginación:**
+- Bloques indivisibles.
+- Las tablas se dividen por filas, repiten el encabezado y llevan «(continuación)».
+- Un separador de sección nunca queda al pie, separado de su primera fila.
+- Un título se mantiene con el inicio de su contenido.
+
+**Orientación:** cada sección elige la suya. Por ejemplo, el resumen va en vertical y las tablas anchas en horizontal, dentro del mismo PDF.
+
+**PNG:** apila las páginas con la misma lista de dibujo, con escala adaptativa: hasta 2.5×, ≤ 16,000 px por lado y ≤ 32 MP en total, que es el techo de memoria para Android. El tamaño real queda en `CASUR_REPORTS.last.png`.
+
+### Plantillas
+
+| Plantilla | Orientación | Contenido |
+|---|---|---|
+| **Cronológico de Finca** | Vertical (resumen) + horizontal (detalle) | **KPI:** área activa, TCH estimado Z26/27, TCH **ejecutado** Z25/26 (Histórico) y edad actual. KPI secundarios: toneladas estimadas, TCH **anterior (aforo)**, molienda/semilla y distancia. **Composición** por variedad, tipo de riego, # de cortes (rangos) y destino, con categorías originales. **Participación** (activas de molienda y de semilla, inactivas). **Detalle** de todas las suertes en dos tablas que reúnen las 18 variables de la tabla oficial más edad, fecha para cosecha (BE), corte (BF) y participación, agrupadas por activas de molienda, activas de semilla e inactivas |
+| **Cronológico de Suerte** | Vertical, 1 página | KPI en el orden pedido: TCH estimado, fecha para cosecha, área, edad. Gráfico histórico TCH (mismo cálculo que la pantalla). Grupos: caracterización agronómica, datos productivos, plan de cosecha, ubicación y estado, y escenario optimista (aparte). Sin tabla de 18 columnas; variedad, zona y tenencia solo en el encabezado |
+| **Histórico de Finca** | Vertical (resumen) + horizontal (tablas) | KPI y comparaciones oficiales, alertas, TCH por zafra y gráficos de área, toneladas y KATM. Resumen por zafra (tabla oficial). Detalle histórico por suerte: TCH por zafra de todos los lotes de la finca |
+| **Histórico de Suerte** | Vertical (ficha) + horizontal (tabla) | KPI y comparaciones frente a CASUR, zona, variedad y riego. Gráficos TCH y KATM por zafra. Tabla histórica completa de 14 columnas en página horizontal |
+
+### QA (`tools/qa-informes.cjs`): 27/27, en PC y Android con los botones reales
+
+**PDF:**
+- Texto extraíble con `pdftotext`, fuentes Inter incrustadas y una sola imagen (el logo).
+- Orientación de cada página según la plantilla.
+- «Página X de Y» y fechas `DD-MMM-AAAA`, sin fechas ISO.
+- Ningún elemento fuera de los márgenes (`audit()` = 0).
+
+**Paridad:**
+- **Cronológico de Finca:** las 49 suertes de Pansaco aparecen en las dos tablas de detalle, y cada cifra (área, variedad, # de corte, riego, TCH, TCH est. y Ton. est.) es igual a la tabla oficial. KPI iguales al panel: 368.44 · 48.57 · 63.35 · 10.61 · 17,452.08 · 66.23.
+- **Cronológico de Suerte:** orden de los KPI, variedad mostrada una sola vez y ausencia de la tabla de 18 columnas.
+- **Histórico de Finca:** el resumen por zafra es igual al oficial, figuran los 61 lotes y su área Z25/26 suma 428.96 ha, igual que el KPI.
+- **Histórico de Suerte:** 10 zafras con área, toneladas, TCH, KATM, edad y estado.
+
+**Otros casos:**
+- **Finca pequeña 904:** «Argüello» se extrae correcto y figuran sus suertes, incluidas las de letra.
+- **Selección múltiple:** sigue en el motor R1, medida en el contexto aislado y con el pie dentro del área.
+- **PNG:** dimensiones ≤ 16,000 px y ≤ 32 MP, con escala ≥ 1.5×. Por ejemplo, el Cronológico de Finca sale de 1,980 × 9,830 px.
+- **Sin conexión:** shell PWA con Service Worker y red desconectada. El motor, jsPDF y las fuentes se cargan desde la caché y se descargan PDF y PNG.
+
+**Muestras:** `docs/muestras-informes-r2/` contiene PDF y PNG de las cuatro plantillas (Pansaco y suerte 01).
+
+**Pendiente (R3):** migrar los informes múltiples (Histórico ejecutivo/completo y Cronológico múltiple) y los de Zona al mismo motor, después de la revisión visual de estas cuatro plantillas.

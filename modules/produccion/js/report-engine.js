@@ -78,6 +78,7 @@
     line(x1, y1, x2, y2, color = C.line, lw = 0.6, dash = null) { this.op({t: 'line', x1, y1, x2, y2, color, lw, dash}); }
     poly(pts, color, lw = 1.4, dash = null) { this.op({t: 'poly', pts, color, lw, dash}); }
     dot(x, y, r, color) { this.op({t: 'dot', x, y, r, color}); }
+    shape(rings, fill, stroke, lw = 0.8) { this.op({t: 'shape', rings, fill, stroke, lw}); }
     header(p, first) {
       const x = M, w = p.w - 2 * M, meta = this.meta, A = this.A;
       if (first) {
@@ -119,6 +120,7 @@
         let x1, x2, y1, y2;
         if (o.t === 'text') { const w = this.m.width(o.str, o.size, o.weight); x1 = o.align === 'right' ? o.x - w : o.align === 'center' ? o.x - w / 2 : o.x; x2 = x1 + w; y1 = o.y - o.size * 0.82; y2 = o.y + o.size * 0.22; }
         else if (o.t === 'rect' || o.t === 'img') { x1 = o.x; x2 = o.x + o.w; y1 = o.y; y2 = o.y + o.h; }
+        else if (o.t === 'shape') { const xs = o.rings.flat().map(p => p[0]), ys = o.rings.flat().map(p => p[1]); x1 = Math.min(...xs); x2 = Math.max(...xs); y1 = Math.min(...ys); y2 = Math.max(...ys); }
         else if (o.t === 'line') { x1 = Math.min(o.x1, o.x2); x2 = Math.max(o.x1, o.x2); y1 = Math.min(o.y1, o.y2); y2 = Math.max(o.y1, o.y2); }
         else return;
         if (x1 < M - 1 || x2 > p.w - M + 1 || y1 < 18 || y2 > p.h - 18) { out++; if (samples.length < 5) samples.push({page: i + 1, op: o.t, str: o.str, x1: Math.round(x1), x2: Math.round(x2)}); }
@@ -220,6 +222,38 @@
           d.rect(bx - 1.6, ly - 1.2, lw + 3.2, 8.2, C.white, null, 1.5); d.text(lx, ly, lab, 6.6, 'semibold', C.ink, al); }); });
     }
   });
+  // Selección informada: fichas con color (el mismo del mapa), nombre en negrita y detalle breve; se reparten en filas.
+  const tint = (hex, a) => { const n = parseInt(hex.slice(1), 16), m = c => Math.round(255 - (255 - c) * a); return '#' + [m(n >> 16 & 255), m(n >> 8 & 255), m(n & 255)].map(v => v.toString(16).padStart(2, '0')).join(''); };
+  const chips = (label, items) => ({
+    gap: 10,
+    lay(d, w) { const rows = [[]]; let x = 0; const lw = label ? d.m.width(label, 7.2, 'semibold') + 10 : 0;
+      items.forEach(it => { const cw = Math.max(d.m.width(it.title, 8.2, 'semibold'), d.m.width(it.sub || '', 6.9, 'normal')) + 22; if (x + cw > w - lw && rows[rows.length - 1].length) { rows.push([]); x = 0; } rows[rows.length - 1].push({...it, cw, x}); x += cw + 6; });
+      return {rows, lw}; },
+    measure(d, w) { this._L = this.lay(d, w); return this._L.rows.length * 28 - 4; },
+    draw(d, x, y) { const {rows, lw} = this._L; if (label) d.text(x, y + 9, label, 7.2, 'semibold', C.muted);
+      rows.forEach((r, ri) => r.forEach(it => { const cx = x + lw + it.x, cy = y + ri * 28; d.rect(cx, cy, it.cw, 24, tint(it.color, 0.1), tint(it.color, 0.45), 4, 0.6); d.rect(cx, cy + 4, 3, 16, it.color, null, 0);
+        d.text(cx + 10, cy + 4, it.title, 8.2, 'semibold', C.ink); if (it.sub) d.text(cx + 10, cy + 14, it.sub, 6.9, 'normal', C.muted); })); }
+  });
+  // Mapa vectorial: polígonos (Web Mercator local, misma escala en ambos ejes) con relleno tenue del color de la finca y
+  // contorno nítido; contexto en gris; rótulos solo con el número de suerte, sin caja, omitidos si chocarían con otro.
+  const map = (o) => ({
+    measure(d, w) { const pts = o.shapes.flatMap(s => s.rings.flat()); if (!pts.length) return 0; const rad = Math.PI / 180, P = p => [p[0] * rad, Math.log(Math.tan(Math.PI / 4 + p[1] * rad / 2))];
+      const xy = pts.map(P), xs = xy.map(p => p[0]), ys = xy.map(p => p[1]); this._b = {minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys), P};
+      const aspect = (this._b.maxY - this._b.minY) / Math.max(1e-12, this._b.maxX - this._b.minX); this._h = Math.max(150, Math.min(o.maxHeight || 420, (w - 24) * aspect + 24 + (o.title ? 18 : 0))); return this._h; },
+    draw(d, x, y, w) {
+      const {minX, maxX, minY, maxY, P} = this._b, top = y + (o.title ? 18 : 0), ih = this._h - (o.title ? 18 : 0) - 24, iw = w - 24, sc = Math.min(iw / Math.max(1e-12, maxX - minX), ih / Math.max(1e-12, maxY - minY));
+      const ox = x + 12 + (iw - (maxX - minX) * sc) / 2, oy = top + 12 + (ih - (maxY - minY) * sc) / 2, T = p => { const q = P(p); return [ox + (q[0] - minX) * sc, oy + (maxY - q[1]) * sc]; };
+      if (o.title) d.text(x, y, o.title, 8.6, 'bold', C.petrol);
+      d.rect(x, top, w, this._h - (o.title ? 18 : 0), '#F7F9FA', C.line, 4, 0.5);
+      // Contornos finos y tintados: las suertes vienen fragmentadas por surcos y un trazo oscuro saturaría el mapa.
+      [...o.shapes].sort((a, b) => (a.context ? 0 : 1) - (b.context ? 0 : 1)).forEach(s => d.shape(s.rings.map(r => r.map(T)), s.context ? '#FFFFFF' : tint(s.color, 0.3), s.context ? '#C3CCD1' : tint(s.color, 0.62), s.context ? 0.3 : 0.35));
+      const placed = [], fs = o.labelSize || 6.4; let shown = 0;
+      o.labels.forEach(l => { const [lx, ly] = T(l.at), tw = d.m.width(l.text, fs, 'semibold'), b = {x: lx - tw / 2 - 1, y: ly - fs / 2 - 1, w: tw + 2, h: fs + 2};
+        if (placed.some(a => b.x < a.x + a.w && b.x + b.w > a.x && b.y < a.y + a.h && b.y + b.h > a.y)) return; placed.push(b); shown++; d.text(lx, ly - fs * 0.5, l.text, fs, 'semibold', C.ink, 'center'); });
+      this.stats = {shapes: o.shapes.length, labels: o.labels.length, shown, overlaps: 0};
+      if (o.onDraw) o.onDraw(this.stats);
+    }
+  });
   const note = (str, size = 7) => ({
     measure(d, w) { this._l = d.m.wrap(str, size, 'normal', w); return this._l.length * size * 1.35; }, gap: 8,
     draw(d, x, y) { this._l.forEach((l, i) => d.text(x, y + i * size * 1.35, l, size, 'normal', C.muted)); }
@@ -271,6 +305,9 @@
         else if (o.t === 'rect') { if (o.fill) pdf.setFillColor(o.fill); if (o.stroke) { pdf.setDrawColor(o.stroke); pdf.setLineWidth(o.lw); } const mode = o.fill && o.stroke ? 'FD' : o.fill ? 'F' : 'S'; o.r ? pdf.roundedRect(o.x, o.y, o.w, o.h, o.r, o.r, mode) : pdf.rect(o.x, o.y, o.w, o.h, mode); }
         else if (o.t === 'line') { pdf.setDrawColor(o.color); pdf.setLineWidth(o.lw); pdf.setLineDashPattern(o.dash || [], 0); pdf.line(o.x1, o.y1, o.x2, o.y2); pdf.setLineDashPattern([], 0); }
         else if (o.t === 'poly') { pdf.setDrawColor(o.color); pdf.setLineWidth(o.lw); pdf.setLineDashPattern(o.dash || [], 0); pdf.setLineJoin('round'); for (let k = 1; k < o.pts.length; k++) pdf.line(o.pts[k - 1][0], o.pts[k - 1][1], o.pts[k][0], o.pts[k][1]); pdf.setLineDashPattern([], 0); }
+        else if (o.t === 'shape') { pdf.setLineJoin('round'); if (o.fill) pdf.setFillColor(o.fill); if (o.stroke) { pdf.setDrawColor(o.stroke); pdf.setLineWidth(o.lw); }
+          pdf.path(o.rings.flatMap(r => [...r.map((q, k) => ({op: k ? 'l' : 'm', c: [q[0], q[1]]})), {op: 'h', c: []}]));
+          o.fill && o.stroke ? pdf.fillStrokeEvenOdd() : o.fill ? pdf.fillEvenOdd() : pdf.stroke(); }
         else if (o.t === 'dot') { pdf.setFillColor(o.color); pdf.circle(o.x, o.y, o.r, 'F'); }
         else if (o.t === 'img' && doc.A.logo) pdf.addImage(doc.A.logo.url, 'PNG', o.x, o.y, o.w, o.h, 'logo', 'FAST');
       });
@@ -292,6 +329,7 @@
         if (o.t === 'text') { g.font = weight[o.weight] + ' ' + o.size + 'px "' + CANVAS_FONT + '", Arial, sans-serif'; g.fillStyle = o.color; g.textAlign = o.align; g.textBaseline = 'alphabetic'; g.fillText(o.str, o.x, o.y); }
         else if (o.t === 'rect') { g.beginPath(); o.r && g.roundRect ? g.roundRect(o.x, o.y, o.w, o.h, o.r) : g.rect(o.x, o.y, o.w, o.h); if (o.fill) { g.fillStyle = o.fill; g.fill(); } if (o.stroke) { g.strokeStyle = o.stroke; g.lineWidth = o.lw; g.stroke(); } }
         else if (o.t === 'line' || o.t === 'poly') { g.beginPath(); g.setLineDash(o.dash || []); g.strokeStyle = o.color; g.lineWidth = o.lw; const pts = o.t === 'line' ? [[o.x1, o.y1], [o.x2, o.y2]] : o.pts; pts.forEach((q, k) => k ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])); g.stroke(); g.setLineDash([]); }
+        else if (o.t === 'shape') { g.beginPath(); o.rings.forEach(r => r.forEach((q, k) => k ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]))); g.closePath(); if (o.fill) { g.fillStyle = o.fill; g.fill('evenodd'); } if (o.stroke) { g.strokeStyle = o.stroke; g.lineWidth = o.lw; g.setLineDash([]); g.stroke(); } }
         else if (o.t === 'dot') { g.beginPath(); g.arc(o.x, o.y, o.r, 0, Math.PI * 2); g.fillStyle = o.color; g.fill(); }
         else if (o.t === 'img' && doc.A.logo?.bmp) g.drawImage(doc.A.logo.bmp, o.x, o.y, o.w, o.h);
       }
@@ -317,5 +355,5 @@
     if (r?.renovacion && !r.fSiembra) return 0; const iso = v => v ? new Date(String(v) + 'T00:00:00') : null, c = iso(r.fUltCte), s = iso(r.fSiembra), f = iso(r.fBase);
     const b = c && s ? (s > c ? s : c) : (s || c || f); if (!b) return null; const n = new Date(), t = new Date(n.getFullYear(), n.getMonth(), n.getDate()); return Math.max(0, (t - b) / 86400000 / 30.4375); };
 
-  window.CASUR_REPORT_ENGINE = Object.freeze({assets, Doc, C, M, SEQ, OTHER, RIEGO, heading, kpis, groups, composition, chart, note, row, table, toPdf, toPng, pngScale, fmt, date, now, zlabel, cellText, kpiLabel, panelKpis, officialTable, fileName, ageOf, PNG_MAX_SIDE, PNG_MAX_AREA});
+  window.CASUR_REPORT_ENGINE = Object.freeze({assets, Doc, C, M, SEQ, OTHER, RIEGO, tint, heading, kpis, groups, composition, chips, map, chart, note, row, table, toPdf, toPng, pngScale, fmt, date, now, zlabel, cellText, kpiLabel, panelKpis, officialTable, fileName, ageOf, PNG_MAX_SIDE, PNG_MAX_AREA});
 })();

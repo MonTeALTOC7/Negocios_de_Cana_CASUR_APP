@@ -12,7 +12,7 @@
    (getHistoricoDualSummary + historicoMultiReportCharts) y Zona (CASUR_ZONE_UX14), con el mismo motor y la misma norma. */
 (function () {
   'use strict';
-  const E = window.CASUR_REPORT_ENGINE, {C, fmt, date, now, zlabel, cellText, panelKpis, officialTable, ageOf, kpis, groups, composition, chart, table, heading} = E;
+  const E = window.CASUR_REPORT_ENGINE, {C, chips, map, fmt, date, now, zlabel, cellText, panelKpis, officialTable, ageOf, kpis, groups, composition, chart, table, heading} = E;
   const P = () => window.CASUR_CRONO_PARTICIPATION, O = () => window.CASUR_OPERATIONAL_IMPORT;
   const split = s => { const m = String(s || '—').match(/^(.*?)\s+(ha|t\/ha|t|meses|km|kg\/t|TCH)$/); return m ? [m[1], m[2]] : [String(s || '—'), '']; };
   const num = s => { const n = Number(String(s ?? '').replace(/[^\d.-]/g, '')); return Number.isFinite(n) && /\d/.test(String(s)) ? n : null; };
@@ -118,10 +118,13 @@
   // fill: los dos gráficos ocupan el resto de la página (Histórico de Finca: página 1 = KPI + gráficos).
   // TCH histórico = toneladas ÷ área de todas las zafras del Histórico (mismo criterio que «Vs histórico» del panel).
   const histAvg = L => { let t = 0, a = 0; L.forEach(l => (l[11] || []).forEach(x => { t += x[2] || 0; a += x[1] || 0; })); return a ? t / a : null; };
-  const histCharts = (d, labels, tch, katm, fill, avg) => {
+  // KATM histórico = Σ(KATM × toneladas) ÷ Σ toneladas de todas las zafras (mismo criterio que el KATM ponderado).
+  const histAvgK = L => { let k = 0, t = 0; L.forEach(l => (l[11] || []).forEach(x => { if (x[4] != null && x[2] > 0) { k += x[4] * x[2]; t += x[2]; } })); return t ? k / t : null; };
+  const kRef = v => ({ref: v, refLabel: 'KATM histórico ' + fmt(v)});
+  const histCharts = (d, labels, tch, katm, fill, avg, katmAvg) => {
     const hh = fill ? Math.min(250, Math.floor((d.bottom - d.y - 10) / 2)) : 0;
     d.add(chart({title: 'TCH por zafra', labels, series: [{name: 'TCH', color: C.petrol, values: tch}], ref: avg, refLabel: 'TCH histórico ' + fmt(avg), height: hh || 170}));
-    d.add(chart({title: 'KATM por zafra', labels, series: [{name: 'KATM', color: '#5B8E7D', values: katm}], height: hh || 160}));
+    d.add(chart({title: 'KATM por zafra', labels, series: [{name: 'KATM', color: '#5B8E7D', values: katm}], ...kRef(katmAvg), height: hh || 160}));
   };
 
   function histFarm(A, node, code) {
@@ -129,7 +132,7 @@
     const c = Object.fromEntries(T.heads.map((h, i) => [h, i])), name = histName(node), ent = (window.mainEntities?.() || []).find(e => String(e.code) === String(code));
     const d = new E.Doc(A, {title: 'Histórico de Finca', subject: name + ' · Código ' + code, consulta: now(), lines: ['Zona ' + (ent?.latest?.zona || T.rows.at(-1)?.[c['Zona']] || '—'), zafraSpan()]});
     d.newPage('portrait'); histKpis(d, node, T);
-    const zf = T.rows.map(r => r[c['Zafra']]); histCharts(d, zf, T.rows.map(r => num(r[c['TCH pond.']])), T.rows.map(r => num(r[c['KATM pond.']])), true, histAvg(lots().filter(l => String(l[8]) === String(code) && !/MAQUILA/i.test(l[2] || ''))));
+    const zf = T.rows.map(r => r[c['Zafra']]); histCharts(d, zf, T.rows.map(r => num(r[c['TCH pond.']])), T.rows.map(r => num(r[c['KATM pond.']])), true, histAvg(lots().filter(l => String(l[8]) === String(code) && !/MAQUILA/i.test(l[2] || ''))), histAvgK(lots().filter(l => String(l[8]) === String(code) && !/MAQUILA/i.test(l[2] || ''))));
     d.newPage();
     const cols = [['Zafra', 'Zafra', 0.7], ['Área', 'Área (ha)', 0.85], ['Ton', 'Toneladas', 0.95], ['TCH pond.', 'TCH', 0.75], ['KATM pond.', 'KATM', 0.75], ['Edad prom.', 'Edad (meses)', 0.8], ['Variedad dom.', 'Variedad', 1.15], ['Riego', 'Tipo de riego', 1], ['Suertes', 'Suertes', 0.65]].filter(([k]) => k in c);
     const right = new Set(['Área', 'Ton', 'TCH pond.', 'KATM pond.', 'Edad prom.', 'Suertes']);
@@ -152,7 +155,7 @@
     const d = new E.Doc(A, {title: 'Histórico de Suerte', subject: farm + ' · Suerte ' + suerte, consulta: now(),
       lines: ['Código ' + lot + ' · Finca ' + (lc[8] || '—') + ' · Zona ' + (lc[2] || '—'), 'Variedad ' + (lc[3] || '—') + ' · Tipo de riego ' + (lc[4] || '—') + ' · ' + zafraSpan()]});
     d.newPage('portrait'); histKpis(d, node, T);
-    histCharts(d, T.rows.map(r => r[c['Zafra']]), T.rows.map(r => num(r[c['TCH']])), T.rows.map(r => num(r[c['KATM']])), false, histAvg(lc.length ? [lc] : []));
+    histCharts(d, T.rows.map(r => r[c['Zafra']]), T.rows.map(r => num(r[c['TCH']])), T.rows.map(r => num(r[c['KATM']])), false, histAvg(lc.length ? [lc] : []), histAvgK(lc.length ? [lc] : []));
     const cols = [['Zafra', 'Zafra'], ['Área', 'Área (ha)'], ['Ton', 'Toneladas'], ['TCH', 'TCH'], ['KATM', 'KATM'], ['Edad', 'Edad (meses)'], ['Corte', '# de cortes']].filter(([k]) => k in c);
     d.add(table({title: 'Registro por zafra', columns: cols.map(([k, l]) => ({label: l, w: 1, align: k === 'Zafra' ? 'left' : 'right', bold: k === 'Zafra'})), rows: T.rows.map(r => cols.map(([k]) => k === 'Corte' && num(r[c[k]]) != null ? fmt(num(r[c[k]]), 0) : r[c[k]]))}));
     return {doc: d, name: ext => E.fileName('Historico', farm, suerte, ext), check: {lot: String(lot), zafras: T.rows.length}};
@@ -202,20 +205,35 @@
   const agg = rs => { const area = sumBy(rs, x => x.area), ton = sumBy(rs, x => x.ton); return {area, ton, tch: area ? ton / area : null, katm: wavg(rs, x => x.katm, x => x.ton), edad: wavg(rs, x => x.edad, x => x.area), suertes: new Set(rs.map(x => x.lotId)).size}; };
   const zafraRows = (series) => series.map(z => [zlabel(z.zafra), fmt(z.area), fmt(z.ton, 0), fmt(z.tch), fmt(z.katm), fmt(z.edad), fmt(z.suertes, 0)]);
   const ZAFRA_COLS = [{label: 'Zafra', w: 0.8, bold: true}, {label: 'Área (ha)', w: 1, align: 'right'}, {label: 'Toneladas', w: 1, align: 'right'}, {label: 'TCH', w: 0.8, align: 'right'}, {label: 'KATM', w: 0.8, align: 'right'}, {label: 'Edad (meses)', w: 0.9, align: 'right'}, {label: 'Suertes', w: 0.7, align: 'right'}];
-  function histMulti(A, variant) {
+  const FARM_COLORS = ['#1F4E5C', '#3491b7', '#C9A54B', '#5B8E7D', '#7C6A9E', '#B4534B', '#86A0AA'];
+  const zafraList = zs => zs.length === 1 ? 'Período ' + zlabel(zs[0]) : zs.length === 2 ? 'Período ' + zlabel(zs[0]) + ' a ' + zlabel(zs[1]) + ' · 2 zafras' : 'Período: ' + zs.length + ' zafras · ' + zs.map(zlabel).join(' · ');
+  // Mapa de la selección: geometrías oficiales (historicalMapModel); fincas cercanas en un solo mapa, lejanas por separado.
+  async function selectionMap(sel) {
+    let model; try { model = await window.historicalMapModel?.(sel); } catch (e) { return null; } if (!model || !model.available) return null;
+    const color = f => FARM_COLORS[sel.findIndex(x => String(x.farmCode) === String(f.farmCode)) % FARM_COLORS.length];
+    const pts = fs => fs.flatMap(f => f.geometry.type === 'Polygon' ? f.geometry.coordinates.flat() : f.geometry.coordinates.flat(2));
+    const ext = fs => { const p = pts(fs); return Math.max(Math.max(...p.map(q => q[0])) - Math.min(...p.map(q => q[0])), Math.max(...p.map(q => q[1])) - Math.min(...p.map(q => q[1]))); };
+    const farms = model.farms.filter(f => f.features.length), nearby = ext(farms.flatMap(f => f.features)) <= 4 * Math.max(...farms.map(f => ext(f.features)));
+    const label = (f, id) => { const pre = String(f.farmCode), suf = String(id).startsWith(pre) ? String(id).slice(pre.length) : ''; return /^\d{1,3}[A-Z]*$/.test(suf) ? suf : String(id); };
+    const build = group => ({shapes: group.flatMap(f => f.features.flatMap(g => (g.geometry.type === 'Polygon' ? [g.geometry.coordinates] : g.geometry.coordinates).map(rings => ({rings, color: color(f), context: f.contextIds.includes(g.properties.lotId)})))),
+      labels: group.flatMap(f => f.features.filter(g => f.highlightedIds.includes(g.properties.lotId) && g.properties.anchor).map(g => ({at: g.properties.anchor, text: label(f, g.properties.lotId)})))});
+    return {groups: nearby ? [{farms, ...build(farms)}] : farms.map(f => ({farms: [f], ...build([f])})), color};
+  }
+  async function histMulti(A, variant) {
     const S = window.getHistoricoDualSummary?.(), R = window.historicoMultiReportCharts?.(); if (!S || !S.selection?.length) throw new Error('No hay fincas seleccionadas.');
-    const complete = variant === 'complete', sel = S.selection, zs = S.selectedZafras || [], one = zs.length === 1, zsuf = one ? ' Z' + zlabel(zs[0]) : '';
-    const period = one ? 'Período ' + zlabel(zs[0]) : 'Período ' + zs.map(zlabel).join(', '), all = S.availableZafras || [];
-    const selTxt = sel.map(f => f.farmName + ' (' + f.farmCode + ')' + (f.mode === 'full' ? '' : ' · ' + fmt(f.lotIds.length, 0) + ' suertes')).join(' · ');
+    const complete = variant === 'complete', sel = S.selection, zs = S.selectedZafras || [], one = zs.length === 1, zsuf = one ? ' Z' + zlabel(zs[0]) : '', all = S.availableZafras || [];
     const d = new E.Doc(A, {title: 'Histórico Multifinca', subject: fmt(sel.length, 0) + (sel.length === 1 ? ' finca' : ' fincas') + ' · ' + fmt(S.period.suertes, 0) + ' suertes', consulta: now(),
-      lines: [selTxt, period + ' · Zafras ' + zlabel(all[0]) + ' a ' + zlabel(all[all.length - 1])]});
+      lines: [zafraList(zs), 'Histórico: ' + all.length + ' zafras · ' + zlabel(all[0]) + ' a ' + zlabel(all[all.length - 1])]});
+    const M = await selectionMap(sel), fcol = f => FARM_COLORS[sel.indexOf(f) % FARM_COLORS.length];
     d.newPage('portrait');
+    // Fincas seleccionadas: fichas con el color de cada finca en el mapa.
+    d.add(chips('Fincas seleccionadas', sel.map(f => ({color: fcol(f), title: f.farmName + ' · ' + f.farmCode, sub: f.mode === 'full' ? 'Finca completa · ' + fmt(f.lotIds.length, 0) + ' suertes' : fmt(f.lotIds.length, 0) + (f.lotIds.length === 1 ? ' suerte seleccionada' : ' suertes seleccionadas')}))));
     const P0 = S.period;
     d.add(kpis([{label: 'Área cosechada' + zsuf, value: fmt(P0.area), unit: 'ha'}, {label: 'TCH' + zsuf, value: fmt(P0.tch), unit: 't/ha', accent: C.gold}, {label: 'KATM' + zsuf, value: fmt(P0.katm), unit: 'kg/t', accent: '#5B8E7D'}, {label: 'Edad' + zsuf, value: fmt(P0.edad), unit: 'meses'}], 4));
     d.add(kpis([{label: 'Toneladas', value: fmt(P0.ton, 0), unit: 't'}, {label: 'Distancia', value: fmt(S.currentDistance?.kmWeighted), unit: 'km'}, {label: 'Fincas', value: fmt(sel.length, 0)}, {label: 'Suertes', value: fmt(P0.suertes, 0)}], 4, true));
     const ser = S.series || [];
     d.add(chart({title: 'TCH por zafra', labels: ser.map(z => zlabel(z.zafra)), series: [{name: 'TCH', color: C.petrol, values: ser.map(z => z.tch)}], ref: S.full?.tch, refLabel: 'TCH histórico ' + fmt(S.full?.tch), height: 168}));
-    d.add(chart({title: 'KATM por zafra', labels: ser.map(z => zlabel(z.zafra)), series: [{name: 'KATM', color: '#5B8E7D', values: ser.map(z => z.katm)}], height: 152}));
+    d.add(chart({title: 'KATM por zafra', labels: ser.map(z => zlabel(z.zafra)), series: [{name: 'KATM', color: '#5B8E7D', values: ser.map(z => z.katm)}], ...kRef(S.full?.katm), height: 152}));
     // Resumen comparativo por finca (período elegido) y TCH por finca y zafra.
     const farms = S.analysis?.farms || R?.result?.farms || [];
     d.add(table({title: 'Resumen por finca' + (one ? ' · Z' + zlabel(zs[0]) : ''), columns: [{label: 'Finca', w: 1.7, bold: true}, {label: 'Código', w: 0.6}, {label: 'Suertes', w: 0.6, align: 'right'}, {label: 'Área (ha)', w: 0.9, align: 'right'}, {label: 'Toneladas', w: 0.9, align: 'right'}, {label: 'TCH', w: 0.7, align: 'right'}, {label: 'KATM', w: 0.7, align: 'right'}, {label: 'Edad (meses)', w: 0.8, align: 'right'}, {label: 'Distancia (km)', w: 0.8, align: 'right'}],
@@ -226,6 +244,11 @@
     d.add(table({title: 'TCH por finca y zafra', size: 6.8, columns: [{label: 'Finca', w: 1.5, bold: true}, ...all.map(z => ({label: zlabel(z), w: 0.6, align: 'right'})), {label: 'TCH período completo', w: 0.8, align: 'right', bold: true}],
       rows: sel.map(f => { const fr = rowsAll.filter(x => String(x.farmCode) === String(f.farmCode)), t = agg(fr); return [f.farmName, ...all.map(z => { const v = byFarmZ(f.farmCode, z); return v.area ? fmt(v.tch) : '—'; }), fmt(t.tch)]; }),
       total: ['Total selección', ...all.map(z => fmt(ser.find(x => x.zafra === z)?.tch)), fmt(S.full?.tch)]}));
+    // Mapa de fincas y suertes seleccionadas (ejecutivo, completo y PNG).
+    const mapStats = [];
+    if (M) { d.section('portrait'); d.add(heading('Mapa de fincas y suertes seleccionadas', null, 160));
+      M.groups.forEach(g => { d.add(chips(null, g.farms.map(f => ({color: M.color(f), title: f.farmName + ' · ' + f.farmCode, sub: f.mode === 'full' ? 'Finca completa' : fmt(f.highlightedIds.length, 0) + ' suertes seleccionadas'}))));
+        d.add(map({shapes: g.shapes, labels: g.labels, maxHeight: M.groups.length > 1 ? 300 : 560, onDraw: st => mapStats.push(st)})); }); }
     let lotsShown = 0;
     if (complete) {
       d.section('portrait');
@@ -240,7 +263,7 @@
           rows: lotIds.map(id => { const lr = fr.filter(x => String(x.lotId) === id), t = agg(lr); return [dup ? id : (sv.get(id) || id), ...all.map(z => { const v = lr.filter(x => x.zafra === z); return v.length ? fmt(agg(v).tch) : '—'; }), fmt(t.tch)]; })}));
       });
     }
-    return {doc: d, name: ext => E.fileName('Historico', 'Multifinca ' + (complete ? 'Completo' : 'Ejecutivo'), null, ext), check: {farms: sel.length, rows: rowsAll.length, lotsShown, zafras: ser.length, variant: complete ? 'complete' : 'executive'}};
+    return {doc: d, name: ext => E.fileName('Historico', 'Multifinca ' + (complete ? 'Completo' : 'Ejecutivo'), null, ext), check: {farms: sel.length, rows: rowsAll.length, lotsShown, zafras: ser.length, period: zs.length, variant: complete ? 'complete' : 'executive', map: mapStats}};
   }
 
   // ======================= Zona (Cronológico e Histórico) =======================
@@ -277,7 +300,8 @@
       d.add(kpis(comp.filter(([, v]) => v).map(([l, v]) => { const [a, u] = split(v); return {label: l, value: a, unit: u === 'TCH' ? 't/ha' : u}; }), 4, true));
       if (hist) {
         d.add(chart({title: 'TCH por zafra', labels: ser.map(z => zlabel(z.zafra)), series: [{name: 'TCH', color: C.petrol, values: ser.map(z => z.tch)}], ref: H.hist, refLabel: 'TCH histórico ' + fmt(H.hist), height: 180}));
-        d.add(chart({title: 'KATM por zafra', labels: ser.map(z => zlabel(z.zafra)), series: [{name: 'KATM', color: '#5B8E7D', values: ser.map(z => z.katm)}], height: 165}));
+        const tk = ser.reduce((n, z) => n + (z.katm != null ? z.ton : 0), 0), kz = tk ? ser.reduce((n, z) => n + (z.katm != null ? z.katm * z.ton : 0), 0) / tk : null;
+        d.add(chart({title: 'KATM por zafra', labels: ser.map(z => zlabel(z.zafra)), series: [{name: 'KATM', color: '#5B8E7D', values: ser.map(z => z.katm)}], ...kRef(kz), height: 165}));
       }
       // Composición: barras apiladas con las categorías originales (tipo de riego del lote).
       if (!hist) { const rows = (window.CRONO_DATA.producers || []).flatMap(p => p.details || []).filter(r => !zone || r.zona === zone), cards = comps(rows);
@@ -314,7 +338,7 @@
   }
   async function exportReport(kind, type, node, variant) {
     const job = resolve(kind, node, variant); if (!job) return null;
-    const A = await E.assets(), {doc, check, name} = job.build(A); doc.footers();
+    const A = await E.assets(), {doc, check, name} = await job.build(A); doc.footers();
     const out = type === 'image' ? await E.toPng(doc) : {blob: E.toPdf(doc)}, file = name(type === 'image' ? 'png' : 'pdf');
     window.CASUR_REPORTS.last = {template: job.template, type, name: file, pages: doc.pages.map(p => p.orientation), check, audit: doc.audit(), png: out.size || null};
     return {blob: out.blob, template: job.template, name: file};

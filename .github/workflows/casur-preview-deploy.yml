@@ -1,0 +1,187 @@
+name: CASUR Preview Deploy
+
+# Previews HTTPS de la App Maestra en el proyecto Cloudflare Pages «casur-maestro-ux-review».
+# Nunca publica producción: la guarda consulta la rama de producción del proyecto y la excluye.
+# Disparadores confiables únicamente (sin pull_request ni pull_request_target):
+#   - push a ramas controladas «preview-deploy/**» que contienen .github/preview-request.json
+#   - workflow_dispatch (disponible cuando este archivo exista en la rama predeterminada)
+# Las credenciales viven solo en el Environment «casur-preview», restringido a esas ramas y a main.
+# Procedimiento completo: docs/PREVIEW_AUTOMATIZADA.md
+
+on:
+  push:
+    branches: ['preview-deploy/**']
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'SHA completo (40 caracteres) a desplegar'
+        required: true
+      pr:
+        description: 'Número de PR donde registrar el enlace (opcional)'
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: casur-preview-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    if: github.repository == 'MonTeALTOC7/Negocios_de_Cana_CASUR_APP'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: casur-preview
+      url: ${{ steps.deploy.outputs.app_url }}
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    env:
+      PROJECT: casur-maestro-ux-review
+      WRANGLER_VERSION: 4.159.0
+      PLAYWRIGHT_VERSION: 1.65.0
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - name: Checkout (herramientas confiables de la rama de despliegue)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Resolver la solicitud de preview
+        id: req
+        env:
+          EVENT: ${{ github.event_name }}
+          IN_SHA: ${{ github.event.inputs.sha }}
+          IN_PR: ${{ github.event.inputs.pr }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "workflow_dispatch" ]; then SHA="$IN_SHA"; PR="${IN_PR:-}"
+          else
+            test -f .github/preview-request.json || { echo "::error::Falta .github/preview-request.json"; exit 1; }
+            SHA=$(jq -r '.sha' .github/preview-request.json); PR=$(jq -r '.pr // empty' .github/preview-request.json)
+          fi
+          [[ "$SHA" =~ ^[a-f0-9]{40}$ ]] || { echo "::error::SHA inválido"; exit 1; }
+          [[ -z "$PR" || "$PR" =~ ^[0-9]{1,6}$ ]] || { echo "::error::PR inválido"; exit 1; }
+          git fetch --quiet origin '+refs/heads/*:refs/remotes/origin/*'
+          git cat-file -e "$SHA^{commit}" || { echo "::error::El SHA no existe en el repositorio"; exit 1; }
+          # Solo commits contenidos en ramas de este repositorio (nunca refs de forks).
+          REF=$(git branch -r --contains "$SHA" --format='%(refname:short)' | grep -v '^origin/preview-deploy/' | grep -v '^origin/HEAD' | sed 's#^origin/##' | head -1 || true)
+          [ -n "$REF" ] || { echo "::error::El SHA no pertenece a ninguna rama del repositorio"; exit 1; }
+          if [ -n "$PR" ]; then ALIAS="pr-$PR"; else ALIAS="sha-${SHA:0:7}"; fi
+          { echo "sha=$SHA"; echo "pr=$PR"; echo "ref=$REF"; echo "alias=$ALIAS"; } >> "$GITHUB_OUTPUT"
+          echo "Solicitud: SHA=$SHA PR=${PR:-—} rama=$REF alias=$ALIAS"
+
+      - name: Construir paquete reproducible y verificar integridad
+        id: build
+        env:
+          SHA: ${{ steps.req.outputs.sha }}
+          PR: ${{ steps.req.outputs.pr }}
+          REF: ${{ steps.req.outputs.ref }}
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/preview"
+          node tools/preview/build-preview.mjs --sha "$SHA" ${PR:+--pr "$PR"} --ref "$REF" --out "$OUT" --sums "$RUNNER_TEMP/SHA256SUMS.txt" | tee "$RUNNER_TEMP/build.json"
+          cp "$OUT/Negocios_de_Cana_CASUR_APP/__preview.json" "$RUNNER_TEMP/__preview.json"
+          echo "dir=$OUT" >> "$GITHUB_OUTPUT"
+          for k in dataVersion aforoDate consolidated appVersion; do echo "$k=$(jq -r ".$k // \"\"" "$RUNNER_TEMP/build.json")" >> "$GITHUB_OUTPUT"; done
+
+      - name: Guarda Cloudflare · credenciales, cuenta, proyecto y rama de producción
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ALIAS: ${{ steps.req.outputs.alias }}
+        run: node tools/preview/cloudflare-guard.mjs before --branch "$ALIAS"
+
+      - name: Desplegar con Wrangler
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DIR: ${{ steps.build.outputs.dir }}
+          SHA: ${{ steps.req.outputs.sha }}
+          ALIAS: ${{ steps.req.outputs.alias }}
+        run: node tools/preview/wrangler-deploy.mjs --dir "$DIR" --branch "$ALIAS" --sha "$SHA"
+
+      - name: Confirmar entorno preview y SHA en Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ALIAS: ${{ steps.req.outputs.alias }}
+          SHA: ${{ steps.req.outputs.sha }}
+          URL: ${{ steps.deploy.outputs.url }}
+        run: node tools/preview/cloudflare-guard.mjs after --branch "$ALIAS" --sha "$SHA" --url "$URL"
+
+      - name: Verificar HTTP y contenido publicado byte a byte
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+          DIR: ${{ steps.build.outputs.dir }}
+          SHA: ${{ steps.req.outputs.sha }}
+        run: node tools/preview/verify-deployment.mjs --url "$URL/" --dir "$DIR" --sha "$SHA" | tee "$RUNNER_TEMP/http.txt"
+
+      - name: Navegador · SHA, datos, fechas, PWA y modo sin conexión
+        env:
+          APP: ${{ steps.deploy.outputs.app_url }}
+          SHA: ${{ steps.req.outputs.sha }}
+          DATA: ${{ steps.build.outputs.dataVersion }}
+          AFORO: ${{ steps.build.outputs.aforoDate }}
+          GEN: ${{ steps.build.outputs.consolidated }}
+        run: |
+          set -euo pipefail
+          npm install --silent --no-audit --no-fund --prefix "$RUNNER_TEMP/pw" "playwright@${PLAYWRIGHT_VERSION}"
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium > /dev/null
+          export NODE_PATH="$RUNNER_TEMP/pw/node_modules"
+          node tools/preview/smoke-preview.cjs "$APP" "$SHA" "$DATA" "$AFORO" "$GEN" | tee "$RUNNER_TEMP/smoke.txt"
+          git worktree add --quiet "$RUNNER_TEMP/target" "$SHA"
+          if [ -f "$RUNNER_TEMP/target/tools/qa-maestro-shell-e2e.cjs" ]; then
+            CASUR_QA_BASE_URL="$APP" CASUR_QA_OUT="$RUNNER_TEMP/qa" CASUR_QA_EXPECTED_SHA="$SHA" node "$RUNNER_TEMP/target/tools/qa-maestro-shell-e2e.cjs"
+          fi
+
+      - name: Registrar evidencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-${{ steps.req.outputs.alias }}-${{ steps.req.outputs.sha }}
+          path: |
+            ${{ runner.temp }}/SHA256SUMS.txt
+            ${{ runner.temp }}/__preview.json
+            ${{ runner.temp }}/build.json
+            ${{ runner.temp }}/http.txt
+            ${{ runner.temp }}/smoke.txt
+            ${{ runner.temp }}/qa/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Publicar enlace en el PR y en el resumen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ steps.req.outputs.pr }}
+          SHA: ${{ steps.req.outputs.sha }}
+          APP: ${{ steps.deploy.outputs.app_url }}
+          ALIAS_URL: ${{ steps.deploy.outputs.alias_url }}
+          DATA: ${{ steps.build.outputs.dataVersion }}
+          AFORO: ${{ steps.build.outputs.aforoDate }}
+          GEN: ${{ steps.build.outputs.consolidated }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          BODY=$(printf '%s\n' \
+            "### Preview HTTPS verificada" \
+            "" \
+            "- **Aplicación (PC y Android):** $APP" \
+            "- **Alias de la rama de preview:** $ALIAS_URL" \
+            "- **SHA:** \`$SHA\` (comprobado en \`__preview.json\` y en Cloudflare)" \
+            "- **Datos:** \`$DATA\` · aforo \`$AFORO\` · generado \`$GEN\`" \
+            "- **Verificado:** HTTP y contenido byte a byte; navegador a 390 y 1536 px; PWA y reapertura sin conexión" \
+            "- **Entorno:** Preview de \`casur-maestro-ux-review\` (pública, \`noindex\`). No es producción." \
+            "- **Ejecución:** $RUN")
+          echo "$BODY" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$PR" ]; then gh api "repos/$REPO/issues/$PR/comments" -f body="$BODY" > /dev/null; fi

@@ -431,6 +431,23 @@ svg { flex: 0 0 auto; }
 .stat__value { font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 @media (min-width: 640px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
 
+/* Diagnóstico del Maestro Central (Centro Maestro, solo lectura) */
+.mc-diag__reason { margin-top: var(--sp-3); }
+.mc-diag__title { font-size: var(--t-sm); font-weight: 600; margin: var(--sp-4) 0 var(--sp-2); }
+.mc-diag__module { border-top: 1px solid var(--hairline); padding: var(--sp-3) 0; }
+.mc-diag__mhead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px var(--sp-3); }
+.mc-diag__mhead span, .mc-diag__note { color: var(--ink-faint); font-size: var(--t-xs); }
+.mc-diag__mbody { display: grid; gap: 2px; margin-top: 4px; font-size: var(--t-sm); font-variant-numeric: tabular-nums; }
+.mc-diag__note { margin: 4px 0 0; }
+.mc-diag__detail { margin-top: var(--sp-2); font-size: var(--t-sm); }
+.mc-diag__detail summary { cursor: pointer; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
+.mc-diag__list { margin: 4px 0 var(--sp-2); padding-left: 18px; }
+.mc-diag__scroll { max-height: 260px; overflow: auto; border: 1px solid var(--hairline); border-radius: var(--r-md); }
+.mc-diag__table { width: 100%; border-collapse: collapse; font-size: var(--t-xs); font-variant-numeric: tabular-nums; }
+.mc-diag__table th, .mc-diag__table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--hairline); }
+.mc-diag__table th { position: sticky; top: 0; background: var(--surface-2); }
+.mc-diag__actions { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-3); }
+
 /* Botones */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;

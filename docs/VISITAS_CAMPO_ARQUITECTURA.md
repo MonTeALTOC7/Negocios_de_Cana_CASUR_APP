@@ -192,7 +192,7 @@ pruebas `qa-informes*` en verde.
 
 | Tema | Evaluación |
 |---|---|
-| Coste | GitHub Pages: 0. Supabase: plan gratuito. [H] Hay que comprobar cuántos proyectos gratuitos activos admite la organización: Riego e Inventario ya ocupan dos, y el plan gratuito suele limitar a dos activos. Si no hay cupo, la decisión es del propietario. No contratar nada de pago; alternativa: sincronización diferida, con Visitas local y respaldo ZIP hasta resolverlo |
+| Coste | GitHub Pages: 0. Supabase: plan gratuito. [H] Hay que comprobar cuántos proyectos gratuitos activos admite la organización: el registro de módulos declara el mismo proyecto para Riego e Inventario; la cantidad real de proyectos activos se verificará en VC03. Si no hay cupo, la decisión es del propietario. No contratar nada de pago; alternativa: sincronización diferida, con Visitas local y respaldo ZIP hasta resolverlo |
 | Pausa por inactividad | [H] Los proyectos gratuitos se pausan tras un período sin uso. La app debe tolerarlo: la cola persiste y se muestra «servidor en pausa» |
 | Almacenamiento local | Las fotos dominan: unos 3–5 MB por original, de modo que 1000 fotos son ≈ 4 GB. Hace falta `persist()`, aviso de cuota y respaldos frecuentes |
 | Datos sensibles | Los nombres de productores y las ubicaciones son privados: nunca en GitHub ni en previews públicas. La clave anónima de Supabase es pública por diseño; la seguridad está en RLS |

@@ -19,7 +19,9 @@ const read = file => {
 const manifest = JSON.parse(read('core/versions/runtime-assets.json'));
 const tracked = (ref ? git('ls-tree','-r','--name-only',head) : git('ls-files')).toString().split(/\r?\n/);
 const allowed = new Set([...Object.keys(manifest.assets), 'sw.js','manifest.webmanifest','core/versions/runtime-assets.json',
-  ...tracked.filter(p => /^(modules\/(produccion|tch)\/data|master\/data|shared\/geo\/data)\/.*\.(json|js|geojson)$/.test(p))]);
+  ...tracked.filter(p => /^(modules\/(produccion|tch)\/data|master\/data|shared\/geo\/data)\/.*\.(json|js|geojson)$/.test(p)),
+  // --module-data: también los datasets publicados de Riego, Insumos y Labores (como en GitHub Pages).
+  ...(args.includes('--module-data') ? tracked.filter(p => /^modules\/(riego|insumos|labores)\/(data|datos)\/[^/]+\.json$/.test(p)) : [])]);
 const types = {'.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript', '.css':'text/css',
   '.json':'application/json', '.geojson':'application/json', '.webmanifest':'application/manifest+json',
   '.png':'image/png', '.svg':'image/svg+xml', '.jpg':'image/jpeg', '.woff2':'font/woff2'};

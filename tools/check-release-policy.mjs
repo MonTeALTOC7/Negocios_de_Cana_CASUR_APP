@@ -13,6 +13,8 @@ export function owners(path) {
 }
 export function increased(before, after) {
   const parse = value => /^v?(\d+)\.(\d+)\.(\d+)$/i.exec(value)?.slice(1).map(Number);
+  // Módulo nuevo: no existía en la base; basta una primera versión SemVer válida (con su instantánea de liberación).
+  if (before === undefined) return !!parse(after);
   const a = parse(before), b = parse(after);
   if (!a || !b) return false; // Legacy migration requires an explicit exception.
   for (let i=0;i<3;i++) if (a[i] !== b[i]) return b[i] > a[i];

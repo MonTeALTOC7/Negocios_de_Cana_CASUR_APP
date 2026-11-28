@@ -9,8 +9,8 @@
    neutralizados dentro de la Maestra: aquí no se registran.
    ============================================================ */
 
-const APP_VERSION = '1.6.2';
-const RELEASE_ID = '1.6.2-1256f522516b8da8';
+const APP_VERSION = '1.7.0';
+const RELEASE_ID = '1.7.0-3fc506731f6e1d5c';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;
@@ -340,6 +340,7 @@ async function pinnedManifest(event) {
   if(event.resultingClientId){clientReleasePins.set(event.resultingClientId,pin);await pins.put(new URL('./__client__/'+event.resultingClientId,self.registration.scope),new Response(JSON.stringify(pin)));}
   return {manifest,cache};
 }
+const DIRECT_ACCESS_BUNDLES=new Set(['visitas']);
 async function bundleRuntime(event) {
   const {manifest,cache,reason}=await pinnedManifest(event);
   // Documents get a usable recovery page; sub-resources keep a plain, never-cached 503.
@@ -352,7 +353,13 @@ async function bundleRuntime(event) {
   if(file==='core/versions/runtime-assets.json')return new Response(JSON.stringify(manifest),{headers:{'Content-Type':'application/json'}});
   const id=Object.keys(manifest.bundles).find(id=>manifest.bundles[id].includes(file));
   if(!id)return new Response('Recurso no incluido en esta versión.',{status:503});
-  const saved=await verifiedBundleCache(manifest,id,false);
+  let saved=await verifiedBundleCache(manifest,id,false);
+  // Acceso directo (enlace o icono instalado) a un módulo que se abre sin pasar por Inicio: con red, se prepara su bundle
+  // con la misma verificación SHA-256 (prepareVerifiedBundle) antes de servirlo. Delimitado a navegaciones de los
+  // módulos con acceso directo; sin red o si la verificación falla, se mantiene la respuesta 503 anterior.
+  if(!saved&&event.request.mode==='navigate'&&DIRECT_ACCESS_BUNDLES.has(id)){
+    try{await prepareVerifiedBundle(id,manifest.releaseId);saved=await verifiedBundleCache(manifest,id,false);}catch{/* se informa como no preparado */}
+  }
   const response=saved?await saved.match(new URL(file,self.registration.scope)):null;
   if(!response)return new Response('Módulo no preparado para uso sin conexión. Abrilo desde Inicio con conexión.',{status:503});
   if(!(await matchesBundleHash(response,file,manifest.assets[file])))return new Response('Integridad del recurso inválida.',{status:503});

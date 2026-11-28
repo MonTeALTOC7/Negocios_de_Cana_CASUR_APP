@@ -16,8 +16,9 @@ import * as status from './core/sync/status.js';
 import { APP_VERSION, APP_CHANNEL, moduleVersion, moduleStatus } from './core/versions/versions.js';
 import { icon } from './shared/components/icons.js';
 import * as masterStore from './core/shared-data/master-store.js';
+import { renderMaestroDiagnostics } from './core/shared-data/maestro-diagnostics-view.js';
 import { adaptSiagriToProduction } from './master/adapters/production-data-adapter.js';
-import { buildMaestroCentralFromReportRows, compareMaestroVersions } from './master/adapters/master-to-riego-adapter.js';
+import { buildMaestroCentralFromReportRows } from './master/adapters/master-to-riego-adapter.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
@@ -156,10 +157,11 @@ const MODULE_LOGOS = {
   insumos:    'shared/assets/logos/insumos-512.png',
   inventario: 'shared/assets/logos/inventario-512.png',
   labores:    'shared/assets/logos/labores-512.png',
+  visitas:    'shared/assets/logos/visitas-512.png',
 };
 function logoFor(id) { return MODULE_LOGOS[id] || 'shared/assets/icons/emblem-192.png'; }
 // En el menú lateral se usan versiones simplificadas para mejorar la lectura.
-const RAIL_LOGOS = Object.fromEntries(['produccion','tch','riego','insumos','labores']
+const RAIL_LOGOS = Object.fromEntries(['produccion','tch','visitas','riego','insumos','labores']
   .map(id => [id, `shared/assets/logos/${id}-rail.png`]));
 function railLogoFor(id) { return RAIL_LOGOS[id] || logoFor(id); }
 
@@ -625,7 +627,7 @@ function viewModule(id) {
         channel.port1.onmessage=({data})=>{if(data.releaseId!==manifest.releaseId)return;if(data.type==='PROGRESS'){arm();return;}clearTimeout(timer);channel.port1.close();data.type==='READY'?resolve():reject(new Error(data.code||'bundle-error'));};
         navigator.serviceWorker.controller.postMessage({type:'PREPARE_BUNDLE',bundleId:id,releaseId:manifest.releaseId},[channel.port2]);
       });
-      if(['produccion','tch'].includes(id))navigator.serviceWorker.controller.postMessage({type:'WARM_GEO'});
+      if(['produccion','tch','visitas'].includes(id))navigator.serviceWorker.controller.postMessage({type:'WARM_GEO'});
       startupStage='iframe-readiness';diagnostic(startupStage,'waiting');frame.src=m.route;
     }
   })().catch(failStartup);
@@ -765,6 +767,13 @@ async function viewCentroMaestro() {
         aplicados. Versión de <em>datos</em> ≠ versión de <em>código</em> (VF54.8).</p>
       </section>
 
+      <section class="card" aria-labelledby="mcDiagTitle">
+        <div class="card__head"><span class="card__title" id="mcDiagTitle">Maestro Central · diagnóstico</span>
+          <span class="chip"><span class="chip__dot"></span>Solo lectura</span></div>
+        <p class="panel__note">Generación oficial, generación local, fuente efectiva y maestros que usa cada módulo. No modifica datos.</p>
+        <div id="maestroDiagnostics" style="margin-top:10px"></div>
+      </section>
+
       <section class="card" id="pinCard"></section>
 
       <section class="card">
@@ -818,6 +827,7 @@ async function viewCentroMaestro() {
 
   // --- Estado de datos maestros (SIAGRI → Suertes) ---
   renderDataStatus(view);
+  void renderMaestroDiagnostics($('#maestroDiagnostics', view));
   $('#updateProduccion', view).addEventListener('click', () => updateProduccionFromSiagri());
   $('#openOperational', view).addEventListener('click', () => { sessionStorage.setItem('casur-operational-open','1'); router.go('/modulo/produccion'); });
   $('#restoreLocalProduction', view).addEventListener('click', () => {
@@ -1086,31 +1096,22 @@ async function updateProduccionFromSiagri() {
   if (!result.ok) { window.alert(resumen); return; }
   if (!window.confirm(resumen)) { toast('Actualización cancelada. No se aplicó ningún cambio.'); return; }
 
-  await masterStore.saveProduccionDataset({
-    reportRows: result.reportRows,
-    dataVersion: result.dataVersion,
-    summary: s,
-    meta: result.meta,
-    /* El histórico NO se toca aquí: Producción lo conserva/ampl­ía con sus reglas. */
-  });
-
-  /* [Fase 6.2] Publicar también el Maestro Central de Suertes (subconjunto
-     CENTRAL: farmCode/farmName/lot/area/variety/irrigationType/texture/
-     zone/cropStartDate/erp) en la MISMA actualización — sin un botón
-     separado. Riego lo recibe automáticamente al abrir/recargar, leyendo
-     el Cronológico publicado; esto solo deja disponible una copia
-     canónica adicional en el shell (consistencia + backfill). Nunca
-     retrocede: se compara contra lo ya guardado con el mismo comparador
-     entero-de-secuencia usado en todo el proyecto. */
+  /* Producción y Maestro Central (subconjunto CENTRAL que lee Riego) se guardan en UNA transacción, con la
+     generación anterior archivada y recuperable. Si algo falla, no se aplica ningún cambio. El histórico no se toca. */
+  const central = buildMaestroCentralFromReportRows(result.reportRows, { dataVersion: result.dataVersion, generatedAt: new Date().toISOString() });
+  if (!central) { toast('No se pudo preparar el Maestro Central. No se aplicó ningún cambio.'); return; }
+  const current = await masterStore.getProduccionStatus();
   try {
-    const central = buildMaestroCentralFromReportRows(result.reportRows, { dataVersion: result.dataVersion, generatedAt: new Date().toISOString() });
-    if (central) {
-      const prevMaestro = await masterStore.loadMaestroSuertes();
-      const prevVersion = prevMaestro && prevMaestro.payload && prevMaestro.payload.version;
-      const cmp = prevVersion ? compareMaestroVersions(central.version, prevVersion) : 1;
-      if (!prevVersion || cmp === 1) await masterStore.saveMaestroSuertes(central);
-    }
-  } catch (e) { /* el Maestro Central es un valor agregado; nunca bloquea la actualización de Producción */ }
+    await masterStore.commitSiagriDataset({
+      reportRows: result.reportRows,
+      dataVersion: result.dataVersion,
+      summary: s,
+      meta: result.meta,
+    }, { approved: true, expectedVersion: current.present ? current.dataVersion || null : null, maestro: central });
+  } catch (e) {
+    toast('No se aplicó la actualización: ' + e.message + '. Los datos guardados se conservan.');
+    return;
+  }
 
   toast('Maestro de Suertes actualizado en este dispositivo. Genera el paquete para publicar.');
   const v = $('#view'); if (v) renderDataStatus(v);

@@ -41,7 +41,7 @@ export function protectModuleActivity(win) {
       if (pending || win.document.querySelector('[data-casur-export-kind] button:disabled,[aria-busy="true"]')) return {ok:false,status:'operation-active'};
       const changed = [...edits].filter(([node, original]) => node.isConnected && value(node) !== original);
       const query = node => /^(cronoQ|q|lotSearch|cronoProducerSelect|producerSelect|cronoZoneSelect|zoneSelect)$/.test(node.id) || node.type === 'search' || node.closest('[data-casur-query]');
-      const covered = node => (bridge?.moduleId === 'tch' && (!!win.document.querySelector('#bioTechnician')) && (/^bio[A-Z]/.test(node.id) || node.matches('[data-sample-field]'))) || (bridge?.moduleId === 'produccion' && /^operational/.test(node.id));
+      const covered = node => (bridge?.moduleId === 'tch' && (!!win.document.querySelector('#bioTechnician')) && (/^bio[A-Z]/.test(node.id) || node.matches('[data-sample-field]'))) || (bridge?.moduleId === 'produccion' && /^operational/.test(node.id)) || (bridge?.moduleId === 'visitas' && !!node.closest('[data-autosave]'));
       if (changed.some(([node]) => !query(node) && !covered(node))) return {ok:false,status:'form-pending'};
       const result = bridge?.protocolVersion === 1 && typeof bridge.checkpoint === 'function' ? await bridge.checkpoint({reason}) : {ok:true,status:'idle'};
       if (!result?.ok || pending) return {ok:false,status:result?.status || 'operation-active'};

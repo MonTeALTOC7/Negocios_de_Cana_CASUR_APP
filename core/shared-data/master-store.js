@@ -9,6 +9,7 @@
    Se usa IndexedDB (no localStorage) por el volumen del cronológico.
    ============================================================ */
 import '../imports/operational-import.js';
+import { compareMaestroVersions } from '../../master/adapters/master-to-riego-adapter.js';
 const DB_NAME = 'casur_master_data';
 const DB_VERSION = 1;
 const STORE = 'datasets';          /* key -> { payload, savedAt } */
@@ -103,11 +104,20 @@ export async function commitOperationalDataset(payload, { approved = false, expe
   if(!maestro||maestro.version!==payload.dataVersion||maestro.rows!==payload.operationalDataset.catalog.length)throw new Error('Maestro Central no conciliado con Producción');
   return operationalTransaction({payload, expectedVersion, baseline, maestro,baselineMaestro});
 }
+/* Camino del Centro Maestro (SIAGRI → Producción): antes eran dos escrituras separadas y la segunda podía fallar
+   en silencio. Ahora usa la misma transacción que la importación operativa: guarda Producción y Maestro Central
+   juntos, archiva la generación anterior (recuperable con restoreOperationalPrevious) y comprueba que nada cambió
+   desde la conciliación. Si el Maestro Central guardado es igual o más nuevo, no aplica nada. */
+export async function commitSiagriDataset(payload, { approved = false, expectedVersion = null, maestro = null } = {}) {
+  if (!approved || !payload?.dataVersion || !Array.isArray(payload.reportRows) || !payload.reportRows.length) throw new Error('Actualización SIAGRI no aprobada o incompleta');
+  if (!maestro || maestro.version !== payload.dataVersion || maestro.rows !== Object.keys(maestro.byKey || {}).length) throw new Error('Maestro Central no conciliado con Producción');
+  return operationalTransaction({ payload, expectedVersion, maestro, requireNewerMaestro: true });
+}
 export async function restoreOperationalPrevious({approved = false, expectedVersion = null} = {}) {
   if (!approved) throw new Error('Recuperación no aprobada');
   return operationalTransaction({restore:true,expectedVersion});
 }
-async function operationalTransaction({payload,expectedVersion,baseline,maestro,baselineMaestro,restore=false}) {
+async function operationalTransaction({payload,expectedVersion,baseline,maestro,baselineMaestro,restore=false,requireNewerMaestro=false}) {
   const db=await openDB();
   try {
     return await new Promise((resolve,reject)=>{
@@ -124,6 +134,7 @@ async function operationalTransaction({payload,expectedVersion,baseline,maestro,
           if(!target)throw new Error('No existe una versión anterior recuperable');
           if(!restore&&current?.payload?.dataVersion===payload.dataVersion)throw new Error('La versión de datos ya existe');
           if(!restore&&alreadyArchived)throw new Error('La versión ya fue utilizada; utilice una generación nueva');
+          if(requireNewerMaestro&&central?.payload?.version&&compareMaestroVersions(maestro.version,central.payload.version)!==1)throw new Error('El Maestro Central guardado es igual o más nuevo: no se aplicó ningún cambio');
           if(!initial)put('operational_baseline',{production:current?.payload||baseline,maestro:central?.payload||baselineMaestro||null});
           put(KEY_OPERATIONAL_PREVIOUS,{production:current?.payload||baseline,maestro:central?.payload||baselineMaestro||null});
           put(KEY_PRODUCCION,target);

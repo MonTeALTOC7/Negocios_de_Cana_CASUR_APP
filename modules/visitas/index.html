@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0F2A33">
+  <meta name="description" content="Visitas de Campo Productores de Caña · Negocios de Caña · CASUR">
+  <title>Visitas de Campo</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/visitas.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/visitas-192.png">
+  <link rel="stylesheet" href="../../shared/styles/tokens.css">
+  <link rel="stylesheet" href="../../shared/styles/module-theme.css">
+  <link rel="stylesheet" href="../../shared/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="../../shared/geo/geo.css">
+  <link rel="stylesheet" href="./css/visitas.css">
+</head>
+<body>
+  <header class="vc-head">
+    <img class="vc-head__logo" src="./icons/visitas.svg" alt="" width="40" height="40">
+    <div class="vc-head__title"><strong>Visitas de Campo</strong><span>Negocios de Caña · CASUR</span></div>
+    <span class="vc-head__meta"><span id="vcVersion"></span><span id="vcMaster"></span><span id="vcOffline" hidden></span></span>
+  </header>
+  <nav class="vc-nav" aria-label="Secciones">
+    <a href="#/inicio" data-route="inicio">Inicio</a>
+    <a href="#/visitas" data-route="visitas">Mis visitas</a>
+    <a href="#/seguimiento" data-route="seguimiento">Seguimiento</a>
+    <a href="#/datos" data-route="datos">Datos</a>
+  </nav>
+  <main id="view" class="vc-main" tabindex="-1"><p class="vc-muted" role="status">Cargando…</p></main>
+  <div id="toast" class="vc-toast" role="status" aria-live="polite" hidden></div>
+  <script src="../../shared/vendor/leaflet/leaflet.js"></script>
+  <script type="module" src="./js/pwa.js"></script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

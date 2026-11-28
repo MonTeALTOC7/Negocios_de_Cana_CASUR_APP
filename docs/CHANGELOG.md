@@ -2,6 +2,20 @@
 
 Formato: [versión] — fecha · resumen.
 
+## App Maestra 1.7.0 · Visitas de Campo 1.0.0 (candidata, sin publicar)
+
+- **Maestro Central:**
+  - Contrato de lectura en el núcleo (`core/shared-data/maestro-central.js`), con la política vigente de fuentes.
+  - Diagnóstico de solo lectura en el Centro Maestro.
+  - La actualización SIAGRI del Centro Maestro se aplica en una sola transacción, con la generación anterior archivada.
+- **Visitas de Campo Productores de Caña 1.0.0** (local-first):
+  - Registro de visitas con Maestro, GPS, polígonos, fotos originales, seguimiento inicial, respaldo ZIP y restauración
+    verificable.
+  - Acceso directo e instalación con manifiesto propio sobre el SW raíz.
+- **SW:** una navegación directa a Visitas prepara su bundle verificado en lugar de devolver 503.
+- Sin cambios en Producción V1.8.3, el Estimador TCH 2.8.1, la generación 1102 ni SIAGRI.
+- Detalle: `docs/MC01_VC01_IMPLEMENTACION.md`.
+
 ## [1.6.2] / Producción [V1.8.3] — 28-nov-2026 · publicada (`main` `fbdb2b7`, PR #73) · Maestro de Suertes y exportadores
 - Publicación única de la cadena #73 → #76 → #77, con #74 integrado en la candidata. Datos: generación `2026.11.22-aforo.1102`, con aforo oficial 12-Oct-2026 y consolidado 22-Nov-2026. Sin cambios en SIAGRI, en fórmulas agronómicas ni en otros módulos; solo cambian las cadenas de versión del shell.
 - UX14 (PR #76): Análisis por Zona, con Cronológico e Histórico por tipo de riego original y exportadores de Zona.

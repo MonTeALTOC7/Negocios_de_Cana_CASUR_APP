@@ -4,6 +4,8 @@ Base auditada: `main` `21a90045cbdacbeeff044081f2f7fbdbff8cd1ef` (App Maestra 1.
 `2026.11.22-aforo.1102`, aforo 12-Oct-2026, consolidado 22-Nov-2026). Rama `claude/maestro-central-visitas`. Etapa de
 auditoría y diseño: no cambia el runtime, los datos oficiales, SIAGRI ni el Estimador TCH.
 
+> **Actualización (MC01/VC01):** las decisiones del propietario y las correcciones posteriores están en `docs/MC01_VC01_IMPLEMENTACION.md`. Allí se eliminó la etapa S0 y se resolvió `nrMaster` (NR acumulado, no «riegos objetivo»). También se corrigieron las áreas menores y por conciliar (49 y 41, antes 47 y 43) y se precisó que Riego e Inventario comparten un proyecto Supabase.
+
 Convención de este documento y de los siguientes:
 
 | Marca | Significado |
@@ -59,7 +61,7 @@ Riego, Insumos y TCH tienen la misma distribución. Las tres copias derivan del 
 recibió la 1101 ni la 1102.
 
 **[C] Las fechas de Riego no son equivalentes.** `cropStartDate` de Riego es el máximo entre F. Siembra y F. Ult. Cte; no es
-la fecha de siembra. `nrMaster` es el número de riegos objetivo. Compararlos campo a campo produce diferencias falsas: el
+la fecha de siembra. `nrMaster` es el NR del cronológico (riegos acumulados) a la fecha de corte del maestro de Riego, de modo que solo se compara con una fuente de la misma fecha. Compararlos campo a campo produce diferencias falsas: el
 adaptador del PoC los declara como `notEquivalent` (no equivalentes) y no los compara.
 
 **[P2] El almacén central suele estar vacío en un dispositivo normal.** En un perfil nuevo que abrió Producción, TCH e

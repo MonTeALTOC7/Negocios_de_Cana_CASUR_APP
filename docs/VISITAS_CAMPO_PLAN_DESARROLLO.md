@@ -2,6 +2,8 @@
 
 Es el documento de cierre de la primera entrega (MC00). Usa las marcas de `MAESTRO_CENTRAL_DIAGNOSTICO.md`.
 
+> **Estado (MC01/VC01):** MC00 aprobado. El propietario eliminó la etapa S0 y el orden intercalado está aprobado. MC01 y VC01 están implementados: ver `docs/MC01_VC01_IMPLEMENTACION.md`.
+
 ## 0. Índice de la entrega
 
 | # | Entregable | Dónde |
@@ -55,7 +57,6 @@ Ninguna de estas reglas recalcula estimados oficiales ni convierte un desconocid
 | Etapa | Contenido | Runtime / versión | Riesgo | Depende de |
 |---|---|---|---|---|
 | **MC00** (esta) | Auditoría, PoC (contrato y PWA), diagnóstico de solo lectura y los 5 documentos | Ninguno. Sin bump | — | — |
-| **S0** | Seguridad: retirar y rotar S1, decidir S3 | Datos o archivos públicos. Decisión del propietario | Bajo | Autorización |
 | **MC01** | Contrato de lectura en `core/shared-data/maestro-central.js` (desde la generación publicada); pantalla de diagnóstico de solo lectura en el Centro Maestro; camino C pasado por `commitOperationalDataset` | Sí (bump de patch) | Bajo | MC00 |
 | **VC01** | MVP de Visitas, local-first: bundle propio, cambio P9 del SW, IDB propia, flujo de 14 pasos (§4), fotos y respaldo ZIP con restauración | Sí (bump de minor) | Medio (SW) | MC01 (lectura) |
 | **VC02** | Expediente del productor, seguimiento de recomendaciones y solicitudes, mapa e informes (motor movido a `shared/reports/`) | Sí | Medio (motor de informes) | VC01 |

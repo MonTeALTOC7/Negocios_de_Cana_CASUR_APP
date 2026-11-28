@@ -197,8 +197,8 @@ test("mapa cronológico 24201 identifica la unidad SIAGRI y muestra ficha sin in
   const context = { source: "cronologico", entityType: "lote", farmCode: "242", name: producer.name, currentRows: producer.details };
   const card = api.chronologicalCardMarkup(context, "24201", true);
   const exportCard = api.chronologicalCardMarkup(context, "24201", false);
-  const aforo = officialCrono.meta.dataVersion === '2026.10.25-aforo.1101';
-  assert.equal(officialCrono.meta.source, aforo ? "Estimados_para_APP_Z2627.xlsx" : "SIAGRI");
+  const plan = officialCrono.meta.dataVersion === '2026.11.22-aforo.1102', aforo = plan || officialCrono.meta.dataVersion === '2026.10.25-aforo.1101';
+  assert.equal(officialCrono.meta.source, plan ? "Productores _Servicios_Z2627.xlsx" : aforo ? "Estimados_para_APP_Z2627.xlsx" : "SIAGRI");
   assert.equal(producer.zone, "5-Productores");
   assert.equal(producer.name, "Agustin Boiorge Acevedo");
   assert.match(index, /name:\['Hacienda_Productor','Hacienda Productor','Hacienda','Productor'/);
@@ -215,8 +215,8 @@ test("mapa cronológico 24201 identifica la unidad SIAGRI y muestra ficha sin in
     "Destino", "TCH 25/26", "TCH hist. pond.", "Est. 26/27", "N.º riegos"]
     .forEach((label) => assert.match(card, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));
   assert.match(card, /1\.65 m/);
-  assert.match(card, /31\/12\/2025/);
-  assert.match(card, /02\/06\/2017/);
+  assert.match(card, /31-Dic-2025/);
+  assert.match(card, /02-Jun-2017/);
   assert.match(card, /data-geo-center-selected="24201"/);
   assert.match(card, /data-geo-open-selected="24201"/);
   assert.match(card, /Coordenadas no disponibles/, "sin geometría cargada no se inventa una ubicación");
@@ -416,13 +416,13 @@ test("finca y suerte toleran geometrías faltantes sin aproximar otra suerte", (
   assert.doesNotMatch(enhancements, /nearest|aproximad/i);
 });
 
-test("Producción declara V1.8.2 en sus fuentes de versión activas", () => {
+test("Producción declara V1.8.3 en sus fuentes de versión activas", () => {
   const pkg = JSON.parse(read("../package.json"));
   const embedded = JSON.parse(index.match(/<script id="casurEmbeddedPwaAssets"[^>]*>(\{.*?\})<\/script>/s)?.[1] || "{}");
-  assert.equal(pkg.version, "1.8.2");
-  assert.match(read("../README_GITHUB.md"), /^# Producción Suertes CASUR · V1\.8\.2/m);
-  assert.match(read("../VERSION.txt"), /^V1\.8\.2 CASUR/m);
-  assert.match(index, /var VERSION='V1\.8\.2'/);
-  assert.match(Buffer.from(embedded["README_GITHUB.md"], "base64").toString("utf8"), /V1\.8\.2/);
-  assert.match(Buffer.from(embedded["VERSION.txt"], "base64").toString("utf8"), /^V1\.8\.2/);
+  assert.equal(pkg.version, "1.8.3");
+  assert.match(read("../README_GITHUB.md"), /^# Producción Suertes CASUR · V1\.8\.3/m);
+  assert.match(read("../VERSION.txt"), /^V1\.8\.3 CASUR/m);
+  assert.match(index, /var VERSION='V1\.8\.3'/);
+  assert.match(Buffer.from(embedded["README_GITHUB.md"], "base64").toString("utf8"), /V1\.8\.3/);
+  assert.match(Buffer.from(embedded["VERSION.txt"], "base64").toString("utf8"), /^V1\.8\.3/);
 });

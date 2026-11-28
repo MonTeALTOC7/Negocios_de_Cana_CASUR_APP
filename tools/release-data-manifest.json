@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "issue": "#67",
+  "dataVersion": "2026.11.22-aforo.1102",
+  "previousDataVersion": "2026.10.25-aforo.1101",
+  "publishedAt": null,
+  "sources": {
+    "aforo": {
+      "file": "Productores _Servicios_Z2627.xlsx",
+      "sheet": "AFORO_26-27",
+      "sha256": "2e3cfedb0682024753f7dca7f484326641e281bf018de44f823052369dfada60",
+      "documentedOriginalSha256": "7a44b75b50d5c7b8ed19b1d2f6447ca25122e73802e2c2ef2d1846bed8768f98",
+      "note": "Original con AH de 908/09,10,15 = Semilla (corrección autorizada); aceptado por el propietario tras comparación celda a celda"
+    },
+    "consolidado": {
+      "file": "CASUR_Actualizacion_Oficial_Propuesta_Plan_Z2627_Plantilla.xlsx",
+      "sha256": "3277b48696d426b7906ccb6a0fedc0cfe2ceb55570cef0147455633c75d013fe"
+    }
+  },
+  "builder": "tools/plan-z2627/build-aforo-z2627.cjs",
+  "adjustments": "tools/plan-z2627/ajustes-autorizados.json",
+  "totals": {
+    "catalog": 1053,
+    "inventoried": 1046,
+    "producers": 100,
+    "milling": 946,
+    "seed": 49,
+    "inactive": 58,
+    "activeArea": 9574.66,
+    "millingArea": 9101.68,
+    "seedArea": 472.98,
+    "millingTons": 561658.27,
+    "millingTch": 61.7093,
+    "optimisticTons": 597888.4,
+    "optimisticTch": 65.6899
+  },
+  "historico": "Registros idénticos a la generación anterior; solo meta.dataVersion",
+  "files": {
+    "version.json": "411f020d21629b47ce1c18918e91892b08b83a15aaf99741e0ea727a7fcd1a80",
+    "version.js": "0a95755e53af155b2d11ad3d8dfadbeb33677a96178e1e4c7b1d0a2273734e2c",
+    "cronologico.json": "ed5e2cb2abe19d31e29632c6f581d0d0933a4feba0c19cc9b3757e616e16db5e",
+    "cronologico.js": "785417b3400e7cdd7904ddc724267f1d8db7306bdc489746d89f989a7c12ad84",
+    "historico.json": "231a72c5ccadcf3897191896d8198100752a3129c601792aabe9658aa940a472",
+    "historico.js": "e2687e721c648cb7b39341149b1d863fe7de3ece9851b0182da9690a6949ee08",
+    "integrity.json": "2ad3f6d057afe791b1901e0ecfd1dcb85e2059232dc1cb71213026f68deea619"
+  }
+}

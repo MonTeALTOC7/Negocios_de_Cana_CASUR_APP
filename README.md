@@ -103,6 +103,18 @@ HTML + CSS + JavaScript **vanilla** (módulos ES), **sin bundler ni paso de buil
 así a propósito para que funcione directo en GitHub Pages y sea fácil de mantener desde
 distintas herramientas (Claude, ChatGPT Codex) sin dependencias frágiles.
 
+## Desarrollo: informes PDF/PNG (norma obligatoria)
+
+Todo cambio a un exportador de informes debe cumplir el **estándar editorial permanente**
+[`docs/ESTANDAR_EDITORIAL_INFORMES.md`](docs/ESTANDAR_EDITORIAL_INFORMES.md): minimalismo informativo ejecutivo.
+Sus reglas son:
+- Los KPI muestran solo etiqueta, valor y unidad.
+- No se imprimen columnas de Excel, archivos fuente, versiones, fórmulas ni textos metodológicos.
+- El pie lleva solo «Negocios de Caña · CASUR» y la numeración.
+- La trazabilidad se queda en el código, las pruebas y la documentación técnica.
+
+La prueba editorial de `tools/qa-informes.cjs` debe quedar en verde.
+
 ## Documentación
 
 - `docs/INTEGRATION_AUDIT.md` — auditoría técnica de los 7 sistemas.
@@ -110,4 +122,5 @@ distintas herramientas (Claude, ChatGPT Codex) sin dependencias frágiles.
 - `docs/MODULES.md` — detalle por módulo.
 - `docs/DEPLOY_GITHUB_PAGES.md` — cómo publicar.
 - `docs/TEST_PLAN.md` — plan de pruebas y checklist.
+- `docs/ESTANDAR_EDITORIAL_INFORMES.md` — norma editorial permanente de los informes PDF/PNG.
 - `docs/CHANGELOG.md` — historial de versiones.

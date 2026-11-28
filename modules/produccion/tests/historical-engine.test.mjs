@@ -34,7 +34,7 @@ const {
 
 const historico = JSON.parse(fs.readFileSync(path.join(testRoot, "../data/historico.json"), "utf8"));
 const cronologico = JSON.parse(fs.readFileSync(path.join(testRoot, "../data/cronologico.json"), "utf8"));
-const aforo = cronologico.meta.dataVersion === '2026.10.25-aforo.1101';
+const aforo = ['2026.10.25-aforo.1101', '2026.11.22-aforo.1102'].includes(cronologico.meta.dataVersion);
 const officialRows = normalizeHistoricalRows(historico.lotCompact);
 const officialDistanceIndex = buildCurrentDistanceIndex(cronologico.producers);
 const isMainRow = (row) => String(row.farmCode) !== "16" && !String(row.zona).toLowerCase().includes("0-maquila");

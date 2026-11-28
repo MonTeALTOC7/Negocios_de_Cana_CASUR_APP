@@ -44,10 +44,22 @@ function harness({active = null, clients = []} = {}) {
   };
   const state = {active};
   const registration = {scope: ROOT, get active() { return state.active; }};
+  // Plazos largos (≥15 s: espera al worker previo, abortos de descarga) en un reloj virtual.
+  // Antes se comprimían a 5 ms reales y, bajo carga de CPU, ese temporizador ganaba a la
+  // respuesta del MessageChannel del worker previo (entregada en otra vuelta del event loop):
+  // el SW lo veía como «sin respuesta» y omitía el rechazo de downgrade y el traspaso de
+  // anclajes. Ahora solo vencen cuando la prueba lo ordena con expireLongTimers().
+  const longTimers = new Map();
   const ctx = vm.createContext({
     URL, Response, Headers, TextEncoder, TextDecoder, Uint8Array, crypto: webcrypto, AbortController, MessageChannel,
-    caches: cacheApi, console, fetch: fetchMock, clearTimeout,
-    setTimeout: (fn, ms, ...rest) => setTimeout(fn, ms >= 15000 ? 5 : ms, ...rest),
+    caches: cacheApi, console, fetch: fetchMock,
+    setTimeout(fn, ms, ...rest) {
+      if (!(ms >= 15000)) return setTimeout(fn, ms, ...rest);
+      const handle = Object.freeze({virtual: ms});
+      longTimers.set(handle, () => fn(...rest));
+      return handle;
+    },
+    clearTimeout(handle) { if (!longTimers.delete(handle)) clearTimeout(handle); },
     self: {
       location: {origin: 'https://casur.test'}, registration,
       addEventListener(kind, handler) { handlers[kind] = handler; },
@@ -59,6 +71,11 @@ function harness({active = null, clients = []} = {}) {
   return {
     ctx, stores, handlers, cacheApi, deletes, fetches, serve, corrupt, state,
     setOffline(value) { offline = value; },
+    expireLongTimers() {
+      const due = [...longTimers.values()]; longTimers.clear();
+      for (const fire of due) fire();
+      return due.length;
+    },
     get skipWaitingCalls() { return skipWaitingCalls; },
     get downloads() { return fetches.length; },
   };
@@ -292,7 +309,9 @@ test('upgrade con snapshot anterior AUSENTE: el core nuevo verificado se instala
 
 test('upgrade con worker previo que no responde: se instala tras el plazo, sin bloquearse', async () => {
   const h = harness({active: activeSilent});
-  await install(h);
+  const work = install(h);
+  assert.equal(h.expireLongTimers(), 1, 'la espera al worker previo es lo único pendiente y vence por su plazo');
+  await work;
   assert.ok(h.stores.get('casur_master_release_manifests').has(READY));
   assert.equal(h.skipWaitingCalls, 0);
 });

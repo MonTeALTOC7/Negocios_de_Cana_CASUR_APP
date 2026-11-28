@@ -27,7 +27,7 @@
     km:['Km','Dt'],spacing:['Surco'],texture:['Nombre Textura','Textura'],zone:['Zona'],
     irrigation:['TipoRiego','Tipo_de_Riego','Tipo de riego'],irrigationCount:['NR','#_de_Riegos'],
     tenure:['Tn','Tenencia'],erp:['ERP'],cropType:['Nombre Tipo de Cultivo','TipoCultivo'],age:['Edad'],
-    proposedDate:['Fecha propuesta de Cosecha','Fecha propuesta (Plan 601K)','Fecha propuesta','Fecha prevista de cosecha','Fecha prevista de corte'],proposedCut:['Tipo de Corte (Plan 601K)','Tipo de Corte'],
+    proposedDate:['Fecha propuesta de Cosecha','Fecha propuesta (Plan 601K)','Fecha propuesta','Fecha prevista de cosecha','Fecha prevista de corte','Fecha Cosecha'],proposedCut:['Tipo de Corte (Plan 601K)','Tipo de Corte'],
     baseDate:['Fecha-maestro','Fecha base'],projectedAge:['Edad corte (meses)','Edad proyectada'],
     lineId:['ID Línea'],fraction:['% de la suerte'],split:['Fraccionada'],lineTons:['Ton propuesta'],
     season:['Zafra'],historicalTons:['Ton'],katm:['KATM','Rto'],

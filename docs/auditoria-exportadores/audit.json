@@ -1,0 +1,734 @@
+[
+ {
+  "device": "pc",
+  "name": "cronologico-general",
+  "kind": "cronologico",
+  "hasButton": false,
+  "note": "sin botón de exportación en esta vista"
+ },
+ {
+  "device": "pc",
+  "name": "cronologico-finca-pansaco",
+  "kind": "cronologico",
+  "hasButton": true,
+  "pdf": "pc-cronologico-finca-pansaco.pdf",
+  "png": "pc-cronologico-finca-pansaco.png",
+  "measure": {
+   "width": 1400,
+   "liveHeight": 178,
+   "isolatedHeight": 2875,
+   "croppedPx": 2575,
+   "hiddenInLive": [
+    "maestro-icon",
+    "maestro-icon",
+    "maestro-icon",
+    "maestro-icon",
+    "maestro-icon",
+    "maestro-icon",
+    "table-wrap premium-original-analysis",
+    "TABLE"
+   ],
+   "liveSvgs": [
+    "0×0",
+    "0×0",
+    "0×0",
+    "0×0",
+    "0×0",
+    "0×0"
+   ],
+   "isolatedSvgs": [
+    "417×417",
+    "417×417",
+    "417×417",
+    "417×417",
+    "417×417",
+    "417×417"
+   ],
+   "bigIconsIsolated": 6,
+   "tables": 1,
+   "rows": 49,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "2800×600",
+   "usedHeight": 300,
+   "neededHeight": 2875,
+   "footerBottom": 2841,
+   "footerVisible": false,
+   "iconWidths": [
+    417,
+    417,
+    417,
+    417,
+    417,
+    417
+   ]
+  }
+ },
+ {
+  "device": "pc",
+  "name": "cronologico-suerte-pansaco-01",
+  "kind": "cronologico",
+  "hasButton": true,
+  "pdf": "pc-cronologico-suerte-pansaco-01.pdf",
+  "png": "pc-cronologico-suerte-pansaco-01.png",
+  "measure": {
+   "width": 960,
+   "liveHeight": 308,
+   "isolatedHeight": 563,
+   "croppedPx": 255,
+   "hiddenInLive": [
+    "crono-trend-svg",
+    "table-wrap premium-original-analysis",
+    "TABLE"
+   ],
+   "liveSvgs": [
+    "0×0"
+   ],
+   "isolatedSvgs": [
+    "518×200"
+   ],
+   "bigIconsIsolated": 0,
+   "tables": 1,
+   "rows": 1,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "1920×958",
+   "usedHeight": 479,
+   "neededHeight": 563,
+   "footerBottom": 529,
+   "footerVisible": false,
+   "iconWidths": []
+  }
+ },
+ {
+  "device": "pc",
+  "name": "historico-general",
+  "kind": "historico",
+  "hasButton": false,
+  "note": "sin botón de exportación en esta vista"
+ },
+ {
+  "device": "pc",
+  "name": "historico-finca-pansaco",
+  "kind": "historico",
+  "hasButton": true,
+  "pdf": "pc-historico-finca-pansaco.pdf",
+  "png": "pc-historico-finca-pansaco.png",
+  "measure": {
+   "width": 960,
+   "liveHeight": 1717,
+   "isolatedHeight": 1304,
+   "croppedPx": 0,
+   "hiddenInLive": [],
+   "liveSvgs": [
+    "924×260"
+   ],
+   "isolatedSvgs": [
+    "872×250"
+   ],
+   "bigIconsIsolated": 0,
+   "tables": 1,
+   "rows": 10,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "1920×2702",
+   "usedHeight": 1351,
+   "neededHeight": 1304,
+   "footerBottom": 1270,
+   "footerVisible": true,
+   "iconWidths": []
+  }
+ },
+ {
+  "device": "pc",
+  "name": "historico-suerte-pansaco-01",
+  "kind": "historico",
+  "hasButton": true,
+  "pdf": "pc-historico-suerte-pansaco-01.pdf",
+  "png": "pc-historico-suerte-pansaco-01.png",
+  "measure": {
+   "width": 960,
+   "liveHeight": 1717,
+   "isolatedHeight": 1304,
+   "croppedPx": 0,
+   "hiddenInLive": [],
+   "liveSvgs": [
+    "924×260"
+   ],
+   "isolatedSvgs": [
+    "872×250"
+   ],
+   "bigIconsIsolated": 0,
+   "tables": 1,
+   "rows": 10,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "1920×2702",
+   "usedHeight": 1351,
+   "neededHeight": 1304,
+   "footerBottom": 1270,
+   "footerVisible": true,
+   "iconWidths": []
+  }
+ },
+ {
+  "device": "pc",
+  "name": "cronologico-multiple",
+  "kind": "cronologico-multiple",
+  "hasButton": true,
+  "pdf": "pc-cronologico-multiple.pdf",
+  "png": "pc-cronologico-multiple.png",
+  "measure": {
+   "width": 1600,
+   "liveHeight": 1562,
+   "isolatedHeight": 760,
+   "croppedPx": 0,
+   "hiddenInLive": [],
+   "liveSvgs": [],
+   "isolatedSvgs": [],
+   "bigIconsIsolated": 0,
+   "tables": 1,
+   "rows": 3,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "3200×1520",
+   "usedHeight": 760,
+   "neededHeight": 760,
+   "footerBottom": 724,
+   "footerVisible": true,
+   "iconWidths": []
+  }
+ },
+ {
+  "device": "pc",
+  "name": "historico-multiple-ejecutivo",
+  "kind": "historico-multiple:executive",
+  "hasButton": true,
+  "pdf": "pc-historico-multiple-ejecutivo.pdf",
+  "png": "pc-historico-multiple-ejecutivo.png",
+  "measure": {
+   "width": 960,
+   "liveHeight": 2145,
+   "isolatedHeight": 2141,
+   "croppedPx": 0,
+   "hiddenInLive": [],
+   "liveSvgs": [
+    "924×260",
+    "924×260",
+    "932×351",
+    "12×12",
+    "12×12",
+    "932×351",
+    "12×12",
+    "12×12"
+   ],
+   "isolatedSvgs": [
+    "872×185",
+    "872×185",
+    "872×329",
+    "12×12",
+    "12×12",
+    "872×329",
+    "12×12",
+    "12×12"
+   ],
+   "bigIconsIsolated": 0,
+   "tables": 0,
+   "rows": 0,
+   "wideTables": []
+  },
+  "engine": {
+   "paged": true
+  }
+ },
+ {
+  "device": "pc",
+  "name": "historico-multiple-completo",
+  "kind": "historico-multiple:complete",
+  "hasButton": true,
+  "pdf": "pc-historico-multiple-completo.pdf",
+  "measure": {
+   "width": 960,
+   "liveHeight": 6647,
+   "isolatedHeight": 7594,
+   "croppedPx": 947,
+   "hiddenInLive": [],
+   "liveSvgs": [
+    "924×260",
+    "924×260",
+    "932×351",
+    "12×12",
+    "12×12",
+    "932×351",
+    "12×12",
+    "12×12",
+    "924×260",
+    "924×260",
+    "924×260",
+    "924×260"
+   ],
+   "isolatedSvgs": [
+    "872×185",
+    "872×185",
+    "872×329",
+    "12×12",
+    "12×12",
+    "872×329",
+    "12×12",
+    "12×12",
+    "872×185",
+    "872×185",
+    "872×185",
+    "872×185"
+   ],
+   "bigIconsIsolated": 0,
+   "tables": 4,
+   "rows": 144,
+   "wideTables": []
+  },
+  "engine": {
+   "paged": true
+  }
+ },
+ {
+  "device": "pc",
+  "name": "zona-cronologico-2-centro",
+  "kind": "zona",
+  "hasButton": true,
+  "pdf": "pc-zona-cronologico-2-centro.pdf",
+  "png": "pc-zona-cronologico-2-centro.png",
+  "measure": {
+   "width": 960,
+   "liveHeight": 1025,
+   "isolatedHeight": 1231,
+   "croppedPx": 206,
+   "hiddenInLive": [
+    "IMG"
+   ],
+   "liveSvgs": [],
+   "isolatedSvgs": [],
+   "bigIconsIsolated": 0,
+   "tables": 1,
+   "rows": 15,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "1920×2526",
+   "usedHeight": 1263,
+   "neededHeight": 1231,
+   "footerBottom": 1195,
+   "footerVisible": true,
+   "iconWidths": []
+  }
+ },
+ {
+  "device": "pc",
+  "name": "zona-historico-2-centro",
+  "kind": "zona-historico",
+  "hasButton": true,
+  "pdf": "pc-zona-historico-2-centro.pdf",
+  "png": "pc-zona-historico-2-centro.png",
+  "measure": {
+   "width": 960,
+   "liveHeight": 1497,
+   "isolatedHeight": 1720,
+   "croppedPx": 223,
+   "hiddenInLive": [
+    "IMG"
+   ],
+   "liveSvgs": [
+    "934×321"
+   ],
+   "isolatedSvgs": [
+    "886×305"
+   ],
+   "bigIconsIsolated": 0,
+   "tables": 1,
+   "rows": 16,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "1920×3498",
+   "usedHeight": 1749,
+   "neededHeight": 1720,
+   "footerBottom": 1684,
+   "footerVisible": true,
+   "iconWidths": []
+  }
+ },
+ {
+  "device": "pc",
+  "errors": []
+ },
+ {
+  "device": "android",
+  "name": "cronologico-general",
+  "kind": "cronologico",
+  "hasButton": false,
+  "note": "sin botón de exportación en esta vista"
+ },
+ {
+  "device": "android",
+  "name": "cronologico-finca-pansaco",
+  "kind": "cronologico",
+  "hasButton": true,
+  "pdf": "android-cronologico-finca-pansaco.pdf",
+  "png": "android-cronologico-finca-pansaco.png",
+  "measure": {
+   "width": 1400,
+   "liveHeight": 178,
+   "isolatedHeight": 2877,
+   "croppedPx": 2577,
+   "hiddenInLive": [
+    "maestro-icon",
+    "maestro-icon",
+    "maestro-icon",
+    "maestro-icon",
+    "maestro-icon",
+    "maestro-icon",
+    "table-wrap premium-original-analysis",
+    "TABLE"
+   ],
+   "liveSvgs": [
+    "0×0",
+    "0×0",
+    "0×0",
+    "0×0",
+    "0×0",
+    "0×0"
+   ],
+   "isolatedSvgs": [
+    "417×417",
+    "417×417",
+    "417×417",
+    "417×417",
+    "417×417",
+    "417×417"
+   ],
+   "bigIconsIsolated": 6,
+   "tables": 1,
+   "rows": 49,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "2800×600",
+   "usedHeight": 300,
+   "neededHeight": 2877,
+   "footerBottom": 2843,
+   "footerVisible": false,
+   "iconWidths": [
+    417,
+    417,
+    417,
+    417,
+    417,
+    417
+   ]
+  }
+ },
+ {
+  "device": "android",
+  "name": "cronologico-suerte-pansaco-01",
+  "kind": "cronologico",
+  "hasButton": true,
+  "pdf": "android-cronologico-suerte-pansaco-01.pdf",
+  "png": "android-cronologico-suerte-pansaco-01.png",
+  "measure": {
+   "width": 960,
+   "liveHeight": 308,
+   "isolatedHeight": 563,
+   "croppedPx": 255,
+   "hiddenInLive": [
+    "crono-trend-svg",
+    "table-wrap premium-original-analysis",
+    "TABLE"
+   ],
+   "liveSvgs": [
+    "0×0"
+   ],
+   "isolatedSvgs": [
+    "518×200"
+   ],
+   "bigIconsIsolated": 0,
+   "tables": 1,
+   "rows": 1,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "1920×958",
+   "usedHeight": 479,
+   "neededHeight": 563,
+   "footerBottom": 529,
+   "footerVisible": false,
+   "iconWidths": []
+  }
+ },
+ {
+  "device": "android",
+  "name": "historico-general",
+  "kind": "historico",
+  "hasButton": false,
+  "note": "sin botón de exportación en esta vista"
+ },
+ {
+  "device": "android",
+  "name": "historico-finca-pansaco",
+  "kind": "historico",
+  "hasButton": true,
+  "pdf": "android-historico-finca-pansaco.pdf",
+  "png": "android-historico-finca-pansaco.png",
+  "measure": {
+   "width": 960,
+   "liveHeight": 1797,
+   "isolatedHeight": 1304,
+   "croppedPx": 0,
+   "hiddenInLive": [],
+   "liveSvgs": [
+    "928×232"
+   ],
+   "isolatedSvgs": [
+    "872×250"
+   ],
+   "bigIconsIsolated": 0,
+   "tables": 1,
+   "rows": 10,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "1920×2702",
+   "usedHeight": 1351,
+   "neededHeight": 1304,
+   "footerBottom": 1270,
+   "footerVisible": true,
+   "iconWidths": []
+  }
+ },
+ {
+  "device": "android",
+  "name": "historico-suerte-pansaco-01",
+  "kind": "historico",
+  "hasButton": true,
+  "pdf": "android-historico-suerte-pansaco-01.pdf",
+  "png": "android-historico-suerte-pansaco-01.png",
+  "measure": {
+   "width": 960,
+   "liveHeight": 1797,
+   "isolatedHeight": 1304,
+   "croppedPx": 0,
+   "hiddenInLive": [],
+   "liveSvgs": [
+    "928×232"
+   ],
+   "isolatedSvgs": [
+    "872×250"
+   ],
+   "bigIconsIsolated": 0,
+   "tables": 1,
+   "rows": 10,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "1920×2702",
+   "usedHeight": 1351,
+   "neededHeight": 1304,
+   "footerBottom": 1270,
+   "footerVisible": true,
+   "iconWidths": []
+  }
+ },
+ {
+  "device": "android",
+  "name": "cronologico-multiple",
+  "kind": "cronologico-multiple",
+  "hasButton": true,
+  "pdf": "android-cronologico-multiple.pdf",
+  "png": "android-cronologico-multiple.png",
+  "measure": {
+   "width": 1600,
+   "liveHeight": 1562,
+   "isolatedHeight": 760,
+   "croppedPx": 0,
+   "hiddenInLive": [],
+   "liveSvgs": [],
+   "isolatedSvgs": [],
+   "bigIconsIsolated": 0,
+   "tables": 1,
+   "rows": 3,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "3200×1520",
+   "usedHeight": 760,
+   "neededHeight": 760,
+   "footerBottom": 724,
+   "footerVisible": true,
+   "iconWidths": []
+  }
+ },
+ {
+  "device": "android",
+  "name": "historico-multiple-ejecutivo",
+  "kind": "historico-multiple:executive",
+  "hasButton": true,
+  "pdf": "android-historico-multiple-ejecutivo.pdf",
+  "png": "android-historico-multiple-ejecutivo.png",
+  "measure": {
+   "width": 960,
+   "liveHeight": 2105,
+   "isolatedHeight": 2141,
+   "croppedPx": 36,
+   "hiddenInLive": [],
+   "liveSvgs": [
+    "928×232",
+    "928×232",
+    "932×351",
+    "12×12",
+    "12×12",
+    "932×351",
+    "12×12",
+    "12×12"
+   ],
+   "isolatedSvgs": [
+    "872×185",
+    "872×185",
+    "872×329",
+    "12×12",
+    "12×12",
+    "872×329",
+    "12×12",
+    "12×12"
+   ],
+   "bigIconsIsolated": 0,
+   "tables": 0,
+   "rows": 0,
+   "wideTables": []
+  },
+  "engine": {
+   "paged": true
+  }
+ },
+ {
+  "device": "android",
+  "name": "historico-multiple-completo",
+  "kind": "historico-multiple:complete",
+  "hasButton": true,
+  "pdf": "android-historico-multiple-completo.pdf",
+  "measure": {
+   "width": 960,
+   "liveHeight": 6527,
+   "isolatedHeight": 7594,
+   "croppedPx": 1067,
+   "hiddenInLive": [],
+   "liveSvgs": [
+    "928×232",
+    "928×232",
+    "932×351",
+    "12×12",
+    "12×12",
+    "932×351",
+    "12×12",
+    "12×12",
+    "928×232",
+    "928×232",
+    "928×232",
+    "928×232"
+   ],
+   "isolatedSvgs": [
+    "872×185",
+    "872×185",
+    "872×329",
+    "12×12",
+    "12×12",
+    "872×329",
+    "12×12",
+    "12×12",
+    "872×185",
+    "872×185",
+    "872×185",
+    "872×185"
+   ],
+   "bigIconsIsolated": 0,
+   "tables": 4,
+   "rows": 144,
+   "wideTables": []
+  },
+  "engine": {
+   "paged": true
+  }
+ },
+ {
+  "device": "android",
+  "name": "zona-cronologico-2-centro",
+  "kind": "zona",
+  "hasButton": true,
+  "pdf": "android-zona-cronologico-2-centro.pdf",
+  "png": "android-zona-cronologico-2-centro.png",
+  "measure": {
+   "width": 960,
+   "liveHeight": 2198,
+   "isolatedHeight": 1231,
+   "croppedPx": 0,
+   "hiddenInLive": [
+    "IMG"
+   ],
+   "liveSvgs": [],
+   "isolatedSvgs": [],
+   "bigIconsIsolated": 0,
+   "tables": 1,
+   "rows": 15,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "1920×2526",
+   "usedHeight": 1263,
+   "neededHeight": 1231,
+   "footerBottom": 1195,
+   "footerVisible": true,
+   "iconWidths": []
+  }
+ },
+ {
+  "device": "android",
+  "name": "zona-historico-2-centro",
+  "kind": "zona-historico",
+  "hasButton": true,
+  "pdf": "android-zona-historico-2-centro.pdf",
+  "png": "android-zona-historico-2-centro.png",
+  "measure": {
+   "width": 960,
+   "liveHeight": 2765,
+   "isolatedHeight": 1720,
+   "croppedPx": 0,
+   "hiddenInLive": [
+    "IMG"
+   ],
+   "liveSvgs": [
+    "934×321"
+   ],
+   "isolatedSvgs": [
+    "886×305"
+   ],
+   "bigIconsIsolated": 0,
+   "tables": 1,
+   "rows": 16,
+   "wideTables": []
+  },
+  "engine": {
+   "canvas": "1920×3498",
+   "usedHeight": 1749,
+   "neededHeight": 1720,
+   "footerBottom": 1684,
+   "footerVisible": true,
+   "iconWidths": []
+  }
+ },
+ {
+  "device": "android",
+  "errors": []
+ }
+]

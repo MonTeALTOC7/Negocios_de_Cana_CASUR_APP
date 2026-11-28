@@ -14,7 +14,10 @@
   const decisionSources = ['82cd45c03b8c80ddda6ebc6078289df4f63b6a380403da6f103f2a52fa30e069',
     '716d374c63aa0e990f18cbabee9f391eee3d54d50fd8395488a8357e5bbcbbae',
     '849e3bac1fa0ff6abd49c690f25ab0910b18282674ddea833283c79d6d46fc04',
-    'aa9ab25b863dc399d5a6d445c0efe7907ca8956ef868429f308a404a46267fc6'];
+    'aa9ab25b863dc399d5a6d445c0efe7907ca8956ef868429f308a404a46267fc6',
+    // 2e3c...: AFORO_26-27 Z26/27 (22-nov-2026, Issue #67). Original 7a44... with AH of 908/09,10,15
+    // set to Semilla (authorized); audited cell by cell against consolidated 3277... (0 differences).
+    '2e3cfedb0682024753f7dca7f484326641e281bf018de44f823052369dfada60'];
   window.CASUR_OPERATIONAL_DECISIONS = Object.freeze([
     { id:'CASUR-2026-10-25-2003',key:'2003',season:'26/27',destination:'Semilla',approvedAt:'2026-10-25',
       reason:'Decisión expresa del usuario CASUR: Semilla activa, fuera de molienda.',sourceHashes:decisionSources,
@@ -44,10 +47,11 @@
     return Math.round(number * factor) / factor;
   };
   const fmt = (value, suffix = "") => finite(value) === null ? "—" : `${nf.format(Number(value))}${suffix}`;
+  // Institutional date format DD-MMM-AAAA (12-Oct-2026); single formatter: formatCronoDate.
   const formatDate = (value) => {
     if (!value) return "—";
-    const parts = String(value).slice(0, 10).split("-");
-    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : String(value);
+    const shown = formatCronoDate(value);
+    return shown === '—' ? String(value) : shown;
   };
   const weighted = (rows, field) => {
     let numerator = 0;
@@ -87,7 +91,7 @@
     const iso = window.CASUR_OPERATIONAL_IMPORT.dateValue(value).iso;
     if (!iso) return '—';
     const [year, month, day] = iso.split('-');
-    return `${day}-${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][Number(month)-1]}-${year}`;
+    return `${day}-${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][Number(month)-1]}-${year}`;
   }
   function cutTypeText(value) {
     const original = text(value), key = normal(original);
@@ -1476,7 +1480,7 @@
       : (context.source === "cronologico"
         ? `${context.name || ("Finca " + context.farmCode)} · Código ${context.farmCode}`
         : `Finca ${context.farmCode} · ${context.name || context.farmCode}`);
-    const generated = new Date().toLocaleString("es-NI", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    const generated = formatCronoDate(new Date().toLocaleDateString("sv-SE")) + " · " + new Date().toLocaleTimeString("es-NI", { hour: "2-digit", minute: "2-digit" });
     sheet.innerHTML = `
       <header class="casur-geo-export-head"><div><span>Departamento de Negocios de Caña</span><h1>${esc(sourceTitle)}</h1><p>${esc(subject)}</p></div><strong>CASUR</strong></header>
       <div class="casur-geo-export-body"><figure><img alt="${esc(subject)}"><figcaption>${esc(geoExportAttribution(mapCapture.baseKey))}</figcaption></figure><aside class="casur-geo-card casur-geo-export-card">${geoCardMarkup(context, mode === "lot" ? selected : "", false)}</aside></div>

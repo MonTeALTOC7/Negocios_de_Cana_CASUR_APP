@@ -1,4 +1,5 @@
-const MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+// Institutional date format DD-MMM-AAAA (12-Oct-2026), same months as CASUR_CRONO_PARTICIPATION.formatDate.
+const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 export function calendarDate(value) {
   if (typeof value !== 'string') return null;
   const match = /^(\d{4})-(\d{2})-(\d{2})(?:$|T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$)/.exec(value);

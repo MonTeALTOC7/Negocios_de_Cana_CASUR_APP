@@ -8,12 +8,17 @@ git('merge-base','--is-ancestor',base,'HEAD');
 const originalHotfix = APP_VERSION === '1.5.2' && MODULE_VERSIONS.produccion === 'V1.7.2';
 assert.equal(MODULE_VERSIONS.tch,'2.8.1');
 const manifest=JSON.parse(fs.readFileSync('tools/release-c4-manifest.json'));
-for(const [file,h]of Object.entries(manifest.files)){
+assert.equal(manifest.dataVersion,'2026.10.25-aforo.1101');
+// A later data generation must be declared in a reviewed manifest chained to C4 (Issue #67: 1102).
+const currentData=JSON.parse(fs.readFileSync('modules/produccion/data/version.json')).version;
+const dataManifest=currentData===manifest.dataVersion?manifest:JSON.parse(fs.readFileSync('tools/release-data-manifest.json'));
+assert.equal(dataManifest.dataVersion,currentData,'data generation declared in its manifest');
+if(dataManifest!==manifest){assert.equal(dataManifest.previousDataVersion,manifest.dataVersion,'chained to C4');assert.match(dataManifest.sources?.aforo?.sha256||'',/^[a-f0-9]{64}$/);assert.equal(Object.keys(dataManifest.files).length,7);}
+for(const [file,h]of Object.entries(dataManifest.files)){
  const p='modules/produccion/data/'+file;assert.equal(sha(fs.readFileSync(p)),h,p);
- assert.equal(git('rev-parse',base+':'+p),git('hash-object',p),p+' byte-identical to published main');
+ if(dataManifest===manifest)assert.equal(git('rev-parse',base+':'+p),git('hash-object',p),p+' byte-identical to published main');
 }
 assert.equal(JSON.parse(fs.readFileSync('modules/produccion/data/version.json')).publishedAt,null);
-assert.equal(manifest.dataVersion,'2026.10.25-aforo.1101');
 // Later visual releases may recolor CSS and PWA chrome; never change the actual sources.
 const previousManifest=JSON.parse(git('show',base+':manifest.webmanifest'));
 const currentManifest=JSON.parse(fs.readFileSync('manifest.webmanifest','utf8'));
@@ -30,4 +35,4 @@ if(originalHotfix) assert.equal(Object.keys(JSON.parse(fs.readFileSync('core/ver
 execFileSync(process.execPath,['--test','tests/context-store.test.mjs'],{stdio:'inherit'});
 for(const script of ['tools/sync-versions.mjs','tools/runtime-assets.mjs','tools/production-integrity.mjs'])execFileSync(process.execPath,[script],{stdio:'inherit'});
 if(process.argv.includes('--for-push')){assert.ok(git('log','-1','--format=%s').startsWith('[CF-Pages-Skip]'));assert.equal(git('status','--porcelain'),'');}
-console.log(`CONTEXT_CONTINUITY_PASS: App ${APP_VERSION}, Producción ${MODULE_VERSIONS.produccion}, seven official SHA unchanged; original hotfix scope ${originalHotfix ? 'applied' : 'historical only'}`);
+console.log(`CONTEXT_CONTINUITY_PASS: App ${APP_VERSION}, Producción ${MODULE_VERSIONS.produccion}, seven official SHA ${dataManifest===manifest?'unchanged':'verified for '+currentData}; original hotfix scope ${originalHotfix ? 'applied' : 'historical only'}`);

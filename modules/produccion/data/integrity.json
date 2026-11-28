@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "dataVersion": "2026.10.25-aforo.1101",
+  "dataVersion": "2026.11.22-aforo.1102",
   "files": {
-    "version.json": "79622022c9d3ad84cbcbeb2d89e6e4c4c66b1b336984a23530e70eda867cb286",
-    "version.js": "f96e255e8bbcb30da7f758edd8ef0942ed5bccb5290338039a2ecf620a0f865c",
-    "cronologico.json": "dd15677735fb9f5f5333ad5baf88dc61895e27c438bcb21d71aa35011c918901",
-    "cronologico.js": "dd016f14b452e6bec8e52a338751225caa7cb450d2c404cff6e22fa32d25f02a",
-    "historico.json": "5a7b94e19ac4391cded1dfd510a063a1c47d1a9043da22afb2bad26559773728",
-    "historico.js": "d9030697a99ef1655a13ce1e6d764ec6cea697190569bc0ed850761c33390af5"
+    "version.json": "411f020d21629b47ce1c18918e91892b08b83a15aaf99741e0ea727a7fcd1a80",
+    "version.js": "0a95755e53af155b2d11ad3d8dfadbeb33677a96178e1e4c7b1d0a2273734e2c",
+    "cronologico.json": "ed5e2cb2abe19d31e29632c6f581d0d0933a4feba0c19cc9b3757e616e16db5e",
+    "cronologico.js": "785417b3400e7cdd7904ddc724267f1d8db7306bdc489746d89f989a7c12ad84",
+    "historico.json": "231a72c5ccadcf3897191896d8198100752a3129c601792aabe9658aa940a472",
+    "historico.js": "e2687e721c648cb7b39341149b1d863fe7de3ece9851b0182da9690a6949ee08"
   }
 }

@@ -344,7 +344,7 @@ test('upgrade desde el snapshot legacy (sin releaseId) se conserva', async () =>
 });
 
 test('un downgrade se rechaza antes de escribir cualquier caché', async () => {
-  const h = harness({active: activeReplying({version: '1.7.0', releaseId: '1.7.0-abc'})});
+  const h = harness({active: activeReplying({version: '9.9.9', releaseId: '9.9.9-abc'})});
   await assert.rejects(install(h), /DOWNGRADE_REJECTED/);
   assert.equal(h.stores.size, 0);
 });

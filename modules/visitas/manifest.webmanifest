@@ -1,0 +1,21 @@
+{
+  "name": "Visitas de Campo Productores de Caña",
+  "short_name": "Visitas de Campo",
+  "description": "Negocios de Caña · CASUR. Registro de visitas técnicas a productores de caña, con fotos, GPS y seguimiento, sin conexión.",
+  "lang": "es-NI",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F6F8FA",
+  "theme_color": "#0F2A33",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {"src": "icons/visitas-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/visitas-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/visitas-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
+    {"src": "icons/visitas-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

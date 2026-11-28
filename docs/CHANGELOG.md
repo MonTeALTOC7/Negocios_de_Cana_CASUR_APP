@@ -2,6 +2,53 @@
 
 Formato: [versión] — fecha · resumen.
 
+## App Maestra 1.7.0 · Visitas de Campo 1.2.0 (candidata, sin publicar)
+
+- **Visitas 1.2.0 (identidad funcional propia, centrada en el productor).**
+  - Inicio «Mi gestión de campo» con indicadores de gestión, ubicación compacta y seis acciones inmediatas.
+  - Navegación Inicio · Productores · Registrar · Gestión · Más; escritorio agrupado en Trabajo, Consultas y Sistema.
+  - Expediente técnico con resumen por familia, suertes, cronología, seguimiento por etapa y evidencias (antes/después).
+  - Ficha de suerte, Gestión (reemplaza a Bitácora y Seguimiento; rutas anteriores redirigidas) y Evidencias.
+  - Familias de hallazgo con color propio, avance Observado → Recomendado → En ejecución → Verificado e iconos propios.
+  - Foto etiquetada con pie documental bajo la imagen y ficha de seguimiento técnico sin recortes.
+  - Informes con evidencias de la visita y del seguimiento, avance y recomendaciones por hallazgo, y fotos completas.
+  - Ubicación de foto: ventana de 30 s; posición aproximada rotulada si hubo movimiento o baja precisión.
+  - Visitas retrospectivas: sin atributos actuales y con la fecha de la visita; corrige el registro desde una visita
+    retrospectiva, que creaba el hallazgo en una visita de hoy.
+- **Release Gate.** Se retiró `docs/evidencias-visitas-v11/muestra-visitas.xlsx`, que bloqueaba el control de artefactos;
+  el control no cambió. Se agregó `tools/release-gate-local.sh`.
+- Detalle: `docs/VISITAS_V12_IDENTIDAD.md`.
+
+### Visitas de Campo 1.1.0 (misma candidata)
+
+
+- **Visitas 1.1.0 (rediseño integral).**
+  - Mapa operativo y detección automática de finca y suerte por GPS, como asistencia y nunca como restricción.
+  - Registro rápido de un toque con detalles técnicos opcionales, bitácora y catálogo de 20 categorías.
+  - Etapa fenológica probable por edad.
+  - Fotos con GPS asociado y procedencia, galería y visor, etiquetado institucional y tarjeta de hallazgo.
+  - Expediente del productor, seguimiento con evidencias, informes, Excel y GeoJSON.
+  - Autoguardado robusto, concurrencia entre pestañas y restauración multi-ZIP verificable.
+- **Shell.**
+  - El Maestro Central lee la generación local SIAGRI: se resuelve `local-incompatible`.
+  - El control de actualización también funciona en Visitas instalada; esto corrige un bloqueo de la actualización con
+    Visitas abierta.
+- Detalle: `docs/VISITAS_V11_REDISENO.md`.
+
+### Primera etapa de la candidata (MC01 + VC01 1.0.0)
+
+- **Maestro Central:**
+  - Contrato de lectura en el núcleo (`core/shared-data/maestro-central.js`), con la política vigente de fuentes.
+  - Diagnóstico de solo lectura en el Centro Maestro.
+  - La actualización SIAGRI del Centro Maestro se aplica en una sola transacción, con la generación anterior archivada.
+- **Visitas de Campo Productores de Caña 1.0.0** (local-first):
+  - Registro de visitas con Maestro, GPS, polígonos, fotos originales, seguimiento inicial, respaldo ZIP y restauración
+    verificable.
+  - Acceso directo e instalación con manifiesto propio sobre el SW raíz.
+- **SW:** una navegación directa a Visitas prepara su bundle verificado en lugar de devolver 503.
+- Sin cambios en Producción V1.8.3, el Estimador TCH 2.8.1, la generación 1102 ni SIAGRI.
+- Detalle: `docs/MC01_VC01_IMPLEMENTACION.md`.
+
 ## [1.6.2] / Producción [V1.8.3] — 28-nov-2026 · publicada (`main` `fbdb2b7`, PR #73) · Maestro de Suertes y exportadores
 - Publicación única de la cadena #73 → #76 → #77, con #74 integrado en la candidata. Datos: generación `2026.11.22-aforo.1102`, con aforo oficial 12-Oct-2026 y consolidado 22-Nov-2026. Sin cambios en SIAGRI, en fórmulas agronómicas ni en otros módulos; solo cambian las cadenas de versión del shell.
 - UX14 (PR #76): Análisis por Zona, con Cronológico e Histórico por tipo de riego original y exportadores de Zona.

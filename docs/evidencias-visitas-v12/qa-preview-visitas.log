@@ -1,0 +1,27 @@
+PASS · Acceso directo, SW raíz, bundle y datos listos sin conexión
+PASS · Escenario 1 · GPS preciso: detección estable de finca y suerte sin elegir productor
+PASS · Escenario 1 · Registro rápido de un toque, foto con GPS asociado y observación breve
+PASS · Escenario 3 · Detalles técnicos opcionales: solo lo conocido, sin bloquear
+PASS · Fotos: EXIF propio (cámara) y galería sin EXIF sin ubicación del teléfono
+PASS · Galería profesional, foto etiquetada y tarjeta de hallazgo (descargas y muestras)
+PASS · GPS impreciso y fuera de suerte: no se confirma ni se cambia el destino
+PASS · Selección manual con prioridad; conflicto GPS informado sin bloquear; cambio de suerte sin alterar registros previos
+PASS · Gestión: deshacer captura accidental, ruta anterior redirigida, búsqueda, pestañas y avance por etapa
+PASS · Mapa operativo: finca, suertes, ubicación y ficha de suerte
+PASS · Escenario 2 · Visita manual desde oficina, retrospectiva y de varias suertes, sin GPS
+PASS · Escenario 7 · Sin permiso de ubicación: registro rápido igual funciona
+PASS · Escenario 5 · Seguimiento: estado, nota, evidencia y visita vinculada
+PASS · Productores y expediente técnico: resumen, suertes, cronología, seguimiento por etapa y evidencias (antes/después)
+PASS · Evidencia de la visita sin hallazgo: inicio «Tomar evidencia», vista Evidencias e informe
+PASS · Visita retrospectiva: hallazgo con la fecha de la visita, sin GPS actual ni atributos actuales
+PASS · Informes (visita, expediente, consolidado) + Excel y GeoJSON
+PASS · Autoguardado: fallo de escritura conservado como copia de emergencia y recuperado
+PASS · Concurrencia: una pestaña con revisión vieja no sobrescribe a otra
+PASS · Respaldo: exportación, confirmación (ZIP ≠ respaldo confirmado) y partes por capacidad
+PASS · Restauración: parte faltante, cualquier orden, idempotente, corrupción y conflicto de contenido
+PASS · Escenario 7 · Sin conexión: abrir, buscar productor y registrar
+PASS · Aislamiento de almacenamiento y migración: solo «casur-visitas» y sin escrituras ajenas
+PASS · Responsive: 360, 412 y escritorio sin desbordes
+PASS · Acceso desde la App Maestra: tarjeta e iframe
+PASS · Sin errores de página
+26/26 PASS

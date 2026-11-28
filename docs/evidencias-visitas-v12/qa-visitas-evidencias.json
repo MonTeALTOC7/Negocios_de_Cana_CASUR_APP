@@ -1,0 +1,29 @@
+{
+ "base": "http://127.0.0.1:4590/Negocios_de_Cana_CASUR_APP/",
+ "results": [
+  [
+   "PASS",
+   "Foto etiquetada vertical con comentario largo: foto entera y pie debajo, sin cortar el texto"
+  ],
+  [
+   "PASS",
+   "Foto etiquetada horizontal sin ubicación: «Sin ubicación verificable» y proporción conservada"
+  ],
+  [
+   "PASS",
+   "Foto pequeña con posición aproximada: se lleva a 1080 px y la ubicación se rotula aproximada"
+  ],
+  [
+   "PASS",
+   "Ficha de seguimiento técnico con una foto"
+  ],
+  [
+   "PASS",
+   "Ficha de seguimiento técnico completa: 5 fotos verticales y horizontales, textos largos, recomendaciones, historial y antes/después"
+  ],
+  [
+   "PASS",
+   "Sin errores de página"
+  ]
+ ]
+}

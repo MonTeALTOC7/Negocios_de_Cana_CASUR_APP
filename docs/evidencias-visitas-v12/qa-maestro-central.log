@@ -1,0 +1,11 @@
+PASS · [pc] Diagnóstico: generación oficial, fuente efectiva y maestros de los módulos
+PASS · [pc] Diagnóstico de solo lectura: no crea bases ni registros
+PASS · [pc] Diagnóstico sin conexión
+PASS · Camino C: transacción única, coherencia, rechazos sin escritura y recuperación
+PASS · Contrato con generación local fijada por el propietario (sintética)
+PASS · [pc] Sin errores de página
+PASS · [movil] Diagnóstico: generación oficial, fuente efectiva y maestros de los módulos
+PASS · [movil] Diagnóstico de solo lectura: no crea bases ni registros
+PASS · [movil] Diagnóstico sin conexión
+PASS · [movil] Sin errores de página
+10/10 PASS

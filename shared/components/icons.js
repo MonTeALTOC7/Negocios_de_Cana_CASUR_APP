@@ -13,6 +13,7 @@ export const ICONS = {
   // Producción: caña + análisis de datos (barras ascendentes + hoja/brote)
   produccion: wrap('<path d="M3.5 20.5h17"/><path d="M6 20.5v-5"/><path d="M11 20.5v-9"/><path d="M16 20.5v-6"/><path d="M16 14.5c0-2.6 1.8-4.4 4-4.8-.2 2.8-1.4 4.6-4 4.8Z"/><path d="M11 11.5c0-2.2-1.3-3.6-3.2-4 .1 2.3 1.1 3.7 3.2 4Z"/>'),
   // TCH y Visitas: cámara (fotografía) con hoja como lente (biometría/caña)
+  visitas: wrap('<path d="M12 21s-6-5.6-6-10.2A6 6 0 0 1 18 10.8C18 15.4 12 21 12 21Z"/><path d="M9.5 11.5c1.4-2.6 3.2-3.6 5-3.9-.4 2.3-2.2 4-5 3.9Z"/>'),
   tch: wrap('<path d="M4 8.5h2.5L8 6.5h8l1.5 2H20a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1Z"/><path d="M12 16.5c-2 0-3.2-1.4-3.2-3.1 0-1.8 3.2-4.4 3.2-4.4s3.2 2.6 3.2 4.4c0 1.7-1.2 3.1-3.2 3.1Z"/>'),
   // Riego: gota de agua con brote de caña dentro
   riego: wrap('<path d="M12 3s5.2 5.6 5.2 9.2A5.2 5.2 0 0 1 6.8 12.2C6.8 8.6 12 3 12 3Z"/><path d="M12 17.5v-4"/><path d="M12 14c1.7 0 2.8-1.1 3-2.6"/><path d="M12 15c-1.5 0-2.5-1-2.7-2.3"/>'),

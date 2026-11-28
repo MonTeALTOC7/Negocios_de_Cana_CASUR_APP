@@ -1,0 +1,19 @@
+PASS · [pc] Versión publicada: App 1.7.0, release 1.7.0-1139cc6114157c65, Service Worker activo
+PASS · [pc] Módulo produccion: abre desde el shell
+PASS · [pc] Módulo tch: abre desde el shell
+PASS · [pc] Módulo riego: abre desde el shell
+PASS · [pc] Módulo insumos: abre desde el shell
+PASS · [pc] Módulo inventario: abre desde el shell
+PASS · [pc] Módulo labores: abre desde el shell
+PASS · [pc] Sin conexión: reapertura del shell y de los módulos locales
+PASS · [pc] Sin errores de página ni de consola
+PASS · [android] Versión publicada: App 1.7.0, release 1.7.0-1139cc6114157c65, Service Worker activo
+PASS · [android] Módulo produccion: abre desde el shell
+PASS · [android] Módulo tch: abre desde el shell
+PASS · [android] Módulo riego: abre desde el shell
+PASS · [android] Módulo insumos: abre desde el shell
+PASS · [android] Módulo inventario: abre desde el shell
+PASS · [android] Módulo labores: abre desde el shell
+PASS · [android] Sin conexión: reapertura del shell y de los módulos locales
+PASS · [android] Sin errores de página ni de consola
+18/18 PASS

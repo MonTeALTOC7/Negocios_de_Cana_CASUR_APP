@@ -5,7 +5,7 @@
    número de un módulo aquí no afecta a los demás.
    ============================================================ */
 
-export const APP_VERSION = '1.6.2';
+export const APP_VERSION = '1.7.0';
 export const APP_CHANNEL = 'GitHub Pages';
 
 // Historial de código instalado, independiente de las publicaciones SIAGRI/GEO.
@@ -44,6 +44,7 @@ export const MODULE_VERSIONS = {
   labores: '0.7.x',
   convertidor: '1.1.0',
   conciliacion: '0.7.x',
+  visitas: '1.3.0',
 };
 
 export function moduleVersion(id) {
@@ -63,6 +64,7 @@ export const MODULE_STATUS = {
   labores: 'integrado · fuente propia',
   convertidor: 'integrado',
   conciliacion: 'placeholder',
+  visitas: 'integrado · local-first; instalación diferenciada en Android: validar en dispositivo',
 };
 
 export function moduleStatus(id) {
@@ -70,6 +72,7 @@ export function moduleStatus(id) {
 }
 
 export const APP_RELEASES = Object.freeze([
+  Object.freeze({id:'shell',version:'1.7.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Contrato de lectura del Maestro Central y diagnóstico de solo lectura en el Centro Maestro (generación oficial, local, fuente efectiva y maestros de los módulos).','Actualización SIAGRI del Centro Maestro en una sola transacción, con la generación anterior archivada y recuperable.','Nuevo módulo Visitas de Campo Productores de Caña con acceso directo e instalación propia sobre el Service Worker raíz.'])}),
   Object.freeze({id:'shell',version:'1.6.2',type:'PATCH',publishedAt:null,changes:Object.freeze(['Actualización coordinada del manifiesto offline para Producción V1.8.3 (UX13 Etapa A: Cronológico General/Finca y Estimados Z26/27). Sin cambios en Service Worker, datos ni otros módulos.'])}),
   Object.freeze({id:'shell',version:'1.6.1',type:'PATCH',publishedAt:null,changes:Object.freeze(['Recuperación segura de la versión instalada: si falta su manifiesto local se restaura solo desde la misma release verificada por SHA-256, o se ofrece una pantalla de reparación en lugar de un error 503 plano.','La instalación de una versión nueva ya no queda bloqueada porque falte la instantánea anterior; se rechazan downgrades y se conservan datos, cachés de módulos y checkpoint multiventana.'])}),
   Object.freeze({id:'shell',version:'1.6.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Rediseño Petróleo y Pizarra con nueva navegación empresarial y móvil.','Iconos definitivos por módulo y búsqueda Histórico móvil accesible.','Se conservan datos, motores y actualización segura PWA.'])}),
@@ -93,6 +96,7 @@ Object.freeze(PRODUCTION_RELEASES);
 
 // Add immutable entries here when another module is released; never invent legacy history.
 export const MODULE_RELEASES = Object.freeze({ produccion: PRODUCTION_RELEASES,
+ visitas:Object.freeze([Object.freeze({id:'visitas',version:'1.3.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Recuperación: Inicio, Productores, Evidencias e Informes abren con visitas incompletas de versiones anteriores (borradores sin productor); migración v3 no destructiva y diagnóstico de errores.','Hallazgos y evidencias independientes de una visita formal, catálogo completo del Maestro, mapa de productores con todas las geometrías y etiquetas hacienda/suerte, informes de hallazgo, pendientes, evidencias y por técnico.'])}),Object.freeze({id:'visitas',version:'1.2.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Identidad propia centrada en el productor: Inicio «Mi gestión de campo», navegación Inicio · Productores · Registrar · Gestión · Más, expediente técnico con resumen, suertes, cronología, seguimiento por etapa y evidencias.','Evidencias documentales sin recortes (foto completa con pie documental y ficha de seguimiento técnico), fotos de visita y de seguimiento en los informes, ventana GPS de 30 s con movimiento y precisión, y visitas retrospectivas sin atributos actuales.'])}),Object.freeze({id:'visitas',version:'1.1.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Rediseño integral: mapa operativo, detección automática de finca y suerte por GPS (asistencia, nunca restricción), registro rápido de un toque con detalles técnicos opcionales y bitácora.','Fotos con GPS asociado y procedencia explícita, galería, etiquetado institucional, tarjetas de hallazgo, expediente del productor, seguimiento con evidencias, informes y exportaciones.'])}),Object.freeze({id:'visitas',version:'1.0.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Primera versión local-first: registro de visitas con productor, suertes, GPS, mapa, hallazgos, fotografías originales, recomendaciones, solicitudes y compromisos.','Instantánea del Maestro por visita, borradores automáticos, respaldo ZIP verificable y restauración sin duplicados.'])})]),
  tch:Object.freeze([Object.freeze({id:'tch',version:'2.8.1',type:'PATCH',publishedAt:null,changes:Object.freeze(['Checkpoint PWA bloquea GPS, capturas, escrituras y exportaciones activas; conserva borrador e IDB v3.'])})]) });
 export const RELEASE_CATALOG = Object.freeze(Object.fromEntries(Object.entries(MODULE_VERSIONS).map(([id,version]) => [id,
   Object.freeze({id,version,publishedAt:MODULE_RELEASES[id]?.[0]?.publishedAt || null,history:MODULE_RELEASES[id] || Object.freeze([])})

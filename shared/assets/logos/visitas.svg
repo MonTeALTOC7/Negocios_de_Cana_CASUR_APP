@@ -1,0 +1,18 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Visitas de Campo: ubicación con hoja de caña y registro">
+  <defs>
+    <linearGradient id="pV" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2F7E97"/><stop offset="1" stop-color="#0F2A33"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#pV)"/>
+  <path d="M2 30A16 16 0 0 1 18 2h28A16 16 0 0 0 2 30Z" fill="#fff" opacity=".08"/>
+  <rect x="2.6" y="2.6" width="58.8" height="58.8" rx="15.4" fill="none" stroke="#fff" stroke-opacity=".18"/>
+  <!-- Pin de ubicación -->
+  <path d="M30 11c-8.3 0-15 6.6-15 14.8C15 36.6 30 52 30 52s15-15.4 15-26.2C45 17.6 38.3 11 30 11Z" fill="#fff"/>
+  <!-- Hoja de caña dentro del pin -->
+  <path d="M23.5 31.5c3.6-7.8 9.2-11.4 14.6-12.2-1.2 6.6-6.2 12.4-14.6 12.2Z" fill="#2E7D5B"/>
+  <path d="M24 31.2c3.4-3.2 7-6.2 12.2-9.6" stroke="#E6F2EC" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+  <!-- Registro con verificación -->
+  <rect x="38" y="36" width="17" height="19" rx="3.2" fill="#F4C542" stroke="#0F2A33" stroke-width="1.6"/>
+  <path d="M42 46.2l3 3 6-6.4" stroke="#0F2A33" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

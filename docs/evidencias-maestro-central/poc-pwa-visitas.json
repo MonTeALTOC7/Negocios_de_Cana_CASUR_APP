@@ -1,0 +1,86 @@
+{
+ "A": {
+  "directFirst": {
+   "status": 200,
+   "rendered": true
+  },
+  "directReloadControlled": {
+   "status": 503,
+   "rendered": false,
+   "text": "Módulo no preparado para uso sin conexión. Abrilo desde Inicio con conexión."
+  },
+  "visitasInstall": {
+   "manifestUrl": "",
+   "installabilityErrors": [],
+   "controlled": true,
+   "swScope": "http://127.0.0.1:43081/Negocios_de_Cana_CASUR_APP/"
+  },
+  "rootInstall": {
+   "manifestUrl": "http://127.0.0.1:43081/Negocios_de_Cana_CASUR_APP/manifest.webmanifest",
+   "id": "./",
+   "scope": "./",
+   "installabilityErrors": [],
+   "controlled": true,
+   "swScope": "http://127.0.0.1:43081/Negocios_de_Cana_CASUR_APP/"
+  },
+  "prepare": "READY",
+  "directAfterPrepare": {
+   "status": 200,
+   "rendered": true
+  },
+  "offlineVisitas": {
+   "status": 200,
+   "rendered": true
+  },
+  "offlineRoot": {
+   "status": 200,
+   "shell": true
+  },
+  "registrations": [
+   "http://127.0.0.1:43081/Negocios_de_Cana_CASUR_APP/"
+  ]
+ },
+ "B": {
+  "directFirst": {
+   "status": 200,
+   "rendered": true
+  },
+  "directReloadControlled": {
+   "status": 200,
+   "rendered": true,
+   "text": "Visitas de Campo · PoC"
+  },
+  "visitasInstall": {
+   "manifestUrl": "http://127.0.0.1:44713/Negocios_de_Cana_CASUR_APP/modules/visitas/manifest.webmanifest",
+   "id": "./",
+   "scope": "./",
+   "installabilityErrors": [],
+   "controlled": true,
+   "swScope": "http://127.0.0.1:44713/Negocios_de_Cana_CASUR_APP/"
+  },
+  "rootInstall": {
+   "manifestUrl": "http://127.0.0.1:44713/Negocios_de_Cana_CASUR_APP/manifest.webmanifest",
+   "id": "./",
+   "scope": "./",
+   "installabilityErrors": [],
+   "controlled": true,
+   "swScope": "http://127.0.0.1:44713/Negocios_de_Cana_CASUR_APP/"
+  },
+  "prepare": "READY",
+  "directAfterPrepare": {
+   "status": 200,
+   "rendered": true
+  },
+  "offlineVisitas": {
+   "status": 200,
+   "rendered": true
+  },
+  "offlineRoot": {
+   "status": 200,
+   "shell": true
+  },
+  "registrations": [
+   "http://127.0.0.1:44713/Negocios_de_Cana_CASUR_APP/"
+  ]
+ }
+}

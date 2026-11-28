@@ -1,0 +1,47 @@
+SHA 65e903c1adbbd7171e8d8de5351c827377f6ba0c
+== informes (4 plantillas)
+27/27 PASS
+== informes R3 (5)
+35/35 PASS
+== ux14
+23/23 PASS
+== ux15
+15/15 PASS
+== estimados
+13/13 PASS
+== ux13-a
+
+110/110 PASS
+== ux13-b
+
+90/90 PASS
+== ux13-c
+
+85/85 PASS
+== plan
+
+55/55 PASS
+== tch
+# pass 92
+# fail 0
+== audit
+audit registros 24 incidencias 0 []
+== shell e2e
+    at APIResponse.json (/opt/node-tools/node_modules/playwright-core/lib/coreBundle.js:59478:21)
+    at async /home/user/Negocios_de_Cana_CASUR_APP/tools/qa-maestro-shell-e2e.cjs:12:629
+    at APIResponse.json (/opt/node-tools/node_modules/playwright-core/lib/coreBundle.js:59478:21)
+    at async /home/user/Negocios_de_Cana_CASUR_APP/tools/qa-maestro-shell-e2e.cjs:12:629
+== module icons
+    at APIResponse.json (/opt/node-tools/node_modules/playwright-core/lib/coreBundle.js:59478:21)
+    at async /home/user/Negocios_de_Cana_CASUR_APP/tools/qa-shell-module-icons.cjs:12:52
+== startup timing
+1536 3 cold 1947
+1536 3 reload 1304
+1536 3 reopen 1234
+== public comparison
+[2m  - waiting for locator('#mCrumb')[22m
+
+despues 1536 5 SyntaxError: Unexpected token 'N', "Not found" is not valid JSON
+== update 1.6.1 -> 1.6.2
+1.6.1 UPDATE PASS
+FINAL-DONE

@@ -1,0 +1,18 @@
+== icons
+1536 ICONS PASS
+390 ICONS PASS
+== compare
+despues 1536 4 TimeoutError: frame.waitForFunction: Timeout 120000ms exceeded.
+antes 1536 5 cold 10898
+antes 1536 5 reload 1035
+antes 1536 5 reopen 1352
+antes 1536 5 offline 1062
+despues 1536 5 TimeoutError: frame.waitForFunction: Timeout 120000ms exceeded.
+== timing
+1536 1 reopen 1136
+1536 2 cold 6641
+1536 2 reload 1306
+1536 2 reopen 1078
+1536 3 cold 6756
+1536 3 reload 1336
+1536 3 reopen 1103

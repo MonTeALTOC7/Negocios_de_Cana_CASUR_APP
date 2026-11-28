@@ -1,0 +1,80 @@
+{
+ "base": "https://montealtoc7.github.io/Negocios_de_Cana_CASUR_APP/",
+ "appVersion": "1.6.2",
+ "releaseId": "1.6.2-1256f522516b8da8",
+ "dataVersion": "2026.11.22-aforo.1102",
+ "results": [
+  [
+   "PASS",
+   "[pc] Versión publicada: App 1.6.2, release 1.6.2-1256f522516b8da8, Service Worker activo"
+  ],
+  [
+   "PASS",
+   "[pc] Módulo produccion: abre desde el shell"
+  ],
+  [
+   "PASS",
+   "[pc] Módulo tch: abre desde el shell"
+  ],
+  [
+   "PASS",
+   "[pc] Módulo riego: abre desde el shell"
+  ],
+  [
+   "PASS",
+   "[pc] Módulo insumos: abre desde el shell"
+  ],
+  [
+   "PASS",
+   "[pc] Módulo inventario: abre desde el shell"
+  ],
+  [
+   "PASS",
+   "[pc] Módulo labores: abre desde el shell"
+  ],
+  [
+   "PASS",
+   "[pc] Sin conexión: reapertura del shell y de los módulos locales"
+  ],
+  [
+   "PASS",
+   "[pc] Sin errores de página ni de consola"
+  ],
+  [
+   "PASS",
+   "[android] Versión publicada: App 1.6.2, release 1.6.2-1256f522516b8da8, Service Worker activo"
+  ],
+  [
+   "PASS",
+   "[android] Módulo produccion: abre desde el shell"
+  ],
+  [
+   "PASS",
+   "[android] Módulo tch: abre desde el shell"
+  ],
+  [
+   "PASS",
+   "[android] Módulo riego: abre desde el shell"
+  ],
+  [
+   "PASS",
+   "[android] Módulo insumos: abre desde el shell"
+  ],
+  [
+   "PASS",
+   "[android] Módulo inventario: abre desde el shell"
+  ],
+  [
+   "PASS",
+   "[android] Módulo labores: abre desde el shell"
+  ],
+  [
+   "PASS",
+   "[android] Sin conexión: reapertura del shell y de los módulos locales"
+  ],
+  [
+   "PASS",
+   "[android] Sin errores de página ni de consola"
+  ]
+ ]
+}

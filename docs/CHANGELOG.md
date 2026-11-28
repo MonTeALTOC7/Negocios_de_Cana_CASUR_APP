@@ -2,7 +2,19 @@
 
 Formato: [versión] — fecha · resumen.
 
-## [1.6.2] / Producción [V1.8.3] — pendiente de publicación · UX13 Etapa A (Issue #61)
+## [1.6.2] / Producción [V1.8.3] — 28-nov-2026 · publicada (`main` `fbdb2b7`, PR #73) · Maestro de Suertes y exportadores
+- Publicación única de la cadena #73 → #76 → #77, con #74 integrado en la candidata. Datos: generación `2026.11.22-aforo.1102`, con aforo oficial 12-Oct-2026 y consolidado 22-Nov-2026. Sin cambios en SIAGRI, en fórmulas agronómicas ni en otros módulos; solo cambian las cadenas de versión del shell.
+- UX14 (PR #76): Análisis por Zona, con Cronológico e Histórico por tipo de riego original y exportadores de Zona.
+- UX15 (PR #77): cierre del Maestro de Suertes con selector unificado, Zonas, Estimados Z26/27 en Consultas y Análisis.
+- Exportadores PDF/PNG (R1 a R3-3, PR #77):
+  - Motor vectorial único: jsPDF, Inter incrustada y PNG de alta resolución, también sin conexión.
+  - Norma editorial permanente (`docs/ESTANDAR_EDITORIAL_INFORMES.md`) y nombres de archivo DD-MMM-AAAA.
+  - Nueve informes: Cronológico e Histórico de Finca y de Suerte, Cronológico múltiple, Histórico multifinca ejecutivo y completo, y Cronológico e Histórico de Zona.
+  - Mapa vectorial del ámbito del informe, con tarjetas de fincas y bloques «Histórico completo / Zafras seleccionadas».
+  - Líneas TCH y KATM histórico con los valores del motor oficial.
+- Previews HTTPS automatizadas (PR #74): workflow «CASUR Preview Deploy» en Cloudflare Pages, sin publicar producción.
+
+### Contenido de 1.6.2 previo a la integración (UX13 y Plan Z26/27)
 - PATCH de presentación del Maestro de Suertes: Cronológico General y de finca comparten un único renderer con pestañas Distribución, Estimados Z26/27 y Suertes, selector «Agrupar por» y tablas compactas con TOTAL.
 - N.º de cortes en orden agronómico fijo (Plantilla → 2.º corte → 3–4 → 5–6 → 7+). Semilla muestra su área y suertes reales; su estimado de molienda se presenta como «No aplica» (no N/D). Molienda sin estimado se distingue.
 - «Composición de la finca» concisa en lugar de «Detalle complementario»/«Composición y metodología»; acciones Mapa/Histórico compactas y un único «Exportar» (PDF/PNG existentes). Buscador `#cronoQ` arriba en todas las vistas; el SELECT de finca se conserva como control interno.
@@ -12,7 +24,7 @@ Formato: [versión] — fecha · resumen.
 - UX13 Etapa B (Issue #63, PR apilado): Histórico de finca/suerte con período compacto, KPI TCH/KATM/Área/Edad primero, «Comparar TCH» plegable, hero con un único Exportar y Mapa; ficha de suerte con detalle de zafra (Área, TCH, KATM, t, edad) por toque/teclado, sin «Ampliar» ni textos de auditoría. Cifras y PNG idénticos a la Etapa A. QA: `tools/qa-maestro-ux13-b.cjs`.
 - Sin cambios en motores, fórmulas, datos oficiales, GIS, generadores PDF/PNG ni Service Worker (solo APP_VERSION/RELEASE_ID derivados). QA: `tools/qa-maestro-ux13-a.cjs`.
 
-## [1.6.1] — pendiente de publicación · hotfix recuperación PWA (Issue #59)
+## [1.6.1] — publicada (`main` `71d5e0b`, PR #60) · hotfix recuperación PWA (Issue #59)
 - PATCH del shell: la instalación de una versión nueva ya no se bloquea si falta la instantánea de la anterior; se rechazan downgrades y se conserva todo dato y caché.
 - Si falta el manifiesto local de la release instalada se recupera solo desde la misma release verificada (SHA-256) o se muestra una pantalla de reparación con Reparar, Reintentar y Re-registrar, en lugar de un 503 plano.
 - Sin borrado de cachés, localStorage ni IndexedDB; sin `skipWaiting` adicional. Módulos, datos, GIS e iconos sin cambios. Detalle: `docs/PWA_RECOVERY_161.md`.

@@ -1,0 +1,438 @@
+{
+  "base": "https://7fc70fb8.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/",
+  "expected": "c90e58f3da18da17c28b34ceacd5ba656dfd1498",
+  "timeout": 300000,
+  "records": [
+    {
+      "width": 390,
+      "startMs": 135,
+      "consoleErrors": [],
+      "offlineConsoleErrors": [],
+      "failedRequests": [],
+      "redirects": [],
+      "milestones": [
+        {
+          "name": "cold-start",
+          "ms": 5719,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_07b1f025-b4af-4cae-8636-2656df428ce3": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 2,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_a61545f4-eab5-48be-8907-09d583cad3b6": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_a9d64f03-2a77-4ff4-bf5f-3419785c4315": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_f40a200b-a0ed-4b98-9833-e298f00948b4": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": "modules/produccion/index.html",
+          "frameUrl": "https://7fc70fb8.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/modules/produccion/index.html"
+        },
+        {
+          "name": "zone-navigation",
+          "ms": 6002
+        },
+        {
+          "name": "return-home",
+          "ms": 6052
+        },
+        {
+          "name": "second-visit",
+          "ms": 11108,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_07b1f025-b4af-4cae-8636-2656df428ce3": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 3,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_a61545f4-eab5-48be-8907-09d583cad3b6": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_a9d64f03-2a77-4ff4-bf5f-3419785c4315": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_f40a200b-a0ed-4b98-9833-e298f00948b4": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": "modules/produccion/index.html",
+          "frameUrl": "https://7fc70fb8.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/modules/produccion/index.html"
+        },
+        {
+          "name": "reload-online",
+          "ms": 16222,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_07b1f025-b4af-4cae-8636-2656df428ce3": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 5,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_a61545f4-eab5-48be-8907-09d583cad3b6": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_a9d64f03-2a77-4ff4-bf5f-3419785c4315": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_f40a200b-a0ed-4b98-9833-e298f00948b4": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": "modules/produccion/index.html",
+          "frameUrl": "https://7fc70fb8.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/modules/produccion/index.html"
+        },
+        {
+          "name": "reload-offline",
+          "ms": 21476,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_07b1f025-b4af-4cae-8636-2656df428ce3": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 7,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_a61545f4-eab5-48be-8907-09d583cad3b6": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_a9d64f03-2a77-4ff4-bf5f-3419785c4315": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_f40a200b-a0ed-4b98-9833-e298f00948b4": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": "modules/produccion/index.html",
+          "frameUrl": "https://7fc70fb8.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/modules/produccion/index.html"
+        }
+      ],
+      "samples": [
+        {
+          "ms": 706,
+          "controller": false,
+          "installing": "installing",
+          "waiting": null,
+          "active": null,
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 1,
+            "casur_master_release_manifests": 1,
+            "casur_master_bundle_meta": 0,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_07b1f025-b4af-4cae-8636-2656df428ce3": 2
+          },
+          "frameSrc": null,
+          "frameUrl": "about:blank"
+        },
+        {
+          "ms": 6093,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_07b1f025-b4af-4cae-8636-2656df428ce3": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 2,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_a61545f4-eab5-48be-8907-09d583cad3b6": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_a9d64f03-2a77-4ff4-bf5f-3419785c4315": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_f40a200b-a0ed-4b98-9833-e298f00948b4": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": null,
+          "frameUrl": "about:blank"
+        },
+        {
+          "ms": 11209,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_07b1f025-b4af-4cae-8636-2656df428ce3": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_a61545f4-eab5-48be-8907-09d583cad3b6": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_a9d64f03-2a77-4ff4-bf5f-3419785c4315": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_f40a200b-a0ed-4b98-9833-e298f00948b4": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": null,
+          "frameUrl": "about:blank"
+        },
+        {
+          "ms": 16464,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_07b1f025-b4af-4cae-8636-2656df428ce3": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 6,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_a61545f4-eab5-48be-8907-09d583cad3b6": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_a9d64f03-2a77-4ff4-bf5f-3419785c4315": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_f40a200b-a0ed-4b98-9833-e298f00948b4": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": null,
+          "frameUrl": "about:blank"
+        }
+      ],
+      "status": "PASS",
+      "initial": {
+        "registrations": 0,
+        "cacheKeys": [],
+        "controlled": false
+      },
+      "sha": "c90e58f3da18da17c28b34ceacd5ba656dfd1498",
+      "directIndexResponse": {
+        "status": 308,
+        "location": "/Negocios_de_Cana_CASUR_APP/modules/produccion/"
+      },
+      "cacheValidation": {
+        "ready": true,
+        "indexCached": true,
+        "indexRedirected": false
+      },
+      "returnControl": "mBack"
+    },
+    {
+      "width": 1536,
+      "startMs": 21657,
+      "consoleErrors": [],
+      "offlineConsoleErrors": [],
+      "failedRequests": [],
+      "redirects": [],
+      "milestones": [
+        {
+          "name": "cold-start",
+          "ms": 5772,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_f14d8cbd-310b-4cec-a4d8-336e9f575bb8": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 2,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_9bb90624-889b-4d94-a127-a5ca2a5c5c00": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_05357817-e3e3-4dd1-84b9-655c65474b3b": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_b268e446-69cb-41e3-9377-d4f9034c91a8": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": "modules/produccion/index.html",
+          "frameUrl": "https://7fc70fb8.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/modules/produccion/index.html"
+        },
+        {
+          "name": "zone-navigation",
+          "ms": 6105
+        },
+        {
+          "name": "return-home",
+          "ms": 6178
+        },
+        {
+          "name": "second-visit",
+          "ms": 11251,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_f14d8cbd-310b-4cec-a4d8-336e9f575bb8": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 3,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_9bb90624-889b-4d94-a127-a5ca2a5c5c00": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_05357817-e3e3-4dd1-84b9-655c65474b3b": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_b268e446-69cb-41e3-9377-d4f9034c91a8": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": "modules/produccion/index.html",
+          "frameUrl": "https://7fc70fb8.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/modules/produccion/index.html"
+        },
+        {
+          "name": "reload-online",
+          "ms": 16379,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_f14d8cbd-310b-4cec-a4d8-336e9f575bb8": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 5,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_9bb90624-889b-4d94-a127-a5ca2a5c5c00": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_05357817-e3e3-4dd1-84b9-655c65474b3b": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_b268e446-69cb-41e3-9377-d4f9034c91a8": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": "modules/produccion/index.html",
+          "frameUrl": "https://7fc70fb8.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/modules/produccion/index.html"
+        },
+        {
+          "name": "reload-offline",
+          "ms": 21637,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_f14d8cbd-310b-4cec-a4d8-336e9f575bb8": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 7,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_9bb90624-889b-4d94-a127-a5ca2a5c5c00": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_05357817-e3e3-4dd1-84b9-655c65474b3b": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_b268e446-69cb-41e3-9377-d4f9034c91a8": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": "modules/produccion/index.html",
+          "frameUrl": "https://7fc70fb8.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/modules/produccion/index.html"
+        }
+      ],
+      "samples": [
+        {
+          "ms": 757,
+          "controller": false,
+          "installing": "installing",
+          "waiting": null,
+          "active": null,
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 0
+          },
+          "frameSrc": null,
+          "frameUrl": "about:blank"
+        },
+        {
+          "ms": 6237,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_f14d8cbd-310b-4cec-a4d8-336e9f575bb8": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 2,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_9bb90624-889b-4d94-a127-a5ca2a5c5c00": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_05357817-e3e3-4dd1-84b9-655c65474b3b": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_b268e446-69cb-41e3-9377-d4f9034c91a8": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": null,
+          "frameUrl": "about:blank"
+        },
+        {
+          "ms": 11362,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_f14d8cbd-310b-4cec-a4d8-336e9f575bb8": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_9bb90624-889b-4d94-a127-a5ca2a5c5c00": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_05357817-e3e3-4dd1-84b9-655c65474b3b": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_b268e446-69cb-41e3-9377-d4f9034c91a8": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": null,
+          "frameUrl": "about:blank"
+        },
+        {
+          "ms": 16622,
+          "controller": true,
+          "installing": null,
+          "waiting": null,
+          "active": "activated",
+          "cacheCounts": {
+            "casur_master_shell_v1.6.2": 2,
+            "casur_master_release_manifests": 2,
+            "casur_master_bundle_meta": 4,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_core_f14d8cbd-310b-4cec-a4d8-336e9f575bb8": 52,
+            "casur_master_data_v1.6.2": 0,
+            "casur_master_client_releases": 6,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_geo_9bb90624-889b-4d94-a127-a5ca2a5c5c00": 10,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_agricultural_05357817-e3e3-4dd1-84b9-655c65474b3b": 1,
+            "casur_master_bundle_stage_1.6.2-1256f522516b8da8_produccion_b268e446-69cb-41e3-9377-d4f9034c91a8": 26,
+            "casur_master_geo_2026-07-24-maestro-26-27-r2": 5,
+            "casur_master_prod_lkg": 8,
+            "casur_master_geo_meta": 1
+          },
+          "frameSrc": null,
+          "frameUrl": "about:blank"
+        }
+      ],
+      "status": "PASS",
+      "initial": {
+        "registrations": 0,
+        "cacheKeys": [],
+        "controlled": false
+      },
+      "sha": "c90e58f3da18da17c28b34ceacd5ba656dfd1498",
+      "directIndexResponse": {
+        "status": 308,
+        "location": "/Negocios_de_Cana_CASUR_APP/modules/produccion/"
+      },
+      "cacheValidation": {
+        "ready": true,
+        "indexCached": true,
+        "indexRedirected": false
+      },
+      "returnControl": "mCrumb"
+    }
+  ]
+}

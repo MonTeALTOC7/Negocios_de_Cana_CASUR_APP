@@ -8,9 +8,10 @@ Se publica en **GitHub Pages** (sin servidor Node) con `index.html` en la raíz,
 **instalable** en Android, Windows y navegadores compatibles, y funciona **offline** en la
 medida en que cada módulo lo soporte.
 
-> Estado actual: **v1.2.0 — App Maestra con referencia geográfica agrícola automática**. Incluye
-> navegación segura, acceso contextual TCH → Maestro y mapas de finca/suerte publicados desde el
-> Shape oficial, disponibles offline después de la primera actualización. Ver `docs/ARCHITECTURE.md`.
+> Versión publicada: **App Maestra 1.6.2 · Producción (Maestro de Suertes) V1.8.3 · datos
+> `2026.11.22-aforo.1102`** (aforo oficial 12-Oct-2026, consolidado 22-Nov-2026), publicada el 28-Nov-2026 en
+> https://montealtoc7.github.io/Negocios_de_Cana_CASUR_APP/ desde `main` `fbdb2b7`. Cambios: `docs/CHANGELOG.md`;
+> cierre de la fase: `docs/CIERRE_MAESTRO_SUERTES.md`. Arquitectura: `docs/ARCHITECTURE.md`.
 
 ---
 

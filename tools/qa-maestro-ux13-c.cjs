@@ -17,7 +17,11 @@ async function open(browser, url, width) {
   return {ctx, page};
 }
 const hist = (page, code, mode = 'latest') => page.evaluate(([c, m]) => { CASUR_MAESTRO_UX.activate('historico'); renderEntity(c); setHistoricalPeriodMode(m); }, [code, mode]).then(() => page.waitForSelector('#printPanel .historical-agronomic-kpis'));
-const zone = (page, z) => page.evaluate(z => { CASUR_MAESTRO_UX.activate('zonas'); document.querySelector('#cronoZoneSelect').value = z; selectCronoZone(z); }, z).then(() => page.waitForSelector('#cronoZoneContent .kpis'));
+// UX14-B: the UX13 zone KPI row was superseded by the UX14 zone panel (same facts, Riego/Secano composition and
+// strip). The Z9 checks below keep their intent and now assert it on that panel (.ux14-zone, Cronológico tab).
+const UX14C = '.ux14-zone:not(.ux14-hist-zone)';
+const zone = (page, z) => page.evaluate(z => { CASUR_MAESTRO_UX.activate('zonas'); document.querySelector('#zoneMainSection .ux09-section-tabs button[data-target="cronoZoneSection"]')?.click(); document.querySelector('#cronoZoneSelect').value = z; selectCronoZone(z); }, z)
+  .then(() => page.waitForFunction(z => document.querySelector('.ux14-zone:not(.ux14-hist-zone)')?.dataset.zone === z, z)).then(() => page.waitForSelector(UX14C + ' .ux14-kpi'));
 const farm = async (page, code, objective, dim) => {
   await page.evaluate(c => { CASUR_MAESTRO_UX.activate('cronologico'); renderCronoProducer(c); }, code);
   const ex = `#cronoContent .context-explorer[data-context="farm-${code}"]`; await page.waitForSelector(ex);
@@ -162,35 +166,39 @@ const farm = async (page, code, objective, dim) => {
       // ---------- Zona ----------
       await check(W + ' Z9 Zona general: 4 KPI rectores primero, sin Suertes/Haciendas ni subtítulos ornamentales', async () => {
         await zone(page, '');
-        const vis = await page.evaluate(() => [...document.querySelectorAll('#cronoZoneContent .kpis .kpi')].filter(n => n.getClientRects().length).map(n => ({l: n.querySelector('.label').textContent.trim(), em: [...n.querySelectorAll('em')].filter(e => e.getClientRects().length).map(e => e.textContent.trim())})));
-        assert.deepEqual(vis.slice(0, 4).map(x => x.l), ['Área activa', 'TCH anterior', 'TCH estimado 26/27', 'Ton. estimadas 26/27']);
+        const vis = await page.$$eval(UX14C + ' .ux14-kpi', ks => ks.filter(n => n.getClientRects().length).map(n => ({l: n.querySelector('.ux14-kpi-label').firstChild.textContent.trim(), em: n.querySelector('em').textContent.trim()})));
+        assert.deepEqual(vis.map(x => x.l), ['Área activa', 'TCH Z25/26', 'TCH estimado Z26/27', 'Ton. estimadas Z26/27']);
         assert.ok(!vis.some(x => /^(Suertes activas|Haciendas)$/.test(x.l)));
-        const ems = vis.flatMap(x => x.em).join(' | ');
+        const ems = vis.map(x => x.em).join(' | ');
         for (const gone of ['Referencia · área activa', 'Área estimada × TCH', 'molienda · 100.00% área']) assert.ok(!ems.includes(gone), gone);
+        assert.equal(await page.locator('#cronoZoneContent .ux13-zone-kpis').isVisible(), false, 'fila anterior reemplazada por UX14');
         assert.equal(await page.locator('#zoneMainSection .ux09-tabs-hint').isVisible(), false);
       });
-      await check(W + ' Z9 Zona 5-Productores: cifras = motor y General; Riego y Secano separados y completos', async () => {
+      await check(W + ' Z9 Zona 5-Productores: cifras = motor y General; tipos de riego originales separados y completos', async () => {
         await zone(page, '5-Productores');
-        const k = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#cronoZoneContent .kpis .kpi')].filter(n => n.getClientRects().length).map(n => [n.querySelector('.label').textContent.trim(), n.querySelector('strong').textContent.trim()])));
+        const k = await page.$$eval(UX14C + ' .ux14-kpi', ks => Object.fromEntries(ks.map(n => [n.querySelector('.ux14-kpi-label').firstChild.textContent.trim(), n.querySelector('strong').firstChild.textContent.trim()])));
         const truth = await page.evaluate(() => { const E = CASUR_CRONO_PARTICIPATION, all = CRONO_DATA.producers.flatMap(p => p.details), rows = all.filter(r => String(r.zona || '') === '5-Productores'), s = E.summary(rows); return {area: E.agronomicGroups(all, 'zona').find(g => g.key === '5-Productores').area, tch: s.estimateTch, tons: s.estimateTons}; });
         assert.ok(Math.abs(num(k['Área activa']) - truth.area) < 0.02, 'área activa ' + k['Área activa'] + ' vs ' + truth.area);
-        assert.equal(num(k['TCH estimado 26/27']), truth.tch); assert.ok(Math.abs(num(k['Ton. estimadas 26/27']) - truth.tons) < 0.02);
-        assert.ok('Área con riego' in k && 'Secano' in k, 'riego y secano visibles por separado');
-        assert.ok(Math.abs(num(k['Área con riego']) + num(k['Secano']) - num(k['Área activa'])) < 0.05, 'riego + secano = área activa');
+        assert.equal(num(k['TCH estimado Z26/27']), truth.tch); assert.ok(Math.abs(num(k['Ton. estimadas Z26/27']) - truth.tons) < 1);
+        // UX15-R2: composition by the original Tipo de riego (no artificial Riego/Secano grouping).
+        const parts = await page.$$eval(UX14C + ' .ux14-composition:first-of-type li', ls => ls.map(l => [l.dataset.riego, Number(l.querySelector('b').textContent.replace(/,/g, ''))]));
+        assert.ok(parts.length >= 2 && parts.every(([t]) => t !== 'Riego'), 'tipos de riego originales visibles por separado');
+        assert.ok(Math.abs(parts.reduce((n, [, v]) => n + v, 0) - num(k['Área activa'])) < 0.05, 'suma de tipos de riego = área activa');
+        assert.doesNotMatch(await page.textContent(UX14C + ' .ux14-composition'), /por confirmar/);
         assert.ok(!('Suertes activas' in k) && !('Haciendas' in k));
       });
       await check(W + ' Z9 Zona: valores de las cajas sin recorte y sin scroll horizontal', async () => {
         for (const z of ['', '5-Productores']) {
           await zone(page, z);
-          const bad = await page.evaluate(() => { const out = []; document.querySelectorAll('#cronoZoneContent .crono-box:not(.crono-zone-wide)').forEach(b => { const br = b.getBoundingClientRect(); b.querySelectorAll('*').forEach(n => { if (!n.children.length && n.textContent.trim()) { const r = n.getBoundingClientRect(); if (r.width && r.right > br.right + 1) out.push(n.textContent.trim()); } }); }); return out; });
+          const bad = await page.evaluate(() => { const out = []; document.querySelectorAll('#cronoZoneContent .crono-box:not(.crono-zone-wide), .ux14-zone:not(.ux14-hist-zone) .ux14-kpi').forEach(b => { if (!b.getClientRects().length) return; const br = b.getBoundingClientRect(); b.querySelectorAll('*').forEach(n => { if (!n.children.length && n.textContent.trim() && n.getClientRects().length && !n.closest('[popover]')) { const r = n.getBoundingClientRect(); if (r.width && r.right > br.right + 1) out.push(n.textContent.trim()); } }); }); return out; });
           assert.deepEqual(bad, [], z || 'general'); await noHScroll('zona ' + (z || 'general'));
         }
       });
       await check(W + ' Z9 Zona abierta se repinta al cambiar la generación efectiva', async () => {
         await zone(page, '5-Productores');
-        const real = await page.locator('#cronoZoneContent .kpis .kpi strong').first().innerText();
-        await page.evaluate(() => { document.querySelector('#cronoZoneContent .kpis .kpi strong').textContent = 'OBSOLETO'; document.dispatchEvent(new CustomEvent('casur-crono-effective-change')); });
-        await page.waitForFunction(r => document.querySelector('#cronoZoneContent .kpis .kpi strong')?.textContent === r, real, {timeout: 5000});
+        const sel = UX14C + ' .ux14-kpi strong', real = await page.locator(sel).first().innerText();
+        await page.evaluate(sel => { document.querySelector(sel).textContent = 'OBSOLETO'; document.dispatchEvent(new CustomEvent('casur-crono-effective-change')); }, sel);
+        await page.waitForFunction(([sel, r]) => document.querySelector(sel)?.innerText === r, [sel, real], {timeout: 5000});
         assert.equal(await page.locator('#cronoZoneSelect').inputValue(), '5-Productores');
       });
       await check(W + ' Sin errores de página', async () => assert.deepEqual(page.errors, []));

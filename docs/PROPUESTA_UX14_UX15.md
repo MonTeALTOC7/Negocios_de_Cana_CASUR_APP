@@ -122,7 +122,7 @@
    - **Vista general** (todas las zonas) y **ficha de zona**, diferenciadas.
 2. **Filtros:**
    - Selector global **Total / Riego / Secano** y selector de zona.
-   - Chips consultables «Ventana · por confirmar» y «Sin dato». Se activan solo cuando hay registros; «Sin dato» con 0 ha queda deshabilitado.
+   - Chips consultables «Ventana» y «Sin dato» (en UX15-R pasan a ser botones del mismo selector). Se activan solo cuando hay registros; «Sin dato» con 0 ha queda deshabilitado.
 3. **Cuatro KPI principales:**
    - Área activa.
    - **TCH Z25/26** (ejecutado, del Histórico).

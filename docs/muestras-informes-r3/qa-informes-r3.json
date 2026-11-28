@@ -1,0 +1,2738 @@
+{
+ "results": [
+  [
+   "PASS",
+   "[pc] crono-multiple: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Cronologico_Multifinca_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[pc] crono-multiple-parcial: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Cronologico_Multifinca_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[pc] hist-multi-ejecutivo: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Ejecutivo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[pc] hist-multi-completo: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Completo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[pc] hist-multi-parcial: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Completo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[pc] hist-multi-5zafras: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Ejecutivo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[pc] hist-multi-2zafras: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Ejecutivo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[pc] hist-finca-5zafras: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Pansaco_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[pc] hist-suerte-2zafras: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Pansaco_Suerte_01_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[pc] zona-crono-centro: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Cronologico_Zona_Centro_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[pc] zona-crono-todas: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Cronologico_Zona_Todas_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[pc] zona-hist-centro: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Zona_Centro_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[pc] Cronológico múltiple: selección exacta por finca y suerte, KPI = motores (TCH anterior del Histórico), sin duplicados; selección parcial"
+  ],
+  [
+   "PASS",
+   "[pc] Histórico multifinca: KPI del período, TCH y KATM por zafra, TCH histórico, resumen por finca = motor; completo con todas las suertes seleccionadas; selección parcial"
+  ],
+  [
+   "PASS",
+   "[pc] Histórico de Finca (5 zafras) y de Suerte (2 zafras): bloques histórico completo / zafras seleccionadas con el motor oficial, bandas en los gráficos, mapa"
+  ],
+  [
+   "PASS",
+   "[pc] Zona: KPI = pantalla, composición = área activa, comparación por tipo de riego, detalle de todas las fincas; «Todas las zonas»; Histórico con serie oficial y TCH histórico"
+  ],
+  [
+   "PASS",
+   "[pc] Sin errores de página ni diálogos"
+  ],
+  [
+   "PASS",
+   "[android] crono-multiple: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Cronologico_Multifinca_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] crono-multiple-parcial: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Cronologico_Multifinca_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] hist-multi-ejecutivo: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Ejecutivo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] hist-multi-completo: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Completo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] hist-multi-parcial: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Completo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] hist-multi-5zafras: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Ejecutivo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] hist-multi-2zafras: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Multifinca_Ejecutivo_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] hist-finca-5zafras: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Pansaco_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] hist-suerte-2zafras: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Pansaco_Suerte_01_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] zona-crono-centro: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Cronologico_Zona_Centro_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] zona-crono-todas: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Cronologico_Zona_Todas_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] zona-hist-centro: PDF vectorial (texto, fuentes, márgenes, páginas verticales), PNG Android, nombre Historico_Zona_Centro_DD-MMM-AAAA, norma editorial"
+  ],
+  [
+   "PASS",
+   "[android] Cronológico múltiple: selección exacta por finca y suerte, KPI = motores (TCH anterior del Histórico), sin duplicados; selección parcial"
+  ],
+  [
+   "PASS",
+   "[android] Histórico multifinca: KPI del período, TCH y KATM por zafra, TCH histórico, resumen por finca = motor; completo con todas las suertes seleccionadas; selección parcial"
+  ],
+  [
+   "PASS",
+   "[android] Histórico de Finca (5 zafras) y de Suerte (2 zafras): bloques histórico completo / zafras seleccionadas con el motor oficial, bandas en los gráficos, mapa"
+  ],
+  [
+   "PASS",
+   "[android] Zona: KPI = pantalla, composición = área activa, comparación por tipo de riego, detalle de todas las fincas; «Todas las zonas»; Histórico con serie oficial y TCH histórico"
+  ],
+  [
+   "PASS",
+   "[android] Sin errores de página ni diálogos"
+  ],
+  [
+   "PASS",
+   "[pc] Exportación R3 sin conexión (PWA, recursos precargados)"
+  ]
+ ],
+ "last": {
+  "pc": {
+   "crono-multiple": {
+    "pdf": {
+     "template": "cronologico-multiple",
+     "type": "pdf",
+     "name": "Cronologico_Multifinca_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "suertes": 3,
+      "placed": 3,
+      "farms": 3,
+      "keys": 3,
+      "map": [
+       {
+        "shapes": 1049,
+        "labels": 3,
+        "shown": 3,
+        "overlaps": 0,
+        "texts": [
+         "36",
+         "27",
+         "03"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Cronologico_Multifinca_28-Nov-2026.pdf",
+     "Cronologico_Multifinca_28-Nov-2026.png"
+    ]
+   },
+   "crono-multiple-parcial": {
+    "pdf": {
+     "template": "cronologico-multiple",
+     "type": "pdf",
+     "name": "Cronologico_Multifinca_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "suertes": 3,
+      "placed": 3,
+      "farms": 1,
+      "keys": 3,
+      "map": [
+       {
+        "shapes": 716,
+        "labels": 3,
+        "shown": 3,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02A",
+         "41"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Cronologico_Multifinca_28-Nov-2026.pdf",
+     "Cronologico_Multifinca_28-Nov-2026.png"
+    ]
+   },
+   "hist-multi-ejecutivo": {
+    "pdf": {
+     "template": "historico-multiple-ejecutivo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Ejecutivo_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 1461,
+      "lotsShown": 0,
+      "zafras": 10,
+      "period": 1,
+      "variant": "executive",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02",
+         "03",
+         "05",
+         "06",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "13",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "22",
+         "23",
+         "24",
+         "25",
+         "26",
+         "27",
+         "28",
+         "29",
+         "29A",
+         "30",
+         "31",
+         "32",
+         "33",
+         "34",
+         "35",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "46",
+         "47",
+         "48",
+         "49",
+         "51",
+         "52",
+         "53",
+         "54",
+         "55",
+         "56",
+         "57",
+         "58",
+         "59",
+         "60",
+         "61",
+         "62",
+         "63",
+         "64",
+         "65",
+         "66",
+         "67",
+         "68",
+         "69",
+         "70",
+         "71",
+         "72",
+         "73",
+         "74",
+         "75",
+         "76",
+         "77",
+         "78",
+         "79",
+         "80",
+         "81",
+         "82",
+         "83",
+         "84",
+         "85",
+         "86",
+         "87",
+         "88",
+         "89",
+         "90",
+         "91",
+         "91A",
+         "92",
+         "93",
+         "01",
+         "02",
+         "04",
+         "05",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "23",
+         "24",
+         "26",
+         "27",
+         "28",
+         "29",
+         "30",
+         "31",
+         "32",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "48",
+         "49",
+         "50",
+         "51",
+         "52"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Multifinca_Ejecutivo_28-Nov-2026.pdf",
+     "Historico_Multifinca_Ejecutivo_28-Nov-2026.png"
+    ]
+   },
+   "hist-multi-completo": {
+    "pdf": {
+     "template": "historico-multiple-completo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Completo_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 1461,
+      "lotsShown": 168,
+      "zafras": 10,
+      "period": 1,
+      "variant": "complete",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02",
+         "03",
+         "05",
+         "06",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "13",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "22",
+         "23",
+         "24",
+         "25",
+         "26",
+         "27",
+         "28",
+         "29",
+         "29A",
+         "30",
+         "31",
+         "32",
+         "33",
+         "34",
+         "35",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "46",
+         "47",
+         "48",
+         "49",
+         "51",
+         "52",
+         "53",
+         "54",
+         "55",
+         "56",
+         "57",
+         "58",
+         "59",
+         "60",
+         "61",
+         "62",
+         "63",
+         "64",
+         "65",
+         "66",
+         "67",
+         "68",
+         "69",
+         "70",
+         "71",
+         "72",
+         "73",
+         "74",
+         "75",
+         "76",
+         "77",
+         "78",
+         "79",
+         "80",
+         "81",
+         "82",
+         "83",
+         "84",
+         "85",
+         "86",
+         "87",
+         "88",
+         "89",
+         "90",
+         "91",
+         "91A",
+         "92",
+         "93",
+         "01",
+         "02",
+         "04",
+         "05",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "23",
+         "24",
+         "26",
+         "27",
+         "28",
+         "29",
+         "30",
+         "31",
+         "32",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "48",
+         "49",
+         "50",
+         "51",
+         "52"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 7,
+      "orientations": [
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "names": [
+     "Historico_Multifinca_Completo_28-Nov-2026.pdf",
+     null
+    ]
+   },
+   "hist-multi-parcial": {
+    "pdf": {
+     "template": "historico-multiple-completo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Completo_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 997,
+      "lotsShown": 110,
+      "zafras": 10,
+      "period": 1,
+      "variant": "complete",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 101,
+        "shown": 95,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02",
+         "03",
+         "05",
+         "06",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "13",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "22",
+         "23",
+         "24",
+         "25",
+         "26",
+         "27",
+         "28",
+         "29",
+         "29A",
+         "30",
+         "31",
+         "32",
+         "33",
+         "34",
+         "35",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "46",
+         "47",
+         "48",
+         "49",
+         "51",
+         "52",
+         "53",
+         "54",
+         "55",
+         "56",
+         "57",
+         "58",
+         "59",
+         "60",
+         "61",
+         "62",
+         "63",
+         "64",
+         "65",
+         "66",
+         "67",
+         "68",
+         "69",
+         "70",
+         "71",
+         "72",
+         "73",
+         "74",
+         "75",
+         "76",
+         "77",
+         "78",
+         "79",
+         "80",
+         "81",
+         "82",
+         "83",
+         "84",
+         "85",
+         "86",
+         "87",
+         "88",
+         "89",
+         "90",
+         "91",
+         "91A",
+         "92",
+         "93",
+         "01",
+         "02",
+         "09"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 6,
+      "orientations": [
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "names": [
+     "Historico_Multifinca_Completo_28-Nov-2026.pdf",
+     null
+    ]
+   },
+   "hist-multi-5zafras": {
+    "pdf": {
+     "template": "historico-multiple-ejecutivo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Ejecutivo_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 1461,
+      "lotsShown": 0,
+      "zafras": 10,
+      "period": 5,
+      "variant": "executive",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02",
+         "03",
+         "05",
+         "06",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "13",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "22",
+         "23",
+         "24",
+         "25",
+         "26",
+         "27",
+         "28",
+         "29",
+         "29A",
+         "30",
+         "31",
+         "32",
+         "33",
+         "34",
+         "35",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "46",
+         "47",
+         "48",
+         "49",
+         "51",
+         "52",
+         "53",
+         "54",
+         "55",
+         "56",
+         "57",
+         "58",
+         "59",
+         "60",
+         "61",
+         "62",
+         "63",
+         "64",
+         "65",
+         "66",
+         "67",
+         "68",
+         "69",
+         "70",
+         "71",
+         "72",
+         "73",
+         "74",
+         "75",
+         "76",
+         "77",
+         "78",
+         "79",
+         "80",
+         "81",
+         "82",
+         "83",
+         "84",
+         "85",
+         "86",
+         "87",
+         "88",
+         "89",
+         "90",
+         "91",
+         "91A",
+         "92",
+         "93",
+         "01",
+         "02",
+         "04",
+         "05",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "23",
+         "24",
+         "26",
+         "27",
+         "28",
+         "29",
+         "30",
+         "31",
+         "32",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "48",
+         "49",
+         "50",
+         "51",
+         "52"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Multifinca_Ejecutivo_28-Nov-2026.pdf",
+     "Historico_Multifinca_Ejecutivo_28-Nov-2026.png"
+    ]
+   },
+   "hist-multi-2zafras": {
+    "pdf": {
+     "template": "historico-multiple-ejecutivo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Ejecutivo_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 1461,
+      "lotsShown": 0,
+      "zafras": 10,
+      "period": 2,
+      "variant": "executive",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02",
+         "03",
+         "05",
+         "06",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "13",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "22",
+         "23",
+         "24",
+         "25",
+         "26",
+         "27",
+         "28",
+         "29",
+         "29A",
+         "30",
+         "31",
+         "32",
+         "33",
+         "34",
+         "35",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "46",
+         "47",
+         "48",
+         "49",
+         "51",
+         "52",
+         "53",
+         "54",
+         "55",
+         "56",
+         "57",
+         "58",
+         "59",
+         "60",
+         "61",
+         "62",
+         "63",
+         "64",
+         "65",
+         "66",
+         "67",
+         "68",
+         "69",
+         "70",
+         "71",
+         "72",
+         "73",
+         "74",
+         "75",
+         "76",
+         "77",
+         "78",
+         "79",
+         "80",
+         "81",
+         "82",
+         "83",
+         "84",
+         "85",
+         "86",
+         "87",
+         "88",
+         "89",
+         "90",
+         "91",
+         "91A",
+         "92",
+         "93",
+         "01",
+         "02",
+         "04",
+         "05",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "23",
+         "24",
+         "26",
+         "27",
+         "28",
+         "29",
+         "30",
+         "31",
+         "32",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "48",
+         "49",
+         "50",
+         "51",
+         "52"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Multifinca_Ejecutivo_28-Nov-2026.pdf",
+     "Historico_Multifinca_Ejecutivo_28-Nov-2026.png"
+    ]
+   },
+   "hist-finca-5zafras": {
+    "pdf": {
+     "template": "historico-finca",
+     "type": "pdf",
+     "name": "Historico_Pansaco_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "zafras": 10,
+      "lots": 61,
+      "latestArea": 428.96000000000004,
+      "period": 5,
+      "ref": {
+       "tch": 73.53,
+       "katm": 105.76
+      },
+      "map": [
+       {
+        "shapes": 716,
+        "labels": 48,
+        "shown": 48,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02",
+         "02A",
+         "04",
+         "05",
+         "06",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "22",
+         "23",
+         "24",
+         "24A",
+         "25",
+         "26",
+         "27",
+         "28",
+         "29",
+         "30",
+         "31",
+         "32",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "44",
+         "45",
+         "48",
+         "48A",
+         "49",
+         "50",
+         "51",
+         "52"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 3,
+      "orientations": [
+       "portrait",
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 6020,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Pansaco_28-Nov-2026.pdf",
+     "Historico_Pansaco_28-Nov-2026.png"
+    ]
+   },
+   "hist-suerte-2zafras": {
+    "pdf": {
+     "template": "historico-suerte",
+     "type": "pdf",
+     "name": "Historico_Pansaco_Suerte_01_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "lot": "99301",
+      "zafras": 10,
+      "period": 2,
+      "ref": {
+       "tch": 89.58,
+       "katm": 100.86
+      },
+      "map": [
+       {
+        "shapes": 716,
+        "labels": 1,
+        "shown": 1,
+        "overlaps": 0,
+        "texts": [
+         "01"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Pansaco_Suerte_01_28-Nov-2026.pdf",
+     "Historico_Pansaco_Suerte_01_28-Nov-2026.png"
+    ]
+   },
+   "zona-crono-centro": {
+    "pdf": {
+     "template": "zona-cronologico",
+     "type": "pdf",
+     "name": "Cronologico_Zona_Centro_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "zone": "2-Centro",
+      "kpis": [
+       [
+        "Área activa",
+        "2,592.45"
+       ],
+       [
+        "TCH Z25/26",
+        "61.13"
+       ],
+       [
+        "TCH estimado Z26/27",
+        "59.30"
+       ],
+       [
+        "Ton. estimadas Z26/27",
+        "147,652"
+       ]
+      ],
+      "rows": 15,
+      "zafras": 0,
+      "comps": [
+       4,
+       4
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Cronologico_Zona_Centro_28-Nov-2026.pdf",
+     "Cronologico_Zona_Centro_28-Nov-2026.png"
+    ]
+   },
+   "zona-crono-todas": {
+    "pdf": {
+     "template": "zona-cronologico",
+     "type": "pdf",
+     "name": "Cronologico_Zona_Todas_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "zone": "",
+      "kpis": [
+       [
+        "Área activa",
+        "9,574.66"
+       ],
+       [
+        "TCH Z25/26",
+        "63.94"
+       ],
+       [
+        "TCH estimado Z26/27",
+        "61.71"
+       ],
+       [
+        "Ton. estimadas Z26/27",
+        "561,658"
+       ]
+      ],
+      "rows": 4,
+      "zafras": 0,
+      "comps": [
+       7,
+       7
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Cronologico_Zona_Todas_28-Nov-2026.pdf",
+     "Cronologico_Zona_Todas_28-Nov-2026.png"
+    ]
+   },
+   "zona-hist-centro": {
+    "pdf": {
+     "template": "zona-historico",
+     "type": "pdf",
+     "name": "Historico_Zona_Centro_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "zone": "2-ZONA CENTRO",
+      "kpis": [
+       [
+        "TCH Z25/26",
+        "62.76"
+       ],
+       [
+        "Área cosechada Z25/26",
+        "2,975.85"
+       ],
+       [
+        "Toneladas Z25/26",
+        "186,776"
+       ],
+       [
+        "KATM Z25/26",
+        "98.65"
+       ]
+      ],
+      "rows": 16,
+      "zafras": 10,
+      "comps": [
+       5,
+       5
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Zona_Centro_28-Nov-2026.pdf",
+     "Historico_Zona_Centro_28-Nov-2026.png"
+    ]
+   }
+  },
+  "android": {
+   "crono-multiple": {
+    "pdf": {
+     "template": "cronologico-multiple",
+     "type": "pdf",
+     "name": "Cronologico_Multifinca_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "suertes": 3,
+      "placed": 3,
+      "farms": 3,
+      "keys": 3,
+      "map": [
+       {
+        "shapes": 1049,
+        "labels": 3,
+        "shown": 3,
+        "overlaps": 0,
+        "texts": [
+         "36",
+         "27",
+         "03"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Cronologico_Multifinca_28-Nov-2026.pdf",
+     "Cronologico_Multifinca_28-Nov-2026.png"
+    ]
+   },
+   "crono-multiple-parcial": {
+    "pdf": {
+     "template": "cronologico-multiple",
+     "type": "pdf",
+     "name": "Cronologico_Multifinca_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "suertes": 3,
+      "placed": 3,
+      "farms": 1,
+      "keys": 3,
+      "map": [
+       {
+        "shapes": 716,
+        "labels": 3,
+        "shown": 3,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02A",
+         "41"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Cronologico_Multifinca_28-Nov-2026.pdf",
+     "Cronologico_Multifinca_28-Nov-2026.png"
+    ]
+   },
+   "hist-multi-ejecutivo": {
+    "pdf": {
+     "template": "historico-multiple-ejecutivo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Ejecutivo_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 1461,
+      "lotsShown": 0,
+      "zafras": 10,
+      "period": 1,
+      "variant": "executive",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02",
+         "03",
+         "05",
+         "06",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "13",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "22",
+         "23",
+         "24",
+         "25",
+         "26",
+         "27",
+         "28",
+         "29",
+         "29A",
+         "30",
+         "31",
+         "32",
+         "33",
+         "34",
+         "35",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "46",
+         "47",
+         "48",
+         "49",
+         "51",
+         "52",
+         "53",
+         "54",
+         "55",
+         "56",
+         "57",
+         "58",
+         "59",
+         "60",
+         "61",
+         "62",
+         "63",
+         "64",
+         "65",
+         "66",
+         "67",
+         "68",
+         "69",
+         "70",
+         "71",
+         "72",
+         "73",
+         "74",
+         "75",
+         "76",
+         "77",
+         "78",
+         "79",
+         "80",
+         "81",
+         "82",
+         "83",
+         "84",
+         "85",
+         "86",
+         "87",
+         "88",
+         "89",
+         "90",
+         "91",
+         "91A",
+         "92",
+         "93",
+         "01",
+         "02",
+         "04",
+         "05",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "23",
+         "24",
+         "26",
+         "27",
+         "28",
+         "29",
+         "30",
+         "31",
+         "32",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "48",
+         "49",
+         "50",
+         "51",
+         "52"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Multifinca_Ejecutivo_28-Nov-2026.pdf",
+     "Historico_Multifinca_Ejecutivo_28-Nov-2026.png"
+    ]
+   },
+   "hist-multi-completo": {
+    "pdf": {
+     "template": "historico-multiple-completo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Completo_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 1461,
+      "lotsShown": 168,
+      "zafras": 10,
+      "period": 1,
+      "variant": "complete",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02",
+         "03",
+         "05",
+         "06",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "13",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "22",
+         "23",
+         "24",
+         "25",
+         "26",
+         "27",
+         "28",
+         "29",
+         "29A",
+         "30",
+         "31",
+         "32",
+         "33",
+         "34",
+         "35",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "46",
+         "47",
+         "48",
+         "49",
+         "51",
+         "52",
+         "53",
+         "54",
+         "55",
+         "56",
+         "57",
+         "58",
+         "59",
+         "60",
+         "61",
+         "62",
+         "63",
+         "64",
+         "65",
+         "66",
+         "67",
+         "68",
+         "69",
+         "70",
+         "71",
+         "72",
+         "73",
+         "74",
+         "75",
+         "76",
+         "77",
+         "78",
+         "79",
+         "80",
+         "81",
+         "82",
+         "83",
+         "84",
+         "85",
+         "86",
+         "87",
+         "88",
+         "89",
+         "90",
+         "91",
+         "91A",
+         "92",
+         "93",
+         "01",
+         "02",
+         "04",
+         "05",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "23",
+         "24",
+         "26",
+         "27",
+         "28",
+         "29",
+         "30",
+         "31",
+         "32",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "48",
+         "49",
+         "50",
+         "51",
+         "52"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 7,
+      "orientations": [
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "names": [
+     "Historico_Multifinca_Completo_28-Nov-2026.pdf",
+     null
+    ]
+   },
+   "hist-multi-parcial": {
+    "pdf": {
+     "template": "historico-multiple-completo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Completo_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 997,
+      "lotsShown": 110,
+      "zafras": 10,
+      "period": 1,
+      "variant": "complete",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 101,
+        "shown": 95,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02",
+         "03",
+         "05",
+         "06",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "13",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "22",
+         "23",
+         "24",
+         "25",
+         "26",
+         "27",
+         "28",
+         "29",
+         "29A",
+         "30",
+         "31",
+         "32",
+         "33",
+         "34",
+         "35",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "46",
+         "47",
+         "48",
+         "49",
+         "51",
+         "52",
+         "53",
+         "54",
+         "55",
+         "56",
+         "57",
+         "58",
+         "59",
+         "60",
+         "61",
+         "62",
+         "63",
+         "64",
+         "65",
+         "66",
+         "67",
+         "68",
+         "69",
+         "70",
+         "71",
+         "72",
+         "73",
+         "74",
+         "75",
+         "76",
+         "77",
+         "78",
+         "79",
+         "80",
+         "81",
+         "82",
+         "83",
+         "84",
+         "85",
+         "86",
+         "87",
+         "88",
+         "89",
+         "90",
+         "91",
+         "91A",
+         "92",
+         "93",
+         "01",
+         "02",
+         "09"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 6,
+      "orientations": [
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "names": [
+     "Historico_Multifinca_Completo_28-Nov-2026.pdf",
+     null
+    ]
+   },
+   "hist-multi-5zafras": {
+    "pdf": {
+     "template": "historico-multiple-ejecutivo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Ejecutivo_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 1461,
+      "lotsShown": 0,
+      "zafras": 10,
+      "period": 5,
+      "variant": "executive",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02",
+         "03",
+         "05",
+         "06",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "13",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "22",
+         "23",
+         "24",
+         "25",
+         "26",
+         "27",
+         "28",
+         "29",
+         "29A",
+         "30",
+         "31",
+         "32",
+         "33",
+         "34",
+         "35",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "46",
+         "47",
+         "48",
+         "49",
+         "51",
+         "52",
+         "53",
+         "54",
+         "55",
+         "56",
+         "57",
+         "58",
+         "59",
+         "60",
+         "61",
+         "62",
+         "63",
+         "64",
+         "65",
+         "66",
+         "67",
+         "68",
+         "69",
+         "70",
+         "71",
+         "72",
+         "73",
+         "74",
+         "75",
+         "76",
+         "77",
+         "78",
+         "79",
+         "80",
+         "81",
+         "82",
+         "83",
+         "84",
+         "85",
+         "86",
+         "87",
+         "88",
+         "89",
+         "90",
+         "91",
+         "91A",
+         "92",
+         "93",
+         "01",
+         "02",
+         "04",
+         "05",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "23",
+         "24",
+         "26",
+         "27",
+         "28",
+         "29",
+         "30",
+         "31",
+         "32",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "48",
+         "49",
+         "50",
+         "51",
+         "52"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Multifinca_Ejecutivo_28-Nov-2026.pdf",
+     "Historico_Multifinca_Ejecutivo_28-Nov-2026.png"
+    ]
+   },
+   "hist-multi-2zafras": {
+    "pdf": {
+     "template": "historico-multiple-ejecutivo",
+     "type": "pdf",
+     "name": "Historico_Multifinca_Ejecutivo_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "farms": 2,
+      "rows": 1461,
+      "lotsShown": 0,
+      "zafras": 10,
+      "period": 2,
+      "variant": "executive",
+      "map": [
+       {
+        "shapes": 2085,
+        "labels": 146,
+        "shown": 133,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02",
+         "03",
+         "05",
+         "06",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "13",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "22",
+         "23",
+         "24",
+         "25",
+         "26",
+         "27",
+         "28",
+         "29",
+         "29A",
+         "30",
+         "31",
+         "32",
+         "33",
+         "34",
+         "35",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "46",
+         "47",
+         "48",
+         "49",
+         "51",
+         "52",
+         "53",
+         "54",
+         "55",
+         "56",
+         "57",
+         "58",
+         "59",
+         "60",
+         "61",
+         "62",
+         "63",
+         "64",
+         "65",
+         "66",
+         "67",
+         "68",
+         "69",
+         "70",
+         "71",
+         "72",
+         "73",
+         "74",
+         "75",
+         "76",
+         "77",
+         "78",
+         "79",
+         "80",
+         "81",
+         "82",
+         "83",
+         "84",
+         "85",
+         "86",
+         "87",
+         "88",
+         "89",
+         "90",
+         "91",
+         "91A",
+         "92",
+         "93",
+         "01",
+         "02",
+         "04",
+         "05",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "23",
+         "24",
+         "26",
+         "27",
+         "28",
+         "29",
+         "30",
+         "31",
+         "32",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "45",
+         "48",
+         "49",
+         "50",
+         "51",
+         "52"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Multifinca_Ejecutivo_28-Nov-2026.pdf",
+     "Historico_Multifinca_Ejecutivo_28-Nov-2026.png"
+    ]
+   },
+   "hist-finca-5zafras": {
+    "pdf": {
+     "template": "historico-finca",
+     "type": "pdf",
+     "name": "Historico_Pansaco_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "zafras": 10,
+      "lots": 61,
+      "latestArea": 428.96000000000004,
+      "period": 5,
+      "ref": {
+       "tch": 73.53,
+       "katm": 105.76
+      },
+      "map": [
+       {
+        "shapes": 716,
+        "labels": 48,
+        "shown": 48,
+        "overlaps": 0,
+        "texts": [
+         "01",
+         "02",
+         "02A",
+         "04",
+         "05",
+         "06",
+         "07",
+         "08",
+         "09",
+         "10",
+         "11",
+         "12",
+         "14",
+         "15",
+         "16",
+         "17",
+         "18",
+         "19",
+         "20",
+         "21",
+         "22",
+         "23",
+         "24",
+         "24A",
+         "25",
+         "26",
+         "27",
+         "28",
+         "29",
+         "30",
+         "31",
+         "32",
+         "36",
+         "37",
+         "38",
+         "39",
+         "40",
+         "41",
+         "42",
+         "43",
+         "44",
+         "45",
+         "48",
+         "48A",
+         "49",
+         "50",
+         "51",
+         "52"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 3,
+      "orientations": [
+       "portrait",
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 6020,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Pansaco_28-Nov-2026.pdf",
+     "Historico_Pansaco_28-Nov-2026.png"
+    ]
+   },
+   "hist-suerte-2zafras": {
+    "pdf": {
+     "template": "historico-suerte",
+     "type": "pdf",
+     "name": "Historico_Pansaco_Suerte_01_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "lot": "99301",
+      "zafras": 10,
+      "period": 2,
+      "ref": {
+       "tch": 89.58,
+       "katm": 100.86
+      },
+      "map": [
+       {
+        "shapes": 716,
+        "labels": 1,
+        "shown": 1,
+        "overlaps": 0,
+        "texts": [
+         "01"
+        ]
+       }
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Pansaco_Suerte_01_28-Nov-2026.pdf",
+     "Historico_Pansaco_Suerte_01_28-Nov-2026.png"
+    ]
+   },
+   "zona-crono-centro": {
+    "pdf": {
+     "template": "zona-cronologico",
+     "type": "pdf",
+     "name": "Cronologico_Zona_Centro_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "zone": "2-Centro",
+      "kpis": [
+       [
+        "Área activa",
+        "2,592.45"
+       ],
+       [
+        "TCH Z25/26",
+        "61.13"
+       ],
+       [
+        "TCH estimado Z26/27",
+        "59.30"
+       ],
+       [
+        "Ton. estimadas Z26/27",
+        "147,652"
+       ]
+      ],
+      "rows": 15,
+      "zafras": 0,
+      "comps": [
+       4,
+       4
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Cronologico_Zona_Centro_28-Nov-2026.pdf",
+     "Cronologico_Zona_Centro_28-Nov-2026.png"
+    ]
+   },
+   "zona-crono-todas": {
+    "pdf": {
+     "template": "zona-cronologico",
+     "type": "pdf",
+     "name": "Cronologico_Zona_Todas_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "zone": "",
+      "kpis": [
+       [
+        "Área activa",
+        "9,574.66"
+       ],
+       [
+        "TCH Z25/26",
+        "63.94"
+       ],
+       [
+        "TCH estimado Z26/27",
+        "61.71"
+       ],
+       [
+        "Ton. estimadas Z26/27",
+        "561,658"
+       ]
+      ],
+      "rows": 4,
+      "zafras": 0,
+      "comps": [
+       7,
+       7
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Cronologico_Zona_Todas_28-Nov-2026.pdf",
+     "Cronologico_Zona_Todas_28-Nov-2026.png"
+    ]
+   },
+   "zona-hist-centro": {
+    "pdf": {
+     "template": "zona-historico",
+     "type": "pdf",
+     "name": "Historico_Zona_Centro_28-Nov-2026.pdf",
+     "pages": [
+      "portrait",
+      "portrait"
+     ],
+     "check": {
+      "zone": "2-ZONA CENTRO",
+      "kpis": [
+       [
+        "TCH Z25/26",
+        "62.76"
+       ],
+       [
+        "Área cosechada Z25/26",
+        "2,975.85"
+       ],
+       [
+        "Toneladas Z25/26",
+        "186,776"
+       ],
+       [
+        "KATM Z25/26",
+        "98.65"
+       ]
+      ],
+      "rows": 16,
+      "zafras": 10,
+      "comps": [
+       5,
+       5
+      ]
+     },
+     "audit": {
+      "outOfBounds": 0,
+      "samples": [],
+      "pages": 2,
+      "orientations": [
+       "portrait",
+       "portrait"
+      ]
+     },
+     "png": null
+    },
+    "png": {
+     "width": 1530,
+     "height": 4000,
+     "scale": 2.5
+    },
+    "names": [
+     "Historico_Zona_Centro_28-Nov-2026.pdf",
+     "Historico_Zona_Centro_28-Nov-2026.png"
+    ]
+   }
+  }
+ }
+}

@@ -136,3 +136,78 @@ La preview pública repite las suites de informes, UX14, UX15 y Estimados. Las c
   5. Pasar el Release Gate, ejecutar el QA y hacer el merge commit.
 - **En un dispositivo:** el Centro Maestro conserva la generación anterior («Recuperar versión anterior»).
 - **Datos:** nunca se publica una generación anterior a la vigente (ver «Plan de reversión» en `docs/PLAN_COSECHA_Z2627.md`).
+
+## 7. Publicación (28-Nov-2026)
+
+Autorizada por el propietario el 28-Nov-2026. Evidencias en `docs/evidencias-publicacion-1-6-2/`.
+
+| Elemento | Antes | Después |
+|---|---|---|
+| `main` | `71d5e0b` | **`fbdb2b7`**: merge del PR #73, publicación funcional única |
+| App Maestra | 1.6.1 (release `1.6.1-4369527e88d00489`) | **1.6.2** (release `1.6.2-1256f522516b8da8`) |
+| Producción | V1.8.2 | **V1.8.3** |
+| Datos | `2026.10.25-aforo.1101` | **`2026.11.22-aforo.1102`** (aforo 12-Oct-2026, consolidado 22-Nov-2026) |
+| URL oficial | https://montealtoc7.github.io/Negocios_de_Cana_CASUR_APP/ | igual |
+
+**Integración:** todo con merge commits, sin squash, rebase ni push directo a `main`.
+1. #77 → rama de #76 (`738246e`).
+2. #76 → rama de #73 (`1c3bdd9`).
+3. **#74 entró en la candidata con merge commit** (`321dae5`), en lugar de ir directo a `main`. GitHub Pages publica cada cambio de `main`, y así se garantizó una sola publicación funcional. GitHub lo marca como integrado.
+4. La candidata ya contenía `main` (`71d5e0b`), así que la sincronización no requirió cambios.
+5. Contenido frente a la candidata aprobada `98374f7`: solo los 9 archivos de #74, la reversión documentada y 3 herramientas de QA. Ningún cambio funcional.
+6. Release Gate de PR en verde sobre `65e903c` y sobre el SHA final `c90e58f` ([run 46096211125](https://github.com/MonTeALTOC7/Negocios_de_Cana_CASUR_APP/actions/runs/46096211125)).
+7. Preview final verificada por SHA: https://7fc70fb8.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/ (`c90e58f`).
+8. Merge #73 → `main` (`fbdb2b7`).
+
+**QA previo a producción:**
+
+| Suite | Local `65e903c` | Preview final `c90e58f` |
+|---|---|---|
+| Exportadores de finca y suerte · R3 (los 9 informes) | 27/27 · 35/35 | 27/27 · 35/35 |
+| UX13 A · B · C | 110 · 90 · 85 | 110 · 90 · 85 |
+| UX14 · UX15 · Estimados | 23 · 15 · 13 | 23 · 15 · 13 |
+| Plan Z26/27 | 55/55 | 55/55 |
+| Pruebas unitarias (incluye las guardas SHA de `index.html` y la prueba de previews) · TCH | 376/376 · 92/92 | — |
+| Auditoría de exportadores (PC y Android) | 24 registros, 0 incidencias | — |
+| Shell e2e: instalación en frío, navegación, regreso y offline | — | PASS a 390 px (`mBack`) y 1536 px (`mCrumb`); 0 errores de consola y 0 peticiones fallidas |
+| Iconos de módulos | — | PASS a 1536 y 390 px |
+| Actualización real 1.6.1 → 1.6.2 (`tools/qa-update-161-162.cjs`) | PASS: aviso, «Más tarde», checkpoint bloqueado, borrador TCH y datos locales conservados, varias pestañas, offline | — |
+| Release Gate · `check-release-policy` · `check-context-hotfix` | verde · 1.6.1 → 1.6.2 y V1.8.2 → V1.8.3 · 7 SHA de la generación 1102 | — |
+
+**Scripts heredados:**
+- `qa-shell-module-icons` ya regresaba por la barra lateral en escritorio: PASS.
+- `qa-startup-timing` y `qa-bundle-public-comparison` usaban `#mBack` a 1536 px. Se corrigieron con el mismo criterio que el shell e2e, sin quitar comprobaciones. Startup timing: arranque en frío de 6.6 a 6.8 s y reapertura de 1.1 s a 1536 px.
+- En `qa-bundle-public-comparison`, la fase «antes» (una build 1.5.x fija) pasa 5/5. La fase «después» exige literalmente `dataVersion === '2026.10.25-aforo.1101'` y un estimado de 99336 propio de esa generación. Es un fixture histórico que no aplica a la generación 1102 autorizada; no indica una regresión. Las capturas muestran la app 1.6.2 operativa.
+
+**QA posterior a la publicación** (URL oficial):
+- **Integridad:**
+  - 185/185 activos del runtime idénticos al manifiesto de `fbdb2b7`, con la misma normalización de texto que `runtime-assets.mjs`.
+  - **7/7 SHA de los datos oficiales** de la generación 1102 idénticos.
+- **Smoke de producción** (`tools/qa-produccion-publicada.cjs`): **18/18** en PC y Android.
+  - App 1.6.2 con su release y Service Worker activo.
+  - Maestro (V1.8.3, generación 1102, exportadores), Estimador TCH, Riegos, Insumos, Inventario y Labores abren desde el shell.
+  - Reapertura sin conexión del shell y de los módulos locales.
+  - 0 errores de página o consola.
+- **Suites contra producción:**
+
+  | Suite | Resultado |
+  |---|---|
+  | Exportadores de finca y suerte · R3, con exportación sin conexión desde la PWA | 27/27 · 35/35 |
+  | UX13 A · B · C | 110 · 90 · 85 |
+  | UX14 · UX15 · Estimados | 23 · 15 · 13 |
+  | Plan Z26/27 | 55/55 |
+
+- **Service Worker y actualización:**
+  - En un perfil nuevo queda activo 1.6.2, sin versión en espera. El aviso «Instalar actualización» existe en el DOM, pero oculto, que es su plantilla.
+  - La actualización desde 1.6.1 está verificada con los mismos archivos que tenía publicados producción (`71d5e0b`).
+
+**Observación sin regresión:** el Estimador TCH no deja salir hacia otro módulo hasta que registra su puente con el shell, que es el checkpoint de datos. Una navegación lanzada en el mismo instante de su carga se conserva en TCH. El mismo comportamiento existe en 1.6.1 (verificado sobre `71d5e0b`), y esta publicación no modifica el shell, la navegación ni el TCH.
+
+**PR e Issues:**
+- **PR integrados:** #73 (publicado), #74, #76, #77, #62 y #70.
+- **PR cerrados como consolidados:** #64, #68, #69 y #71, cuyos commits están en `main`. Se conservan sus ramas.
+- **Issues cerrados:** #61, #63, #65, #66, #67 y #75.
+- **Issues que siguen registrados, sin implementar:**
+  - #72: fechas DD-MMM-AAAA en TCH.
+  - UX16: familias de Estimados (`docs/DIAGNOSTICO_ESTIMADOS_UX16.md`).
+  - #49 a #54: temas previos fuera de esta fase.

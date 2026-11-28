@@ -1,0 +1,30 @@
+[
+  {
+    "old": "1.6.1",
+    "status": "PASS",
+    "before": {
+      "active": {
+        "version": "1.6.1",
+        "releaseId": "1.6.1-4369527e88d00489",
+        "ready": true,
+        "previous": [
+          "1.6.2"
+        ]
+      },
+      "waiting": {
+        "version": "1.6.2",
+        "releaseId": "1.6.2-1256f522516b8da8",
+        "ready": true,
+        "previous": [
+          "1.6.1"
+        ]
+      }
+    },
+    "stored": {
+      "marker": "keep",
+      "draft": "keep"
+    },
+    "multitab": true,
+    "offline": true
+  }
+]

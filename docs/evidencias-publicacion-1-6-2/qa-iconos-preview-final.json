@@ -1,0 +1,30 @@
+{
+  "base": "https://7fc70fb8.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/",
+  "sha": "c90e58f3da18da17c28b34ceacd5ba656dfd1498",
+  "results": [
+    {
+      "width": 1536,
+      "status": "PASS",
+      "releaseId": "1.6.2-1256f522516b8da8",
+      "home": true,
+      "sidebar": "expanded/collapsed",
+      "selector": true,
+      "centroMaestro": true,
+      "offline": true,
+      "pngHashes": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "status": "PASS",
+      "releaseId": "1.6.2-1256f522516b8da8",
+      "home": true,
+      "sidebar": "not displayed by mobile design",
+      "selector": true,
+      "centroMaestro": true,
+      "offline": true,
+      "pngHashes": true,
+      "errors": []
+    }
+  ]
+}

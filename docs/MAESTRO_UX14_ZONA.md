@@ -14,7 +14,7 @@ No hay cambios en datos, motores, versiones (App 1.6.2 y Producción V1.8.3, can
 | Cuatro KPI principales | Área activa (con suertes activas: 995 en Total), TCH Z25/26 ejecutado, TCH estimado Z26/27 y Ton. estimadas Z26/27 |
 | Indicador complementario | Área de molienda |
 | Selector global | Total / Riego / Secano; controla KPI, tabla y ámbito compartido (`window.CASUR_ZONE_SCOPE`) |
-| Categorías explícitas | Riego (Gravedad, Goteo, Aspersión, Pivote, Mini-Aspersión), Secano, **Ventana por confirmar** y **Sin dato**. Un valor desconocido nunca se clasifica como Riego. Ventana y Sin dato aparecen como chips consultables solo si tienen registros |
+| Categorías explícitas | Riego (Gravedad, Goteo, Aspersión, Pivote, Mini-Aspersión), Secano, **Ventana** (tal como viene en la fuente, sin reclasificar) y **Sin dato**. Un valor desconocido nunca se clasifica como Riego. Ventana y Sin dato aparecen como chips consultables solo si tienen registros |
 | Composición | Barras apiladas compactas de área activa y toneladas estimadas por sistema, con valor y porcentaje |
 | Vista general frente a ficha | General: comparación entre zonas, rotulada «comparación entre zonas». Ficha: gráficos solo de la zona («solo 1-Sur») |
 | Ejecutado frente a estimado | Z25/26 (Histórico, toneladas ÷ área cosechada, sin Maquila y por riego **actual** del lote) frente a Z26/27 (AD/AE oficial) |

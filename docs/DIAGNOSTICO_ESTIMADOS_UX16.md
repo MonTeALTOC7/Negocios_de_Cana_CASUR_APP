@@ -4,6 +4,8 @@ Fase registrada el 25-Nov-2026, solo diagnóstico. Base: candidata `7ee4dd3` (PR
 
 **No se implementa** hasta cerrar UX14 y UX15. No se implementan los tres rediseños a la vez.
 
+> **Alcance simplificado (26-Nov-2026, instrucción del propietario).** No se crean seis familias de navegación, otro motor, simuladores ni la descomposición de variaciones (secciones 5 y 6 quedan como registro, **no se implementan**). Estimados se refina sobre el explorador existente: KPI, composición por zona con participación, comparación con Z25/26, distribución por sistema / variedad / suelo / cortes, ranking configurable, plan mensual de cosecha, navegación Zona → Finca → Suerte y acceso directo. Ver `docs/MAESTRO_REFINAMIENTO_CIERRE.md`.
+
 ## 1. Situación actual
 
 Estimados Z26/27 **no es una vista registrada del shell**. Las vistas son Resumen, Cronológico, Histórico, Zonas y Análisis (`maestro-ux.js`, `views`). Hoy es el **objetivo «Estimados Z26/27» del explorador contextual** del Cronológico, en los niveles General y Finca. Además aparece como pestaña en Resumen y como KPI de la ficha de suerte.
@@ -49,7 +51,7 @@ Estimados Z26/27 **no es una vista registrada del shell**. Las vistas son Resume
   |---|---|---|---|---|
   | Riego | 716 | 66.13 | 63.26 | −21,711 t |
   | Secano | 128 | 60.21 | 39.06 | −16,159 t |
-  | Ventana (por confirmar) | 40 | 59.99 | 76.59 | +4,244 t |
+  | Ventana | 40 | 59.99 | 76.59 | +4,244 t |
 
 - **Bajo rendimiento estimado:** 198 suertes con AD < 45 TCH, en 1,724.91 ha. Incluye 31 suertes con AD ≤ 15, de las cuales 24 son Secano de 1-Sur (auditoría pendiente con Campo).
 - **Edad proyectada al BE:** entre 7.0 y 29.5 meses. 51 suertes quedan por debajo de 10 meses y 4 por encima de 16. Hay 1 alerta de programación vigente (6/04).

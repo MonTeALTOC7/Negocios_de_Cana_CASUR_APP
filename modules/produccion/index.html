@@ -5477,6 +5477,114 @@ RENDER_CSS+='\n'+[
 ].join('\n');
 })();
 window.CASUR_VISUAL_EXPORT={version:VERSION,target:target,prepareClone:prepareClone,renderCanvas:renderCanvas,pdfBlobFromCanvas:pdfBlobFromCanvas,pdf:function(kind){var b=q('[data-casur-export-kind="'+kind+'"] .pdf');if(b)b.click();},image:function(kind){var b=q('[data-casur-export-kind="'+kind+'"] .image');if(b)b.click();},audit:function(){return{version:VERSION,historico:!!target('historico'),cronologico:!!target('cronologico'),histMulti:!!target('historico-multiple'),cronoMulti:!!target('cronologico-multiple'),buttons:qa('.casur-visual-action').length,printButtons:qa('.casur-visual-action.print').length};}};
+/* R1-EXPORT (autorizado 26-Nov-2026, docs/PROPUESTA_REDISENO_INFORMES.md R1): medir y pintar en el mismo contexto CSS.
+   Encabezado uniforme (autorizado 27-Nov-2026, docs/ESTANDAR_EDITORIAL_INFORMES.md): «Negocios de Caña · CASUR» y «Consulta» a la derecha. */
+(function(){
+// Same root rules in the measuring iframe and in the foreignObject: font, colour and line height live on the report root
+// (html/body do not exist inside the foreignObject); decorative app icons get a fixed size.
+RENDER_CSS+='\n'+[
+'.casur-render-root{font-family:Arial,"Liberation Sans","Segoe UI",Helvetica,sans-serif;color:#132019;line-height:1.25;background:#fff;text-align:left}',
+'.casur-render-root svg.maestro-icon{width:16px!important;height:16px!important;min-width:16px!important;flex:0 0 16px!important;display:inline-block!important;vertical-align:middle!important}',
+'.casur-render-root .ux09-kpi-icon,.casur-render-root .premium-kpi-icon{width:22px!important;height:22px!important;flex:0 0 22px!important}',
+'.casur-render-root .print-header,.pdf-paged .print-header{display:flex!important;flex-wrap:wrap!important;align-items:flex-start!important;justify-content:flex-start!important;gap:12px 16px!important}',
+'.casur-render-root .print-header>:not(.casur-header-brand),.casur-render-root .print-header>:not(.casur-header-brand) *,.pdf-paged .print-header>:not(.casur-header-brand),.pdf-paged .print-header>:not(.casur-header-brand) *{text-align:left!important;align-items:flex-start!important;justify-content:flex-start!important;margin-left:0!important}',
+'.casur-render-root .print-header>.hist-multi-included,.pdf-paged .print-header>.hist-multi-included{flex:1 0 100%!important;order:3!important}',
+'.casur-render-root .casur-header-brand,.pdf-paged .casur-header-brand{order:2!important;margin-left:auto!important;flex:0 0 auto!important;text-align:right!important;white-space:nowrap!important;line-height:1.35!important}',
+'.casur-render-root .casur-header-brand strong,.pdf-paged .casur-header-brand strong{display:block!important;font-size:12.5px!important;font-weight:700!important;color:#1F4E5C!important}',
+'.casur-render-root .casur-header-brand span,.pdf-paged .casur-header-brand span{display:block!important;font-size:11.5px!important;font-weight:400!important;color:#576579!important}'
+].join('\n');
+// Encabezado limpio y uniforme: sin metadatos internos (generación, consolidación, columnas, motor, fuente) ni fechas de
+// consulta en otros formatos; la marca y la consulta (DD-MMM-AAAA · hora) van siempre en la esquina derecha.
+var INTERNAL=/Generaci[oó]n|Consolidad|AD\/AE|Motor oficial|^Fuente|categor[ií]a original|Maquila excluida|^Aforo \d/i;
+function uniformHeader(root){
+  var h=q('.print-header',root);if(!h)return;
+  var meta=q('.print-meta',h),col=qa('h2',h)[0]&&qa('h2',h)[0].parentElement;
+  qa('p',h).forEach(function(p){if(/Negocios de Ca\u00f1a\s*\u00b7\s*CASUR/.test(p.textContent||''))remove(p);});
+  if(meta){
+    qa('span',meta).forEach(function(sp){
+      var parts=(sp.textContent||'').split(' \u00b7 ').filter(function(t){return t.trim()&&!/^Consulta/i.test(t.trim())&&!INTERNAL.test(t.trim());});
+      if(/^Consulta/i.test((sp.textContent||'').trim())||!parts.length)remove(sp);else sp.textContent=parts.join(' \u00b7 ');
+    });
+    if(meta.parentElement===h&&col&&col!==h)col.appendChild(meta);
+  }
+  var n=new Date(),f=window.CASUR_CRONO_PARTICIPATION&&window.CASUR_CRONO_PARTICIPATION.formatDate,iso=n.toLocaleDateString('sv-SE');
+  var b=document.createElement('div');b.className='casur-header-brand';
+  b.innerHTML='<strong>Negocios de Ca\u00f1a \u00b7 CASUR</strong><span>Consulta: '+esc((f?f(iso):iso)+' \u00b7 '+n.toLocaleTimeString('es-NI',{hour:'2-digit',minute:'2-digit'}))+'</span>';
+  h.appendChild(b);
+}
+function isolated(width){
+  var frame=document.createElement('iframe');frame.setAttribute('aria-hidden','true');frame.tabIndex=-1;
+  frame.style.cssText='position:fixed;left:-100000px;top:0;width:'+width+'px;height:10px;border:0;opacity:0;pointer-events:none;z-index:-99999';
+  document.body.appendChild(frame);var doc=frame.contentDocument;doc.open();
+  doc.write('<!doctype html><html><head><meta charset="utf-8"><style>'+RENDER_CSS+'</style></head><body style="margin:0;padding:0;background:#fff"><div class="casur-render-root" style="width:'+width+'px"></div></body></html>');doc.close();
+  return {frame:frame,doc:doc,root:doc.body.firstElementChild};
+}
+function headingGuard(nodes,top,scale){
+  // A break right below a heading would leave it orphaned at the foot of the page.
+  return nodes.map(function(h){var r=h.getBoundingClientRect();return{top:(r.top-top)*scale,bottom:(r.bottom-top)*scale};});
+}
+renderCanvas=async function(kind,variant){
+  var node=target(kind);if(!node)throw new Error('Abra primero la ficha o el resumen que desea exportar.');
+  var cloneNode=prepareClone(node,kind,variant);uniformHeader(cloneNode);
+  if(kind==='historico-multiple'&&variant){
+    var mapHolder=document.createElement('div');var mapModel=null;
+    try{mapModel=await historicalMapModel(window.getHistoricoDualSummary().selection);mapHolder.innerHTML=await historicalHybridReport(mapModel);}
+    catch(error){
+      if(!window.confirm('No fue posible completar el mapa híbrido: '+error.message+'\n¿Acepta exportar este informe SIN mapa base? Cancele para reintentar con conexión.'))throw error;
+      mapHolder.innerHTML='<section data-pdf-break><h3>Mapa sin fondo cartográfico</h3><p>Modalidad aceptada por el usuario. Mosaicos híbridos no disponibles.</p></section>'+(mapModel?historicalMapReport(mapModel):'<section data-pdf-break><p>Geometrías no disponibles. Resultados productivos conservados.</p></section>');
+    }
+    var firstAnnex=cloneNode.querySelector('[data-pdf-new-page]');
+    Array.from(mapHolder.children).forEach(function(panel){panel.classList.add('hist-multi-report-block');panel.setAttribute('data-pdf-break','');cloneNode.insertBefore(panel,firstAnnex||cloneNode.lastElementChild);});
+  }
+  var width=kind==='cronologico-multiple'?1600:(cloneNode.classList.contains('casur-report-crono-general')?1400:960);
+  var iso=isolated(width);iso.root.appendChild(iso.doc.adoptNode(cloneNode));
+  try{
+    if(iso.doc.fonts&&iso.doc.fonts.ready)await iso.doc.fonts.ready;await nextFrame();
+    if(kind==='historico-multiple'&&variant)return await renderHistoricalPdfPages(cloneNode);
+    var reportRect=cloneNode.getBoundingClientRect();var maxBottom=reportRect.bottom;
+    var all=cloneNode.querySelectorAll('*');for(var i=0;i<all.length;i++){var r=all[i].getBoundingClientRect();if(r.height>0&&r.bottom>maxBottom)maxBottom=r.bottom;}
+    var height=Math.max(300,Math.ceil(maxBottom-reportRect.top+14));
+    var serialized=new XMLSerializer().serializeToString(cloneNode);
+    var svgStr='<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+height+'"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="casur-render-root" style="width:'+width+'px;height:'+height+'px;background:#fff"><style>'+RENDER_CSS+'</style>'+serialized+'</div></foreignObject></svg>';
+    var img=await imageFromSvg(svgStr);
+    var scale=Math.min(2,16000/width,16000/height);
+    var canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+    var ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    var safeSelector=kind==='cronologico'?'[data-pdf-break],.table-wrap tbody tr,.crono-card-grid,.crono-trend-card,.crono-trend-card-line,.kpis,.delta-grid,.crono-summary-grid>*':kind==='historico'?'.kpis,.delta-grid,.historical-chart-card,.table-wrap tbody tr':kind==='historico-multiple'?'[data-pdf-break],.hist-multi-results-table tbody tr':kind==='cronologico-multiple'?'.crono-multi-kpis,.crono-multi-dominants,.crono-multi-summary-grid,tbody tr':(kind==='zona'||kind==='zona-historico')?'[data-pdf-break],.ux14-farms tbody tr':null;
+    var heads=headingGuard(qa('h2,h3,h4,.section-title,figcaption',cloneNode),reportRect.top,scale);
+    var safeBreaks=safeSelector?qa(safeSelector,cloneNode).map(function(el){return Math.ceil((el.getBoundingClientRect().bottom-reportRect.top+2)*scale);})
+      .filter(function(y){return y>0&&y<canvas.height&&!heads.some(function(h){return h.bottom<=y&&y-h.bottom<90*scale;});}):[];
+    var forcedBreaks=qa('[data-pdf-new-page]',cloneNode).map(function(el){return Math.floor((el.getBoundingClientRect().top-reportRect.top-5)*scale);}).filter(function(y){return y>0&&y<canvas.height;});
+    return{canvas:canvas,node:node,width:width,height:height,clone:cloneNode,safeBreaks:safeBreaks,forcedBreaks:forcedBreaks,context:'isolated'};
+  }finally{remove(iso.frame);}
+};
+window.CASUR_VISUAL_EXPORT.renderCanvas=renderCanvas;window.CASUR_VISUAL_EXPORT.r1='isolated-measure';window.CASUR_VISUAL_EXPORT.renderCss=function(){return RENDER_CSS;};
+})();
+/* R1-EXPORT-END */
+/* R2-EXPORT (autorizado 26-Nov-2026, docs/PROPUESTA_REDISENO_INFORMES.md R2; nombres de archivo 27-Nov-2026, docs/ESTANDAR_EDITORIAL_INFORMES.md; R3 27-Nov-2026): Cronológico e Histórico de Finca y de Suerte, Cronológico múltiple, Histórico multifinca y Zona. */
+(function(){
+// Los mismos botones «Descargar PDF / imagen» usan el motor de informes R2 (js/report-engine.js + js/report-models.js,
+// precargados por la PWA). R3: también el Cronológico múltiple, el Histórico multifinca (ejecutivo y completo) y la Zona.
+// Las vistas generales (inicio del Cronológico y del Histórico) siguen en el motor anterior.
+var baseRun=runAction,loading=null;
+function load(src){return new Promise(function(ok,ko){var s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=function(){ko(new Error('No se pudo cargar '+src));};document.head.appendChild(s);});}
+function reports(){if(window.CASUR_REPORTS)return Promise.resolve(window.CASUR_REPORTS);loading=loading||load('js/report-engine.js').then(function(){return load('js/report-models.js');}).then(function(){return window.CASUR_REPORTS;});loading.catch(function(){loading=null;});return loading;}
+runAction=async function(kind,type,button,variant){
+  if(!/^(cronologico|historico|cronologico-multiple|historico-multiple|zona|zona-historico)$/.test(kind))return baseRun(kind,type,button,variant);
+  var node=target(kind);if(!node){alert('Abra primero la ficha o el resumen que desea exportar.');return;}
+  var original=button.innerHTML;button.disabled=true;
+  button.innerHTML='<span class="spinner"></span><span class="copy"><b>Procesando</b><small>un momento…</small></span>';
+  try{
+    toast(type==='pdf'?'Generando PDF…':'Generando imagen PNG…',5000);
+    var R=await reports(),out=await R.export(kind,type,node,variant);
+    if(!out){button.disabled=false;button.innerHTML=original;return baseRun(kind,type,button,variant);}
+    downloadBlob(out.blob,out.name||filename(kind,node,type==='pdf'?'pdf':'png'));toast(type==='pdf'?'PDF descargado correctamente.':'Imagen PNG descargada correctamente.');
+  }catch(err){console.error(err);alert('No se pudo generar el reporte: '+(err.message||err));}
+  finally{button.disabled=false;button.innerHTML=original;}
+};
+window.CASUR_VISUAL_EXPORT.r2='report-engine';window.CASUR_VISUAL_EXPORT.reports=reports;
+})();
+/* R2-EXPORT-END */
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',decorate);else decorate();
 })();
 </script>

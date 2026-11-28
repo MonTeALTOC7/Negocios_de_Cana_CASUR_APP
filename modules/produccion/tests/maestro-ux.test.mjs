@@ -21,7 +21,13 @@ test('Fase 1 conserva byte a byte el documento y los motores originales tras ret
   const authorized="(kind==='zona'||kind==='zona-historico')?'[data-pdf-break],.ux14-farms tbody tr':null;";
   assert.equal(html.split(authorized).length,2,'single authorized pagination change');
   return (html.slice(0,start)+html.slice(end)).replace(authorized,'null;');};
- const restored=ux14c(current('index.html')).replace('<link rel="stylesheet" href="css/maestro-ux.css">\n','').replace('<script src="js/maestro-ux.js"></script>\n','');
+ // Exportadores R1/R2 (owner authorization 26-Nov-2026, docs/PROPUESTA_REDISENO_INFORMES.md): each block is inserted
+ // once, after window.CASUR_VISUAL_EXPORT, and pinned by SHA-256. Nothing else in the engine may change.
+ const AUTHORIZED_EXPORT_BLOCKS=[['/* R1-EXPORT (autorizado','/* R1-EXPORT-END */\n','0a37ecd5d0bb2639d9636d15858dd3d82ae52943190edc8a96d75bdf70a10206'],['/* R2-EXPORT (autorizado','/* R2-EXPORT-END */\n','3d2d744a0c6bdf72a00916af5c13b5000c174cff591bef79d94eea7f3d07ad24']];
+ const exportBlocks=html=>AUTHORIZED_EXPORT_BLOCKS.reduce((h,[open,close,sha])=>{const a=h.indexOf(open);if(a<0)return h;const b=h.indexOf(close,a);assert.ok(b>a,open+' block end');
+  const block=h.slice(a,b+close.length);assert.equal(createHash('sha256').update(block).digest('hex'),sha,open+' block is exactly the authorized one');assert.equal(h.split(open).length,2,open+' inserted once');
+  return h.slice(0,a)+h.slice(b+close.length);},html);
+ const restored=ux14c(exportBlocks(current('index.html'))).replace('<link rel="stylesheet" href="css/maestro-ux.css">\n','').replace('<script src="js/maestro-ux.js"></script>\n','');
  const normalizeRelease = html => html.replace(/<style>\n  html\.casur-booting[\s\S]*?<\/style>\n<script>document\.documentElement\.classList\.add\('casur-booting'\);<\/script>\n/, '').replace(/\n<div id="casurStartup"[\s\S]*?<\/script>/, '').replace(/var VERSION='V[\d.]+';/, 'var VERSION=RELEASE;').replace(/(<script id="casurEmbeddedPwaAssets"[^>]*>)([\s\S]*?)(<\/script>)/, (_, start, json, end) => {
    const assets=JSON.parse(json); for(const name of ['README_GITHUB.md','VERSION.txt']) assets[name]=Buffer.from(Buffer.from(assets[name],'base64').toString('utf8').replace(/V[\d.]+/g,'RELEASE')).toString('base64');
    return start+JSON.stringify(assets)+end;

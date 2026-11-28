@@ -9,24 +9,29 @@ import {CATEGORIES, DEFAULT_FAVORITES, category, STATES, OPEN, KIND, REQUEST_TYP
 import {agroHtml, galleryHtml, hydrateGallery, bindGallery, mountGallery, findingRow, followupRow, visitRow} from './components.js';
 import {BACKUP_STATES} from './photos.js';
 import {buildBackup, markExported, confirmBackup, restoreBackup, partLimitBytes, fileDate} from './backup.js';
-import {visitReportHtml, producerReportHtml, periodReportHtml, excelExport, geojsonExport} from './reports.js';
+import {visitReportHtml, findingReportHtml, producerReportHtml, periodReportHtml, pendingReportHtml, evidenceReportHtml, excelExport, geojsonExport} from './reports.js';
 import {mount, view, chooseTarget, lotNum, retroNote} from './views-main.js';
 
 /* ---------- Visitas ---------- */
 export async function viewVisits() {
-  const {visits, findings, photos} = await M.everything();
-  const el = mount(`<section class="vc-card"><div class="vc-card__head"><h2>${icon('calendar')}Mis visitas</h2><a class="vc-btn vc-btn--sm vc-btn--primary" href="#/nueva">${icon('plus')}Nueva</a></div>
-    <label class="vc-search">${icon('search')}<input class="vc-input" type="search" placeholder="Productor, código o fecha" data-q data-casur-query></label><div class="vc-list" data-list style="margin-top:6px"></div></section>`);
+  const {visits, incompleteVisits, findings, photos} = await M.everything();
+  const el = mount(`<section class="vc-card"><div class="vc-card__head"><h2>${icon('calendar')}Visitas formales</h2><a class="vc-btn vc-btn--sm vc-btn--primary" href="#/nueva">${icon('plus')}Nueva</a></div>
+    <p class="vc-muted vc-small" style="margin-bottom:8px">Los hallazgos y evidencias de campo registrados sin visita están en Gestión y Evidencias.</p>
+    <label class="vc-search">${icon('search')}<input class="vc-input" type="search" placeholder="Productor, código o fecha" data-q data-casur-query></label><div class="vc-list" data-list style="margin-top:6px"></div></section>
+    ${incompleteVisits.length ? `<section class="vc-card vc-card--pending"><div class="vc-card__head"><h2>${icon('clock')}Visitas sin productor (versión anterior)</h2></div><p class="vc-muted vc-small">Las creó «Nueva visita» de la versión 1.0 antes de elegir productor. Se conservan: podés completarlas.</p>
+      <div class="vc-list">${incompleteVisits.map(v => `<a class="vc-item" href="#/visita/${esc(v.id)}"><span class="vc-item__ic">${icon('calendar')}</span><span class="vc-item__body"><span class="vc-item__title">Sin productor</span><span class="vc-item__sub">Creada ${fdt(v.createdAt)}</span></span>${icon('chevron')}</a>`).join('')}</div></section>` : ''}`);
   const render = q => { const t = (q || '').toLowerCase();
     const list = visits.filter(v => !t || `${v.producer.name} ${v.producer.code} ${fdate(v.startedAt)}`.toLowerCase().includes(t)).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
-    $('[data-list]', el).innerHTML = list.map(v => visitRow(v, {findings: findings.filter(f => f.visitId === v.id).length, photos: photos.filter(p => p.visitId === v.id).length})).join('') || '<p class="vc-empty">Sin visitas registradas en este teléfono.</p>'; };
+    $('[data-list]', el).innerHTML = list.map(v => visitRow(v, {findings: findings.filter(f => f.visitId === v.id).length, photos: photos.filter(p => p.visitId === v.id).length})).join('') || '<p class="vc-empty">Sin visitas formales en este teléfono.</p>'; };
   $('[data-q]', el).addEventListener('input', e => render(e.target.value)); render('');
 }
 export async function viewNewVisit(params) {
   const {reader} = await maestro(), t = await M.resolveTarget();
-  let farmCode = params.get('finca') || t.farmCode, lots = new Set(t.lotKey ? [t.lotKey] : []), scope = lots.size ? 'suertes' : 'finca';
+  let farmCode = params.get('finca') || t.farmCode;
+  const pre = params.get('suerte') || (farmCode === t.farmCode ? t.lotKey : null);
+  let lots = new Set(pre ? [pre] : []), scope = lots.size ? 'suertes' : 'finca';
   const followupOf = params.get('seguimiento');
-  const el = mount(`<section class="vc-card vc-form"><div class="vc-card__head"><h2>${icon('calendar')}${followupOf ? 'Visita de seguimiento' : 'Nueva visita'}</h2></div><div data-body></div></section>`);
+  const el = mount(`<section class="vc-card vc-form"><div class="vc-card__head"><h2>${icon('calendar')}${followupOf ? 'Visita formal de seguimiento' : 'Nueva visita formal'}</h2></div><div data-body></div></section>`);
   const render = () => {
     const farm = farmCode ? reader.farm(farmCode) : null, recs = farm ? reader.lotsOf(farmCode).filter(r => r.state.presence !== 'absent') : [];
     $('[data-body]', el).innerHTML = farm ? `<div class="vc-target"><span class="vc-item__ic">${icon('folder')}</span><div class="vc-target__body"><strong>${esc(farm.name)}</strong><span class="vc-muted">Código ${esc(farm.code)} · ${esc(farm.zone || '')}</span></div><button class="vc-btn vc-btn--sm" type="button" data-change>Cambiar</button></div>
@@ -51,6 +56,7 @@ export async function viewNewVisit(params) {
 }
 export async function viewVisit(id) {
   const v = await store.get('visits', id); if (!v) throw Error('La visita no existe en este teléfono.');
+  if (M.isIncompleteVisit(v)) return viewIncompleteVisit(v);
   const [findings, followups, photos] = await Promise.all([store.byIndex('findings', 'visitId', id), store.byIndex('followups', 'visitId', id), store.byIndex('photos', 'visitId', id)]);
   const live = findings.filter(f => !f.deletedAt), fus = followups.filter(f => !f.removedFromVisit);
   const recs = v.masterSnapshot?.records || [], lots = v.scope === 'finca' ? [] : recs.filter(r => v.lotKeys.includes(r.key));
@@ -90,24 +96,44 @@ export async function viewVisit(id) {
   });
 }
 
+/** Visita sin productor (borrador de VC01): se muestra lo que tiene y se ofrece completarla. Nunca se borra. */
+async function viewIncompleteVisit(v) {
+  const [photos, followups] = await Promise.all([store.byIndex('photos', 'visitId', v.id), store.byIndex('followups', 'visitId', v.id)]);
+  const el = mount(`<section class="vc-card vc-card--pending"><div class="vc-card__head"><div><p class="vc-eyebrow">Visita sin productor · versión anterior</p><h1>Completar la visita</h1></div></div>
+    <p>Esta visita se creó el ${fdt(v.createdAt)} con «Nueva visita» de la versión 1.0, que la guardaba antes de elegir el productor. No se borró nada.</p>
+    <dl class="vc-agro" style="margin-top:10px"><div><dt>Fotografías</dt><dd>${photos.length}</dd></div><div><dt>Seguimientos</dt><dd>${followups.length}</dd></div><div><dt>Observación</dt><dd>${esc(v.general?.notes || v.observations || '—')}</dd></div></dl>
+    <div class="vc-row-actions vc-row-actions--start"><button class="vc-btn vc-btn--primary" type="button" data-complete>${icon('search')}Elegir productor y suerte</button><a class="vc-btn" href="#/inicio">Dejarla como está</a></div></section>`);
+  el.addEventListener('click', async e => {
+    if (!e.target.closest('[data-complete]')) return;
+    const c = await chooseTarget({title: 'Productor de la visita'}); if (!c?.farmCode) return;
+    await M.completeVisitProducer(v.id, c.farmCode, c.lotKey ? [c.lotKey] : []); toast('Visita completada'); await viewVisit(v.id);
+  });
+}
+
 /* ---------- Seguimiento (formulario y ficha; las listas viven en Gestión) ---------- */
 /** Formulario de recomendación / solicitud / compromiso: solo el texto es necesario; lo demás es opcional. */
 export async function viewFollowupNew(params) {
   const kind = params.get('tipo') || 'recomendacion', findingId = params.get('hallazgo');
   const finding = findingId ? await store.get('findings', findingId) : null;
-  let visit = finding ? await store.get('visits', finding.visitId) : params.get('visita') ? await store.get('visits', params.get('visita')) : null;
-  if (!visit) { const t = await M.resolveTarget(); if (t.farmCode) visit = await M.ensureVisit(t.farmCode, t.lotKey, t.source === 'gps' ? 'gps' : 'manual'); }
-  if (!visit) { const c = await chooseTarget(); if (!c) { location.hash = '#/inicio'; return; } await M.setManualTarget(c.farmCode, c.lotKey); visit = await M.ensureVisit(c.farmCode, c.lotKey, 'manual'); }
-  const recs = visit.scope === 'finca' ? visit.masterSnapshot.records : visit.masterSnapshot.records.filter(r => visit.lotKeys.includes(r.key));
-  const lotDefault = finding?.lotKey || (visit.lotKeys.length === 1 ? visit.lotKeys[0] : '');
+  // Contexto: el del hallazgo, el de la visita indicada o el destino actual. Nunca se crea una visita para registrar seguimiento.
+  const visit = finding?.visitId ? await store.get('visits', finding.visitId) : !finding && params.get('visita') ? await store.get('visits', params.get('visita')) : null;
+  let producer = finding?.producer || visit?.producer || null, lotPre = finding?.lotKey || (visit?.lotKeys?.length === 1 ? visit.lotKeys[0] : null);
+  if (!producer) {
+    const t = await M.resolveTarget().catch(() => ({}));
+    let c = t.farmCode ? {farmCode: t.farmCode, lotKey: t.lotKey} : await chooseTarget({title: `${KIND[kind].label}: productor y suerte`});
+    if (!c?.farmCode) { history.back(); return; }
+    const ctx = await M.contextFor(c.farmCode, c.lotKey); producer = ctx.producer; lotPre = ctx.lotKey;
+  }
+  const {reader} = await maestro();
+  const recs = visit?.masterSnapshot ? (visit.scope === 'finca' ? visit.masterSnapshot.records : visit.masterSnapshot.records.filter(r => visit.lotKeys.includes(r.key))) : reader.lotsOf(producer.code).filter(r => r.state.presence !== 'absent');
   const el = mount(`<section class="vc-card vc-form"><div class="vc-card__head"><h2>${icon(KIND[kind].icon)}Nueva ${KIND[kind].label.toLowerCase()}</h2></div>
-    <p class="vc-muted">${esc(visit.producer.name)}${finding ? ` · ${esc(category(finding.category).label)}` : ''}</p>
+    <p class="vc-muted">${esc(producer.name)}${finding ? ` · ${esc(category(finding.category).label)}` : ''}${visit ? ` · visita del ${fdate(visit.startedAt)}` : ' · sin visita formal'}</p>
     ${kind === 'solicitud' ? `<label class="vc-field"><span>Tipo de solicitud</span><select data-cat>${REQUEST_TYPES.map(r => `<option value="${r.id}">${esc(r.label)}</option>`).join('')}</select></label>` : ''}
     <label class="vc-field"><span>${kind === 'recomendacion' ? 'Recomendación' : kind === 'solicitud' ? 'Detalle de la solicitud' : 'Compromiso'}</span><textarea data-text rows="3" placeholder="Lo único necesario"></textarea></label>
     <details class="vc-details"><summary>${icon('clipboard')}Más datos <span class="vc-muted vc-small">(opcionales)</span>${icon('chevron')}</summary><div class="vc-details__body">
       ${kind === 'solicitud' ? `<div class="vc-grid2"><label class="vc-field"><span>Producto o servicio</span><input data-x="product"></label><label class="vc-field"><span>Cantidad</span><span class="vc-unit"><input type="number" inputmode="decimal" step="any" data-x="quantity"><select class="vc-input" data-x="unit" style="width:auto">${UNITS.map(u => `<option>${u}</option>`).join('')}</select></span></label>
         <label class="vc-field"><span>Área involucrada (ha)</span><input type="number" inputmode="decimal" step="any" data-x="area"></label><label class="vc-field"><span>Justificación</span><input data-x="justification"></label></div>` : ''}
-      <div class="vc-grid2"><label class="vc-field"><span>Suerte</span><select data-lot><option value="">Finca completa</option>${recs.map(r => `<option value="${esc(r.key)}" ${r.key === lotDefault ? 'selected' : ''}>Suerte ${esc(r.identity.lot)}</option>`).join('')}</select></label>
+      <div class="vc-grid2"><label class="vc-field"><span>Suerte</span><select data-lot><option value="">Finca completa</option>${recs.map(r => `<option value="${esc(r.key)}" ${r.key === lotPre ? 'selected' : ''}>Suerte ${esc(r.identity.lot)}${r.attributes?.irrigationType ? ' · ' + esc(r.attributes.irrigationType) : ''}</option>`).join('')}</select></label>
         ${kind !== 'compromiso' ? `<label class="vc-field"><span>Prioridad</span><select data-x="priority"><option value="">Sin definir</option>${PRIORITY.map(p => `<option>${p}</option>`).join('')}</select></label>` : ''}
         <label class="vc-field"><span>Responsable</span><input data-x="responsible"></label><label class="vc-field"><span>${kind === 'solicitud' ? 'Fecha requerida' : 'Fecha de compromiso'}</span><input type="date" data-x="dueDate"></label></div>
       <label class="vc-field"><span>Observaciones</span><input data-x="notes"></label></div></details>
@@ -118,28 +144,34 @@ export async function viewFollowupNew(params) {
     const extra = {}; for (const i of $$('[data-x]', el)) if (i.value !== '') extra[i.dataset.x] = i.type === 'number' ? Number(i.value) : i.value;
     if (!extra.quantity) delete extra.unit;
     if (kind === 'solicitud') extra.category = $('[data-cat]', el).value;
-    const f = await M.createFollowup({kind, visit, findingId, lotKey: $('[data-lot]', el).value || null, text, extra});
+    const f = await M.createFollowup({kind, visit, finding, context: {producer, lotKey: lotPre}, lotKey: $('[data-lot]', el).value || null, text, extra});
     if (finding && finding.status === 'Abierto' && kind === 'recomendacion') await M.setFindingState(finding.id, 'En seguimiento', 'Recomendación emitida');
     toast(`${KIND[kind].label} guardada`); location.hash = finding ? '#/hallazgo/' + finding.id : '#/seguimiento/' + f.id;
   });
 }
 export async function viewFollowup(id) {
   const f = await store.get('followups', id); if (!f) throw Error('Registro no encontrado.');
-  const visit = await store.get('visits', f.visitId), photos = (await store.byIndex('photos', 'visitId', f.visitId)).filter(p => p.followupId === f.id);
+  const visit = f.visitId ? await store.get('visits', f.visitId) : null;
   const allPhotos = await store.all('photos'), evidence = allPhotos.filter(p => p.followupId === f.id);
   const finding = f.findingId ? await store.get('findings', f.findingId) : null, before = finding ? allPhotos.filter(p => p.findingId === finding.id) : [];
-  const el = mount(`<section class="vc-card"><div class="vc-card__head"><div style="min-width:0"><p class="vc-muted">${KIND[f.kind].label}${f.category ? ' · ' + esc(requestType(f.category).label) : ''} · ${fdate(f.createdAt)}</p><h2>${esc(f.text)}</h2></div><span class="vc-chip ${M.isOverdue(f) ? 'vc-chip--err' : OPEN.has(f.state) ? 'vc-chip--warn' : 'vc-chip--ok'}">${M.isOverdue(f) ? 'Vencido' : esc(f.state)}</span></div>
-      <p>${esc(f.producerName)}${f.lotKey ? ' · Suerte ' + esc(lotNum(f.lotKey)) : ''}${finding ? ` · <a class="vc-link" href="#/hallazgo/${esc(finding.id)}">${esc(category(finding.category).label)}</a>` : ''}</p>
-      <p class="vc-muted">${[f.product, f.quantity ? `${f.quantity} ${f.unit || ''}` : '', f.area ? `${f.area} ha` : '', f.priority ? 'Prioridad ' + f.priority : '', f.responsible ? 'Responsable: ' + f.responsible : '', f.dueDate ? 'Fecha: ' + fdate(f.dueDate) : '', f.notes].filter(Boolean).map(esc).join(' · ')}</p></section>
-    ${before.length ? `<section class="vc-card"><div class="vc-card__head"><h2>${icon('image')}Evidencia inicial</h2><span class="vc-muted vc-small">Comparala con la evidencia del seguimiento</span></div><div data-before>${galleryHtml(before)}</div></section>` : ''}
+  const ctx = {producer: f.producer || (f.producerCode ? {code: f.producerCode, name: f.producerName} : null), lotKey: f.lotKey, record: finding?.record || M.recordOf(visit, f.lotKey), dataVersion: finding?.dataVersion || null};
+  const attended = f.kind === 'solicitud' && f.state === 'Atendida';
+  const el = mount(`<section class="vc-card"><div class="vc-card__head"><div style="min-width:0"><p class="vc-muted">${KIND[f.kind].label}${f.category ? ' · ' + esc(requestType(f.category).label) : ''} · ${fdate(f.createdAt)}${visit ? ' · visita formal' : ''}</p><h2>${esc(f.text)}</h2></div><span class="vc-chip ${M.isOverdue(f) ? 'vc-chip--err' : OPEN.has(f.state) ? 'vc-chip--warn' : 'vc-chip--ok'}">${M.isOverdue(f) ? 'Vencido' : esc(f.state)}</span></div>
+      <p>${esc(f.producerName || f.producer?.name || '')}${f.lotKey ? ' · Suerte ' + esc(lotNum(f.lotKey)) : ''}${finding ? ` · <a class="vc-link" href="#/hallazgo/${esc(finding.id)}">${esc(category(finding.category).label)}</a>` : ''}</p>
+      <p class="vc-muted">${[f.product, f.quantity ? `${f.quantity} ${f.unit || ''}` : '', f.area ? `${f.area} ha` : '', f.priority ? 'Prioridad ' + f.priority : '', f.responsible ? 'Responsable: ' + f.responsible : '', f.dueDate ? 'Fecha: ' + fdate(f.dueDate) : '', f.notes].filter(Boolean).map(esc).join(' · ')}</p>
+      ${attended ? `<p class="vc-note">${icon('info')}<span>Solicitud atendida: el insumo o servicio se entregó. La ejecución agronómica y su verificación se registran en la recomendación o en el hallazgo.</span></p>` : ''}</section>
+    ${before.length ? `<section class="vc-card"><div class="vc-card__head"><h2>${icon('image')}Evidencia inicial (antes)</h2><span class="vc-muted vc-small">Comparala con la evidencia del seguimiento</span></div><div data-before>${galleryHtml(before)}</div></section>` : ''}
     <section class="vc-card vc-form"><div class="vc-card__head"><h2>${icon('flag')}Registrar seguimiento</h2></div>
       <div class="vc-grid2"><label class="vc-field"><span>Estado</span><select data-state>${STATES[f.kind].map(s => `<option ${s === f.state ? 'selected' : ''}>${s}</option>`).join('')}</select></label><label class="vc-field"><span>Nota (gestión, respuesta, verificación)</span><input data-note></label></div>
+      <div class="vc-grid2"><label class="vc-field"><span>Las fotos nuevas son evidencia de</span><select data-role><option value="seguimiento">Seguimiento o ejecución</option><option value="verificacion">Verificación (después)</option></select></label></div>
       <p class="vc-label">Evidencia de este seguimiento</p><div data-gal></div>
-      <div class="vc-row-actions"><a class="vc-btn" href="#/nueva?finca=${esc(f.producerCode)}&seguimiento=${esc(f.id)}">${icon('calendar')}Visita de seguimiento</a><button class="vc-btn vc-btn--primary" type="button" data-apply>${icon('check')}Registrar</button></div>
-      <ul class="vc-small vc-muted" style="margin:6px 0 0;padding-left:18px">${f.history.map(h => `<li>${fdt(h.at)} · ${esc(h.state)}${h.note ? ' · ' + esc(h.note) : ''}${h.by ? ' · ' + esc(h.by) : ''}</li>`).join('')}</ul></section>`);
+      <div class="vc-row-actions"><a class="vc-btn" href="#/nueva?finca=${esc(f.producerCode)}&seguimiento=${esc(f.id)}">${icon('calendar')}Visita formal de seguimiento</a><button class="vc-btn vc-btn--primary" type="button" data-apply>${icon('check')}Registrar</button></div>
+      <ol class="vc-history">${f.history.map(h => `<li><span>${fdt(h.at)}</span><strong>${esc(h.state)}</strong>${h.note || h.by ? `<em>${esc([h.note, h.by].filter(Boolean).join(' · '))}</em>` : ''}</li>`).join('')}</ol></section>`);
   hydrateGallery(el, [...before, ...evidence]);
-  { const n = $('[data-before]', el); if (n) bindGallery(n, () => before, {visit}); }
-  await mountGallery($('[data-gal]', el), async () => (await store.byIndex('photos', 'visitId', visit.id)).filter(p => p.followupId === f.id), {visit, visitId: visit.id, followupId: f.id, lotKey: f.lotKey, role: 'seguimiento'});
+  { const n = $('[data-before]', el); if (n) bindGallery(n, () => before, {visit, findingFor: () => finding}); }
+  const gctx = {visit, visitId: f.visitId || null, followupId: f.id, lotKey: f.lotKey, context: ctx, role: 'seguimiento', findingFor: () => finding};
+  await mountGallery($('[data-gal]', el), async () => (await store.all('photos')).filter(p => p.followupId === f.id), gctx);
+  el.addEventListener('change', e => { if (e.target.matches('[data-role]')) gctx.role = e.target.value; });
   el.addEventListener('click', async e => {
     if (!e.target.closest('[data-apply]')) return;
     await M.setFollowupState(f.id, $('[data-state]', el).value, $('[data-note]', el).value.trim()); toast('Seguimiento registrado'); await viewFollowup(id);
@@ -150,34 +182,47 @@ export async function viewFollowup(id) {
 export async function viewReports() {
   const data = await M.everything(), today = new Date().toISOString().slice(0, 10), weekAgo = new Date(Date.now() - 6 * 864e5).toISOString().slice(0, 10);
   const el = mount(`<section class="vc-card vc-form"><div class="vc-card__head"><h2>${icon('report')}Informes y exportaciones</h2></div>
-    <p class="vc-label">Consolidado por período</p><div class="vc-grid2"><label class="vc-field"><span>Desde</span><input type="date" data-from value="${weekAgo}"></label><label class="vc-field"><span>Hasta</span><input type="date" data-to value="${today}"></label></div>
-    <div class="vc-row-actions vc-row-actions--start"><button class="vc-btn vc-btn--primary" type="button" data-period>${icon('report')}Ver consolidado</button></div>
+    <div class="vc-grid2"><label class="vc-field"><span>Desde</span><input type="date" data-from value="${weekAgo}"></label><label class="vc-field"><span>Hasta</span><input type="date" data-to value="${today}"></label></div>
+    <div class="vc-row-actions vc-row-actions--start"><button class="vc-btn vc-btn--primary" type="button" data-rep="periodo">${icon('report')}Gestión del período</button><button class="vc-btn" type="button" data-rep="tecnico">${icon('users')}Por técnico</button><button class="vc-btn" type="button" data-rep="evidencias">${icon('evidence')}Evidencias</button><a class="vc-btn" href="#/informe/pendientes/todo">${icon('flag')}Seguimientos pendientes</a></div>
     <p class="vc-label" style="margin-top:8px">Exportar todos los registros</p>
     <div class="vc-row-actions vc-row-actions--start"><button class="vc-btn" type="button" data-xlsx>${icon('download')}Excel</button><button class="vc-btn" type="button" data-geo>${icon('pin')}GeoJSON</button><a class="vc-btn" href="#/datos">${icon('archive')}Respaldo ZIP</a></div>
-    <p class="vc-muted vc-small">El informe de una visita y el expediente de un productor se abren desde la visita o el productor.</p></section>
-    <section class="vc-card"><div class="vc-card__head"><h2>${icon('calendar')}Informes de visitas recientes</h2></div><div class="vc-list">${data.visits.sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, 8).map(v => `<a class="vc-item" href="#/informe/visita/${esc(v.id)}"><span class="vc-item__ic">${icon('report')}</span><span class="vc-item__body"><span class="vc-item__title">${esc(v.producer.name)}</span><span class="vc-item__sub">${fdate(v.startedAt)}</span></span>${icon('chevron')}</a>`).join('') || '<p class="vc-empty">Sin visitas.</p>'}</div></section>`);
+    <p class="vc-muted vc-small">El informe de una visita, de un hallazgo o el expediente de un productor se abren desde la visita, el hallazgo o el productor. Los informes distinguen visitas formales de hallazgos de campo.</p></section>
+    <section class="vc-card"><div class="vc-card__head"><h2>${icon('calendar')}Visitas formales recientes</h2></div><div class="vc-list">${data.visits.sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, 6).map(v => `<a class="vc-item" href="#/informe/visita/${esc(v.id)}"><span class="vc-item__ic">${icon('report')}</span><span class="vc-item__body"><span class="vc-item__title">${esc(v.producer.name)}</span><span class="vc-item__sub">${fdate(v.startedAt)}</span></span>${icon('chevron')}</a>`).join('') || '<p class="vc-empty">Sin visitas formales.</p>'}</div></section>
+    <section class="vc-card"><div class="vc-card__head"><h2>${icon('malezas')}Hallazgos de campo recientes</h2></div><div class="vc-list">${data.findings.filter(f => !f.visitId).sort((a, b) => b.observedAt.localeCompare(a.observedAt)).slice(0, 6).map(f => `<a class="vc-item" href="#/informe/hallazgo/${esc(f.id)}"><span class="vc-item__ic">${icon(category(f.category).icon)}</span><span class="vc-item__body"><span class="vc-item__title">${esc(category(f.category).label)} · ${esc(f.producer?.name || 'Por identificar')}</span><span class="vc-item__sub">${fdate(f.observedAt)}</span></span>${icon('chevron')}</a>`).join('') || '<p class="vc-empty">Sin hallazgos de campo.</p>'}</div></section>`);
   el.addEventListener('click', async e => {
-    if (e.target.closest('[data-period]')) location.hash = `#/informe/periodo/${$('[data-from]', el).value}_${$('[data-to]', el).value}`;
+    const r = e.target.closest('[data-rep]'); if (r) location.hash = `#/informe/${r.dataset.rep}/${$('[data-from]', el).value}_${$('[data-to]', el).value}`;
     if (e.target.closest('[data-xlsx]')) download(await excelExport(data), `Visitas_CASUR_${fileDate()}.xlsx`);
     if (e.target.closest('[data-geo]')) download(geojsonExport(data), `Visitas_CASUR_ubicaciones_${fileDate()}.geojson`);
   });
 }
 export async function viewReport(kind, arg) {
   const data = await M.everything(); let html = '', title = '';
+  const range = () => { const [from, to] = String(arg || '').split('_'); return {from, to, inRange: d => String(d || '').slice(0, 10) >= from && String(d || '').slice(0, 10) <= to}; };
   if (kind === 'visita') {
     const visit = data.visits.find(v => v.id === arg); if (!visit) throw Error('Visita no encontrada');
     const features = await featuresFor((visit.masterSnapshot?.records || []).map(r => r.identity.lotCode)).catch(() => []);
-    html = visitReportHtml({visit, findings: data.findings.filter(f => f.visitId === arg), followups: data.followups.filter(f => f.visitId === arg), photos: data.photos.filter(p => p.visitId === arg), features});
+    html = visitReportHtml({visit, findings: data.findings.filter(f => f.visitId === arg), followups: data.followups.filter(f => f.visitId === arg), photos: data.photos.filter(p => p.visitId === arg || data.findings.some(f => f.visitId === arg && f.id === p.findingId)), features});
     title = `Visita_${safeName(visit.producer.name)}_${fdate(visit.startedAt)}`;
+  } else if (kind === 'hallazgo') {
+    const finding = data.findings.find(f => f.id === arg); if (!finding) throw Error('Hallazgo no encontrado');
+    const visit = finding.visitId ? data.visits.find(v => v.id === finding.visitId) : null, fus = data.followups.filter(f => f.findingId === arg), ids = new Set(fus.map(f => f.id));
+    const rec = finding.record || M.recordOf(visit, finding.lotKey), features = rec ? await featuresFor([rec.identity.lotCode]).catch(() => []) : [];
+    html = findingReportHtml({finding, visit, followups: fus, photos: data.photos.filter(p => p.findingId === arg), followPhotos: data.photos.filter(p => ids.has(p.followupId) && (p.thumb || p.blob)), features});
+    title = `Hallazgo_${safeName(category(finding.category).label)}_${safeName(finding.producer?.name || 'sin_identificar')}_${fdate(finding.observedAt)}`;
   } else if (kind === 'productor') {
-    const {reader} = await maestro(), farm = reader.farm(arg); const visits = data.visits.filter(v => v.producer.code === farm.code), ids = new Set(visits.map(v => v.id));
-    html = producerReportHtml({farm, records: reader.lotsOf(farm.code).filter(r => r.state.presence !== 'absent'), visits, findings: data.findings.filter(f => ids.has(f.visitId)), followups: data.followups.filter(f => f.producerCode === farm.code)});
+    const {reader} = await maestro(), farm = reader.farm(arg); if (!farm) throw Error('Productor no encontrado en el Maestro');
+    const own = x => (x.producer?.code ?? x.producerCode) === farm.code;
+    html = producerReportHtml({farm, records: reader.lotsOf(farm.code).filter(r => r.state.presence !== 'absent'), visits: data.visits.filter(v => v.producer.code === farm.code), findings: data.findings.filter(own), followups: data.followups.filter(own), photos: data.photos.filter(own)});
     title = `Expediente_${safeName(farm.name)}_${fileDate()}`;
+  } else if (kind === 'pendientes') {
+    html = pendingReportHtml(data); title = `Seguimientos_pendientes_${fileDate()}`;
+  } else if (kind === 'evidencias') {
+    const {from, to, inRange} = range(); html = evidenceReportHtml({from, to, photos: data.photos.filter(p => inRange(p.takenAt || p.addedAt) && (p.thumb || p.blob))}); title = `Evidencias_${fdate(from)}_${fdate(to)}`;
   } else {
-    const [from, to] = arg.split('_'), inRange = d => d.slice(0, 10) >= from && d.slice(0, 10) <= to;
-    const visits = data.visits.filter(v => inRange(v.startedAt)), ids = new Set(visits.map(v => v.id));
-    html = periodReportHtml({from, to, visits, findings: data.findings.filter(f => ids.has(f.visitId)), followups: data.followups.filter(f => ids.has(f.visitId) || OPEN.has(f.state))});
-    title = `Consolidado_Visitas_${fdate(from)}_${fdate(to)}`;
+    const {from, to, inRange} = range();
+    html = periodReportHtml({from, to, visits: data.visits.filter(v => inRange(v.startedAt)), findings: data.findings.filter(f => inRange(f.observedAt)), photos: data.photos.filter(p => inRange(p.takenAt || p.addedAt)),
+      followups: data.followups.filter(f => inRange(f.createdAt) || OPEN.has(f.state) || (f.history || []).some(h => inRange(h.at))), byTechnician: kind === 'tecnico'});
+    title = `${kind === 'tecnico' ? 'Gestion_por_tecnico' : 'Gestion'}_${fdate(from)}_${fdate(to)}`;
   }
   const el = mount(`<div class="vc-row-actions vc-no-print" style="margin:0"><button class="vc-btn" type="button" onclick="history.back()">${icon('back')}Volver</button><button class="vc-btn vc-btn--primary" type="button" data-print>${icon('print')}Imprimir o guardar PDF</button></div><div class="vc-report-wrap">${html}</div>`);
   document.title = title;

@@ -99,13 +99,18 @@ export const FAMILIES = {
 };
 export const familyOf = id => Object.entries(FAMILIES).find(([, f]) => f.ids.includes(id))?.[0] || 'gestion';
 export const familyStyle = id => FAMILIES[familyOf(id)];
-/* Avance de un hallazgo dentro de la gestión técnica (no es impacto agronómico; es el estado del trámite). */
-export const PROGRESS = ['Observado', 'Recomendado', 'En ejecución', 'Verificado'];
+/* Avance de un hallazgo dentro de la gestión técnica (no es impacto agronómico; es el estado del trámite):
+   Observado → Diagnosticado (hipótesis escrita por el técnico) → Recomendado → En ejecución → Verificado.
+   Las solicitudes van por un carril propio: una solicitud ATENDIDA (insumo entregado, servicio prestado) no es una
+   ejecución agronómica y nunca cuenta como verificación. Solo una recomendación ejecutada o verificada, o el estado
+   del hallazgo declarado por el técnico, hacen avanzar a «En ejecución» o «Verificado». */
+export const PROGRESS = ['Observado', 'Diagnosticado', 'Recomendado', 'En ejecución', 'Verificado'];
 export function progressOf(finding, followups = []) {
-  const recs = followups.filter(f => f.findingId === finding.id && f.kind !== 'compromiso' && !/Cancel/.test(f.state));
-  if (finding.status === 'Verificado' || recs.some(r => r.state === 'Verificado')) return 3;
-  if (recs.some(r => ['Ejecutado', 'Atendida', 'Programado', 'En gestión'].includes(r.state)) || finding.status === 'Resuelto') return 2;
-  if (recs.length) return 1;
+  const recs = followups.filter(f => f.findingId === finding.id && f.kind === 'recomendacion' && !/Cancel/.test(f.state));
+  if (finding.status === 'Verificado' || recs.some(r => r.state === 'Verificado')) return 4;
+  if (recs.some(r => ['Ejecutado', 'Programado', 'En gestión'].includes(r.state)) || finding.status === 'Resuelto') return 3;
+  if (recs.length) return 2;
+  if (String(finding.diagnosis || '').trim()) return 1;
   return 0;
 }
 export const DEFAULT_FAVORITES = ['malezas', 'plagas', 'riego', 'estres', 'fertilizacion', 'despoblacion', 'cosecha', 'seguimiento'];

@@ -59,7 +59,7 @@ export function drawIcon(ctx, name, x, y, size, color, width = 1.9) {
 const toBlob = (canvas, type = 'image/jpeg', q = 0.92) => new Promise(r => canvas.toBlob(r, type, q));
 
 /* ---------- Foto etiquetada: imagen completa + pie documental ---------- */
-const lotText = (record, visit) => record ? `Suerte ${record.identity.lot}` : visit?.scope === 'finca' ? 'Finca completa' : '';
+const lotText = (record, lotKey) => record ? `Suerte ${record.identity.lot}` : lotKey ? `Suerte ${lotKey.split('|')[1]}` : 'Finca completa';
 const kindText = (photo, finding) => finding ? category(finding.category).label : photo.followupId ? 'Seguimiento' : 'Evidencia de la visita';
 /** Texto de ubicación para documentos: exacta y verificable, aproximada (rotulada) o ausente. */
 export function placeText(loc) {
@@ -67,16 +67,21 @@ export function placeText(loc) {
   if (loc && loc.source !== 'none' && Number.isFinite(loc.lat)) return {text: locationLabel(loc), ok: false};
   return {text: 'Sin ubicación verificable', ok: false};
 }
-export async function labeledPhoto({photo, visit, finding = null, record = null, author = ''}) {
+export async function labeledPhoto({photo, visit = null, finding = null, record = null, author = ''}) {
   await fonts();
+  // Contexto propio de la foto (v3); la visita y el hallazgo solo completan lo que falte.
+  const producer = photo.producer || finding?.producer || visit?.producer || null, lotKey = photo.lotKey || finding?.lotKey || null;
+  record = record || photo.record || finding?.record || null;
+  author = author || finding?.author || visit?.author?.name || '';
   const bmp = await bitmap(photo.blob); if (!bmp) throw Error('Formato de imagen no compatible para etiquetar');
   const long = Math.max(bmp.width, bmp.height), scale = Math.min(2048 / long, Math.max(1, 1080 / bmp.width));
   const W = Math.round(bmp.width * scale), H = Math.round(bmp.height * scale), u = W / 1080, P = 44 * u;
   const fam = finding ? familyStyle(finding.category) : {color: C.petrol700, soft: C.petrol50};
   const m = document.createElement('canvas').getContext('2d'), maxW = W - P * 2;
-  const card = record ? agroCard(record, photo.takenAt || visit?.startedAt) : null, when = photo.takenAt || photo.addedAt;
-  const title = [visit?.producer?.name, lotText(record, visit)].filter(Boolean).join(' · ');
-  const meta = [`${fdate(when)} ${ftime(when)}`, visit?.producer?.code ? `Cód. ${visit.producer.code}` : '', card?.variety ? `Variedad ${card.variety}` : '', card?.age !== null && card?.age !== undefined ? ageLabel(card.age) : ''].filter(Boolean).join(' · ');
+  const when = photo.takenAt || photo.addedAt, card = record ? agroCard(record, when) : null;
+  const title = producer ? [producer.name, lotText(record, lotKey)].join(' · ') : 'Evidencia sin productor identificado';
+  const lotCode = record?.identity?.lotCode;
+  const meta = [`${fdate(when)} ${ftime(when)}`, producer?.code ? `Hacienda ${producer.code}` : '', lotCode ? `Código de suerte ${lotCode}` : '', card?.variety ? `Variedad ${card.variety}` : '', card?.age !== null && card?.age !== undefined ? `Edad ${ageLabel(card.age)}` : ''].filter(Boolean).join(' · ');
   const place = placeText(photo.location), desc = photo.caption || finding?.observation || '';
   m.font = font(800, 40 * u); const tL = wrap(m, title, maxW);
   m.font = font(500, 27 * u); const mL = wrap(m, meta, maxW), pL = wrap(m, place.text, maxW - 34 * u);
@@ -101,7 +106,7 @@ export async function labeledPhoto({photo, visit, finding = null, record = null,
   if (dL.length) { y += 26 * u; ctx.fillStyle = C.ink; ctx.font = font(400, 29 * u); for (const l of dL) { y += 40 * u; ctx.fillText(l, P, y - 8 * u); } }
   y += 30 * u; ctx.fillStyle = C.line; ctx.fillRect(P, y, maxW, 2 * u); y += 2 * u;
   ctx.font = font(600, 22 * u); ctx.fillStyle = C.petrol800; ctx.fillText('Evidencia de campo · Negocios de Caña · CASUR', P, y + 38 * u);
-  ctx.textAlign = 'right'; ctx.fillStyle = C.soft; ctx.font = font(500, 22 * u); ctx.fillText([author ? author : '', `ID ${photo.id.slice(-8)}`].filter(Boolean).join(' · '), W - P, y + 38 * u); ctx.textAlign = 'left';
+  ctx.textAlign = 'right'; ctx.fillStyle = C.soft; ctx.font = font(500, 22 * u); ctx.fillText([author ? `Técnico: ${author}` : '', `ID ${photo.id.slice(-8)}`].filter(Boolean).join(' · '), W - P, y + 38 * u); ctx.textAlign = 'left';
   return toBlob(canvas, 'image/jpeg', 0.92);
 }
 
@@ -132,8 +137,10 @@ function containImage(ctx, b, x, y, w, h) {
   ctx.save(); ctx.fillStyle = '#EEF2F4'; rr(ctx, x, y, w, h, 12); ctx.fill(); ctx.clip();
   const s = Math.min(w / b.width, h / b.height), dw = b.width * s, dh = b.height * s; ctx.drawImage(b, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh); ctx.restore();
 }
-export async function followupSheet({finding, visit, record = null, photos = [], followPhotos = [], followups = [], features = [], author = ''}) {
+export async function followupSheet({finding, visit = null, record = null, photos = [], followPhotos = [], followups = [], features = [], author = ''}) {
   await fonts();
+  const producer = finding.producer || visit?.producer || {code: '', name: 'Sin productor identificado'};
+  record = record || finding.record || null; author = author || finding.author || visit?.author?.name || '';
   const W = 1240, P = 72, IW = W - P * 2, cat = category(finding.category), fam = familyStyle(finding.category), card = record ? agroCard(record, finding.observedAt) : null;
   const step = progressOf(finding, followups), details = filledDetails(finding.category, finding.details);
   const recs = followups.filter(f => !f.removedFromVisit).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -144,10 +151,11 @@ export async function followupSheet({finding, visit, record = null, photos = [],
   const m = document.createElement('canvas').getContext('2d'), L = (f, t, w = IW) => { m.font = f; return wrap(m, t, w); };
   // Bloques medidos (altura exacta antes de dibujar: nada se corta).
   const F = {title: font(800, 46), body: font(400, 30), meta: font(500, 25), small: font(500, 23), sec: font(800, 28), label: font(600, 22), val: font(700, 26)};
-  const nameL = L(F.title, visit?.producer?.name || ''), subL = L(F.meta, [`Código ${visit?.producer?.code || ''}`, visit?.producer?.zone, record ? `Suerte ${record.identity.lot}` : 'Finca completa', author ? `Técnico: ${author}` : ''].filter(Boolean).join(' · '));
+  const nameL = L(F.title, producer.name || ''), subL = L(F.meta, [producer.code ? `Hacienda ${producer.code}` : '', producer.zone, record ? `Suerte ${record.identity.lot} · código ${record.identity.lotCode}` : finding.lotKey ? `Suerte ${finding.lotKey.split('|')[1]}` : 'Finca completa',
+    finding.visitId ? 'Registrado en una visita formal' : 'Hallazgo de campo independiente', author ? `Técnico: ${author}` : ''].filter(Boolean).join(' · '));
   const agro = card ? [card.variety ? `Variedad ${card.variety}` : '', card.age !== null ? `Edad ${ageLabel(card.age)}` : '', card.area ? `${card.area.toLocaleString('es-NI', {maximumFractionDigits: 2})} ha` : '', card.irrigation ? `Riego ${card.irrigation}` : '',
     card.phenology?.stage ? `${finding.phenology?.corrected || card.phenology.stage} (${finding.phenology?.corrected ? 'corregida en campo' : 'probable por edad'})` : ''].filter(Boolean).join(' · ') : '';
-  const agroL = agro ? L(F.meta, agro) : [], obsL = finding.observation ? L(F.body, finding.observation) : [];
+  const agroL = agro ? L(F.meta, agro) : [], obsL = finding.observation ? L(F.body, finding.observation) : [], diagL = finding.diagnosis ? L(F.body, 'Diagnóstico o hipótesis: ' + finding.diagnosis) : [];
   const detL = details.map(d => ({label: d.label, lines: L(F.val, d.value, IW / 2 - 24)}));
   const detRows = []; for (let i = 0; i < detL.length; i += 2) detRows.push(Math.max(...detL.slice(i, i + 2).map(d => d.lines.length)));
   const recB = recs.map(r => ({r, head: [KIND[r.kind].label, r.category ? requestType(r.category).label : ''].filter(Boolean).join(' · '), lines: L(F.body, r.text || '—', IW - 40),
@@ -161,7 +169,7 @@ export async function followupSheet({finding, visit, record = null, photos = [],
   const mapH = features.length ? 380 : 0;
   const secH = 110;
   let H = 250 + nameL.length * 56 + subL.length * 34 + 40 + 110 /* progreso */
-    + secH + 70 + (agroL.length ? agroL.length * 34 + 16 : 0) + (obsL.length ? obsL.length * 42 + 20 : 46) + (detRows.length ? 20 + detRows.reduce((s, n) => s + 34 + n * 34 + 18, 0) : 0) + (finding.severity?.source === 'tecnico' ? 66 : 0)
+    + secH + 70 + (agroL.length ? agroL.length * 34 + 16 : 0) + (obsL.length ? obsL.length * 42 + 20 : 46) + (diagL.length ? diagL.length * 42 + 20 : 0) + (detRows.length ? 20 + detRows.reduce((s, n) => s + 34 + n * 34 + 18, 0) : 0) + (finding.severity?.source === 'tecnico' ? 66 : 0)
     + (evRows.length ? 30 + evRows.reduce((s, h) => s + h, 0) : 0)
     + secH + (recB.length ? recB.reduce((s, b) => s + 40 + b.lines.length * 42 + b.meta.length * 30 + 28, 0) : 46)
     + secH + (histB.length ? histB.reduce((s, b) => s + b.lines.length * 34 + 16, 0) : 46) + pairH + (mapH ? mapH + 40 : 0) + 150;
@@ -175,9 +183,9 @@ export async function followupSheet({finding, visit, record = null, photos = [],
   let y = 200; ctx.fillStyle = C.ink; ctx.font = F.title; for (const l of nameL) { ctx.fillText(l, P, y + 30); y += 56; }
   ctx.fillStyle = C.soft; ctx.font = F.meta; for (const l of subL) { ctx.fillText(l, P, y + 20); y += 34; }
   // Avance del trámite
-  y += 40; const sw = IW / 4;
+  y += 40; const sw = IW / PROGRESS.length;
   PROGRESS.forEach((l, i) => { const x = P + i * sw, done = i <= step; ctx.fillStyle = done ? fam.color : '#DDE3E7'; rr(ctx, x, y, sw - 10, 12, 6); ctx.fill();
-    ctx.fillStyle = i === step ? fam.color : done ? C.ink : C.soft; ctx.font = font(i === step ? 800 : 600, 23); ctx.fillText(`${i + 1}. ${l}`, x, y + 50); });
+    ctx.fillStyle = i === step ? fam.color : done ? C.ink : C.soft; ctx.font = font(i === step ? 800 : 600, 21); ctx.fillText(`${i + 1}. ${l}`, x, y + 50); });
   y += 110;
   const section = (n, t) => { ctx.fillStyle = fam.color; rr(ctx, P, y + 34, 44, 44, 12); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = font(800, 24); ctx.textAlign = 'center'; ctx.fillText(String(n), P + 22, y + 65); ctx.textAlign = 'left';
     ctx.fillStyle = C.petrol900; ctx.font = F.sec; ctx.fillText(t, P + 62, y + 66); y += secH; };
@@ -188,6 +196,7 @@ export async function followupSheet({finding, visit, record = null, photos = [],
   ctx.fillStyle = C.soft; ctx.font = F.meta; ctx.fillText(`${fdate(finding.observedAt)} ${ftime(finding.observedAt)}`, P + pw + 20, y + 35); y += 70;
   if (agroL.length) { ctx.fillStyle = C.petrol700; ctx.font = F.meta; for (const l of agroL) { ctx.fillText(l, P, y + 22); y += 34; } y += 16; }
   ctx.fillStyle = obsL.length ? C.ink : C.soft; ctx.font = F.body; if (obsL.length) { for (const l of obsL) { ctx.fillText(l, P, y + 30); y += 42; } y += 20; } else { ctx.fillText('Sin observación escrita.', P, y + 30); y += 46; }
+  if (diagL.length) { ctx.fillStyle = C.petrol800; ctx.font = F.body; for (const l of diagL) { ctx.fillText(l, P, y + 30); y += 42; } y += 20; }
   if (detRows.length) { y += 20; detRows.forEach((n, r) => { [0, 1].forEach(c => { const d = detL[r * 2 + c]; if (!d) return; const x = P + c * (IW / 2); ctx.fillStyle = C.soft; ctx.font = F.label; ctx.fillText(d.label, x, y + 22);
       ctx.fillStyle = C.ink; ctx.font = F.val; d.lines.forEach((l, i) => ctx.fillText(l, x, y + 56 + i * 34)); }); y += 34 + n * 34 + 18; }); }
   if (finding.severity?.source === 'tecnico') { const s = finding.severity.value; ctx.font = font(700, 24); const w = ctx.measureText(`Severidad evaluada: ${s}`).width + 36; ctx.fillStyle = C.sev[s] || C.soft; rr(ctx, P, y + 10, w, 44, 22); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(`Severidad evaluada: ${s}`, P + 18, y + 40); y += 66; }

@@ -4,12 +4,14 @@
    - Cada registro lleva `rev`; una escritura con una revisión vieja se rechaza (otra pestaña cambió el registro).
    - Los cambios se anuncian a otras pestañas por BroadcastChannel. */
 export const DB_NAME = 'casur-visitas';
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
+/* v3: hallazgos, fotos y seguimientos tienen identidad y contexto propios (productor, suerte, instantánea agronómica);
+   `visitId` es opcional. Los índices nuevos se agregan a los almacenes existentes sin recrearlos. */
 const STORES = {
   visits: {keyPath: 'id', indexes: [['updatedAt', 'updatedAt'], ['producerCode', 'producer.code'], ['status', 'status']]},
-  findings: {keyPath: 'id', indexes: [['visitId', 'visitId'], ['producerCode', 'producerCode'], ['observedAt', 'observedAt']]},
-  followups: {keyPath: 'id', indexes: [['visitId', 'visitId'], ['state', 'state'], ['kind', 'kind']]},
-  photos: {keyPath: 'id', indexes: [['visitId', 'visitId'], ['backupState', 'backupState']]},
+  findings: {keyPath: 'id', indexes: [['visitId', 'visitId'], ['producerCode', 'producerCode'], ['observedAt', 'observedAt'], ['lotKey', 'lotKey']]},
+  followups: {keyPath: 'id', indexes: [['visitId', 'visitId'], ['state', 'state'], ['kind', 'kind'], ['findingId', 'findingId'], ['producerCode', 'producerCode']]},
+  photos: {keyPath: 'id', indexes: [['visitId', 'visitId'], ['backupState', 'backupState'], ['findingId', 'findingId'], ['producerCode', 'producerCode']]},
   backups: {keyPath: 'id', indexes: [['createdAt', 'createdAt']]},
   settings: {keyPath: 'key'},
 };
@@ -30,6 +32,24 @@ const V1_CATEGORY = {'Cultivo': 'desarrollo', 'Riego y drenaje': 'riego', 'Nutri
   'Infraestructura': 'caminos', 'Cosecha': 'cosecha', 'Otro': 'otros'};
 const categoryFromV1 = c => V1_CATEGORY[c] || 'otros';
 
+/** Migración v2 → v3 de un hallazgo, foto o seguimiento: completa su contexto propio desde la visita a la que pertenece
+ *  (productor, suerte e instantánea agronómica). Pura y no destructiva: conserva id, fechas, relaciones y todos los campos;
+ *  solo AGREGA lo que falta. Un registro sin visita ni productor queda como borrador por identificar (nunca se inventa). */
+export function migrateItemV3(kind, item, visit) {
+  if (!item || (item.schema ?? 2) >= 3) return item;
+  const pv = visit?.producer || null;
+  const producer = item.producer ?? (pv ? {code: pv.code, name: pv.name ?? null, zone: pv.zone ?? null}
+    : item.producerCode ? {code: String(item.producerCode), name: item.producerName ?? null, zone: null} : null);
+  const lotKey = item.lotKey || null;
+  const record = item.record !== undefined ? item.record : (lotKey && visit?.masterSnapshot?.records?.find(r => r.key === lotKey)) || null;
+  const out = {...item, schema: 3, visitId: item.visitId || null, producer, producerCode: producer?.code ?? null, lotKey,
+    dataVersion: item.dataVersion ?? visit?.masterSnapshot?.dataVersion ?? null, migratedV3: true};
+  if (kind === 'findings') { out.record = record; if (out.status === 'abierto') out.status = 'Abierto'; }
+  if (kind === 'photos') { out.record = record; out.findingId = item.findingId || null; out.followupId = item.followupId || null; }
+  if (kind === 'followups') { out.producerName = item.producerName ?? producer?.name ?? null; out.findingId = item.findingId || null; }
+  return out;
+}
+
 let dbPromise = null;
 export function openStore() {
   if (dbPromise) return dbPromise;
@@ -38,18 +58,27 @@ export function openStore() {
     req.onupgradeneeded = event => {
       const db = req.result, tx = req.transaction;
       for (const [name, def] of Object.entries(STORES)) {
-        if (db.objectStoreNames.contains(name)) continue;
-        const store = db.createObjectStore(name, {keyPath: def.keyPath});
-        for (const [index, path] of def.indexes || []) store.createIndex(index, path);
+        const store = db.objectStoreNames.contains(name) ? tx.objectStore(name) : db.createObjectStore(name, {keyPath: def.keyPath});
+        for (const [index, path] of def.indexes || []) if (!store.indexNames.contains(index)) store.createIndex(index, path);
       }
-      if (event.oldVersion === 1) {
-        // VC01 → VC1.1: migración dentro de la misma transacción de actualización (todo o nada).
-        const visits = tx.objectStore('visits'), findings = tx.objectStore('findings');
-        visits.openCursor().onsuccess = e => {
+      // Toda la migración ocurre dentro de la transacción de actualización: o se completa o no cambia nada.
+      if (event.oldVersion >= 1 && event.oldVersion < 3) {
+        const visitsStore = tx.objectStore('visits'), byId = new Map();
+        const step3 = () => { for (const kind of ['findings', 'photos', 'followups']) tx.objectStore(kind).openCursor().onsuccess = e => {
           const cursor = e.target.result; if (!cursor) return;
-          const {visit, findings: list} = migrateVisitV1(cursor.value);
-          cursor.update(visit); list.forEach(f => findings.put(f));
+          const next = migrateItemV3(kind, cursor.value, byId.get(cursor.value.visitId));
+          if (next !== cursor.value) cursor.update(next);
           cursor.continue();
+        }; };
+        visitsStore.openCursor().onsuccess = e => {
+          const cursor = e.target.result;
+          if (!cursor) { step3(); return; }
+          let visit = cursor.value;
+          if (event.oldVersion === 1) {   // VC01 → v2: los hallazgos embebidos pasan a su almacén
+            const m = migrateVisitV1(visit); visit = m.visit; cursor.update(visit);
+            m.findings.forEach(f => tx.objectStore('findings').put(f));
+          }
+          byId.set(visit.id, visit); cursor.continue();
         };
       }
     };

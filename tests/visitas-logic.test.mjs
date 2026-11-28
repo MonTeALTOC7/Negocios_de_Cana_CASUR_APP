@@ -58,3 +58,27 @@ test('visita retrospectiva: no se atribuyen estado, corte ni estimado actuales a
   assert.equal(past.historical, true); assert.equal(past.state, null); assert.equal(past.tchEst, null); assert.equal(past.cuts, null); assert.equal(past.age, null); assert.equal(past.area, 5);
   const now = agroCard(r, '2026-11-28T10:00:00Z'); assert.equal(now.historical, false); assert.equal(now.state, 'Molienda'); assert.equal(now.tchEst, 70);
 });
+
+/* ---------- 1.3: migración v3, avance del trámite y búsqueda por código de suerte ---------- */
+import {migrateItemV3} from '../modules/visitas/js/store.js';
+import {progressOf, PROGRESS} from '../modules/visitas/js/catalog.js';
+const visit = {id: 'v1', producer: {code: '7', name: 'Amayo', zone: '5-Productores'}, masterSnapshot: {dataVersion: 'g1', records: [{key: '7|01', identity: {lotCode: '701'}}]}};
+test('migración v3: agrega contexto propio sin borrar ni cambiar ids, fechas o relaciones', () => {
+  const f = {id: 'h1', schema: 2, visitId: 'v1', producerCode: '7', lotKey: '7|01', observedAt: '2026-01-02', rev: 4, status: 'abierto', category: 'malezas'};
+  const m = migrateItemV3('findings', f, visit);
+  assert.equal(m.id, 'h1'); assert.equal(m.visitId, 'v1'); assert.equal(m.observedAt, '2026-01-02'); assert.equal(m.rev, 4);
+  assert.deepEqual(m.producer, {code: '7', name: 'Amayo', zone: '5-Productores'}); assert.equal(m.record.key, '7|01'); assert.equal(m.dataVersion, 'g1'); assert.equal(m.status, 'Abierto'); assert.equal(m.schema, 3);
+  assert.equal(migrateItemV3('findings', m, visit), m, 'idempotente');
+  const p = migrateItemV3('photos', {id: 'f1', visitId: 'v1', lotKey: null}, visit); assert.equal(p.producerCode, '7'); assert.equal(p.record, null); assert.equal(p.findingId, null);
+  const huérfano = migrateItemV3('photos', {id: 'f2', visitId: 'no-existe'}, undefined); assert.equal(huérfano.producer, null, 'sin visita ni productor: queda por identificar, nunca se inventa');
+  const fu = migrateItemV3('followups', {id: 's1', visitId: null, producerCode: '9', producerName: 'La Pradera'}, null); assert.deepEqual(fu.producer, {code: '9', name: 'La Pradera', zone: null});
+});
+test('avance: una solicitud atendida no es ejecución ni verificación', () => {
+  const f = {id: 'h', status: 'Abierto'};
+  assert.equal(PROGRESS[progressOf(f, [])], 'Observado');
+  assert.equal(PROGRESS[progressOf({...f, diagnosis: 'Deficiencia probable de N'}, [])], 'Diagnosticado');
+  assert.equal(PROGRESS[progressOf(f, [{findingId: 'h', kind: 'solicitud', state: 'Atendida'}])], 'Observado');
+  assert.equal(PROGRESS[progressOf(f, [{findingId: 'h', kind: 'recomendacion', state: 'Pendiente'}])], 'Recomendado');
+  assert.equal(PROGRESS[progressOf(f, [{findingId: 'h', kind: 'recomendacion', state: 'Ejecutado'}])], 'En ejecución');
+  assert.equal(PROGRESS[progressOf({...f, status: 'Verificado'}, [])], 'Verificado');
+});

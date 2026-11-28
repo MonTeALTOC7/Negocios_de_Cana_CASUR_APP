@@ -77,7 +77,7 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     await page.waitForFunction(() => document.querySelector('#gpsChip')?.dataset.s === 'confiable', null, {timeout: 30000});
     await page.waitForFunction(() => /Suerte 01/.test(document.querySelector('[data-here]')?.innerText || ''), null, {timeout: 15000});
     const here = await page.locator('[data-here]').innerText();
-    assert.match(here, /Amayo/); assert.match(here, /Detectada por GPS/); assert.match(here, /variedad/i); assert.match(here, /probable por edad/);
+    assert.match(here, /Amayo/); assert.match(here, /GPS ±\d+ m/); assert.match(here, /código 701/); assert.match(here, /\(probable\)/);
     assert.match(await page.locator('#gpsChip').innerText(), /Amayo · 01/);
     await noOverflow(page); await shot(page, '01-inicio-gps');
   });
@@ -90,13 +90,14 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     findingId = decodeURIComponent(page.url().split('hallazgo=')[1]);
     const f = await db(page, (s, id) => s.get('findings', id), findingId);
     assert.equal(f.lotKey, '7|01'); assert.equal(f.gps.source, 'device'); assert.equal(f.severity, null); assert.deepEqual(f.details, {});
-    visitId = f.visitId;
+    assert.equal(f.visitId, null, 'hallazgo de campo independiente: no crea visita'); assert.equal(f.producer.code, '7'); assert.ok(f.record?.identity?.lotCode, 'instantánea agronómica propia');
+    assert.equal(await db(page, s => s.all('visits').then(l => l.length)), 0, 'ninguna visita creada');
     await page.fill('[data-f="observation"]', 'Coquillo en la cabecera norte (QA sintética).');
     await page.locator('[data-gal] [data-capture]').dispatchEvent('pointerdown');
     await page.setInputFiles('[data-camera]', {name: 'IMG_camara.jpg', mimeType: 'image/jpeg', buffer: jpegV});
     await page.waitForFunction(() => document.querySelectorAll('.vc-ph img').length === 1, null, {timeout: 20000});
     await page.waitForTimeout(1500);
-    const ph = await db(page, (s, id) => s.byIndex('photos', 'findingId' in {} ? 'x' : 'visitId', null).catch(() => null) || s.all('photos'), null);
+    const ph = await db(page, s => s.all('photos'));
     const cam = ph.find(p => p.originalName === 'IMG_camara.jpg');
     assert.equal(cam.sha256, sha(jpegV)); assert.equal(cam.size, jpegV.length); assert.ok(['device-before', 'device-after'].includes(cam.location.source)); assert.equal(cam.findingId, findingId);
     await page.waitForFunction(() => /Guardado/.test(document.querySelector('[data-saved]')?.innerText || ''), null, {timeout: 10000});
@@ -164,8 +165,7 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     await shot(page, '09-conflicto-manual-gps');
     await page.click('a.vc-fab'); await page.waitForSelector('[data-cat="plagas"]'); await page.click('[data-cat="plagas"]'); await page.waitForSelector('[data-f="observation"]');
     const f2 = await db(page, s => s.all('findings').then(l => l.find(x => x.category === 'plagas')));
-    assert.equal(f2.lotKey, '7|02'); assert.equal(f2.visitId, visitId, 'misma visita del día');
-    const v = await db(page, (s, id) => s.get('visits', id), visitId); assert.deepEqual(v.lotKeys.sort(), ['7|01', '7|02']);
+    assert.equal(f2.lotKey, '7|02'); assert.equal(f2.visitId, null); assert.equal(await db(page, s => s.all('visits').then(l => l.length)), 0, 'sigue sin crear visitas');
     const f1 = await db(page, (s, id) => s.get('findings', id), findingId); assert.equal(f1.lotKey, '7|01');
     await page.goto(V + '#/inicio'); await ready(page); await page.click('[data-here] [data-clear]');   // el técnico suelta la selección manual
     await walk(ctx, page, jitter(A703, 5), 5);
@@ -184,12 +184,37 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     assert.match(await page.locator('[data-list]').innerText(), /Aplicar control químico dirigido/);
     await page.click('[data-tab="hallazgos"]'); await noOverflow(page); await shot(page, '10-gestion');
   });
-  await check('Mapa operativo: finca, suertes, ubicación y ficha de suerte', async () => {
-    await page.goto(V + '#/mapa?finca=7'); await ready(page);
-    await page.waitForFunction(() => document.querySelectorAll('#vcMap .leaflet-interactive').length > 10, null, {timeout: 60000}); await page.waitForTimeout(1500);
-    await page.evaluate(() => document.querySelector('#vcMap').__casurMap); await shot(page, '11-mapa');
-    await page.goto(V + '#/mapa?finca=7&suerte=' + encodeURIComponent('7|03')); await ready(page); await page.waitForSelector('[data-card]:not([hidden])', {timeout: 30000});
-    assert.match(await page.locator('[data-card]').innerText(), /Suerte 03[\s\S]*Registrar aquí/); await page.waitForTimeout(800); await shot(page, '12-mapa-ficha');
+  await check('Mapa: universo de productores sin visitas ni GPS, todas las geometrías, etiquetas HACIENDA/S. NN, búsqueda y ficha', async () => {
+    await page.goto(V + '#/mapa'); await ready(page);
+    await page.waitForFunction(() => window.CASUR_VISITAS_MAP?.visible() > 200, null, {timeout: 90000}); await page.waitForTimeout(1200);
+    assert.equal(await page.evaluate(() => window.CASUR_VISITAS_MAP.scope()), 'productores');
+    await shot(page, '11-mapa-productores');
+    await page.fill('[data-q]', 'pansaco'); await page.click('[data-goto-farm="993"]'); await page.waitForTimeout(1500);
+    for (let i = 0; i < 2; i++) { await page.locator('.leaflet-control-zoom-in').click(); await page.waitForTimeout(900); }
+    const labels = await page.evaluate(() => [...document.querySelectorAll('.vc-maplabel')].map(x => x.innerText.replace(/\n/g, '/')));
+    assert.ok(labels.some(l => /^PANSACO\/S\. \d+/.test(l)), 'etiquetas en dos líneas: ' + labels.slice(0, 5).join(', '));
+    await shot(page, '12-mapa-pansaco');
+    await page.fill('[data-q]', '99321'); await page.click('[data-goto-lot="99321"]'); await page.waitForSelector('[data-card]:not([hidden])', {timeout: 30000});
+    assert.match(await page.locator('[data-card]').innerText(), /Suerte 21[\s\S]*99321[\s\S]*Compra Venta[\s\S]*Hallazgo[\s\S]*Evidencia[\s\S]*Expediente/); await page.waitForTimeout(800); await shot(page, '13-mapa-ficha');
+    await page.click('[data-scope="todo"]'); await page.waitForTimeout(2500);
+    assert.equal(await page.evaluate(() => window.CASUR_VISITAS_MAP.visible()), 1047, 'Todo CASUR: las 1047 suertes del GIS');
+    assert.match(await page.locator('[data-status]').innerText(), /1 sin registro en el Maestro/);
+    await page.click('[data-scope="productores"]'); await page.waitForTimeout(800);
+  });
+  await check('Productores: catálogo completo sin visitas previas, paginado; Pansaco, AIDOSA y Jesús María consultables', async () => {
+    const c7 = await browser.newContext(mobile({permissions: []})); const p7 = await c7.newPage(); p7.on('pageerror', e => errors.push(String(e?.message ?? e)));
+    await p7.goto(V + '#/productores'); await ready(p7); await p7.waitForSelector('[data-list] .vc-item');
+    assert.match(await p7.locator('[data-count]').innerText(), /Mostrando 25 de 100 haciendas/);
+    await p7.click('[data-page]'); await p7.waitForTimeout(300); assert.match(await p7.locator('[data-count]').innerText(), /Mostrando 50 de 100/);
+    for (const [q, name] of [['pansaco', 'Pansaco'], ['aidosa', 'AIDOSA'], ['jesus', 'Jesús María']]) { await p7.fill('[data-q]', q); await p7.waitForTimeout(300); assert.match(await p7.locator('[data-list]').innerText(), new RegExp(name)); }
+    await p7.fill('[data-q]', ''); await p7.click('[data-f="Compra Venta"]'); await p7.waitForTimeout(300); assert.match(await p7.locator('[data-count]').innerText(), /de 52 haciendas/);
+    await shot(p7, '14-productores');
+    await p7.goto(V + '#/productor/993?tab=suertes'); await ready(p7); await p7.waitForSelector('.vc-lotrow');
+    assert.equal(await p7.locator('.vc-lotrow').count(), 49); await p7.locator('.vc-lotrow summary').first().click(); await p7.waitForTimeout(300);
+    assert.match(await p7.locator('.vc-lotrow[open]').innerText(), /ÁREA[\s\S]*VARIEDAD[\s\S]*EDAD[\s\S]*RIEGO[\s\S]*TEXTURA/i);
+    await shot(p7, '15-expediente-suertes', true);
+    await p7.goto(V + '#/suerte/' + encodeURIComponent('993|21')); await ready(p7); await p7.waitForSelector('.vc-lotmap svg', {timeout: 60000});
+    assert.match(await p7.locator('main').innerText(), /Suerte 21[\s\S]*99321[\s\S]*Compra Venta/); await c7.close();
   });
   await check('Escenario 2 · Visita manual desde oficina, retrospectiva y de varias suertes, sin GPS', async () => {
     const c2 = await browser.newContext(mobile({permissions: []})); const p2 = await c2.newPage(); p2.on('pageerror', e => errors.push(String(e?.message ?? e)));
@@ -229,49 +254,71 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     await shot(page, '16-expediente-resumen', true);
     await page.click('[data-tab="suertes"]'); assert.ok(await page.locator('.vc-lotnum').count() > 3);
     await page.click('[data-tab="cronologia"]'); await page.waitForSelector('.vc-timeline');
-    const tl = await page.locator('.vc-timeline').innerText(); assert.match(tl, /Visita técnica[\s\S]*Hallazgo · /); assert.match(tl, /Recomendación emitida/); assert.match(tl, /Recomendación → En gestión/); assert.match(tl, /fotografía/);
+    const tl = await page.locator('.vc-timeline').innerText(); assert.match(tl, /Hallazgo de campo · /); assert.match(tl, /Recomendación emitida/); assert.match(tl, /Recomendación → En gestión/); assert.match(tl, /fotografía/);
     await shot(page, '17-expediente-cronologia', true);
-    await page.click('[data-tab="seguimiento"]'); await page.waitForSelector('.vc-stages'); assert.match(await page.locator('.vc-stages').innerText(), /1\s*Observado[\s\S]*2\s*Recomendado[\s\S]*3\s*En ejecución[\s\S]*4\s*Verificado/);
+    await page.click('[data-tab="seguimiento"]'); await page.waitForSelector('.vc-stages'); assert.match(await page.locator('.vc-stages').innerText(), /1\s*Observado[\s\S]*2\s*Diagnosticado[\s\S]*3\s*Recomendado[\s\S]*4\s*En ejecución[\s\S]*5\s*Verificado/);
     await shot(page, '18-expediente-seguimiento', true);
     await page.click('[data-tab="evidencias"]'); await page.waitForSelector('.vc-galgroup'); await page.waitForTimeout(500); await shot(page, '19-expediente-evidencias', true);
     await page.goto(V + '#/suerte/' + encodeURIComponent('7|01')); await ready(page); await page.waitForSelector('.vc-lotmap svg', {timeout: 30000});
-    const lot = await page.locator('main').innerText(); assert.match(lot, /Suerte 01[\s\S]*Hallazgos[\s\S]*Malezas[\s\S]*Evidencias[\s\S]*Visitas/);
+    const lot = await page.locator('main').innerText(); assert.match(lot, /Suerte 01[\s\S]*código 701[\s\S]*Hallazgos[\s\S]*Malezas[\s\S]*Evidencias[\s\S]*Visitas formales/);
     await shot(page, '20-ficha-suerte', true);
   });
-  await check('Evidencia de la visita sin hallazgo: inicio «Tomar evidencia», vista Evidencias e informe', async () => {
-    await page.goto(V + '#/inicio'); await ready(page);
-    assert.match(await page.locator('.vc-metrics').innerText(), /Visitas realizadas[\s\S]*Productores atendidos[\s\S]*Recomendaciones abiertas[\s\S]*Solicitudes pendientes[\s\S]*Compromisos vencidos/);
-    await page.evaluate(async () => (await import(new URL('js/model.js', location.href).href)).setManualTarget('7', '7|01')); await page.reload(); await ready(page);
-    await page.locator('[data-capture]').first().dispatchEvent('pointerdown');
-    await page.setInputFiles('.vc-quick [data-evidence]', {name: 'IMG_visita.jpg', mimeType: 'image/jpeg', buffer: jpeg});
-    await page.waitForFunction(() => /Evidencia guardada en la visita/.test(document.querySelector('#toast')?.innerText || ''), null, {timeout: 20000});
-    const p = await db(page, s => s.all('photos').then(l => l.find(x => x.originalName === 'IMG_visita.jpg')));
-    assert.equal(p.findingId, null); assert.equal(p.followupId, null); assert.ok(p.visitId);
+  await check('Evidencia rápida sin visita: foto → identificar → comentar → etiquetar → descargar; original intacto', async () => {
+    await page.goto(V + '#/inicio'); await ready(page); await page.waitForSelector('.vc-stats');
+    assert.match(await page.locator('[data-kpis]').innerText(), /Visitas formales[\s\S]*Hallazgos de campo[\s\S]*Evidencias[\s\S]*Productores atendidos[\s\S]*Recomendaciones abiertas[\s\S]*Solicitudes pendientes[\s\S]*Compromisos vencidos/);
+    await page.evaluate(async () => (await import(new URL('js/model.js', location.href).href)).clearTarget()); await page.reload(); await ready(page);
+    // Sin finca seleccionada: la foto se guarda igual, como evidencia por identificar (borrador).
+    await page.locator('.vc-quick4 [data-capture]').dispatchEvent('pointerdown');
+    await page.setInputFiles('.vc-quick4 [data-evidence]', {name: 'IMG_rapida.jpg', mimeType: 'image/jpeg', buffer: jpeg});
+    await page.waitForURL(/#\/evidencia\//, {timeout: 20000}); await page.waitForSelector('[data-identify]');
+    let p = await db(page, s => s.all('photos').then(l => l.find(x => x.originalName === 'IMG_rapida.jpg')));
+    assert.equal(p.visitId, null); assert.equal(p.findingId, null); assert.equal(p.producer, null); assert.equal(p.sha256, sha(jpeg));
+    assert.equal(await db(page, s => s.all('visits').then(l => l.length)), 0, 'la evidencia rápida no crea visitas');
+    await page.click('[data-identify]'); await page.fill('.vc-sheet [data-q]', '99321'); await page.click('.vc-sheet [data-pre="993|21"]');
+    await page.waitForFunction(() => /Pansaco · Suerte 21/.test(document.querySelector('main')?.innerText || ''), null, {timeout: 15000});
+    await page.fill('[data-caption]', 'Fuga en el hidrante de la cabecera; el agua corre hacia el dren (QA sintética, comentario largo para probar el ajuste de líneas sin cortes).');
+    await page.waitForTimeout(900);
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-dl-label]')]); await dl.saveAs(path.join(out, 'muestra-evidencia-rapida-etiquetada.jpg'));
+    const [dlo] = await Promise.all([page.waitForEvent('download'), page.click('[data-dl-orig]')]); await dlo.saveAs(path.join(out, 'evidencia-rapida-original.jpg'));
+    assert.equal(sha(fs.readFileSync(path.join(out, 'evidencia-rapida-original.jpg'))), sha(jpeg), 'el original descargado es idéntico');
+    p = await db(page, (s, id) => s.get('photos', id), p.id);
+    assert.equal(p.producer.code, '993'); assert.equal(p.lotKey, '993|21'); assert.equal(p.record.identity.lotCode, '99321'); assert.match(p.caption, /hidrante/); assert.equal(p.sha256, sha(jpeg), 'original intacto tras etiquetar');
+    await shot(page, '21-evidencia-rapida', true);
+    // Convertir en hallazgo de campo (sin visita).
+    await page.selectOption('[data-category]', 'riego'); await page.waitForTimeout(600); await page.click('[data-to-finding]'); await page.waitForURL(/registrar\?hallazgo=/);
+    const fr = await db(page, s => s.all('findings').then(l => l.find(x => x.category === 'riego' && !x.deletedAt)));
+    assert.equal(fr.visitId, null); assert.equal(fr.producer.code, '993'); assert.equal((await db(page, (s, id) => s.get('photos', id), p.id)).findingId, fr.id);
     await page.goto(V + '#/evidencias'); await ready(page); await page.waitForSelector('.vc-galgroup');
-    assert.match(await page.locator('main').innerText(), /Evidencias de la visita[\s\S]*De hallazgos/); await page.waitForTimeout(500); await shot(page, '21-evidencias', true);
-    await page.selectOption('[data-kind]', 'Seguimiento'); await page.waitForTimeout(300); assert.match(await page.locator('main').innerText(), /Del seguimiento/);
-    await page.goto(V + '#/informe/visita/' + p.visitId); await ready(page); await page.waitForSelector('.vc-report');
-    const txt = await page.locator('.vc-report').innerText(); assert.match(txt, /Evidencias de la visita/i); assert.match(txt, /Evidencias del seguimiento/i); assert.match(txt, /Avance: /);
+    assert.match(await page.locator('main').innerText(), /Pansaco[\s\S]*De hallazgos/); await page.waitForTimeout(500); await shot(page, '22-evidencias', true);
+    await page.goto(V + '#/informe/hallazgo/' + fr.id); await ready(page); await page.waitForSelector('.vc-report');
+    const txt = await page.locator('.vc-report').innerText(); assert.match(txt, /Hallazgo de campo · Riego/); assert.match(txt, /Pansaco/); assert.doesNotMatch(txt, /undefined|NaN|null/);
+    await page.goto(V + '#/informe/periodo/2026-01-01_2030-12-31'); await ready(page); await page.waitForSelector('.vc-report');
+    assert.match(await page.locator('.vc-report').innerText(), /Hallazgos de campo \(sin visita formal\)[\s\S]*Pansaco/i);
   });
-  await check('Visita retrospectiva: hallazgo con la fecha de la visita, sin GPS actual ni atributos actuales', async () => {
+  await check('Visita formal retrospectiva: hallazgo con la fecha de la visita, sin GPS actual ni atributos actuales', async () => {
     await page.goto(V + '#/nueva?finca=7'); await ready(page);
-    await page.waitForSelector('[data-lot]');   // solo la suerte 03 (la suerte objetivo viene preseleccionada)
-    await page.locator('[data-lot][value="7|03"]').evaluate(e => { if (!e.checked) e.click(); }); await page.locator('[data-lot][value="7|01"]').evaluate(e => { if (e.checked) e.click(); });
+    await page.waitForSelector('[data-scope="suertes"]'); await page.click('[data-scope="suertes"]'); await page.waitForSelector('[data-lot]', {state: 'attached'});
+    await page.locator('[data-lot][value="7|03"]').evaluate(e => { if (!e.checked) e.click(); }); for (const k of ['7|01', '7|02']) await page.locator(`[data-lot][value="${k}"]`).evaluate(e => { if (e.checked) e.click(); });
     await page.fill('[data-when]', '2025-06-10T09:00'); await page.click('[data-create]'); await page.waitForURL(/#\/visita\//);
+    visitId = decodeURIComponent(page.url().split('/visita/')[1]);
     await page.waitForSelector('.vc-note--retro', {timeout: 15000}); assert.match(await page.locator('main').innerText(), /Registro retrospectivo/);
     await page.click('[data-reg]'); await page.waitForURL(/registrar\?visita=/); await page.waitForSelector('[data-cat="malezas"]');
-    assert.match(await page.locator('[data-target]').innerText(), /Visita del 10-Jun-2025/);
+    assert.match(await page.locator('[data-target]').innerText(), /Visita formal del 10-Jun-2025/);
     await page.click('[data-cat="malezas"]'); await page.waitForSelector('[data-f="observation"]');
     const f = await db(page, s => s.all('findings').then(l => l.find(x => x.observedAt.startsWith('2025-06-10'))));
-    assert.ok(f, 'hallazgo con la fecha de la visita'); assert.equal(f.gps.source, 'none', 'sin ubicación actual'); assert.equal(f.lotKey, '7|03');
+    assert.ok(f, 'hallazgo con la fecha de la visita'); assert.equal(f.gps.source, 'none', 'sin ubicación actual'); assert.equal(f.lotKey, '7|03'); assert.equal(f.visitId, visitId);
     assert.match(await page.locator('[data-form]').innerText(), /Registro retrospectivo/);
-    await shot(page, '22-retrospectiva', true);
+    await page.fill('[data-f="observation"]', 'Malezas en la visita retrospectiva (QA).'); await page.waitForTimeout(900);
+    await shot(page, '23-retrospectiva', true);
   });
   await check('Informes (visita, expediente, consolidado) + Excel y GeoJSON', async () => {
     await page.goto(V + '#/informe/visita/' + visitId); await ready(page); await page.waitForSelector('.vc-report svg');
-    const txt = await page.locator('.vc-report').innerText(); fs.writeFileSync(path.join(out, 'informe-visita.txt'), txt); assert.match(txt, /Informe de visita[\s\S]*Negocios de Caña · CASUR[\s\S]*Hallazgos[\s\S]*Malezas/i); assert.doesNotMatch(txt, /undefined|NaN|null/);
-    assert.match(txt, /Recomendación: Aplicar control químico dirigido en la cabecera norte\./);
-    await shot(page, '23-informe-visita', true);
+    const txt = await page.locator('.vc-report').innerText(); fs.writeFileSync(path.join(out, 'informe-visita.txt'), txt); assert.match(txt, /Informe de visita formal[\s\S]*Negocios de Caña · CASUR[\s\S]*Hallazgos[\s\S]*Malezas/i); assert.doesNotMatch(txt, /undefined|NaN|null/);
+    await shot(page, '24-informe-visita', true);
+    await page.goto(V + '#/informe/hallazgo/' + findingId); await ready(page); await page.waitForSelector('.vc-report');
+    const t2 = await page.locator('.vc-report').innerText(); assert.match(t2, /Hallazgo de campo · Malezas/); assert.match(t2, /Aplicar control químico dirigido en la cabecera norte\./); assert.match(t2, /Evidencias del seguimiento/i);
+    await page.pdf?.({path: path.join(out, 'muestra-informe-hallazgo.pdf'), format: 'A4', printBackground: true}).catch(() => {});
+    await page.goto(V + '#/informe/visita/' + visitId); await ready(page); await page.waitForSelector('.vc-report');
     await page.pdf?.({path: path.join(out, 'muestra-informe-visita.pdf'), format: 'A4', printBackground: true}).catch(() => {});
     await page.goto(V + '#/informes'); await ready(page);
     const [x] = await Promise.all([page.waitForEvent('download'), page.click('[data-xlsx]')]); await x.saveAs(path.join(out, 'muestra-visitas.xlsx'));
@@ -313,7 +360,7 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     parts = await page.evaluate(async () => { const b = await import(new URL('js/backup.js', location.href).href); const r = await b.buildBackup({scope: 'all', limit: 1});
       return Promise.all(r.parts.map(async p => ({name: p.name, bytes: [...new Uint8Array(await p.blob.arrayBuffer())]}))); });
     assert.ok(parts.length >= 3); parts.forEach(p => fs.writeFileSync(path.join(out, p.name), Buffer.from(p.bytes)));
-    assert.match(Buffer.from(parts[0].bytes).toString('latin1'), /fotos\/2026\/\d{2}\/7_Amayo\/visita-/);
+    assert.match(Buffer.from(parts[0].bytes).toString('latin1'), /fotos\/20\d\d\/\d{2}\/(7_Amayo|993_Pansaco)\/(campo-|visita-|evidencias)/);
   });
   await check('Restauración: parte faltante, cualquier orden, idempotente, corrupción y conflicto de contenido', async () => {
     const c4 = await browser.newContext(mobile()); const p4 = await c4.newPage(); p4.on('pageerror', e => errors.push(String(e?.message ?? e)));
@@ -322,8 +369,8 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     await p4.setInputFiles('[data-restore]', [files[1]]); await p4.waitForSelector('[data-report] .vc-note');
     assert.match(await p4.locator('[data-report]').innerText(), /incompleto[\s\S]*falta/);
     await p4.setInputFiles('[data-restore]', files.slice().reverse()); await p4.waitForTimeout(2500);
-    const st = await db(p4, async s => ({v: (await s.all('visits')).length, f: (await s.all('findings')).length, p: (await s.all('photos')).filter(x => x.blob).length}));
-    assert.ok(st.v >= 1 && st.f >= 2 && st.p >= 3, JSON.stringify(st));
+    const st = await db(p4, async s => ({v: (await s.all('visits')).length, f: (await s.all('findings')).length, p: (await s.all('photos')).filter(x => x.blob).length, indep: (await s.all('findings')).filter(x => !x.visitId).length}));
+    assert.ok(st.v >= 1 && st.f >= 3 && st.p >= 3 && st.indep >= 2, JSON.stringify(st));
     await p4.setInputFiles('[data-restore]', files); await p4.waitForTimeout(2500);
     assert.match(await p4.locator('[data-report]').innerText(), /Fotos: 0 restauradas/);
     // Conflicto: misma foto (id) con otro contenido en el teléfono → no se pisa.
@@ -354,9 +401,9 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     assert.deepEqual(dbs, ['casur-visitas']);
   });
   await check('Responsive: 360, 412 y escritorio sin desbordes', async () => {
-    for (const [w, h, name] of [[360, 760, '360'], [412, 915, '412']]) { await page.setViewportSize({width: w, height: h}); for (const r of ['inicio', 'registrar', 'productores', 'gestion', 'evidencias', 'productor/7', 'datos']) { await page.goto(V + '#/' + r); await ready(page); await page.waitForTimeout(600); await noOverflow(page); } await page.goto(V + '#/inicio'); await ready(page); await page.waitForTimeout(500); await shot(page, `25-inicio-${name}`); }
+    for (const [w, h, name] of [[360, 760, '360'], [412, 915, '412']]) { await page.setViewportSize({width: w, height: h}); for (const r of ['inicio', 'registrar', 'productores', 'gestion', 'evidencias', 'productor/7', 'visitas', 'informes', 'datos']) { await page.goto(V + '#/' + r); await ready(page); await page.waitForTimeout(600); await noOverflow(page); } await page.goto(V + '#/inicio'); await ready(page); await page.waitForTimeout(500); await shot(page, `25-inicio-${name}`); }
     const d = await browser.newContext({viewport: {width: 1440, height: 900}, deviceScaleFactor: 1, geolocation: {latitude: A701[1], longitude: A701[0], accuracy: 5}, permissions: ['geolocation']}); const pd = await d.newPage();
-    await pd.goto(V + '#/mapa?finca=7'); await ready(pd); await pd.waitForFunction(() => document.querySelectorAll('#vcMap .leaflet-interactive').length > 10, null, {timeout: 60000}); await pd.waitForTimeout(1500); await shot(pd, '26-escritorio-mapa');
+    await pd.goto(V + '#/mapa?finca=993'); await ready(pd); await pd.waitForFunction(() => window.CASUR_VISITAS_MAP?.visible() > 200, null, {timeout: 90000}); await pd.waitForTimeout(2000); await shot(pd, '26-escritorio-mapa');
     await pd.goto(V + '#/inicio'); await ready(pd); await pd.waitForTimeout(800); await noOverflow(pd); await shot(pd, '27-escritorio-inicio');
     await pd.goto(V + '#/productor/7?tab=cronologia'); await ready(pd); await pd.waitForTimeout(800); await noOverflow(pd); await shot(pd, '28-escritorio-expediente'); await d.close();
   });

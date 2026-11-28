@@ -1,0 +1,814 @@
+{
+ "generatedAt": "2026-11-28T20:01:22.905Z",
+ "maestro": {
+  "dataVersion": "2026.11.22-aforo.1102",
+  "aforoDate": "2026-10-12",
+  "generated": "2026-11-22",
+  "previousDataVersion": "2026.10.25-aforo.1101",
+  "source": "Productores _Servicios_Z2627.xlsx",
+  "note": "La fecha oficial del aforo es la de la fuente (tchEst2627EffectiveDate). La generación de noviembre actualizó planificación y otros atributos; no es un aforo nuevo.",
+  "farms": 100,
+  "lots": 1053
+ },
+ "gis": {
+  "dataVersion": "2026-07-24-maestro-26-27-r2",
+  "crs": "EPSG:4326",
+  "source": "Maestro_26_27_2472026_QGIS_SHP.zip",
+  "lotCount": 1047,
+  "fragmentCount": 8242,
+  "byZone": {
+   "1-Sur": {
+    "lots": 255,
+    "fragments": 1955
+   },
+   "2-Centro": {
+    "lots": 238,
+    "fragments": 2812
+   },
+   "3-Norte": {
+    "lots": 296,
+    "fragments": 2114
+   },
+   "5-Productores": {
+    "lots": 258,
+    "fragments": 1361
+   }
+  }
+ },
+ "reconciliation": {
+  "matched": 1046,
+  "maestroWithoutGeometry": [
+   {
+    "key": "3|37A",
+    "lotCode": "337A",
+    "farm": "El Javillo",
+    "farmCode": "3",
+    "lot": "37A",
+    "zone": "2-Centro",
+    "tenure": "Propio",
+    "state": "Molienda",
+    "presence": "present",
+    "partitionOf": "337"
+   },
+   {
+    "key": "63|01A",
+    "lotCode": "6301A",
+    "farm": "EL POLIGONO",
+    "farmCode": "63",
+    "lot": "01A",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present",
+    "partitionOf": "6301"
+   },
+   {
+    "key": "6|06",
+    "lotCode": "606",
+    "farm": "Freddy Sovalvarro",
+    "farmCode": "6",
+    "lot": "06",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Molienda",
+    "presence": "present",
+    "partitionOf": null
+   },
+   {
+    "key": "9|02A",
+    "lotCode": "902A",
+    "farm": "La Pradera",
+    "farmCode": "9",
+    "lot": "02A",
+    "zone": "2-Centro",
+    "tenure": "Arriendo",
+    "state": "Ausente de la fuente",
+    "presence": "absent",
+    "partitionOf": "902"
+   },
+   {
+    "key": "184|13A",
+    "lotCode": "18413A",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "13A",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Molienda",
+    "presence": "present",
+    "partitionOf": "18413"
+   },
+   {
+    "key": "993|47A",
+    "lotCode": "99347A",
+    "farm": "Pansaco",
+    "farmCode": "993",
+    "lot": "47A",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja definitiva",
+    "presence": "present",
+    "partitionOf": null
+   },
+   {
+    "key": "19|21B",
+    "lotCode": "1921B",
+    "farm": "San Fernando",
+    "farmCode": "19",
+    "lot": "21B",
+    "zone": "1-Sur",
+    "tenure": "Propio",
+    "state": "Molienda",
+    "presence": "present",
+    "partitionOf": "1921"
+   }
+  ],
+  "geometryWithoutRecord": [
+   {
+    "lotId": "2209B",
+    "zone": "1-Sur",
+    "fragments": 1,
+    "partitionOf": "2209"
+   }
+  ],
+  "zoneMismatch": [],
+  "inactiveWithGeometry": [
+   {
+    "key": "904|01",
+    "lotCode": "90401",
+    "farm": "Alba Nora Argüello Martinez",
+    "farmCode": "904",
+    "lot": "01",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "904|01A",
+    "lotCode": "90401A",
+    "farm": "Alba Nora Argüello Martinez",
+    "farmCode": "904",
+    "lot": "01A",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "63|01",
+    "lotCode": "6301",
+    "farm": "EL POLIGONO",
+    "farmCode": "63",
+    "lot": "01",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "63|02",
+    "lotCode": "6302",
+    "farm": "EL POLIGONO",
+    "farmCode": "63",
+    "lot": "02",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "63|03",
+    "lotCode": "6303",
+    "farm": "EL POLIGONO",
+    "farmCode": "63",
+    "lot": "03",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "63|04",
+    "lotCode": "6304",
+    "farm": "EL POLIGONO",
+    "farmCode": "63",
+    "lot": "04",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "63|05",
+    "lotCode": "6305",
+    "farm": "EL POLIGONO",
+    "farmCode": "63",
+    "lot": "05",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "63|05A",
+    "lotCode": "6305A",
+    "farm": "EL POLIGONO",
+    "farmCode": "63",
+    "lot": "05A",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "63|06",
+    "lotCode": "6306",
+    "farm": "EL POLIGONO",
+    "farmCode": "63",
+    "lot": "06",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "63|07",
+    "lotCode": "6307",
+    "farm": "EL POLIGONO",
+    "farmCode": "63",
+    "lot": "07",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "63|08",
+    "lotCode": "6308",
+    "farm": "EL POLIGONO",
+    "farmCode": "63",
+    "lot": "08",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "147|10A",
+    "lotCode": "14710A",
+    "farm": "El Volcan CSR",
+    "farmCode": "147",
+    "lot": "10A",
+    "zone": "3-Norte",
+    "tenure": "Arriendo",
+    "state": "Ausente de la fuente",
+    "presence": "absent"
+   },
+   {
+    "key": "125|14",
+    "lotCode": "12514",
+    "farm": "José Andrés Pérez Alemán",
+    "farmCode": "125",
+    "lot": "14",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "494|04A",
+    "lotCode": "49404A",
+    "farm": "Juan Róger Sáenz Sacasa",
+    "farmCode": "494",
+    "lot": "04A",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja definitiva",
+    "presence": "present"
+   },
+   {
+    "key": "184|02",
+    "lotCode": "18402",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "02",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|03",
+    "lotCode": "18403",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "03",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|05",
+    "lotCode": "18405",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "05",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|07",
+    "lotCode": "18407",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "07",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|08",
+    "lotCode": "18408",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "08",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|10",
+    "lotCode": "18410",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "10",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|16",
+    "lotCode": "18416",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "16",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|17",
+    "lotCode": "18417",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "17",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|18",
+    "lotCode": "18418",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "18",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|20",
+    "lotCode": "18420",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "20",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|21",
+    "lotCode": "18421",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "21",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|22",
+    "lotCode": "18422",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "22",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|23",
+    "lotCode": "18423",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "23",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|24",
+    "lotCode": "18424",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "24",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|25",
+    "lotCode": "18425",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "25",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|27",
+    "lotCode": "18427",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "27",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|28",
+    "lotCode": "18428",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "28",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|29",
+    "lotCode": "18429",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "29",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|30",
+    "lotCode": "18430",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "30",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|40",
+    "lotCode": "18440",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "40",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "184|40A",
+    "lotCode": "18440A",
+    "farm": "Leyla Román de Arguello",
+    "farmCode": "184",
+    "lot": "40A",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "64|01",
+    "lotCode": "6401",
+    "farm": "LOS COCOS",
+    "farmCode": "64",
+    "lot": "01",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "64|02",
+    "lotCode": "6402",
+    "farm": "LOS COCOS",
+    "farmCode": "64",
+    "lot": "02",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "64|03",
+    "lotCode": "6403",
+    "farm": "LOS COCOS",
+    "farmCode": "64",
+    "lot": "03",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "62|03",
+    "lotCode": "6203",
+    "farm": "Maria Teresa Chamorro Tijerino",
+    "farmCode": "62",
+    "lot": "03",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "910|01",
+    "lotCode": "91001",
+    "farm": "Miramar",
+    "farmCode": "910",
+    "lot": "01",
+    "zone": "1-Sur",
+    "tenure": "Arriendo",
+    "state": "Investigación",
+    "presence": "present"
+   },
+   {
+    "key": "910|01A",
+    "lotCode": "91001A",
+    "farm": "Miramar",
+    "farmCode": "910",
+    "lot": "01A",
+    "zone": "1-Sur",
+    "tenure": "Arriendo",
+    "state": "Investigación",
+    "presence": "present"
+   },
+   {
+    "key": "993|41",
+    "lotCode": "99341",
+    "farm": "Pansaco",
+    "farmCode": "993",
+    "lot": "41",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "993|44",
+    "lotCode": "99344",
+    "farm": "Pansaco",
+    "farmCode": "993",
+    "lot": "44",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "993|45",
+    "lotCode": "99345",
+    "farm": "Pansaco",
+    "farmCode": "993",
+    "lot": "45",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Baja rentabilidad",
+    "presence": "present"
+   },
+   {
+    "key": "993|48",
+    "lotCode": "99348",
+    "farm": "Pansaco",
+    "farmCode": "993",
+    "lot": "48",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "993|48A",
+    "lotCode": "99348A",
+    "farm": "Pansaco",
+    "farmCode": "993",
+    "lot": "48A",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "993|52",
+    "lotCode": "99352",
+    "farm": "Pansaco",
+    "farmCode": "993",
+    "lot": "52",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "96|01",
+    "lotCode": "9601",
+    "farm": "Rafael Urtecho Martinez",
+    "farmCode": "96",
+    "lot": "01",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "33|13",
+    "lotCode": "3313",
+    "farm": "Rodeo Grande",
+    "farmCode": "33",
+    "lot": "13",
+    "zone": "3-Norte",
+    "tenure": "Arriendo",
+    "state": "Ausente de la fuente",
+    "presence": "absent"
+   },
+   {
+    "key": "33|16A",
+    "lotCode": "3316A",
+    "farm": "Rodeo Grande",
+    "farmCode": "33",
+    "lot": "16A",
+    "zone": "3-Norte",
+    "tenure": "Compra Venta",
+    "state": "Ausente de la fuente",
+    "presence": "absent"
+   },
+   {
+    "key": "33|25",
+    "lotCode": "3325",
+    "farm": "Rodeo Grande",
+    "farmCode": "33",
+    "lot": "25",
+    "zone": "3-Norte",
+    "tenure": "Arriendo",
+    "state": "Ausente de la fuente",
+    "presence": "absent"
+   },
+   {
+    "key": "33|27",
+    "lotCode": "3327",
+    "farm": "Rodeo Grande",
+    "farmCode": "33",
+    "lot": "27",
+    "zone": "3-Norte",
+    "tenure": "Arriendo",
+    "state": "Ausente de la fuente",
+    "presence": "absent"
+   },
+   {
+    "key": "33|28",
+    "lotCode": "3328",
+    "farm": "Rodeo Grande",
+    "farmCode": "33",
+    "lot": "28",
+    "zone": "3-Norte",
+    "tenure": "Arriendo",
+    "state": "Ausente de la fuente",
+    "presence": "absent"
+   },
+   {
+    "key": "50|01",
+    "lotCode": "5001",
+    "farm": "SAN FELIX (MORICE)",
+    "farmCode": "50",
+    "lot": "01",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   },
+   {
+    "key": "50|03",
+    "lotCode": "5003",
+    "farm": "SAN FELIX (MORICE)",
+    "farmCode": "50",
+    "lot": "03",
+    "zone": "5-Productores",
+    "tenure": "Compra Venta",
+    "state": "Sin Caña",
+    "presence": "present"
+   }
+  ]
+ },
+ "classification": {
+  "note": "La clasificación de negocio es la tenencia de cada suerte (CA Arriendo, CV Compra Venta, PR Propio) y es independiente de la zona geográfica.",
+  "lotsByTenureAndZone": {
+   "Compra Venta · 5-Productores": 262,
+   "Arriendo · 3-Norte": 168,
+   "Arriendo · 2-Centro": 78,
+   "Arriendo · 1-Sur": 80,
+   "Propio · 2-Centro": 162,
+   "Propio · 1-Sur": 175,
+   "Propio · 3-Norte": 127,
+   "Compra Venta · 3-Norte": 1
+  },
+  "compraVentaOutsideProductoresZone": [
+   {
+    "key": "33|16A",
+    "lotCode": "3316A",
+    "farm": "Rodeo Grande",
+    "farmCode": "33",
+    "lot": "16A",
+    "zone": "3-Norte",
+    "tenure": "Compra Venta",
+    "state": "Ausente de la fuente",
+    "presence": "absent"
+   }
+  ],
+  "farmsMultiZone": [
+   {
+    "code": "2",
+    "name": "San Jerónimo",
+    "zones": [
+     "2-Centro",
+     "1-Sur"
+    ]
+   }
+  ],
+  "farmsMixedTenure": [
+   {
+    "code": "2",
+    "name": "San Jerónimo",
+    "tenures": {
+     "Propio": 90,
+     "Arriendo": 8
+    }
+   },
+   {
+    "code": "33",
+    "name": "Rodeo Grande",
+    "tenures": {
+     "Arriendo": 32,
+     "Compra Venta": 1
+    }
+   },
+   {
+    "code": "991",
+    "name": "Santa Justa",
+    "tenures": {
+     "Propio": 19,
+     "Arriendo": 12
+    }
+   }
+  ]
+ },
+ "stateCounts": {
+  "Molienda": 946,
+  "Semilla": 49,
+  "Sin Caña": 32,
+  "Baja rentabilidad": 15,
+  "Ausente de la fuente": 7,
+  "Baja definitiva": 2,
+  "Investigación": 2
+ }
+}

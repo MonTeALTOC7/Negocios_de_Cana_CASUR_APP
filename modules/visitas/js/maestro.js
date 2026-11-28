@@ -45,10 +45,27 @@ export function snapshotFor(reader, resolution, farmCode) {
   };
 }
 const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-/** Búsqueda de productores/fincas por código o nombre (también por código de suerte, p. ej. «24201»). */
+/** Búsqueda de productores/fincas por código o nombre, y también por código completo de suerte («99321») o por
+    nombre y suerte («pansaco 21»): en esos casos se devuelve la finca de la suerte encontrada. */
 export function searchFarms(reader, q, limit = 12) {
   const t = norm(q).trim(); if (!t) return [];
   const farms = reader.farms();
   const exact = farms.filter(f => f.code === t), starts = farms.filter(f => f.code !== t && f.code.startsWith(t)), named = farms.filter(f => norm(f.name).includes(t));
-  return [...new Set([...exact, ...starts, ...named])].slice(0, limit);
+  const viaLot = searchLots(reader, q, limit).map(r => reader.farm(r.identity.farmCode)).filter(Boolean);
+  return [...new Set([...exact, ...starts, ...named, ...viaLot])].slice(0, limit);
+}
+/** Suertes por código completo (HHHSSS, con o sin separador) o «nombre de hacienda + número de suerte». */
+export function searchLots(reader, q, limit = 12) {
+  const t = norm(q).trim(); if (!t) return [];
+  const compact = t.replace(/[\s\-·.|/]+/g, '').toUpperCase(), list = reader.list(), out = [];
+  for (const r of list) if (String(r.identity.lotCode || '').toUpperCase() === compact) out.push(r);
+  const m = t.match(/^(.*?)[\s\-·.|/]+(?:s(?:uerte)?\.?\s*)?([0-9]+[a-z]?)$/i);
+  if (m && m[1].trim()) {
+    const name = m[1].trim(), lot = m[2].toUpperCase().replace(/^0*(\d)/, '$1');
+    for (const r of list) {
+      const rl = String(r.identity.lot).toUpperCase().replace(/^0*(\d)/, '$1');
+      if (rl === lot && (norm(r.farm.name).includes(name) || r.identity.farmCode === name)) out.push(r);
+    }
+  }
+  return [...new Set(out)].slice(0, limit);
 }

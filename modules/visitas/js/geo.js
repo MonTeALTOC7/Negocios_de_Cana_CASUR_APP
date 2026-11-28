@@ -163,3 +163,29 @@ export function readOnce(timeout = 12000) {
 }
 export const GPS_LABEL = {apagado: 'GPS apagado', buscando: 'Buscando GPS…', confiable: 'Ubicación confiable', aproximada: 'Ubicación aproximada',
   fuera: 'Fuera de suerte', 'sin-senal': 'Sin señal GPS', denegado: 'Ubicación sin permiso'};
+
+/* ---------- Geometría completa por suerte (todas las zonas) ----------
+   El GIS publica varios fragmentos por suerte (8242 fragmentos para 1047 suertes). Para el mapa se unen en una sola
+   entidad MultiPolygon por suerte, sin modificar coordenadas: así se dibujan TODOS los fragmentos y la suerte se
+   selecciona, colorea y encuadra como una unidad. El ancla de etiqueta es la del fragmento más grande. */
+let allLotsP = null;
+export function allLotFeatures() {
+  allLotsP ??= (async () => {
+    const m = await withGeoRetry(manifest), merged = new Map();
+    for (const key of Object.keys(m.zones)) for (const item of await zone(key)) {
+      const g = item.feature.geometry, parts = g?.type === 'Polygon' ? [g.coordinates] : g?.type === 'MultiPolygon' ? g.coordinates : [];
+      if (!parts.length || !item.lotId) continue;
+      const b = item.bbox, area = (b[2] - b[0]) * (b[3] - b[1]);
+      let lot = merged.get(item.lotId);
+      if (!lot) merged.set(item.lotId, lot = {lotId: item.lotId, zone: key, parts: [], bbox: [...b], anchor: null, best: -1, fragments: 0});
+      lot.parts.push(...parts); lot.fragments++;
+      lot.bbox = [Math.min(lot.bbox[0], b[0]), Math.min(lot.bbox[1], b[1]), Math.max(lot.bbox[2], b[2]), Math.max(lot.bbox[3], b[3])];
+      const anchor = item.feature.properties?.anchor;
+      if (area > lot.best && Array.isArray(anchor)) { lot.best = area; lot.anchor = anchor; }
+    }
+    return [...merged.values()].map(l => ({type: 'Feature', bbox: l.bbox, properties: {lotId: l.lotId, zone: l.zone, anchor: l.anchor || [(l.bbox[0] + l.bbox[2]) / 2, (l.bbox[1] + l.bbox[3]) / 2], fragmentCount: l.fragments},
+      geometry: {type: 'MultiPolygon', coordinates: l.parts}}));
+  })().catch(e => { allLotsP = null; throw e; });
+  return allLotsP;
+}
+export async function gisVersion() { return (await withGeoRetry(manifest)).dataVersion; }

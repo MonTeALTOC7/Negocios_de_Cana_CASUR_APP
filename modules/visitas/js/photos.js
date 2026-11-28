@@ -94,17 +94,19 @@ async function thumbnail(blob) {
  * Crea el registro de una foto. `capture` (de beginCapture) solo se usa con la cámara.
  * Devuelve el registro y, si hay una lectura pendiente, una promesa que entrega la ubicación definitiva.
  */
-export async function createPhotoRecord(file, {visitId, findingId = null, followupId = null, lotKey = null, source, role = 'inicial', capture = null}) {
+export async function createPhotoRecord(file, {visitId = null, findingId = null, followupId = null, lotKey = null, producer = null, record: lotRecord = null, dataVersion = null, caption = '', source, role = 'inicial', capture = null}) {
   const original = file.slice(0, file.size, file.type || 'image/jpeg');
   const [hash, exif, thumb] = await Promise.all([sha256(original), readExif(original), thumbnail(original)]);
   const captureT = source === 'camera' ? (file.lastModified && Math.abs(file.lastModified - Date.now()) < 3600000 ? file.lastModified : Date.now()) : null;
   let location = exif?.gps ? {...exif.gps, source: 'exif'} : {source: 'none'};
   if (!exif?.gps && source === 'camera' && capture) location = pickDevice(captureT, [capture.before]) || location;
   const record = {
-    id: newId('foto'), schema: 2, visitId, findingId, followupId, lotKey, role,
+    // v3: contexto propio (productor, suerte, instantánea agronómica). Sin productor es una evidencia por identificar.
+    id: newId('foto'), schema: 3, visitId: visitId || null, findingId, followupId, lotKey, role, producer: producer?.code ? {...producer} : null, producerCode: producer?.code ?? null,
+    record: lotRecord || null, dataVersion, draft: !producer?.code,
     blob: original, thumb, originalName: file.name || 'foto.jpg', type: original.type, size: original.size, sha256: hash,
     source, addedAt: new Date().toISOString(), takenAt: exif?.takenAt ?? (captureT ? new Date(captureT).toISOString() : file.lastModified ? new Date(file.lastModified).toISOString() : null),
-    location, caption: '', backupState: 'local', exports: [],
+    location, caption, backupState: 'local', exports: [],
   };
   // Lectura cercana al retorno de la cámara: puede mejorar la asociación (más cercana en tiempo o más precisa).
   const refine = !exif?.gps && source === 'camera' && capture ? Promise.all([capture.fresh, readOnce(8000)]).then(([a, b]) => pickDevice(captureT, [capture.before, a, b])) : null;

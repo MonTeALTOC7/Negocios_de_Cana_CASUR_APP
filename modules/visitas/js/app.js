@@ -7,11 +7,12 @@ import * as store from './store.js';
 import {maestro, refreshMaestro} from './maestro.js';
 import {gps, onGps, startGps, stopGps, permissionState, GPS_LABEL} from './geo.js';
 import * as M from './model.js';
-import {view, viewHome, viewMap, viewCapture, viewFinding} from './views-main.js';
+import {view, viewHome, viewCapture, viewFinding, viewEvidenceItem} from './views-main.js';
+import {viewMap} from './views-map.js';
 import {viewVisits, viewNewVisit, viewVisit, viewFollowupNew, viewFollowup, viewReports, viewReport, viewData} from './views-more.js';
 import {viewProducers, viewProducer, viewLot, viewGestion, viewEvidence} from './views-dossier.js';
 
-export const VISITAS_VERSION = '1.2.0';
+export const VISITAS_VERSION = '1.3.0';
 protectModuleActivity(window);
 const state = {routing: false};
 
@@ -25,17 +26,17 @@ window.CASUR_MODULE_BRIDGE = Object.freeze({
   },
 });
 
-/* ---------- Navegación (centrada en el productor; el mapa es una herramienta transversal) ----------
-   Móvil: Inicio · Productores · [Registrar] · Gestión · Más. Escritorio: barra lateral agrupada Trabajo / Consultas / Sistema. */
-const NAV = [['inicio', 'home', 'Inicio'], ['productores', 'users', 'Productores'], ['registrar', 'plus', 'Registrar'], ['gestion', 'gestion', 'Gestión'], ['mas', 'more', 'Más']];
-const MORE = [['mapa', 'map', 'Mapa', 'Fincas y suertes, ubicación y hallazgos georreferenciados'], ['evidencias', 'evidence', 'Evidencias', 'Fotografías por productor, suerte y etapa'],
-  ['visitas', 'calendar', 'Mis visitas', 'Visitas registradas y en curso'], ['nueva', 'plus', 'Nueva visita', 'Desde la oficina o retrospectiva'],
-  ['informes', 'report', 'Informes', 'Informes técnicos, Excel y GeoJSON'], ['datos', 'settings', 'Datos y respaldos', 'Configuración, respaldos y restauración']];
-const DESK = [['Consultas', MORE.filter(m => ['mapa', 'evidencias', 'visitas', 'informes'].includes(m[0]))], ['Sistema', MORE.filter(m => m[0] === 'datos')]];
+/* ---------- Navegación ----------
+   Móvil: Inicio · Mapa · [Registrar] · Productores · Gestión; «Más» en la cabecera (Evidencias, Visitas formales,
+   Informes, Datos). Escritorio: barra lateral agrupada Trabajo / Consultas / Sistema. */
+const NAV = [['inicio', 'home', 'Inicio'], ['mapa', 'map', 'Mapa'], ['registrar', 'plus', 'Registrar'], ['productores', 'users', 'Productores'], ['gestion', 'gestion', 'Gestión']];
+const MORE = [['evidencias', 'evidence', 'Evidencias', 'Fotografías rápidas, de hallazgos, de visitas y de seguimiento'], ['visitas', 'calendar', 'Visitas formales', 'Visitas registradas y en curso'],
+  ['nueva', 'plus', 'Nueva visita formal', 'Desde la oficina o retrospectiva'], ['informes', 'report', 'Informes', 'Gestión, técnico, pendientes, evidencias, Excel y GeoJSON'],
+  ['datos', 'settings', 'Datos y respaldos', 'Configuración, almacenamiento, respaldos y sincronización']];
+const DESK = [['Consultas', MORE.filter(m => ['evidencias', 'visitas', 'informes'].includes(m[0]))], ['Sistema', MORE.filter(m => m[0] === 'datos')]];
 function renderNav() {
   $('#nav').innerHTML = `<p class="vc-nav__group">Trabajo</p>` + NAV.map(([id, ic, label]) => id === 'registrar'
     ? `<a class="vc-fab" href="#/registrar" data-r="registrar" aria-label="Registrar"><span class="vc-fab__circle">${icon(ic)}</span><span class="vc-fab__label">${label}</span></a>`
-    : id === 'mas' ? `<button type="button" class="vc-nav__more-only" data-more>${icon(ic)}${label}</button>`
     : `<a href="#/${id}" data-r="${id}">${icon(ic)}${label}${id === 'gestion' ? '<span class="vc-badge" data-badge hidden></span>' : ''}</a>`).join('')
     + DESK.map(([g, items]) => `<p class="vc-nav__group">${g}</p>` + items.map(([id, ic, label]) => `<a class="vc-nav__desk" href="#/${id}" data-r="${id}">${icon(ic)}${label}</a>`).join('')).join('');
 }
@@ -55,7 +56,7 @@ async function updateBadge() {
 /* ---------- Rutas ---------- */
 const go = hash => { history.replaceState(null, '', hash); state.again = true; };
 const ROUTES = {
-  inicio: () => viewHome(), mapa: (_, p) => viewMap(p), registrar: (_, p) => viewCapture(p), hallazgo: id => viewFinding(id),
+  inicio: () => viewHome(), mapa: (_, p) => viewMap(p), registrar: (_, p) => viewCapture(p), hallazgo: id => viewFinding(id), evidencia: (id, p) => viewEvidenceItem(id, p),
   productores: (_, p) => viewProducers(p), gestion: (_, p) => viewGestion(p), evidencias: (_, p) => viewEvidence(p), suerte: id => viewLot(decodeURIComponent(id)),
   bitacora: () => go('#/gestion?k=hallazgos'),   // rutas anteriores (enlaces guardados) se redirigen sin perder nada
   visitas: () => viewVisits(), nueva: (_, p) => viewNewVisit(p), visita: id => viewVisit(id),
@@ -74,10 +75,20 @@ async function route() {
     }
     releaseUrls();
     const [path, query = ''] = (location.hash.replace(/^#\/?/, '') || 'inicio').split('?'), [name, id, rest] = path.split('/'), params = new URLSearchParams(query);
-    const active = {visita: 'visitas', nueva: 'visitas', hallazgo: 'gestion', seguimiento: 'gestion', bitacora: 'gestion', informe: 'informes', productor: 'productores', suerte: 'productores'}[name] || name;
+    const active = {visita: 'visitas', nueva: 'visitas', hallazgo: 'gestion', seguimiento: 'gestion', bitacora: 'gestion', informe: 'informes', productor: 'productores', suerte: 'productores', evidencia: 'evidencias'}[name] || name;
     $$('#nav [data-r]').forEach(a => { if (a.dataset.r === active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     try { await (ROUTES[name] || ROUTES.inicio)(id, params, rest); }
-    catch (e) { const el = $('#view'); el.className = 'vc-main'; el.innerHTML = `<section class="vc-card" role="alert"><h2>No se pudo abrir esta pantalla</h2><p class="vc-muted" style="margin:6px 0 12px">${esc(e.message)}</p><a class="vc-btn" href="#/inicio">Volver al inicio</a></section>`; }
+    catch (e) {
+      // Diagnóstico comprensible y verificable: nunca se borran datos para «arreglar» una pantalla.
+      console.error('[Visitas] Error al abrir #/' + path, e);
+      const diag = [`Visitas ${VISITAS_VERSION} · #/${path}`, `${e.name || 'Error'}: ${e.message}`, String(e.stack || '').split('\n').slice(0, 6).join('\n')].join('\n');
+      const el = $('#view'); el.className = 'vc-main';
+      el.innerHTML = `<section class="vc-card vc-card--error" role="alert"><h2>${icon('alert')}No se pudo abrir esta pantalla</h2><p class="vc-muted" style="margin:6px 0 10px">${esc(e.message)}</p>
+        <p class="vc-small">Tus registros no se modificaron. Podés volver al inicio, reintentar o copiar el diagnóstico para soporte.</p>
+        <details class="vc-details" style="margin-top:10px"><summary>${icon('info')}Diagnóstico técnico${icon('chevron')}</summary><pre class="vc-diag-pre" data-diag>${esc(diag)}</pre></details>
+        <div class="vc-row-actions vc-row-actions--start"><a class="vc-btn" href="#/inicio">Volver al inicio</a><button class="vc-btn" type="button" onclick="location.reload()">Reintentar</button><button class="vc-btn" type="button" data-copy-diag>Copiar diagnóstico</button></div></section>`;
+      $('[data-copy-diag]', el)?.addEventListener('click', () => navigator.clipboard?.writeText(diag).then(() => toast('Diagnóstico copiado'), () => toast('No se pudo copiar')));
+    }
     window.scrollTo(0, 0); void updateBadge();
   } finally { state.routing = false; if (state.again) { state.again = false; void route(); } }
 }
@@ -111,7 +122,7 @@ store.onExternalChange(() => { if (!document.activeElement?.closest?.('[data-aut
 /* ---------- Arranque ---------- */
 async function boot() {
   renderNav();
-  $('#nav').addEventListener('click', e => { if (e.target.closest('[data-more]')) more(); });
+  $('#moreBtn')?.addEventListener('click', more);
   $('#gpsChip').addEventListener('click', () => { if (gps.state === 'apagado' || gps.state === 'sin-senal') startGps(); else location.hash = '#/mapa'; });
   document.addEventListener('visitas-offline', e => { const o = $('#vcOffline'); if (o) { o.hidden = false; o.textContent = e.detail.text; o.dataset.result = e.detail.result; } });
   onGps(() => void gpsChip());

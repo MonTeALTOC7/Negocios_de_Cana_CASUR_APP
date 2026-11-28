@@ -10,7 +10,7 @@ import * as store from './store.js';
 import {sha256, photoExtension} from './photos.js';
 
 export const BACKUP_SCHEMA = 'casur-visitas-respaldo';
-export const BACKUP_SCHEMA_VERSION = 2;
+export const BACKUP_SCHEMA_VERSION = 3;   // v3: hallazgos, fotos y seguimientos con contexto propio y visita opcional
 const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 export const fileDate = (d = new Date()) => `${String(d.getDate()).padStart(2, '0')}-${MONTHS[d.getMonth()]}-${d.getFullYear()}`;
 const clean = v => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'sin_dato';
@@ -20,8 +20,9 @@ export function partLimitBytes() {
   return Math.round(Math.min(200, Math.max(40, gb * 25)) * 1024 * 1024);
 }
 export function photoPath(photo, visit) {
-  const d = new Date(visit?.startedAt || photo.addedAt);
-  return `fotos/${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${clean(visit?.producer?.code)}_${clean(visit?.producer?.name)}/${clean(visit?.id || photo.visitId)}/${clean(photo.id)}.${photoExtension(photo)}`;
+  const d = new Date(visit?.startedAt || photo.takenAt || photo.addedAt), p = photo.producer || visit?.producer || null;
+  const folder = visit?.id || photo.visitId || (photo.findingId ? 'campo-' + photo.findingId : 'evidencias');
+  return `fotos/${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${p ? `${clean(p.code)}_${clean(p.name)}` : 'sin_identificar'}/${clean(folder)}/${clean(photo.id)}.${photoExtension(photo)}`;
 }
 const meta = photo => { const {blob, thumb, ...rest} = photo; return rest; };
 const json = v => new Blob([JSON.stringify(v)], {type: 'application/json'});
@@ -89,6 +90,13 @@ export async function restoreBackup(files, {onProgress = () => {}} = {}) {
     // Respaldo VC01 (esquema 1): migración con la misma regla de la base local.
     if ((manifest.schemaVersion || 1) < 2) {
       const migrated = visits.map(store.migrateVisitV1); visits = migrated.map(m => m.visit); findings = [...findings, ...migrated.flatMap(m => m.findings)];
+    }
+    // Respaldos anteriores a v3: el contexto de cada registro se completa desde su visita (misma regla que la base local).
+    if ((manifest.schemaVersion || 1) < 3) {
+      const vb = new Map(visits.map(v => [v.id, v]));
+      findings = findings.map(f => store.migrateItemV3('findings', f, vb.get(f.visitId)));
+      followups = followups.map(f => store.migrateItemV3('followups', f, vb.get(f.visitId)));
+      photoMeta = photoMeta.map(p => store.migrateItemV3('photos', p, vb.get(p.visitId)));
     }
     for (const [name, list, bucket] of [['visits', visits, report.visits], ['findings', findings, report.findings], ['followups', followups, report.followups]]) {
       const local = new Map((await store.all(name)).map(r => [r.id, r])), ops = [];

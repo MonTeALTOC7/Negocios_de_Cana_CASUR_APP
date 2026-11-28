@@ -124,3 +124,15 @@ La preview pública repite las suites de informes, UX14, UX15 y Estimados. Las c
 - **UX16:** familias de Estimados (`docs/DIAGNOSTICO_ESTIMADOS_UX16.md`). Está registrado y no se desarrolló.
 - **Integración GIS / Riego:** excluida.
 - **QA heredado:** `qa-shell-module-icons.cjs`, `qa-startup-timing.cjs` y `qa-bundle-public-comparison.cjs` aún esperan `#mBack` a 1536 px (ver `docs/INTEGRACION_CANDIDATA_UX13_Z2627.md`). Es mantenimiento aparte; no afecta al runtime.
+
+## 6. Reversión preparada (antes de publicar)
+
+- **Base de reversión:** `main` en `71d5e0b` (App 1.6.1, Producción V1.8.2, generación 1101), que es lo que hoy está publicado en https://montealtoc7.github.io/Negocios_de_Cana_CASUR_APP/.
+- **Regresión crítica de código tras publicar:** abrir un PR de reversión hacia `main`, nunca push directo.
+  1. Crear una rama desde `main` y ejecutar `git revert -m 1 <merge de #73>`.
+  2. **Conservar la generación 1102:** `git checkout <merge de #73> -- modules/produccion/data tools/release-data-manifest.json`. Las PWA rechazan generaciones anteriores y el aforo vigente es el del 12-Oct-2026.
+  3. Subir el parche que exige `check-release-policy`: App 1.6.3 y Producción V1.8.4, solo en este escenario.
+  4. Ejecutar `node tools/sync-versions.mjs --write` y `node tools/runtime-assets.mjs --write`.
+  5. Pasar el Release Gate, ejecutar el QA y hacer el merge commit.
+- **En un dispositivo:** el Centro Maestro conserva la generación anterior («Recuperar versión anterior»).
+- **Datos:** nunca se publica una generación anterior a la vigente (ver «Plan de reversión» en `docs/PLAN_COSECHA_Z2627.md`).

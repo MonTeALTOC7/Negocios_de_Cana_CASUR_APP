@@ -1,4 +1,4 @@
-/* Vistas: Bitácora, Visitas (lista, detalle, nueva), Seguimiento, Expediente, Informes, Datos y configuración. */
+/* Vistas: Visitas (lista, detalle, nueva), formulario y ficha de seguimiento, Informes, Datos y configuración. */
 import {icon} from './icons.js';
 import {$, $$, esc, fdate, fdt, fmb, toast, sheet, confirmBox, download, share, safeName, localInput} from './ui.js';
 import * as store from './store.js';
@@ -10,30 +10,7 @@ import {agroHtml, galleryHtml, hydrateGallery, bindGallery, mountGallery, findin
 import {BACKUP_STATES} from './photos.js';
 import {buildBackup, markExported, confirmBackup, restoreBackup, partLimitBytes, fileDate} from './backup.js';
 import {visitReportHtml, producerReportHtml, periodReportHtml, excelExport, geojsonExport} from './reports.js';
-import {mount, view, chooseTarget, lotNum} from './views-main.js';
-
-/* ---------- Bitácora ---------- */
-export async function viewLog(params) {
-  const {visits, findings, photos} = await M.everything(), byVisit = new Map(visits.map(v => [v.id, v]));
-  let filter = params.get('f') || 'abiertos', cat = params.get('cat') || '', q = '';
-  const el = mount(`<section class="vc-card"><div class="vc-card__head"><h2>${icon('list')}Bitácora</h2><a href="#/registrar" class="vc-btn vc-btn--sm vc-btn--primary">${icon('plus')}Registrar</a></div>
-    <div class="vc-toolbar"><label class="vc-search">${icon('search')}<input class="vc-input" type="search" placeholder="Buscar finca, suerte u observación" data-q data-casur-query></label></div>
-    <div class="vc-filters" style="margin-top:10px" data-filters>${[['abiertos', 'Pendientes'], ['todos', 'Todos'], ['cerrados', 'Resueltos'], ['semana', 'Últimos 7 días']].map(([k, l]) => `<button type="button" data-f="${k}" aria-pressed="${k === filter}">${l}</button>`).join('')}
-      <select class="vc-input" data-cat style="min-height:36px;width:auto;padding:0 10px;border-radius:999px"><option value="">Todas las categorías</option>${CATEGORIES.map(c => `<option value="${c.id}" ${c.id === cat ? 'selected' : ''}>${esc(c.label)}</option>`).join('')}</select></div></section>
-    <div class="vc-stack" data-list></div>`);
-  const render = () => {
-    const week = Date.now() - 7 * 864e5, t = q.toLowerCase();
-    const list = findings.filter(f => (filter === 'abiertos' ? OPEN.has(f.status) : filter === 'cerrados' ? !OPEN.has(f.status) : filter === 'semana' ? new Date(f.observedAt) >= week : true)
-      && (!cat || f.category === cat) && (!t || `${byVisit.get(f.visitId)?.producer.name} ${byVisit.get(f.visitId)?.producer.code} ${lotNum(f.lotKey)} ${f.observation} ${category(f.category).label}`.toLowerCase().includes(t)))
-      .sort((a, b) => b.observedAt.localeCompare(a.observedAt));
-    $('[data-list]', el).innerHTML = list.length ? list.map(f => findingRow(f, {visit: byVisit.get(f.visitId), photos})).join('') : '<p class="vc-empty">Sin hallazgos con estos filtros.</p>';
-    hydrateGallery(el, photos);
-  };
-  el.addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; filter = b.dataset.f; $$('[data-f]', el).forEach(x => x.setAttribute('aria-pressed', String(x === b))); render(); });
-  $('[data-cat]', el).addEventListener('change', e => { cat = e.target.value; render(); });
-  $('[data-q]', el).addEventListener('input', e => { q = e.target.value; render(); });
-  render();
-}
+import {mount, view, chooseTarget, lotNum, retroNote} from './views-main.js';
 
 /* ---------- Visitas ---------- */
 export async function viewVisits() {
@@ -80,6 +57,7 @@ export async function viewVisit(id) {
   const el = mount(`
     <section class="vc-card"><div class="vc-card__head"><div style="min-width:0"><p class="vc-muted">${fdt(v.startedAt)}${v.followupOf ? ' · Visita de seguimiento' : ''}</p><h2>${esc(v.producer.name)}</h2></div><span class="vc-chip ${v.status === 'abierta' ? 'vc-chip--warn' : 'vc-chip--ok'}">${v.status === 'abierta' ? 'En curso' : 'Cerrada'}</span></div>
       <div class="vc-chips">${v.scope === 'finca' ? '<span class="vc-chip">Finca completa</span>' : lots.map(r => `<span class="vc-chip">${esc(r.identity.lot)}${v.lotSources?.[r.key] === 'gps' ? ' · GPS' : ''}</span>`).join('')}<button class="vc-chip vc-chip--ghost" type="button" data-addlot style="cursor:pointer">${icon('plus')}Suerte</button></div>
+      ${retroNote(v, lots[0] || recs[0], v.startedAt)}
       ${lots.length === 1 ? `<div style="margin-top:10px">${agroHtml(lots[0], v.startedAt, {compact: true})}</div>` : ''}
       <details class="vc-details" style="margin-top:12px" ${v.general?.notes ? 'open' : ''}><summary>${icon('edit')}Observación general y datos de la visita${icon('chevron')}</summary><div class="vc-details__body vc-form" data-autosave>
         <label class="vc-field"><span>Observación general (opcional)</span><textarea data-g="notes" rows="3">${esc(v.general?.notes || '')}</textarea></label>
@@ -87,17 +65,17 @@ export async function viewVisit(id) {
         <label class="vc-field"><span>Técnico</span><input data-author value="${esc(v.author?.name || '')}"></label>
         <div class="vc-row-actions"><button class="vc-btn vc-btn--soft" type="button" data-save-general>Guardar</button></div></div></details>
       <p class="vc-muted vc-small" style="margin-top:10px">Datos del Maestro registrados: generación ${esc(v.masterSnapshot?.dataVersion || '—')} · ${fdate(v.masterSnapshot?.takenAt)}${v.revisions?.length ? ` · ${v.revisions.length} revisión${v.revisions.length > 1 ? 'es' : ''}` : ''}</p></section>
-    <section class="vc-card"><div class="vc-card__head"><h2>${icon('list')}Hallazgos</h2><a class="vc-btn vc-btn--sm vc-btn--primary" href="#/registrar" data-reg>${icon('plus')}Registrar</a></div>
-      ${live.length ? `<div class="vc-stack">${live.map(f => findingRow(f, {visit: v, photos})).join('')}</div>` : '<p class="vc-muted">Sin hallazgos. Una visita puede tener solo una observación general o recomendaciones.</p>'}</section>
+    <section class="vc-card"><div class="vc-card__head"><h2>${icon('list')}Hallazgos</h2><a class="vc-btn vc-btn--sm vc-btn--primary" href="#/registrar?visita=${esc(v.id)}" data-reg>${icon('plus')}Registrar</a></div>
+      ${live.length ? `<div class="vc-stack">${live.map(f => findingRow(f, {visit: v, photos, followups: fus})).join('')}</div>` : '<p class="vc-muted">Sin hallazgos. Una visita puede tener solo una observación general o recomendaciones.</p>'}</section>
     <section class="vc-card"><div class="vc-card__head"><h2>${icon('check')}Seguimiento</h2></div>${fus.length ? `<div class="vc-list">${fus.map(followupRow).join('')}</div>` : '<p class="vc-muted">Sin recomendaciones, solicitudes ni compromisos.</p>'}
       <div class="vc-row-actions vc-row-actions--start">${Object.keys(KIND).map(k => `<a class="vc-btn vc-btn--sm ${k === 'recomendacion' ? 'vc-btn--soft' : ''}" href="#/seguimiento/nuevo?tipo=${k}&visita=${esc(v.id)}">${icon(KIND[k].icon)}${KIND[k].label}</a>`).join('')}</div></section>
-    <section class="vc-card"><div class="vc-card__head"><h2>${icon('camera')}Fotografías</h2><span class="vc-muted vc-small" data-count>${photos.length}</span></div><div data-gal></div></section>
+    <section class="vc-card"><div class="vc-card__head"><h2>${icon('evidence')}Evidencias de la visita</h2><span class="vc-muted vc-small" data-count>${photos.length}</span></div><p class="vc-muted vc-small" style="margin-bottom:8px">Las fotos tomadas aquí quedan vinculadas a la visita aunque no correspondan a un hallazgo.</p><div data-gal></div></section>
     <div class="vc-row-actions vc-no-print"><a class="vc-btn" href="#/informe/visita/${esc(v.id)}">${icon('report')}Informe</a>${v.status === 'abierta' ? `<button class="vc-btn vc-btn--primary" type="button" data-close>${icon('check')}Finalizar visita</button>` : `<button class="vc-btn" type="button" data-reopen>Reabrir</button>`}</div>`);
   hydrateGallery(el, photos);
   await mountGallery($('[data-gal]', el), () => store.byIndex('photos', 'visitId', id), {visit: v, visitId: v.id, lotKey: lots.length === 1 ? lots[0].key : null,
     findingFor: p => live.find(f => f.id === p.findingId), recordFor: p => M.recordOf(v, p.lotKey), afterGallery: list => { $('[data-count]', el).textContent = list.length; }});
   el.addEventListener('click', async e => {
-    if (e.target.closest('[data-reg]')) { e.preventDefault(); await M.setManualTarget(v.producer.code, lots.length === 1 ? lots[0].key : null); location.hash = '#/registrar'; }
+    if (e.target.closest('[data-reg]')) { e.preventDefault(); await M.setManualTarget(v.producer.code, lots.length === 1 ? lots[0].key : null); location.hash = '#/registrar?visita=' + v.id; }
     if (e.target.closest('[data-close]')) { await M.closeVisit(v.id); toast('Visita finalizada'); await viewVisit(id); }
     if (e.target.closest('[data-reopen]')) { await M.reopenVisit(v.id); await viewVisit(id); }
     if (e.target.closest('[data-addlot]')) {
@@ -112,20 +90,7 @@ export async function viewVisit(id) {
   });
 }
 
-/* ---------- Seguimiento ---------- */
-export async function viewFollowups(params) {
-  const {followups} = await M.everything();
-  let k = params.get('k') || 'recomendacion';
-  const el = mount(`<section class="vc-card"><div class="vc-card__head"><h2>${icon('check')}Seguimiento</h2></div>
-    <div class="vc-filters" data-tabs>${[['recomendacion', 'Recomendaciones'], ['solicitud', 'Solicitudes'], ['compromiso', 'Compromisos'], ['vencidos', 'Vencidos'], ['cerrados', 'Cerrados']].map(([id, l]) => `<button type="button" data-k="${id}" aria-pressed="${id === k}">${l}</button>`).join('')}</div>
-    <div class="vc-list" data-list style="margin-top:6px"></div><p class="vc-muted vc-small" style="margin-top:10px">Una recomendación no es una labor ejecutada y una solicitud no es una entrega: no se crean órdenes, despachos ni registros SIAGRI.</p></section>`);
-  const render = () => {
-    const list = followups.filter(f => k === 'vencidos' ? M.isOverdue(f) : k === 'cerrados' ? !OPEN.has(f.state) : f.kind === k && OPEN.has(f.state)).sort((a, b) => (a.dueDate || '9').localeCompare(b.dueDate || '9'));
-    $('[data-list]', el).innerHTML = list.map(followupRow).join('') || '<p class="vc-empty">Nada pendiente aquí.</p>';
-  };
-  el.addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; k = b.dataset.k; $$('[data-k]', el).forEach(x => x.setAttribute('aria-pressed', String(x === b))); render(); });
-  render();
-}
+/* ---------- Seguimiento (formulario y ficha; las listas viven en Gestión) ---------- */
 /** Formulario de recomendación / solicitud / compromiso: solo el texto es necesario; lo demás es opcional. */
 export async function viewFollowupNew(params) {
   const kind = params.get('tipo') || 'recomendacion', findingId = params.get('hallazgo');
@@ -179,25 +144,6 @@ export async function viewFollowup(id) {
     if (!e.target.closest('[data-apply]')) return;
     await M.setFollowupState(f.id, $('[data-state]', el).value, $('[data-note]', el).value.trim()); toast('Seguimiento registrado'); await viewFollowup(id);
   });
-}
-
-/* ---------- Expediente del productor ---------- */
-export async function viewProducer(code) {
-  const {reader} = await maestro(), farm = reader.farm(code); if (!farm) throw Error('Productor no encontrado en el Maestro.');
-  const data = await M.everything(), visits = data.visits.filter(v => v.producer.code === farm.code), vIds = new Set(visits.map(v => v.id));
-  const findings = data.findings.filter(f => vIds.has(f.visitId)), followups = data.followups.filter(f => f.producerCode === farm.code), photos = data.photos.filter(p => vIds.has(p.visitId));
-  const records = reader.lotsOf(farm.code).filter(r => r.state.presence !== 'absent');
-  const recurrent = Object.entries(findings.reduce((a, f) => (a[f.category] = (a[f.category] || 0) + 1, a), {})).filter(([, n]) => n > 1).sort((a, b) => b[1] - a[1]);
-  const open = followups.filter(f => OPEN.has(f.state)), overdue = followups.filter(M.isOverdue);
-  const el = mount(`<section class="vc-card"><div class="vc-card__head"><div style="min-width:0"><p class="vc-muted">Expediente · Código ${esc(farm.code)} · ${esc(farm.zone || '')}</p><h2>${esc(farm.name)}</h2></div><a class="vc-btn vc-btn--sm" href="#/informe/productor/${esc(farm.code)}">${icon('report')}Informe</a></div>
-      <div class="vc-kpis">${[['calendar', visits.length, 'Visitas'], ['list', findings.filter(f => OPEN.has(f.status)).length, 'Hallazgos abiertos'], ['check', open.length, 'Pendientes'], ['flag', overdue.length, 'Vencidos']].map(([i, v, l]) => `<span class="vc-kpi ${l === 'Vencidos' && v ? 'vc-kpi--err' : ''}"><span class="vc-kpi__ic">${icon(i)}</span><span><span class="vc-kpi__v">${v}</span><br><span class="vc-kpi__l">${l}</span></span></span>`).join('')}</div>
-      <div class="vc-row-actions vc-row-actions--start"><a class="vc-btn vc-btn--primary" href="#/nueva?finca=${esc(farm.code)}">${icon('plus')}Nueva visita</a><a class="vc-btn" href="#/mapa?finca=${esc(farm.code)}">${icon('map')}Mapa</a></div></section>
-    ${recurrent.length ? `<section class="vc-card"><div class="vc-card__head"><h2>${icon('alert')}Problemas recurrentes</h2></div><div class="vc-chips">${recurrent.map(([c, n]) => `<span class="vc-chip vc-chip--warn">${icon(category(c).icon)}${esc(category(c).label)} · ${n}</span>`).join('')}</div></section>` : ''}
-    <section class="vc-card"><div class="vc-card__head"><h2>${icon('map')}Suertes</h2><span class="vc-muted vc-small">${records.length}</span></div><div class="vc-list">${records.map(r => {
-      const fs = findings.filter(f => f.lotKey === r.key), last = visits.filter(v => v.lotKeys.includes(r.key) || v.scope === 'finca').sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0], ph = photos.filter(p => p.lotKey === r.key).length;
-      return `<a class="vc-item" href="#/mapa?finca=${esc(farm.code)}&suerte=${encodeURIComponent(r.key)}"><span class="vc-item__ic"><strong>${esc(r.identity.lot)}</strong></span><span class="vc-item__body"><span class="vc-item__title">${esc([r.attributes.variety, r.attributes.area !== null ? `${r.attributes.area} ha` : ''].filter(Boolean).join(' · ') || 'Sin datos')}</span><span class="vc-item__sub">${esc([r.state.operationalState, last ? 'Última visita ' + fdate(last.startedAt) : 'Sin visitas', fs.length ? `${fs.length} hallazgo${fs.length > 1 ? 's' : ''}` : '', ph ? `${ph} foto${ph > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · '))}</span></span>${icon('chevron')}</a>`; }).join('')}</div></section>
-    <section class="vc-card"><div class="vc-card__head"><h2>${icon('check')}Seguimiento</h2></div>${followups.length ? `<div class="vc-list">${followups.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(followupRow).join('')}</div>` : '<p class="vc-muted">Sin recomendaciones ni solicitudes.</p>'}</section>
-    <section class="vc-card"><div class="vc-card__head"><h2>${icon('calendar')}Historial de visitas</h2></div>${visits.length ? `<div class="vc-list">${visits.sort((a, b) => b.startedAt.localeCompare(a.startedAt)).map(v => visitRow(v, {findings: findings.filter(f => f.visitId === v.id).length, photos: photos.filter(p => p.visitId === v.id).length})).join('')}</div>` : '<p class="vc-muted">Todavía no hay visitas a este productor.</p>'}</section>`);
 }
 
 /* ---------- Informes ---------- */

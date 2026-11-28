@@ -1,10 +1,12 @@
-/* Evidencias institucionales (canvas). Los originales nunca se modifican: aquí solo se generan copias.
-   - Foto etiquetada: banda inferior compacta con la información esencial; no tapa el centro de la imagen.
-   - Tarjeta de hallazgo (1080 px de ancho): 1, 2 o varias fotos, datos agronómicos útiles, observación, detalles
-     evaluados, recomendaciones y minimapa vectorial. Los campos vacíos se omiten; la severidad solo aparece si el
-     técnico la evaluó; las coordenadas solo si son verificables. */
+/* Evidencias documentales propias de Visitas (canvas). Los originales nunca se modifican: aquí solo se generan copias.
+   - Foto etiquetada: la fotografía queda ENTERA y sin cubrir; debajo se agrega un pie documental blanco con productor,
+     suerte, categoría, fecha, ubicación verificable (o «Sin ubicación verificable») y la descripción completa.
+   - Ficha de seguimiento técnico: documento vertical con Observación → Recomendación y solicitudes → Seguimiento,
+     evidencias numeradas (sin recorte: cada foto completa dentro de su celda), antes/después y minimapa vectorial.
+   Ningún texto se corta: los párrafos se ajustan en líneas y la altura del documento se calcula con su contenido.
+   Los campos vacíos se omiten; la severidad solo aparece si el técnico la evaluó; las coordenadas solo si son verificables. */
 import {iconPaths} from './icons.js';
-import {category, filledDetails} from './catalog.js';
+import {category, filledDetails, familyStyle, PROGRESS, progressOf, KIND, requestType} from './catalog.js';
 import {agroCard, ageLabel} from './agro.js';
 import {locationLabel} from './photos.js';
 
@@ -14,7 +16,8 @@ const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', '
 export const fdate = iso => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? `${String(d.getDate()).padStart(2, '0')}-${MONTHS[d.getMonth()]}-${d.getFullYear()}` : ''; };
 export const ftime = iso => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : ''; };
 const coord = (v, pos, neg) => `${Math.abs(v).toFixed(5)}° ${v >= 0 ? pos : neg}`;
-export const coordsText = loc => loc && Number.isFinite(loc.lat) && loc.source !== 'none' ? `${coord(loc.lat, 'N', 'S')} · ${coord(loc.lon, 'E', 'O')}${Number.isFinite(loc.accuracy) ? ` · ±${loc.accuracy} m` : ''}` : '';
+/** Coordenadas solo si son verificables (EXIF o lectura cercana y precisa); las aproximadas no se rotulan como exactas. */
+export const coordsText = loc => loc && Number.isFinite(loc.lat) && loc.source !== 'none' && !loc.approximate ? `${coord(loc.lat, 'N', 'S')} · ${coord(loc.lon, 'E', 'O')}${Number.isFinite(loc.accuracy) ? ` · ±${loc.accuracy} m` : ''}` : '';
 const FONT = '"Inter", "Segoe UI", system-ui, sans-serif';
 
 let logoP = null;
@@ -26,17 +29,17 @@ async function fonts() { try { await Promise.all(['400', '600', '700', '800'].ma
 async function bitmap(blob) { try { return await createImageBitmap(blob, {imageOrientation: 'from-image'}); } catch { return null; } }
 const font = (w, px) => `${w} ${Math.round(px)}px ${FONT}`;
 function rr(ctx, x, y, w, h, r) { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); }
-function fit(ctx, text, maxW) {
-  if (ctx.measureText(text).width <= maxW) return text;
-  let t = text; while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
-  return t + '…';
-}
-function wrap(ctx, text, maxW, maxLines = 99) {
-  const out = []; for (const para of String(text || '').split('\n')) {
-    let line = ''; for (const w of para.split(/\s+/).filter(Boolean)) { const t = line ? line + ' ' + w : w; if (line && ctx.measureText(t).width > maxW) { out.push(line); line = w; } else line = t; }
+/** Ajusta el texto en líneas sin perder contenido (las palabras más largas que el ancho se parten). */
+export function wrap(ctx, text, maxW) {
+  const out = [];
+  for (const para of String(text ?? '').split('\n')) {
+    let line = '';
+    for (let w of para.split(/\s+/).filter(Boolean)) {
+      while (ctx.measureText(w).width > maxW && w.length > 1) { let i = w.length - 1; while (i > 1 && ctx.measureText(w.slice(0, i)).width > maxW) i--; if (line) { out.push(line); line = ''; } out.push(w.slice(0, i)); w = w.slice(i); }
+      const t = line ? line + ' ' + w : w; if (line && ctx.measureText(t).width > maxW) { out.push(line); line = w; } else line = t;
+    }
     if (line) out.push(line);
   }
-  if (out.length > maxLines) { const cut = out.slice(0, maxLines); cut[maxLines - 1] = fit(ctx, cut[maxLines - 1] + ' …', maxW); return cut; }
   return out;
 }
 /** Dibuja un icono del set propio (trazo) escalado a `size` px. */
@@ -55,42 +58,50 @@ export function drawIcon(ctx, name, x, y, size, color, width = 1.9) {
 }
 const toBlob = (canvas, type = 'image/jpeg', q = 0.92) => new Promise(r => canvas.toBlob(r, type, q));
 
-/* ---------- Foto etiquetada ---------- */
+/* ---------- Foto etiquetada: imagen completa + pie documental ---------- */
+const lotText = (record, visit) => record ? `Suerte ${record.identity.lot}` : visit?.scope === 'finca' ? 'Finca completa' : '';
+const kindText = (photo, finding) => finding ? category(finding.category).label : photo.followupId ? 'Seguimiento' : 'Evidencia de la visita';
+/** Texto de ubicación para documentos: exacta y verificable, aproximada (rotulada) o ausente. */
+export function placeText(loc) {
+  const exact = coordsText(loc); if (exact) return {text: exact + (loc.source === 'exif' ? ' · GPS de la cámara' : ' · GPS del teléfono'), ok: true};
+  if (loc && loc.source !== 'none' && Number.isFinite(loc.lat)) return {text: locationLabel(loc), ok: false};
+  return {text: 'Sin ubicación verificable', ok: false};
+}
 export async function labeledPhoto({photo, visit, finding = null, record = null, author = ''}) {
   await fonts();
   const bmp = await bitmap(photo.blob); if (!bmp) throw Error('Formato de imagen no compatible para etiquetar');
-  const scale = Math.min(1, 2048 / Math.max(bmp.width, bmp.height)), W = Math.round(bmp.width * scale), H = Math.round(bmp.height * scale);
-  const short = Math.min(W, H), bh = Math.round(Math.max(118, short * (W >= H ? 0.2 : 0.17))), p = Math.round(bh * 0.13);
-  const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H + 0;
+  const long = Math.max(bmp.width, bmp.height), scale = Math.min(2048 / long, Math.max(1, 1080 / bmp.width));
+  const W = Math.round(bmp.width * scale), H = Math.round(bmp.height * scale), u = W / 1080, P = 44 * u;
+  const fam = finding ? familyStyle(finding.category) : {color: C.petrol700, soft: C.petrol50};
+  const m = document.createElement('canvas').getContext('2d'), maxW = W - P * 2;
+  const card = record ? agroCard(record, photo.takenAt || visit?.startedAt) : null, when = photo.takenAt || photo.addedAt;
+  const title = [visit?.producer?.name, lotText(record, visit)].filter(Boolean).join(' · ');
+  const meta = [`${fdate(when)} ${ftime(when)}`, visit?.producer?.code ? `Cód. ${visit.producer.code}` : '', card?.variety ? `Variedad ${card.variety}` : '', card?.age !== null && card?.age !== undefined ? ageLabel(card.age) : ''].filter(Boolean).join(' · ');
+  const place = placeText(photo.location), desc = photo.caption || finding?.observation || '';
+  m.font = font(800, 40 * u); const tL = wrap(m, title, maxW);
+  m.font = font(500, 27 * u); const mL = wrap(m, meta, maxW), pL = wrap(m, place.text, maxW - 34 * u);
+  m.font = font(400, 29 * u); const dL = desc ? wrap(m, desc, maxW) : [];
+  const lg = await logo(), pillH = 50 * u;
+  const footH = 10 * u + P * 0.8 + pillH + 22 * u + tL.length * 50 * u + 8 * u + mL.length * 36 * u + 10 * u + pL.length * 36 * u + (dL.length ? 26 * u + dL.length * 40 * u : 0) + 30 * u + 2 * u + 56 * u;
+  const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = Math.round(H + footH);
   const ctx = canvas.getContext('2d'); ctx.drawImage(bmp, 0, 0, W, H); bmp.close?.();
-  const g = ctx.createLinearGradient(0, H - bh * 1.35, 0, H); g.addColorStop(0, 'rgba(10,30,37,0)'); g.addColorStop(0.3, 'rgba(10,30,37,0.78)'); g.addColorStop(1, 'rgba(10,30,37,0.94)');
-  ctx.fillStyle = g; ctx.fillRect(0, H - bh * 1.35, W, bh * 1.35);
-  // Logo institucional a la derecha, sobre placa blanca.
-  const lg = await logo(), lh = Math.round(bh * 0.36), lw = lg ? Math.round(lh * lg.width / lg.height) : 0, boxW = lw + p, boxH = lh + p * 0.8;
-  const bx = W - p - boxW, by = H - bh + p * 0.6;
-  if (lg) { ctx.fillStyle = 'rgba(255,255,255,0.95)'; rr(ctx, bx, by, boxW, boxH, p * 0.5); ctx.fill(); ctx.drawImage(lg, bx + p / 2, by + p * 0.4, lw, lh); }
-  ctx.fillStyle = '#E3EEF2'; ctx.font = font(600, bh * 0.1); ctx.textAlign = 'right'; ctx.fillText('Negocios de Caña · CASUR', W - p, by + boxH + bh * 0.16); ctx.textAlign = 'left';
-  // Bloque de texto.
-  const cat = finding ? category(finding.category) : null, maxW = W - p * 3 - boxW;
-  let y = H - bh + p * 0.55, x = p;
-  const chipH = Math.round(bh * 0.24);
-  if (cat) {
-    ctx.font = font(700, chipH * 0.55); const cw = chipH + ctx.measureText(cat.label).width + chipH * 0.55;
-    ctx.fillStyle = C.gold; rr(ctx, x, y, cw, chipH, chipH / 2); ctx.fill();
-    drawIcon(ctx, cat.icon, x + chipH * 0.2, y + chipH * 0.17, chipH * 0.66, C.petrol900, 2.2);
-    ctx.fillStyle = C.petrol900; ctx.textBaseline = 'middle'; ctx.fillText(cat.label, x + chipH * 0.95, y + chipH / 2 + 1); ctx.textBaseline = 'alphabetic';
-    y += chipH + bh * 0.04;
-  }
-  const lot = record ? `Suerte ${record.identity.lot}` : visit?.scope === 'finca' ? 'Visita general de finca' : '';
-  ctx.fillStyle = C.white; ctx.font = font(800, bh * 0.165);
-  y += bh * 0.15; ctx.fillText(fit(ctx, [visit?.producer?.name, lot].filter(Boolean).join(' · '), maxW), x, y);
-  const card = record ? agroCard(record, photo.takenAt || visit?.startedAt) : null;
-  const when = photo.takenAt || photo.addedAt;
-  const meta = [`${fdate(when)} ${ftime(when)}`, visit?.producer?.code ? `Cód. ${visit.producer.code}` : '', card?.variety, card?.age !== null && card?.age !== undefined ? ageLabel(card.age) : ''].filter(Boolean).join(' · ');
-  ctx.font = font(500, bh * 0.115); ctx.fillStyle = '#D6E6EC'; y += bh * 0.15; ctx.fillText(fit(ctx, meta, maxW), x, y);
-  const coords = coordsText(photo.location), foot = [coords, author ? `Técnico: ${author}` : '', `ID ${photo.id.slice(-8)}`].filter(Boolean).join(' · ');
-  ctx.font = font(500, bh * 0.092); ctx.fillStyle = '#AFC8D1'; y += bh * 0.135; ctx.fillText(fit(ctx, foot, maxW), x, y);
-  if (photo.caption) { ctx.font = font(600, bh * 0.11); ctx.fillStyle = C.white; const t = fit(ctx, photo.caption, W - p * 2); ctx.fillText(t, p, H - bh * 1.12); }
+  ctx.fillStyle = C.white; ctx.fillRect(0, H, W, footH); ctx.fillStyle = fam.color; ctx.fillRect(0, H, W, 10 * u);
+  let y = H + 10 * u + P * 0.8;
+  // Píldora de categoría con el color de su familia (o del tipo de evidencia) y logo institucional a la derecha.
+  ctx.font = font(700, 25 * u); const label = kindText(photo, finding), pw = pillH + ctx.measureText(label).width + 26 * u;
+  ctx.fillStyle = fam.soft; rr(ctx, P, y, pw, pillH, pillH / 2); ctx.fill();
+  drawIcon(ctx, finding ? category(finding.category).icon : photo.followupId ? 'seguimiento' : 'camera', P + 12 * u, y + 9 * u, 32 * u, fam.color, 2.2);
+  ctx.fillStyle = fam.color; ctx.textBaseline = 'middle'; ctx.fillText(label, P + pillH, y + pillH / 2 + 1); ctx.textBaseline = 'alphabetic';
+  if (lg) { const lh = 52 * u, lw = lh * lg.width / lg.height; ctx.drawImage(lg, W - P - lw, y - 1 * u, lw, lh); }
+  y += pillH + 22 * u;
+  ctx.fillStyle = C.ink; ctx.font = font(800, 40 * u); for (const l of tL) { y += 50 * u; ctx.fillText(l, P, y - 10 * u); }
+  y += 8 * u; ctx.fillStyle = C.soft; ctx.font = font(500, 27 * u); for (const l of mL) { y += 36 * u; ctx.fillText(l, P, y - 8 * u); }
+  y += 10 * u; drawIcon(ctx, 'pin', P - 2 * u, y + 6 * u, 26 * u, place.ok ? C.petrol600 : C.soft, 2);
+  ctx.fillStyle = place.ok ? C.petrol700 : C.soft; ctx.font = font(place.ok ? 600 : 500, 27 * u); pL.forEach((l, i) => ctx.fillText(l, P + 34 * u, y + 28 * u + i * 36 * u)); y += pL.length * 36 * u;
+  if (dL.length) { y += 26 * u; ctx.fillStyle = C.ink; ctx.font = font(400, 29 * u); for (const l of dL) { y += 40 * u; ctx.fillText(l, P, y - 8 * u); } }
+  y += 30 * u; ctx.fillStyle = C.line; ctx.fillRect(P, y, maxW, 2 * u); y += 2 * u;
+  ctx.font = font(600, 22 * u); ctx.fillStyle = C.petrol800; ctx.fillText('Evidencia de campo · Negocios de Caña · CASUR', P, y + 38 * u);
+  ctx.textAlign = 'right'; ctx.fillStyle = C.soft; ctx.font = font(500, 22 * u); ctx.fillText([author ? author : '', `ID ${photo.id.slice(-8)}`].filter(Boolean).join(' · '), W - P, y + 38 * u); ctx.textAlign = 'left';
   return toBlob(canvas, 'image/jpeg', 0.92);
 }
 
@@ -115,74 +126,102 @@ function drawMiniMap(ctx, x, y, w, h, {features = [], focusId = null, point = nu
   ctx.restore();
 }
 
-/* ---------- Tarjeta de hallazgo ---------- */
-export async function findingCard({finding, visit, record = null, photos = [], followups = [], features = [], author = ''}) {
+/* ---------- Ficha de seguimiento técnico ---------- */
+/** Dibuja la foto COMPLETA dentro de la celda (sin recorte), centrada sobre fondo neutro. */
+function containImage(ctx, b, x, y, w, h) {
+  ctx.save(); ctx.fillStyle = '#EEF2F4'; rr(ctx, x, y, w, h, 12); ctx.fill(); ctx.clip();
+  const s = Math.min(w / b.width, h / b.height), dw = b.width * s, dh = b.height * s; ctx.drawImage(b, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh); ctx.restore();
+}
+export async function followupSheet({finding, visit, record = null, photos = [], followPhotos = [], followups = [], features = [], author = ''}) {
   await fonts();
-  const W = 1080, P = 56, cat = category(finding.category), card = record ? agroCard(record, finding.observedAt) : null;
-  const bitmaps = (await Promise.all(photos.slice(0, 4).map(p => bitmap(p.blob)))).filter(Boolean);
-  const measure = document.createElement('canvas').getContext('2d');
-  // Bloques de texto (para calcular la altura total antes de dibujar).
-  measure.font = font(400, 30);
-  const obs = finding.observation ? wrap(measure, finding.observation, W - P * 2, 8) : [];
-  const details = filledDetails(finding.category, finding.details);
-  const recs = followups.filter(f => f.kind === 'recomendacion' && f.state !== 'Cancelado');
-  measure.font = font(400, 28);
-  const recLines = recs.flatMap(r => wrap(measure, r.text || '', W - P * 2 - 40, 3).map((t, i) => ({t, first: i === 0})));
-  const chips = card ? [card.variety, card.age !== null ? ageLabel(card.age) : null, card.area ? `${card.area.toLocaleString('es-NI', {maximumFractionDigits: 2})} ha` : null, card.irrigation, card.phenology?.stage ? `${finding.phenology?.corrected || card.phenology.stage}` : null].filter(Boolean) : [];
-  const photoH = bitmaps.length ? (bitmaps.length === 1 ? 720 : 560) : 0;
-  const mapH = features.length ? 300 : 0;
-  let H = 200 + (photoH ? photoH + 32 : 0) + (chips.length ? 76 : 0) + (obs.length ? 64 + obs.length * 42 : 0) + (details.length ? 72 + Math.ceil(details.length / 2) * 64 : 0)
-    + (finding.severity?.source === 'tecnico' ? 72 : 0) + (recLines.length ? 64 + recLines.length * 40 : 0) + (mapH ? mapH + 40 : 0) + 140;
-  const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H; const ctx = canvas.getContext('2d');
-  ctx.fillStyle = C.white; ctx.fillRect(0, 0, W, H);
-  // Cabecera
-  ctx.fillStyle = C.petrol900; ctx.fillRect(0, 0, W, 200);
-  const lg = await logo(); if (lg) { const lh = 64, lw = lh * lg.width / lg.height; ctx.fillStyle = '#fff'; rr(ctx, W - P - lw - 24, 36, lw + 24, lh + 20, 14); ctx.fill(); ctx.drawImage(lg, W - P - lw - 12, 46, lw, lh); }
-  ctx.fillStyle = C.gold; rr(ctx, P, 40, 76, 76, 20); ctx.fill(); drawIcon(ctx, cat.icon, P + 14, 54, 48, C.petrol900, 2.1);
-  ctx.fillStyle = '#BFD5DD'; ctx.font = font(600, 24); ctx.fillText('Hallazgo de campo', P + 100, 66);
-  ctx.fillStyle = C.white; ctx.font = font(800, 44); ctx.fillText(fit(ctx, cat.label, W - P * 2 - 360), P + 100, 112);
-  ctx.fillStyle = '#D6E6EC'; ctx.font = font(500, 27);
-  const where = [visit?.producer?.name, record ? `Suerte ${record.identity.lot}` : 'Finca completa', fdate(finding.observedAt) + ' ' + ftime(finding.observedAt)].filter(Boolean).join(' · ');
-  ctx.fillText(fit(ctx, where, W - P * 2), P, 166);
-  let y = 200;
-  // Fotos
-  if (photoH) {
-    y += 32; const gap = 14, area = W - P * 2;
-    const cell = (b, x0, y0, w, h) => { const s = Math.max(w / b.width, h / b.height), sw = w / s, sh = h / s; ctx.save(); rr(ctx, x0, y0, w, h, 18); ctx.clip(); ctx.drawImage(b, (b.width - sw) / 2, (b.height - sh) / 2, sw, sh, x0, y0, w, h); ctx.restore(); };
-    if (bitmaps.length === 1) cell(bitmaps[0], P, y, area, photoH);
-    else if (bitmaps.length === 2) { const w = (area - gap) / 2; cell(bitmaps[0], P, y, w, photoH); cell(bitmaps[1], P + w + gap, y, w, photoH); }
-    else { const big = Math.round(area * 0.62), w = area - big - gap, h = (photoH - gap) / 2; cell(bitmaps[0], P, y, big, photoH); cell(bitmaps[1], P + big + gap, y, w, h); cell(bitmaps[2], P + big + gap, y + h + gap, w, h);
-      if (photos.length > 3) { ctx.fillStyle = 'rgba(15,42,51,0.66)'; rr(ctx, P + big + gap, y + h + gap, w, h, 18); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = font(800, 48); ctx.textAlign = 'center'; ctx.fillText(`+${photos.length - 2}`, P + big + gap + w / 2, y + h + gap + h / 2 + 16); ctx.textAlign = 'left'; } }
-    bitmaps.forEach(b => b.close?.()); y += photoH;
+  const W = 1240, P = 72, IW = W - P * 2, cat = category(finding.category), fam = familyStyle(finding.category), card = record ? agroCard(record, finding.observedAt) : null;
+  const step = progressOf(finding, followups), details = filledDetails(finding.category, finding.details);
+  const recs = followups.filter(f => !f.removedFromVisit).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const evid = [...photos].sort((a, b) => (a.takenAt || a.addedAt).localeCompare(b.takenAt || b.addedAt));
+  const bms = await Promise.all(evid.map(p => bitmap(p.blob)));
+  const after = [...followPhotos].sort((a, b) => (b.takenAt || b.addedAt).localeCompare(a.takenAt || a.addedAt))[0] || null, afterBm = after ? await bitmap(after.blob) : null;
+  const history = [...(finding.history || []).map(h => ({...h, what: 'Hallazgo'})), ...recs.flatMap(r => (r.history || []).map(h => ({...h, what: KIND[r.kind].label})))].sort((a, b) => a.at.localeCompare(b.at));
+  const m = document.createElement('canvas').getContext('2d'), L = (f, t, w = IW) => { m.font = f; return wrap(m, t, w); };
+  // Bloques medidos (altura exacta antes de dibujar: nada se corta).
+  const F = {title: font(800, 46), body: font(400, 30), meta: font(500, 25), small: font(500, 23), sec: font(800, 28), label: font(600, 22), val: font(700, 26)};
+  const nameL = L(F.title, visit?.producer?.name || ''), subL = L(F.meta, [`Código ${visit?.producer?.code || ''}`, visit?.producer?.zone, record ? `Suerte ${record.identity.lot}` : 'Finca completa', author ? `Técnico: ${author}` : ''].filter(Boolean).join(' · '));
+  const agro = card ? [card.variety ? `Variedad ${card.variety}` : '', card.age !== null ? `Edad ${ageLabel(card.age)}` : '', card.area ? `${card.area.toLocaleString('es-NI', {maximumFractionDigits: 2})} ha` : '', card.irrigation ? `Riego ${card.irrigation}` : '',
+    card.phenology?.stage ? `${finding.phenology?.corrected || card.phenology.stage} (${finding.phenology?.corrected ? 'corregida en campo' : 'probable por edad'})` : ''].filter(Boolean).join(' · ') : '';
+  const agroL = agro ? L(F.meta, agro) : [], obsL = finding.observation ? L(F.body, finding.observation) : [];
+  const detL = details.map(d => ({label: d.label, lines: L(F.val, d.value, IW / 2 - 24)}));
+  const detRows = []; for (let i = 0; i < detL.length; i += 2) detRows.push(Math.max(...detL.slice(i, i + 2).map(d => d.lines.length)));
+  const recB = recs.map(r => ({r, head: [KIND[r.kind].label, r.category ? requestType(r.category).label : ''].filter(Boolean).join(' · '), lines: L(F.body, r.text || '—', IW - 40),
+    meta: L(F.small, [r.lotKey ? 'Suerte ' + r.lotKey.split('|')[1] : '', r.responsible ? 'Responsable: ' + r.responsible : '', r.dueDate ? 'Fecha: ' + fdate(r.dueDate) : '', r.quantity ? `${r.quantity} ${r.unit || ''}` : '', 'Estado: ' + r.state].filter(Boolean).join(' · '), IW - 40)}));
+  const histB = history.map(h => ({h, lines: L(F.meta, `${h.what} · ${h.state}${h.note ? ' — ' + h.note : ''}${h.by ? ' · ' + h.by : ''}`, IW - 250)}));
+  const cols = bms.filter(Boolean).length > 1 ? 2 : 1, cellW = cols === 1 ? IW : (IW - 24) / 2, cellH = cols === 1 ? 640 : 420;
+  const capOf = (p, i) => { const pl = placeText(p.location); return `${i + 1} · ${fdate(p.takenAt || p.addedAt)} ${ftime(p.takenAt || p.addedAt)} · ${pl.text}${p.caption ? ' · ' + p.caption : ''}`; };
+  const evCells = evid.map((p, i) => ({p, b: bms[i], cap: L(F.small, capOf(p, i), cellW)}));
+  const evRows = []; for (let i = 0; i < evCells.length; i += cols) evRows.push(cellH + 14 + Math.max(...evCells.slice(i, i + cols).map(c => c.cap.length)) * 30 + 26);
+  const pair = evCells.find(c => c.b) && afterBm ? {before: evCells.find(c => c.b), after} : null, pairH = pair ? 70 + 420 + 50 : 0;
+  const mapH = features.length ? 380 : 0;
+  const secH = 110;
+  let H = 250 + nameL.length * 56 + subL.length * 34 + 40 + 110 /* progreso */
+    + secH + 70 + (agroL.length ? agroL.length * 34 + 16 : 0) + (obsL.length ? obsL.length * 42 + 20 : 46) + (detRows.length ? 20 + detRows.reduce((s, n) => s + 34 + n * 34 + 18, 0) : 0) + (finding.severity?.source === 'tecnico' ? 66 : 0)
+    + (evRows.length ? 30 + evRows.reduce((s, h) => s + h, 0) : 0)
+    + secH + (recB.length ? recB.reduce((s, b) => s + 40 + b.lines.length * 42 + b.meta.length * 30 + 28, 0) : 46)
+    + secH + (histB.length ? histB.reduce((s, b) => s + b.lines.length * 34 + 16, 0) : 46) + pairH + (mapH ? mapH + 40 : 0) + 150;
+  const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = Math.ceil(H); const ctx = canvas.getContext('2d');
+  ctx.fillStyle = C.white; ctx.fillRect(0, 0, W, H); ctx.fillStyle = fam.color; ctx.fillRect(0, 0, 14, H);
+  // Encabezado documental: logo, título y referencia.
+  const lg = await logo(); if (lg) { const lh = 70, lw = lh * lg.width / lg.height; ctx.drawImage(lg, P, 52, lw, lh); }
+  ctx.textAlign = 'right'; ctx.fillStyle = C.petrol900; ctx.font = font(800, 32); ctx.fillText('Ficha de seguimiento técnico', W - P, 82);
+  ctx.fillStyle = C.soft; ctx.font = F.small; ctx.fillText(`Negocios de Caña · CASUR · Ref. ${finding.id.slice(-8)} · Emitida ${fdate(new Date().toISOString())}`, W - P, 118); ctx.textAlign = 'left';
+  ctx.fillStyle = C.line; ctx.fillRect(P, 158, IW, 2);
+  let y = 200; ctx.fillStyle = C.ink; ctx.font = F.title; for (const l of nameL) { ctx.fillText(l, P, y + 30); y += 56; }
+  ctx.fillStyle = C.soft; ctx.font = F.meta; for (const l of subL) { ctx.fillText(l, P, y + 20); y += 34; }
+  // Avance del trámite
+  y += 40; const sw = IW / 4;
+  PROGRESS.forEach((l, i) => { const x = P + i * sw, done = i <= step; ctx.fillStyle = done ? fam.color : '#DDE3E7'; rr(ctx, x, y, sw - 10, 12, 6); ctx.fill();
+    ctx.fillStyle = i === step ? fam.color : done ? C.ink : C.soft; ctx.font = font(i === step ? 800 : 600, 23); ctx.fillText(`${i + 1}. ${l}`, x, y + 50); });
+  y += 110;
+  const section = (n, t) => { ctx.fillStyle = fam.color; rr(ctx, P, y + 34, 44, 44, 12); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = font(800, 24); ctx.textAlign = 'center'; ctx.fillText(String(n), P + 22, y + 65); ctx.textAlign = 'left';
+    ctx.fillStyle = C.petrol900; ctx.font = F.sec; ctx.fillText(t, P + 62, y + 66); y += secH; };
+  // 1 · Observación
+  section(1, 'Observación');
+  ctx.font = font(700, 26); const pw = 60 + ctx.measureText(cat.label).width + 24; ctx.fillStyle = fam.soft; rr(ctx, P, y, pw, 52, 26); ctx.fill(); drawIcon(ctx, cat.icon, P + 14, y + 10, 32, fam.color, 2.2);
+  ctx.fillStyle = fam.color; ctx.fillText(cat.label, P + 58, y + 35);
+  ctx.fillStyle = C.soft; ctx.font = F.meta; ctx.fillText(`${fdate(finding.observedAt)} ${ftime(finding.observedAt)}`, P + pw + 20, y + 35); y += 70;
+  if (agroL.length) { ctx.fillStyle = C.petrol700; ctx.font = F.meta; for (const l of agroL) { ctx.fillText(l, P, y + 22); y += 34; } y += 16; }
+  ctx.fillStyle = obsL.length ? C.ink : C.soft; ctx.font = F.body; if (obsL.length) { for (const l of obsL) { ctx.fillText(l, P, y + 30); y += 42; } y += 20; } else { ctx.fillText('Sin observación escrita.', P, y + 30); y += 46; }
+  if (detRows.length) { y += 20; detRows.forEach((n, r) => { [0, 1].forEach(c => { const d = detL[r * 2 + c]; if (!d) return; const x = P + c * (IW / 2); ctx.fillStyle = C.soft; ctx.font = F.label; ctx.fillText(d.label, x, y + 22);
+      ctx.fillStyle = C.ink; ctx.font = F.val; d.lines.forEach((l, i) => ctx.fillText(l, x, y + 56 + i * 34)); }); y += 34 + n * 34 + 18; }); }
+  if (finding.severity?.source === 'tecnico') { const s = finding.severity.value; ctx.font = font(700, 24); const w = ctx.measureText(`Severidad evaluada: ${s}`).width + 36; ctx.fillStyle = C.sev[s] || C.soft; rr(ctx, P, y + 10, w, 44, 22); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(`Severidad evaluada: ${s}`, P + 18, y + 40); y += 66; }
+  if (evRows.length) {
+    y += 30; for (let i = 0, r = 0; i < evCells.length; i += cols, r++) {
+      evCells.slice(i, i + cols).forEach((c, j) => { const x = P + j * (cellW + 24); if (c.b) containImage(ctx, c.b, x, y, cellW, cellH); else { ctx.fillStyle = '#EEF2F4'; rr(ctx, x, y, cellW, cellH, 12); ctx.fill(); ctx.fillStyle = C.soft; ctx.font = F.small; ctx.fillText('Original no disponible en este teléfono', x + 20, y + cellH / 2); }
+        ctx.fillStyle = C.soft; ctx.font = F.small; c.cap.forEach((l, k) => ctx.fillText(l, x, y + cellH + 36 + k * 30)); });
+      y += evRows[r];
+    }
   }
-  // Datos agronómicos
-  if (chips.length) {
-    y += 28; let x = P; ctx.font = font(600, 25);
-    for (const c of chips) { const w = ctx.measureText(c).width + 36; if (x + w > W - P) break; ctx.fillStyle = C.petrol50; rr(ctx, x, y, w, 48, 24); ctx.fill(); ctx.fillStyle = C.petrol800; ctx.fillText(c, x + 18, y + 33); x += w + 10; }
-    y += 48;
+  // 2 · Recomendación y solicitudes
+  section(2, 'Recomendación y solicitudes');
+  if (!recB.length) { ctx.fillStyle = C.soft; ctx.font = F.body; ctx.fillText('Sin recomendaciones ni solicitudes registradas.', P, y + 30); y += 46; }
+  for (const b of recB) { ctx.fillStyle = fam.color; ctx.font = font(800, 22); ctx.fillText(b.head.toUpperCase(), P + 40, y + 26); ctx.beginPath(); ctx.arc(P + 12, y + 18, 8, 0, Math.PI * 2); ctx.fill(); y += 40;
+    ctx.fillStyle = C.ink; ctx.font = F.body; for (const l of b.lines) { ctx.fillText(l, P + 40, y + 30); y += 42; }
+    ctx.fillStyle = C.soft; ctx.font = F.small; for (const l of b.meta) { ctx.fillText(l, P + 40, y + 22); y += 30; } y += 28; }
+  // 3 · Seguimiento
+  section(3, 'Seguimiento');
+  if (!histB.length) { ctx.fillStyle = C.soft; ctx.font = F.body; ctx.fillText('Sin cambios de estado registrados.', P, y + 30); y += 46; }
+  for (const b of histB) { ctx.fillStyle = C.soft; ctx.font = F.small; ctx.fillText(`${fdate(b.h.at)} ${ftime(b.h.at)}`, P, y + 24); ctx.fillStyle = C.ink; ctx.font = F.meta; b.lines.forEach((l, i) => ctx.fillText(l, P + 250, y + 24 + i * 34)); y += b.lines.length * 34 + 16; }
+  if (pair) {
+    y += 30; ctx.fillStyle = C.petrol800; ctx.font = font(700, 24); ctx.fillText('Antes y después', P, y + 20); y += 40; const w = (IW - 24) / 2;
+    containImage(ctx, pair.before.b, P, y, w, 420); containImage(ctx, afterBm, P + w + 24, y, w, 420);
+    ctx.fillStyle = C.soft; ctx.font = F.small; ctx.fillText(`Antes · ${fdate(pair.before.p.takenAt || pair.before.p.addedAt)}`, P, y + 456); ctx.fillText(`Después · ${fdate(after.takenAt || after.addedAt)}`, P + w + 24, y + 456); y += 420 + 50 - 40 + 40;
   }
-  const heading = t => { y += 52; ctx.fillStyle = C.petrol600; ctx.font = font(700, 23); ctx.fillText(t.toUpperCase(), P, y); y += 8; };
-  if (obs.length) { heading('Observación'); ctx.fillStyle = C.ink; ctx.font = font(400, 30); for (const l of obs) { y += 42; ctx.fillText(l, P, y); } }
-  if (details.length) {
-    heading('Detalles evaluados'); const colW = (W - P * 2) / 2;
-    details.forEach((d, i) => { const cx = P + (i % 2) * colW, cy = y + 30 + Math.floor(i / 2) * 64; ctx.fillStyle = C.soft; ctx.font = font(500, 22); ctx.fillText(d.label, cx, cy); ctx.fillStyle = C.ink; ctx.font = font(700, 27); ctx.fillText(fit(ctx, d.value, colW - 20), cx, cy + 32); });
-    y += Math.ceil(details.length / 2) * 64;
-  }
-  if (finding.severity?.source === 'tecnico') {
-    y += 26; const s = finding.severity.value; ctx.font = font(700, 26); const w = ctx.measureText(`Severidad ${s}`).width + 40;
-    ctx.fillStyle = C.sev[s] || C.soft; rr(ctx, P, y, w, 46, 23); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(`Severidad ${s}`, P + 20, y + 32); y += 46;
-  }
-  if (recLines.length) {
-    heading('Recomendaciones'); ctx.font = font(400, 28);
-    for (const l of recLines) { y += 40; if (l.first) { ctx.fillStyle = C.petrol500; ctx.beginPath(); ctx.arc(P + 10, y - 9, 6, 0, Math.PI * 2); ctx.fill(); } ctx.fillStyle = C.ink; ctx.fillText(l.t, P + 36, y); }
-  }
-  if (mapH) { y += 40; const loc = finding.gps && finding.gps.source !== 'none' ? finding.gps : null; drawMiniMap(ctx, P, y, W - P * 2, mapH, {features, focusId: record?.identity.lotCode, point: loc}); y += mapH; }
+  if (mapH) { y += 40; const loc = finding.gps && finding.gps.source !== 'none' ? finding.gps : null; drawMiniMap(ctx, P, y, IW, mapH, {features, focusId: record?.identity.lotCode, point: loc}); y += mapH; }
+  bms.forEach(b => b?.close?.()); afterBm?.close?.();
   // Pie
-  ctx.fillStyle = C.line; ctx.fillRect(P, H - 92, W - P * 2, 2);
-  ctx.fillStyle = C.soft; ctx.font = font(500, 22);
+  ctx.fillStyle = C.line; ctx.fillRect(P, H - 96, IW, 2); ctx.fillStyle = C.soft; ctx.font = F.small;
   const loc = finding.gps && finding.gps.source !== 'none' ? coordsText(finding.gps) : '';
-  ctx.fillText(fit(ctx, [author ? `Técnico: ${author}` : '', loc, `ID ${finding.id.slice(-8)}`].filter(Boolean).join(' · '), W - P * 2 - 300), P, H - 46);
-  ctx.textAlign = 'right'; ctx.fillStyle = C.petrol800; ctx.font = font(700, 22); ctx.fillText('Negocios de Caña · CASUR', W - P, H - 46); ctx.textAlign = 'left';
+  ctx.fillText([loc ? 'Ubicación del hallazgo: ' + loc : 'Hallazgo sin ubicación verificable', `${evid.length} evidencia${evid.length === 1 ? '' : 's'}`].join(' · '), P, H - 50);
+  ctx.textAlign = 'right'; ctx.fillStyle = C.petrol800; ctx.font = font(700, 22); ctx.fillText('Visitas de Campo · CASUR', W - P, H - 50); ctx.textAlign = 'left';
   return toBlob(canvas, 'image/png');
 }
+/** Compatibilidad: el nombre anterior genera ahora la ficha de seguimiento. */
+export const findingCard = followupSheet;
 export {locationLabel};

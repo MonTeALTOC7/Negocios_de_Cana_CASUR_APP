@@ -44,7 +44,7 @@ export const MODULE_VERSIONS = {
   labores: '0.7.x',
   convertidor: '1.1.0',
   conciliacion: '0.7.x',
-  visitas: '1.1.0',
+  visitas: '1.2.0',
 };
 
 export function moduleVersion(id) {
@@ -96,7 +96,7 @@ Object.freeze(PRODUCTION_RELEASES);
 
 // Add immutable entries here when another module is released; never invent legacy history.
 export const MODULE_RELEASES = Object.freeze({ produccion: PRODUCTION_RELEASES,
- visitas:Object.freeze([Object.freeze({id:'visitas',version:'1.1.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Rediseño integral: mapa operativo, detección automática de finca y suerte por GPS (asistencia, nunca restricción), registro rápido de un toque con detalles técnicos opcionales y bitácora.','Fotos con GPS asociado y procedencia explícita, galería, etiquetado institucional, tarjetas de hallazgo, expediente del productor, seguimiento con evidencias, informes y exportaciones.'])}),Object.freeze({id:'visitas',version:'1.0.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Primera versión local-first: registro de visitas con productor, suertes, GPS, mapa, hallazgos, fotografías originales, recomendaciones, solicitudes y compromisos.','Instantánea del Maestro por visita, borradores automáticos, respaldo ZIP verificable y restauración sin duplicados.'])})]),
+ visitas:Object.freeze([Object.freeze({id:'visitas',version:'1.2.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Identidad propia centrada en el productor: Inicio «Mi gestión de campo», navegación Inicio · Productores · Registrar · Gestión · Más, expediente técnico con resumen, suertes, cronología, seguimiento por etapa y evidencias.','Evidencias documentales sin recortes (foto completa con pie documental y ficha de seguimiento técnico), fotos de visita y de seguimiento en los informes, ventana GPS de 30 s con movimiento y precisión, y visitas retrospectivas sin atributos actuales.'])}),Object.freeze({id:'visitas',version:'1.1.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Rediseño integral: mapa operativo, detección automática de finca y suerte por GPS (asistencia, nunca restricción), registro rápido de un toque con detalles técnicos opcionales y bitácora.','Fotos con GPS asociado y procedencia explícita, galería, etiquetado institucional, tarjetas de hallazgo, expediente del productor, seguimiento con evidencias, informes y exportaciones.'])}),Object.freeze({id:'visitas',version:'1.0.0',type:'MINOR',publishedAt:null,changes:Object.freeze(['Primera versión local-first: registro de visitas con productor, suertes, GPS, mapa, hallazgos, fotografías originales, recomendaciones, solicitudes y compromisos.','Instantánea del Maestro por visita, borradores automáticos, respaldo ZIP verificable y restauración sin duplicados.'])})]),
  tch:Object.freeze([Object.freeze({id:'tch',version:'2.8.1',type:'PATCH',publishedAt:null,changes:Object.freeze(['Checkpoint PWA bloquea GPS, capturas, escrituras y exportaciones activas; conserva borrador e IDB v3.'])})]) });
 export const RELEASE_CATALOG = Object.freeze(Object.fromEntries(Object.entries(MODULE_VERSIONS).map(([id,version]) => [id,
   Object.freeze({id,version,publishedAt:MODULE_RELEASES[id]?.[0]?.publishedAt || null,history:MODULE_RELEASES[id] || Object.freeze([])})

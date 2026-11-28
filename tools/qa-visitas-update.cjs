@@ -61,7 +61,7 @@ const results = [], check = async (n, fn) => { try { await fn(); results.push(['
     await shell.waitForFunction(r => fetch('core/versions/runtime-assets.json').then(x => x.json()).then(m => m.releaseId === r), release(v2), {timeout: 60000, polling: 1500});
   });
   await check('Después de actualizar: sin conexión y con los registros intactos', async () => {
-    await ctx.setOffline(true); await visitas.goto(V + '#/bitacora'); await visitas.reload(); await visitas.waitForFunction(() => window.CASUR_VISITAS_READY);
+    await ctx.setOffline(true); await visitas.goto(V + '#/gestion?k=hallazgos'); await visitas.reload(); await visitas.waitForFunction(() => window.CASUR_VISITAS_READY);
     await visitas.waitForSelector('.vc-finding', {timeout: 20000}).catch(async () => { await visitas.screenshot({path: path.join(out, 'fallo-offline.png')}); throw Error((await visitas.locator('body').innerText()).slice(0, 300)); });
     assert.equal(await visitas.locator('.vc-finding').count(), 1); await ctx.setOffline(false);
   });

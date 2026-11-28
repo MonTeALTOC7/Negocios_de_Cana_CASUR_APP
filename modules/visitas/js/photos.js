@@ -13,7 +13,12 @@ import {latestFix, readOnce} from './geo.js';
 
 export const BACKUP_STATES = {local: 'Solo en el teléfono', exportada: 'En un respaldo descargado', confirmada: 'Respaldo confirmado',
   restaurada: 'Restaurada desde respaldo', 'no-disponible': 'No disponible en este dispositivo'};
-const MAX_DELTA_MS = 120000;   // una lectura a más de 2 min de la captura no se asocia a la foto
+/* Asociación de una lectura del teléfono a la foto (cuando la cámara no escribió GPS):
+   - solo lecturas a ≤ 30 s de la captura (antes de abrir la cámara o al volver);
+   - si entre las lecturas disponibles el teléfono se movió > 25 m, o la precisión es > 50 m, la posición queda como
+     APROXIMADA: se conserva como dato, pero no se rotula como coordenada exacta de la evidencia. */
+const MAX_DELTA_MS = 30000, MOVE_M = 25, EXACT_ACC = 50;
+const distM = (a, b) => { const r = Math.PI / 180, x = (b.lon - a.lon) * r * Math.cos((a.lat + b.lat) / 2 * r), y = (b.lat - a.lat) * r; return Math.sqrt(x * x + y * y) * 6371008.8; };
 
 export async function sha256(blob) {
   const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer());
@@ -64,14 +69,17 @@ function pickDevice(captureT, readings) {
   const valid = readings.filter(Boolean).map(r => ({...r, delta: r.t - captureT})).filter(r => Math.abs(r.delta) <= MAX_DELTA_MS);
   if (!valid.length) return null;
   const best = valid.sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta) || a.accuracy - b.accuracy)[0];
-  return {lat: best.lat, lon: best.lon, accuracy: best.accuracy, at: best.at, source: best.delta <= 0 ? 'device-before' : 'device-after', deltaS: Math.round(Math.abs(best.delta) / 1000)};
+  const moved = valid.some(r => distM(r, best) > MOVE_M);
+  return {lat: best.lat, lon: best.lon, accuracy: best.accuracy, at: best.at, source: best.delta <= 0 ? 'device-before' : 'device-after', deltaS: Math.round(Math.abs(best.delta) / 1000),
+    approximate: moved || !(best.accuracy <= EXACT_ACC), moved};
 }
 /** Texto honesto de la procedencia de la ubicación de una foto. */
 export function locationLabel(loc) {
   if (!loc || loc.source === 'none') return 'Sin ubicación verificable';
   const acc = Number.isFinite(loc.accuracy) ? ` · ±${loc.accuracy} m` : ' · precisión desconocida';
   if (loc.source === 'exif') return `GPS de la cámara${acc}`;
-  return `GPS del teléfono ${loc.deltaS <= 2 ? 'al tomar la foto' : `${loc.deltaS} s ${loc.source === 'device-before' ? 'antes' : 'después'}`}${acc}`;
+  const when = loc.deltaS <= 2 ? 'al tomar la foto' : `${loc.deltaS} s ${loc.source === 'device-before' ? 'antes' : 'después'}`;
+  return loc.approximate ? `Posición aproximada del teléfono (${when}${loc.moved ? ', en movimiento' : ''})${acc}` : `GPS del teléfono ${when}${acc}`;
 }
 
 async function thumbnail(blob) {

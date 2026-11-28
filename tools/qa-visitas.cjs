@@ -1,4 +1,6 @@
-// QA Visitas de Campo 1.1 (rediseño). Perfiles aislados; visitas, textos y fotos SINTÉTICOS.
+// QA Visitas de Campo 1.2 (identidad propia centrada en el productor). Perfiles aislados; visitas, textos y fotos SINTÉTICOS.
+// Incluye: navegación Inicio · Productores · Registrar · Gestión · Más, expediente con pestañas y cronología, ficha de
+// suerte, Gestión por etapa, Evidencias (de visita y de seguimiento), ficha de seguimiento técnico y visita retrospectiva.
 // Escenarios de aceptación 1–7 + GPS (preciso, impreciso, fuera, permiso denegado, conflicto con selección manual,
 // cambio de suerte), fotos (GPS antes de abrir la cámara, EXIF, galería sin EXIF), etiquetado y tarjeta, autoguardado
 // con fallo de escritura, concurrencia entre pestañas, respaldo/restauración (multiparte, incompleto, corrupción,
@@ -57,7 +59,7 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
   await scratch.close();
 
   const ctx = await browser.newContext(mobile({geolocation: {latitude: A701[1], longitude: A701[0], accuracy: 5}, permissions: ['geolocation']}));
-  const page = await ctx.newPage(), errors = []; PAGE = page;
+  const page = await ctx.newPage(), errors = []; PAGE = page; page.setDefaultTimeout(30000);
   page.on('pageerror', e => errors.push(String(e?.message ?? e)));
   let findingId, visitId;
 
@@ -90,7 +92,7 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     assert.equal(f.lotKey, '7|01'); assert.equal(f.gps.source, 'device'); assert.equal(f.severity, null); assert.deepEqual(f.details, {});
     visitId = f.visitId;
     await page.fill('[data-f="observation"]', 'Coquillo en la cabecera norte (QA sintética).');
-    await page.locator('[data-capture]').dispatchEvent('pointerdown');
+    await page.locator('[data-gal] [data-capture]').dispatchEvent('pointerdown');
     await page.setInputFiles('[data-camera]', {name: 'IMG_camara.jpg', mimeType: 'image/jpeg', buffer: jpegV});
     await page.waitForFunction(() => document.querySelectorAll('.vc-ph img').length === 1, null, {timeout: 20000});
     await page.waitForTimeout(1500);
@@ -102,8 +104,8 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
   });
   await check('Escenario 3 · Detalles técnicos opcionales: solo lo conocido, sin bloquear', async () => {
     await page.locator('details.vc-details summary').click();
-    await page.check('input[data-detail="distribucion"][value="Parches"]', {force: true});
-    await page.check('input[data-sev][value="Media"]', {force: true});
+    await page.locator('input[data-detail="distribucion"][value="Parches"]').evaluate(e => e.click());   // clic directo: el aviso emergente puede tapar la opción
+    await page.locator('input[data-sev][value="Media"]').evaluate(e => e.click());
     await page.fill('[data-rec]', 'Aplicar control químico dirigido en la cabecera norte.'); await page.click('[data-add-rec]');
     await page.waitForTimeout(1200);
     const f = await db(page, (s, id) => s.get('findings', id), findingId);
@@ -133,9 +135,17 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     const [dl2] = await Promise.all([page.waitForEvent('download'), page.click('[data-a="download"]')]); await dl2.saveAs(path.join(out, 'muestra-foto-etiquetada-horizontal.jpg'));
     await page.click('[data-a="close"]');
     await page.click('[data-card-img]'); await page.waitForSelector('.vc-sheet img', {timeout: 30000});
-    const [dl3] = await Promise.all([page.waitForEvent('download'), page.click('[data-dl]')]); await dl3.saveAs(path.join(out, 'muestra-tarjeta-hallazgo.png'));
-    await shot(page, '08-tarjeta-preview'); await page.click('.vc-sheet [data-close] >> nth=1');
-    const size = fs.statSync(path.join(out, 'muestra-tarjeta-hallazgo.png')).size; assert.ok(size > 50000);
+    const [dl3] = await Promise.all([page.waitForEvent('download'), page.click('[data-dl]')]); await dl3.saveAs(path.join(out, 'muestra-ficha-seguimiento.png'));
+    assert.match(dl3.suggestedFilename(), /^Ficha_seguimiento_/);
+    await shot(page, '08-ficha-preview'); await page.click('.vc-sheet [data-close] >> nth=1');
+    const size = fs.statSync(path.join(out, 'muestra-ficha-seguimiento.png')).size; assert.ok(size > 50000);
+    // Proporciones: el pie documental va DEBAJO de la foto (la imagen original no se cubre) en vertical y horizontal.
+    const scaleOf = (w, h) => Math.min(2048 / Math.max(w, h), Math.max(1, 1080 / w)), sources = [[1000, 1400], [1600, 1200], [900, 700]];
+    for (const file of ['muestra-foto-etiquetada-vertical.jpg', 'muestra-foto-etiquetada-horizontal.jpg']) {
+      const b = fs.readFileSync(path.join(out, file)); let i = 2, W = 0, H = 0; while (i < b.length) { const m = b[i + 1], len = b.readUInt16BE(i + 2); if (m >= 0xC0 && m <= 0xC2) { H = b.readUInt16BE(i + 5); W = b.readUInt16BE(i + 7); break; } i += 2 + len; }
+      const src = sources.find(([w, h]) => Math.round(w * scaleOf(w, h)) === W && H > Math.round(h * scaleOf(w, h)) + 150);
+      assert.ok(src, `${file}: ${W}×${H} debe conservar la foto entera y agregar el pie debajo`);
+    }
   });
   await check('GPS impreciso y fuera de suerte: no se confirma ni se cambia el destino', async () => {
     await page.goto(V + '#/inicio'); await ready(page);
@@ -143,7 +153,7 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     await page.waitForFunction(() => document.querySelector('#gpsChip')?.dataset.s === 'aproximada', null, {timeout: 15000});
     await walk(ctx, page, jitter([A701[0] + 0.02, A701[1] + 0.02], 4), 5);
     await page.waitForFunction(() => ['fuera', 'aproximada'].includes(document.querySelector('#gpsChip')?.dataset.s), null, {timeout: 15000});
-    assert.match(await page.locator('[data-here]').innerText(), /¿Dónde estás\?/);
+    assert.match(await page.locator('[data-here]').innerText(), /Sin finca seleccionada/);
   });
   await check('Selección manual con prioridad; conflicto GPS informado sin bloquear; cambio de suerte sin alterar registros previos', async () => {
     await page.click('[data-here] [data-choose]'); await page.fill('.vc-sheet [data-q]', '7'); await page.click('.vc-sheet [data-farm="7"]'); await page.click('.vc-sheet [data-lot="7|02"]');
@@ -161,14 +171,18 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     await walk(ctx, page, jitter(A703, 5), 5);
     await page.waitForFunction(() => /Suerte 03/.test(document.querySelector('[data-here]')?.innerText || ''), null, {timeout: 20000});
   });
-  await check('Bitácora: búsqueda, filtros y deshacer captura accidental', async () => {
+  await check('Gestión: deshacer captura accidental, ruta anterior redirigida, búsqueda, pestañas y avance por etapa', async () => {
     await page.click('a.vc-fab'); await page.waitForSelector('[data-cat="riego"]'); await page.click('[data-cat="riego"]'); await page.waitForSelector('#toast:not([hidden])');
-    await page.click('#toast button:has-text("Deshacer")'); await page.waitForURL(/#\/inicio/);
-    await page.goto(V + '#/bitacora'); await ready(page); await page.waitForSelector('.vc-finding');
+    await page.click('#toast button:has-text("Deshacer")'); await page.waitForURL(/#\/registrar$/);
+    await page.goto(V + '#/bitacora'); await ready(page); await page.waitForURL(/#\/gestion\?k=hallazgos/); await page.waitForSelector('.vc-finding');
     assert.equal(await page.locator('.vc-finding').count(), 2, 'el registro deshecho no aparece');
+    assert.equal(await page.locator('#nav [aria-current="page"]').getAttribute('data-r'), 'gestion');
+    assert.ok(await page.locator('.vc-finding .vc-progress').count() >= 2, 'avance del trámite visible');
+    assert.match(await page.locator('.vc-finding:has-text("Malezas") .vc-progress [aria-current="step"]').innerText(), /Recomendado/);
     await page.fill('[data-q]', 'coquillo'); await page.waitForTimeout(300); assert.equal(await page.locator('.vc-finding').count(), 1);
-    await page.fill('[data-q]', ''); await page.selectOption('[data-cat]', 'plagas'); await page.waitForTimeout(300); assert.equal(await page.locator('.vc-finding').count(), 1);
-    await page.selectOption('[data-cat]', ''); await noOverflow(page); await shot(page, '10-bitacora');
+    await page.fill('[data-q]', ''); await page.click('[data-tab="recomendacion"]'); await page.waitForTimeout(300);
+    assert.match(await page.locator('[data-list]').innerText(), /Aplicar control químico dirigido/);
+    await page.click('[data-tab="hallazgos"]'); await noOverflow(page); await shot(page, '10-gestion');
   });
   await check('Mapa operativo: finca, suertes, ubicación y ficha de suerte', async () => {
     await page.goto(V + '#/mapa?finca=7'); await ready(page);
@@ -198,7 +212,7 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     await c3.close();
   });
   await check('Escenario 5 · Seguimiento: estado, nota, evidencia y visita vinculada', async () => {
-    await page.goto(V + '#/seguimiento'); await ready(page); await page.click('.vc-list .vc-item >> nth=0'); await page.waitForSelector('[data-apply]');
+    await page.goto(V + '#/seguimiento'); await ready(page); await page.waitForURL(/#\/gestion\?k=recomendacion/); await page.click('.vc-list .vc-item >> nth=0'); await page.waitForSelector('[data-apply]');
     await page.selectOption('[data-state]', 'En gestión'); await page.fill('[data-note]', 'Coordinado con el productor (QA)');
     await page.setInputFiles('[data-gal] [data-gallery]', path.join(out, 'foto-galeria.png')); await page.waitForTimeout(1500);
     await page.click('[data-apply]'); await page.waitForTimeout(800);
@@ -207,12 +221,57 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     const ev = await db(page, (s, id) => s.all('photos').then(l => l.filter(p => p.followupId === id)), f.id); assert.equal(ev.length, 1); assert.equal(ev[0].role, 'seguimiento');
     await page.waitForTimeout(600); await shot(page, '14-seguimiento', true);
   });
-  await check('Expediente del productor e informes (visita, expediente, consolidado) + Excel y GeoJSON', async () => {
-    await page.goto(V + '#/productor/7'); await ready(page); await page.waitForSelector('text=Problemas recurrentes', {state: 'attached'}).catch(() => {});
-    assert.match(await page.locator('main').innerText(), /Amayo[\s\S]*Suertes[\s\S]*Historial de visitas/); await shot(page, '15-expediente', true);
+  await check('Productores y expediente técnico: resumen, suertes, cronología, seguimiento por etapa y evidencias (antes/después)', async () => {
+    await page.click('#nav a[data-r="productores"]'); await page.waitForSelector('.vc-avatar'); assert.match(await page.locator('[data-list]').innerText(), /Amayo/);
+    await page.fill('[data-q]', '242'); await page.waitForTimeout(300); assert.ok(await page.locator('[data-list] .vc-item').count() >= 1); await shot(page, '15-productores');
+    await page.goto(V + '#/productor/7'); await ready(page); await page.waitForSelector('.vc-tabs');
+    const resumen = await page.locator('main').innerText(); assert.match(resumen, /Expediente técnico[\s\S]*Amayo[\s\S]*Situación actual[\s\S]*Malezas/i); assert.doesNotMatch(resumen, /impacto|undefined|NaN/i);
+    await shot(page, '16-expediente-resumen', true);
+    await page.click('[data-tab="suertes"]'); assert.ok(await page.locator('.vc-lotnum').count() > 3);
+    await page.click('[data-tab="cronologia"]'); await page.waitForSelector('.vc-timeline');
+    const tl = await page.locator('.vc-timeline').innerText(); assert.match(tl, /Visita técnica[\s\S]*Hallazgo · /); assert.match(tl, /Recomendación emitida/); assert.match(tl, /Recomendación → En gestión/); assert.match(tl, /fotografía/);
+    await shot(page, '17-expediente-cronologia', true);
+    await page.click('[data-tab="seguimiento"]'); await page.waitForSelector('.vc-stages'); assert.match(await page.locator('.vc-stages').innerText(), /1\s*Observado[\s\S]*2\s*Recomendado[\s\S]*3\s*En ejecución[\s\S]*4\s*Verificado/);
+    await shot(page, '18-expediente-seguimiento', true);
+    await page.click('[data-tab="evidencias"]'); await page.waitForSelector('.vc-galgroup'); await page.waitForTimeout(500); await shot(page, '19-expediente-evidencias', true);
+    await page.goto(V + '#/suerte/' + encodeURIComponent('7|01')); await ready(page); await page.waitForSelector('.vc-lotmap svg', {timeout: 30000});
+    const lot = await page.locator('main').innerText(); assert.match(lot, /Suerte 01[\s\S]*Hallazgos[\s\S]*Malezas[\s\S]*Evidencias[\s\S]*Visitas/);
+    await shot(page, '20-ficha-suerte', true);
+  });
+  await check('Evidencia de la visita sin hallazgo: inicio «Tomar evidencia», vista Evidencias e informe', async () => {
+    await page.goto(V + '#/inicio'); await ready(page);
+    assert.match(await page.locator('.vc-metrics').innerText(), /Visitas realizadas[\s\S]*Productores atendidos[\s\S]*Recomendaciones abiertas[\s\S]*Solicitudes pendientes[\s\S]*Compromisos vencidos/);
+    await page.evaluate(async () => (await import(new URL('js/model.js', location.href).href)).setManualTarget('7', '7|01')); await page.reload(); await ready(page);
+    await page.locator('[data-capture]').first().dispatchEvent('pointerdown');
+    await page.setInputFiles('.vc-quick [data-evidence]', {name: 'IMG_visita.jpg', mimeType: 'image/jpeg', buffer: jpeg});
+    await page.waitForFunction(() => /Evidencia guardada en la visita/.test(document.querySelector('#toast')?.innerText || ''), null, {timeout: 20000});
+    const p = await db(page, s => s.all('photos').then(l => l.find(x => x.originalName === 'IMG_visita.jpg')));
+    assert.equal(p.findingId, null); assert.equal(p.followupId, null); assert.ok(p.visitId);
+    await page.goto(V + '#/evidencias'); await ready(page); await page.waitForSelector('.vc-galgroup');
+    assert.match(await page.locator('main').innerText(), /Evidencias de la visita[\s\S]*De hallazgos/); await page.waitForTimeout(500); await shot(page, '21-evidencias', true);
+    await page.selectOption('[data-kind]', 'Seguimiento'); await page.waitForTimeout(300); assert.match(await page.locator('main').innerText(), /Del seguimiento/);
+    await page.goto(V + '#/informe/visita/' + p.visitId); await ready(page); await page.waitForSelector('.vc-report');
+    const txt = await page.locator('.vc-report').innerText(); assert.match(txt, /Evidencias de la visita/i); assert.match(txt, /Evidencias del seguimiento/i); assert.match(txt, /Avance: /);
+  });
+  await check('Visita retrospectiva: hallazgo con la fecha de la visita, sin GPS actual ni atributos actuales', async () => {
+    await page.goto(V + '#/nueva?finca=7'); await ready(page);
+    await page.waitForSelector('[data-lot]');   // solo la suerte 03 (la suerte objetivo viene preseleccionada)
+    await page.locator('[data-lot][value="7|03"]').evaluate(e => { if (!e.checked) e.click(); }); await page.locator('[data-lot][value="7|01"]').evaluate(e => { if (e.checked) e.click(); });
+    await page.fill('[data-when]', '2025-06-10T09:00'); await page.click('[data-create]'); await page.waitForURL(/#\/visita\//);
+    await page.waitForSelector('.vc-note--retro', {timeout: 15000}); assert.match(await page.locator('main').innerText(), /Registro retrospectivo/);
+    await page.click('[data-reg]'); await page.waitForURL(/registrar\?visita=/); await page.waitForSelector('[data-cat="malezas"]');
+    assert.match(await page.locator('[data-target]').innerText(), /Visita del 10-Jun-2025/);
+    await page.click('[data-cat="malezas"]'); await page.waitForSelector('[data-f="observation"]');
+    const f = await db(page, s => s.all('findings').then(l => l.find(x => x.observedAt.startsWith('2025-06-10'))));
+    assert.ok(f, 'hallazgo con la fecha de la visita'); assert.equal(f.gps.source, 'none', 'sin ubicación actual'); assert.equal(f.lotKey, '7|03');
+    assert.match(await page.locator('[data-form]').innerText(), /Registro retrospectivo/);
+    await shot(page, '22-retrospectiva', true);
+  });
+  await check('Informes (visita, expediente, consolidado) + Excel y GeoJSON', async () => {
     await page.goto(V + '#/informe/visita/' + visitId); await ready(page); await page.waitForSelector('.vc-report svg');
     const txt = await page.locator('.vc-report').innerText(); fs.writeFileSync(path.join(out, 'informe-visita.txt'), txt); assert.match(txt, /Informe de visita[\s\S]*Negocios de Caña · CASUR[\s\S]*Hallazgos[\s\S]*Malezas/i); assert.doesNotMatch(txt, /undefined|NaN|null/);
-    await shot(page, '16-informe-visita', true);
+    assert.match(txt, /Recomendación: Aplicar control químico dirigido en la cabecera norte\./);
+    await shot(page, '23-informe-visita', true);
     await page.pdf?.({path: path.join(out, 'muestra-informe-visita.pdf'), format: 'A4', printBackground: true}).catch(() => {});
     await page.goto(V + '#/informes'); await ready(page);
     const [x] = await Promise.all([page.waitForEvent('download'), page.click('[data-xlsx]')]); await x.saveAs(path.join(out, 'muestra-visitas.xlsx'));
@@ -250,7 +309,7 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     const [d] = await Promise.all([page.waitForEvent('download'), page.click('[data-backup="pending"]')]); await d.saveAs(path.join(out, d.suggestedFilename()));
     await page.waitForSelector('[data-confirm]'); assert.equal(await db(page, s => s.all('photos').then(l => l.filter(p => p.backupState === 'confirmada').length)), 0);
     await page.click('[data-confirm]'); await page.waitForSelector('.vc-chip--ok');
-    await shot(page, '17-datos-respaldos', true);
+    await shot(page, '24-datos-respaldos', true);
     parts = await page.evaluate(async () => { const b = await import(new URL('js/backup.js', location.href).href); const r = await b.buildBackup({scope: 'all', limit: 1});
       return Promise.all(r.parts.map(async p => ({name: p.name, bytes: [...new Uint8Array(await p.blob.arrayBuffer())]}))); });
     assert.ok(parts.length >= 3); parts.forEach(p => fs.writeFileSync(path.join(out, p.name), Buffer.from(p.bytes)));
@@ -295,17 +354,18 @@ const noOverflow = async p => { const o = await p.evaluate(() => document.docume
     assert.deepEqual(dbs, ['casur-visitas']);
   });
   await check('Responsive: 360, 412 y escritorio sin desbordes', async () => {
-    for (const [w, h, name] of [[360, 760, '360'], [412, 915, '412']]) { await page.setViewportSize({width: w, height: h}); for (const r of ['inicio', 'registrar', 'bitacora', 'datos']) { await page.goto(V + '#/' + r); await ready(page); await page.waitForTimeout(600); await noOverflow(page); } await shot(page, `18-datos-${name}`); }
+    for (const [w, h, name] of [[360, 760, '360'], [412, 915, '412']]) { await page.setViewportSize({width: w, height: h}); for (const r of ['inicio', 'registrar', 'productores', 'gestion', 'evidencias', 'productor/7', 'datos']) { await page.goto(V + '#/' + r); await ready(page); await page.waitForTimeout(600); await noOverflow(page); } await page.goto(V + '#/inicio'); await ready(page); await page.waitForTimeout(500); await shot(page, `25-inicio-${name}`); }
     const d = await browser.newContext({viewport: {width: 1440, height: 900}, deviceScaleFactor: 1, geolocation: {latitude: A701[1], longitude: A701[0], accuracy: 5}, permissions: ['geolocation']}); const pd = await d.newPage();
-    await pd.goto(V + '#/mapa?finca=7'); await ready(pd); await pd.waitForFunction(() => document.querySelectorAll('#vcMap .leaflet-interactive').length > 10, null, {timeout: 60000}); await pd.waitForTimeout(1500); await shot(pd, '19-escritorio-mapa');
-    await pd.goto(V + '#/inicio'); await ready(pd); await pd.waitForTimeout(800); await noOverflow(pd); await shot(pd, '20-escritorio-inicio'); await d.close();
+    await pd.goto(V + '#/mapa?finca=7'); await ready(pd); await pd.waitForFunction(() => document.querySelectorAll('#vcMap .leaflet-interactive').length > 10, null, {timeout: 60000}); await pd.waitForTimeout(1500); await shot(pd, '26-escritorio-mapa');
+    await pd.goto(V + '#/inicio'); await ready(pd); await pd.waitForTimeout(800); await noOverflow(pd); await shot(pd, '27-escritorio-inicio');
+    await pd.goto(V + '#/productor/7?tab=cronologia'); await ready(pd); await pd.waitForTimeout(800); await noOverflow(pd); await shot(pd, '28-escritorio-expediente'); await d.close();
   });
   await check('Acceso desde la App Maestra: tarjeta e iframe', async () => {
     const c6 = await browser.newContext({viewport: {width: 1440, height: 900}}); const p6 = await c6.newPage(); p6.on('pageerror', e => errors.push(String(e?.message ?? e)));
     await p6.goto(base); await p6.waitForFunction(() => !!navigator.serviceWorker.controller, null, {timeout: 120000});
     await p6.waitForSelector('text=Visitas de Campo Productores de Caña'); await p6.goto(base + '#/modulo/visitas');
     await p6.waitForFunction(() => { const f = document.querySelector('#mFrame'); return f?.src.includes('/modules/visitas/') && f.contentWindow?.CASUR_VISITAS_READY; }, null, {timeout: 120000});
-    await p6.waitForTimeout(1200); await shot(p6, '21-app-maestra'); await c6.close();
+    await p6.waitForTimeout(1200); await shot(p6, '29-app-maestra'); await c6.close();
   });
   await check('Sin errores de página', async () => assert.deepEqual(errors, [], errors.join(' | ')));
   await ctx.close(); await browser.close();

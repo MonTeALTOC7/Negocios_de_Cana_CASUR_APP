@@ -2,7 +2,25 @@
 
 Formato: [versión] — fecha · resumen.
 
-## App Maestra 1.7.0 · Visitas de Campo 1.1.0 (candidata, sin publicar)
+## App Maestra 1.7.0 · Visitas de Campo 1.2.0 (candidata, sin publicar)
+
+- **Visitas 1.2.0 (identidad funcional propia, centrada en el productor).**
+  - Inicio «Mi gestión de campo» con indicadores de gestión, ubicación compacta y seis acciones inmediatas.
+  - Navegación Inicio · Productores · Registrar · Gestión · Más; escritorio agrupado en Trabajo, Consultas y Sistema.
+  - Expediente técnico con resumen por familia, suertes, cronología, seguimiento por etapa y evidencias (antes/después).
+  - Ficha de suerte, Gestión (reemplaza a Bitácora y Seguimiento; rutas anteriores redirigidas) y Evidencias.
+  - Familias de hallazgo con color propio, avance Observado → Recomendado → En ejecución → Verificado e iconos propios.
+  - Foto etiquetada con pie documental bajo la imagen y ficha de seguimiento técnico sin recortes.
+  - Informes con evidencias de la visita y del seguimiento, avance y recomendaciones por hallazgo, y fotos completas.
+  - Ubicación de foto: ventana de 30 s; posición aproximada rotulada si hubo movimiento o baja precisión.
+  - Visitas retrospectivas: sin atributos actuales y con la fecha de la visita; corrige el registro desde una visita
+    retrospectiva, que creaba el hallazgo en una visita de hoy.
+- **Release Gate.** Se retiró `docs/evidencias-visitas-v11/muestra-visitas.xlsx`, que bloqueaba el control de artefactos;
+  el control no cambió. Se agregó `tools/release-gate-local.sh`.
+- Detalle: `docs/VISITAS_V12_IDENTIDAD.md`.
+
+### Visitas de Campo 1.1.0 (misma candidata)
+
 
 - **Visitas 1.1.0 (rediseño integral).**
   - Mapa operativo y detección automática de finca y suerte por GPS, como asistencia y nunca como restricción.

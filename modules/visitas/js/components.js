@@ -2,7 +2,7 @@
 import {icon} from './icons.js';
 import {esc, fdate, fdt, fha, fnum, blobUrl, lightbox, download, share, safeName, toast} from './ui.js';
 import {agroCard, ageLabel, STAGES} from './agro.js';
-import {category, KIND, filledDetails} from './catalog.js';
+import {category, KIND, filledDetails, familyStyle, PROGRESS, progressOf} from './catalog.js';
 import {BACKUP_STATES, beginCapture, createPhotoRecord, locationLabel, photoExtension} from './photos.js';
 import {labeledPhoto} from './labels.js';
 import * as store from './store.js';
@@ -19,7 +19,7 @@ export function agroHtml(record, at, {compact = false} = {}) {
     cell('Estado', c.state), ...(compact ? [] : [cell('Siembra', c.planting ? fdate(c.planting) : null), cell('Último corte', c.lastCut ? fdate(c.lastCut) : null),
       cell('Cosecha programada', c.harvest ? fdate(c.harvest) : null), cell('Destino', c.destination)]),
   ].filter(Boolean);
-  return `<dl class="vc-agro">${cells.join('')}</dl>`;
+  return `<dl class="vc-agro">${cells.join('')}</dl>${c.historical ? `<p class="vc-muted vc-small" style="margin-top:6px">Visita anterior a los datos del Maestro (${esc(fdate(c.dataDate))}): se muestran solo atributos estables; estado, corte y estimados no se atribuyen a esa fecha.</p>` : ''}`;
 }
 export function phenologyHtml(record, at, corrected = null) {
   const c = agroCard(record, at), ph = c?.phenology;
@@ -91,22 +91,38 @@ export function openViewer(photos, start, ctx) {
   });
 }
 
+/* ---------- Identidad: familia del hallazgo y avance de la gestión ---------- */
+export const famVars = id => { const f = familyStyle(id); return `--fam:${f.color};--fam-soft:${f.soft}`; };
+export const familyBadge = (id, {label = true} = {}) => `<span class="vc-fam" style="${famVars(id)}">${icon(category(id).icon)}${label ? `<span>${esc(category(id).label)}</span>` : ''}</span>`;
+/** Avance del trámite técnico: Observado → Recomendado → En ejecución → Verificado (no mide impacto agronómico). */
+export function progressHtml(step, {compact = false} = {}) {
+  return `<ol class="vc-progress ${compact ? 'vc-progress--compact' : ''}" aria-label="Avance: ${esc(PROGRESS[step])}">${PROGRESS.map((l, i) => `<li class="${i < step ? 'is-done' : i === step ? 'is-now' : ''}"${i === step ? ' aria-current="step"' : ''}><span>${esc(l)}</span></li>`).join('')}</ol>`;
+}
+/** Clase de una evidencia según a qué está vinculada (no según cómo se tomó). */
+export const photoKind = p => p.followupId ? (p.role === 'verificacion' ? 'Verificación' : 'Seguimiento') : p.findingId ? 'Hallazgo' : 'Visita';
+/** Comparación antes / después con fecha de cada imagen. */
+export function compareHtml(before, after, {title = ''} = {}) {
+  const fig = (p, l) => `<figure><button class="vc-ph" type="button" data-photo="${esc(p.id)}" data-i="${l === 'Antes' ? 0 : 1}" aria-label="${l}"><img alt="" data-src-photo="${esc(p.id)}"></button><figcaption><strong>${l}</strong> · ${fdate(p.takenAt || p.addedAt)}</figcaption></figure>`;
+  return `<div class="vc-compare">${title ? `<p class="vc-compare__title">${title}</p>` : ''}<div class="vc-compare__pair">${fig(before, 'Antes')}${fig(after, 'Después')}</div></div>`;
+}
+
 /* ---------- Filas ---------- */
-export function findingRow(f, {visit, photos = []} = {}) {
+export function findingRow(f, {visit, photos = [], followups = null} = {}) {
   const cat = category(f.category), lot = f.lotKey ? `Suerte ${f.lotKey.split('|')[1]}` : 'Finca completa';
   const thumbs = photos.filter(p => p.findingId === f.id && (p.thumb || p.blob)).slice(0, 3);
-  return `<a class="vc-finding" href="#/hallazgo/${esc(f.id)}">
-    <div class="vc-finding__top"><span class="vc-sev" data-v="${esc(f.severity?.source === 'tecnico' ? f.severity.value : '')}"></span>
-      <span class="vc-item__ic">${icon(cat.icon)}</span>
-      <span class="vc-item__body"><span class="vc-item__title">${esc(cat.label)}</span><span class="vc-item__sub">${esc([visit?.producer?.name, lot].filter(Boolean).join(' · '))}</span></span>
-      <span class="vc-item__side">${fdate(f.observedAt)}<span class="vc-chip ${f.status === 'Abierto' || f.status === 'En seguimiento' ? 'vc-chip--warn' : 'vc-chip--ok'}">${esc(f.status)}</span></span></div>
+  const sev = f.severity?.source === 'tecnico' ? f.severity.value : '';
+  return `<a class="vc-finding" href="#/hallazgo/${esc(f.id)}" style="${famVars(f.category)}">
+    <div class="vc-finding__top"><span class="vc-fam-ic">${icon(cat.icon)}</span>
+      <span class="vc-item__body"><span class="vc-item__title">${esc(cat.label)}${sev ? ` <span class="vc-sevtag" data-v="${esc(sev)}">${esc(sev)}</span>` : ''}</span><span class="vc-item__sub">${esc([visit?.producer?.name, lot, fdate(f.observedAt)].filter(Boolean).join(' · '))}</span></span>
+      <span class="vc-item__side"><span class="vc-chip ${f.status === 'Abierto' || f.status === 'En seguimiento' ? 'vc-chip--warn' : 'vc-chip--ok'}">${esc(f.status)}</span></span></div>
     ${f.observation ? `<p class="vc-finding__obs">${esc(f.observation)}</p>` : ''}
+    ${followups ? progressHtml(progressOf(f, followups), {compact: true}) : ''}
     ${thumbs.length ? `<span class="vc-thumbs">${thumbs.map(p => `<img alt="" data-src-photo="${esc(p.id)}">`).join('')}</span>` : ''}</a>`;
 }
 export function followupRow(f) {
   const k = KIND[f.kind], overdue = isOverdue(f);
   return `<a class="vc-item" href="#/seguimiento/${esc(f.id)}"><span class="vc-item__ic">${icon(k.icon)}</span>
-    <span class="vc-item__body"><span class="vc-item__title">${esc(f.text || k.label)}</span>
+    <span class="vc-item__body"><span class="vc-item__title vc-item__title--wrap">${esc(f.text || k.label)}</span>
       <span class="vc-item__sub">${esc([k.label, f.producerName, f.lotKey ? 'Suerte ' + f.lotKey.split('|')[1] : '', f.responsible].filter(Boolean).join(' · '))}</span></span>
     <span class="vc-item__side"><span class="vc-chip ${overdue ? 'vc-chip--err' : ['Pendiente', 'Solicitada', 'En gestión', 'Programado'].includes(f.state) ? 'vc-chip--warn' : 'vc-chip--ok'}">${overdue ? 'Vencido' : esc(f.state)}</span>${f.dueDate ? fdate(f.dueDate) : ''}</span></a>`;
 }

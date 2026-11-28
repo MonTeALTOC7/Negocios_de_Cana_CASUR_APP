@@ -8,9 +8,10 @@ import {maestro, refreshMaestro} from './maestro.js';
 import {gps, onGps, startGps, stopGps, permissionState, GPS_LABEL} from './geo.js';
 import * as M from './model.js';
 import {view, viewHome, viewMap, viewCapture, viewFinding} from './views-main.js';
-import {viewLog, viewVisits, viewNewVisit, viewVisit, viewFollowups, viewFollowupNew, viewFollowup, viewProducer, viewReports, viewReport, viewData} from './views-more.js';
+import {viewVisits, viewNewVisit, viewVisit, viewFollowupNew, viewFollowup, viewReports, viewReport, viewData} from './views-more.js';
+import {viewProducers, viewProducer, viewLot, viewGestion, viewEvidence} from './views-dossier.js';
 
-export const VISITAS_VERSION = '1.1.0';
+export const VISITAS_VERSION = '1.2.0';
 protectModuleActivity(window);
 const state = {routing: false};
 
@@ -24,35 +25,42 @@ window.CASUR_MODULE_BRIDGE = Object.freeze({
   },
 });
 
-/* ---------- Navegación ---------- */
-const NAV = [['inicio', 'home', 'Inicio'], ['mapa', 'map', 'Mapa'], ['registrar', 'plus', 'Registrar'], ['bitacora', 'list', 'Bitácora'], ['mas', 'more', 'Más']];
-const DESK = [['visitas', 'calendar', 'Mis visitas'], ['seguimiento', 'check', 'Seguimiento'], ['informes', 'report', 'Informes'], ['datos', 'settings', 'Datos y respaldos']];
+/* ---------- Navegación (centrada en el productor; el mapa es una herramienta transversal) ----------
+   Móvil: Inicio · Productores · [Registrar] · Gestión · Más. Escritorio: barra lateral agrupada Trabajo / Consultas / Sistema. */
+const NAV = [['inicio', 'home', 'Inicio'], ['productores', 'users', 'Productores'], ['registrar', 'plus', 'Registrar'], ['gestion', 'gestion', 'Gestión'], ['mas', 'more', 'Más']];
+const MORE = [['mapa', 'map', 'Mapa', 'Fincas y suertes, ubicación y hallazgos georreferenciados'], ['evidencias', 'evidence', 'Evidencias', 'Fotografías por productor, suerte y etapa'],
+  ['visitas', 'calendar', 'Mis visitas', 'Visitas registradas y en curso'], ['nueva', 'plus', 'Nueva visita', 'Desde la oficina o retrospectiva'],
+  ['informes', 'report', 'Informes', 'Informes técnicos, Excel y GeoJSON'], ['datos', 'settings', 'Datos y respaldos', 'Configuración, respaldos y restauración']];
+const DESK = [['Consultas', MORE.filter(m => ['mapa', 'evidencias', 'visitas', 'informes'].includes(m[0]))], ['Sistema', MORE.filter(m => m[0] === 'datos')]];
 function renderNav() {
-  $('#nav').innerHTML = NAV.map(([id, ic, label]) => id === 'registrar'
-    ? `<a class="vc-fab" href="#/registrar" data-r="registrar" aria-label="Registrar hallazgo"><span class="vc-fab__circle">${icon(ic)}</span><span class="vc-nav__desk-label">${label}</span></a>`
+  $('#nav').innerHTML = `<p class="vc-nav__group">Trabajo</p>` + NAV.map(([id, ic, label]) => id === 'registrar'
+    ? `<a class="vc-fab" href="#/registrar" data-r="registrar" aria-label="Registrar"><span class="vc-fab__circle">${icon(ic)}</span><span class="vc-fab__label">${label}</span></a>`
     : id === 'mas' ? `<button type="button" class="vc-nav__more-only" data-more>${icon(ic)}${label}</button>`
-    : `<a href="#/${id}" data-r="${id}">${icon(ic)}${label}${id === 'bitacora' ? '<span class="vc-badge" data-badge hidden></span>' : ''}</a>`).join('')
-    + DESK.map(([id, ic, label]) => `<a class="vc-nav__desk" href="#/${id}" data-r="${id}">${icon(ic)}${label}</a>`).join('');
+    : `<a href="#/${id}" data-r="${id}">${icon(ic)}${label}${id === 'gestion' ? '<span class="vc-badge" data-badge hidden></span>' : ''}</a>`).join('')
+    + DESK.map(([g, items]) => `<p class="vc-nav__group">${g}</p>` + items.map(([id, ic, label]) => `<a class="vc-nav__desk" href="#/${id}" data-r="${id}">${icon(ic)}${label}</a>`).join('')).join('');
 }
 function more() {
   const s = document.createElement('div'); s.className = 'vc-sheet';
   s.innerHTML = `<div class="vc-sheet__scrim" data-close></div><section class="vc-sheet__panel" role="dialog" aria-modal="true" aria-label="Más"><header class="vc-sheet__head"><span class="vc-sheet__grip"></span><h2>Más</h2><button class="vc-icon-btn" type="button" data-close aria-label="Cerrar">${icon('x')}</button></header>
-    <div class="vc-sheet__body"><div class="vc-list">${[['visitas', 'calendar', 'Mis visitas', 'Visitas registradas y en curso'], ['nueva', 'plus', 'Nueva visita', 'Manual, desde la oficina o retrospectiva'], ['seguimiento', 'check', 'Seguimiento', 'Recomendaciones, solicitudes y compromisos'], ['informes', 'report', 'Informes', 'Consolidados, Excel y GeoJSON'], ['datos', 'settings', 'Datos y respaldos', 'Configuración, respaldos y restauración']]
-      .map(([r, ic, t, sub]) => `<a class="vc-item" href="#/${r}" data-close><span class="vc-item__ic">${icon(ic)}</span><span class="vc-item__body"><span class="vc-item__title">${t}</span><span class="vc-item__sub">${sub}</span></span>${icon('chevron')}</a>`).join('')}</div></div></section>`;
+    <div class="vc-sheet__body"><div class="vc-list">${MORE.map(([r, ic, t, sub]) => `<a class="vc-item" href="#/${r}" data-close><span class="vc-item__ic">${icon(ic)}</span><span class="vc-item__body"><span class="vc-item__title">${t}</span><span class="vc-item__sub">${sub}</span></span>${icon('chevron')}</a>`).join('')}</div></div></section>`;
   document.body.append(s); document.body.classList.add('vc-locked');
   s.addEventListener('click', e => { if (e.target.closest('[data-close]')) { s.remove(); document.body.classList.remove('vc-locked'); } });
 }
+/** Insignia de Gestión: compromisos y recomendaciones vencidos (lo que exige acción), no el total de registros. */
 async function updateBadge() {
-  const n = (await store.all('findings')).filter(f => !f.deletedAt && ['Abierto', 'En seguimiento'].includes(f.status)).length, b = $('[data-badge]');
-  if (b) { b.hidden = !n; b.textContent = n > 99 ? '99+' : n; }
+  const n = (await store.all('followups')).filter(f => !f.removedFromVisit && M.isOverdue(f)).length, b = $('[data-badge]');
+  if (b) { b.hidden = !n; b.textContent = n > 99 ? '99+' : n; b.title = `${n} vencido${n === 1 ? '' : 's'}`; }
 }
 
 /* ---------- Rutas ---------- */
+const go = hash => { history.replaceState(null, '', hash); state.again = true; };
 const ROUTES = {
-  inicio: () => viewHome(), mapa: (_, p) => viewMap(p), registrar: (_, p) => viewCapture(p), hallazgo: id => viewFinding(id), bitacora: (_, p) => viewLog(p),
+  inicio: () => viewHome(), mapa: (_, p) => viewMap(p), registrar: (_, p) => viewCapture(p), hallazgo: id => viewFinding(id),
+  productores: (_, p) => viewProducers(p), gestion: (_, p) => viewGestion(p), evidencias: (_, p) => viewEvidence(p), suerte: id => viewLot(decodeURIComponent(id)),
+  bitacora: () => go('#/gestion?k=hallazgos'),   // rutas anteriores (enlaces guardados) se redirigen sin perder nada
   visitas: () => viewVisits(), nueva: (_, p) => viewNewVisit(p), visita: id => viewVisit(id),
-  seguimiento: (id, p) => id === 'nuevo' ? viewFollowupNew(p) : id ? viewFollowup(id) : viewFollowups(p),
-  productor: id => viewProducer(id), informes: () => viewReports(), informe: (id, p, rest) => viewReport(id, rest), datos: () => viewData(),
+  seguimiento: (id, p) => id === 'nuevo' ? viewFollowupNew(p) : id ? viewFollowup(id) : go('#/gestion?k=' + (p.get('k') || 'recomendacion')),
+  productor: (id, p) => viewProducer(id, p), informes: () => viewReports(), informe: (id, p, rest) => viewReport(id, rest), datos: () => viewData(),
 };
 async function route() {
   if (state.stay) { state.stay = false; return; }   // regreso tras «Quedarme»: la vista y el formulario siguen intactos
@@ -66,7 +74,7 @@ async function route() {
     }
     releaseUrls();
     const [path, query = ''] = (location.hash.replace(/^#\/?/, '') || 'inicio').split('?'), [name, id, rest] = path.split('/'), params = new URLSearchParams(query);
-    const active = ['visita', 'nueva'].includes(name) ? 'visitas' : name === 'hallazgo' ? 'bitacora' : name === 'informe' ? 'informes' : name === 'productor' ? 'inicio' : name;
+    const active = {visita: 'visitas', nueva: 'visitas', hallazgo: 'gestion', seguimiento: 'gestion', bitacora: 'gestion', informe: 'informes', productor: 'productores', suerte: 'productores'}[name] || name;
     $$('#nav [data-r]').forEach(a => { if (a.dataset.r === active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     try { await (ROUTES[name] || ROUTES.inicio)(id, params, rest); }
     catch (e) { const el = $('#view'); el.className = 'vc-main'; el.innerHTML = `<section class="vc-card" role="alert"><h2>No se pudo abrir esta pantalla</h2><p class="vc-muted" style="margin:6px 0 12px">${esc(e.message)}</p><a class="vc-btn" href="#/inicio">Volver al inicio</a></section>`; }

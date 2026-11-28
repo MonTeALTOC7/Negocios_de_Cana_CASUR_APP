@@ -1,0 +1,99 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -85.712565,
+     11.330544
+    ]
+   },
+   "properties": {
+    "tipo": "hallazgo",
+    "id": "hallazgo-9c6feca2-faab-44ad-87f3-ae5c2cc48fb1",
+    "fecha": "2026-11-28T18:58:00.000Z",
+    "categoria": "Malezas",
+    "productor": "Amayo",
+    "suerte": "01",
+    "estado": "Abierto",
+    "precision_m": 5
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -85.71566299999999,
+     11.326871
+    ]
+   },
+   "properties": {
+    "tipo": "hallazgo",
+    "id": "hallazgo-a7212036-4da7-432b-9ad3-51cc699f506f",
+    "fecha": "2026-11-28T18:59:24.789Z",
+    "categoria": "Plagas",
+    "productor": "Amayo",
+    "suerte": "02",
+    "estado": "Abierto",
+    "precision_m": 5
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -85.71566299999999,
+     11.326871
+    ]
+   },
+   "properties": {
+    "tipo": "foto",
+    "id": "foto-2b71b004-7560-41d0-a9a9-a03450b60877",
+    "fecha": "2026-11-28T18:59:39.047Z",
+    "origen_ubicacion": "device-before",
+    "precision_m": 5,
+    "sha256": "4aa9ff3d3f20623af0aa84234b4e508be84b4f8d5ab0aacbb366a308d092d623"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -85.71567900000001,
+     11.326858999999999
+    ]
+   },
+   "properties": {
+    "tipo": "foto",
+    "id": "foto-6345b456-7531-4a10-a553-53627311a37f",
+    "fecha": "2026-11-28T09:15:00",
+    "origen_ubicacion": "exif",
+    "precision_m": 3,
+    "sha256": "aef5afb6d82793f6ee57b2fb865ca06b7edcf473c8fdd61ca1871e8681863827"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -85.712565,
+     11.330544
+    ]
+   },
+   "properties": {
+    "tipo": "foto",
+    "id": "foto-eb064c19-c1d2-41fa-9560-4c29d3e1f41e",
+    "fecha": "2026-11-28T18:58:41.989Z",
+    "origen_ubicacion": "device-before",
+    "precision_m": 5,
+    "sha256": "effd93e7aea9c56965d53887a951b236fef9001fe6776ac8f0bed6923481d8ec"
+   }
+  }
+ ]
+}

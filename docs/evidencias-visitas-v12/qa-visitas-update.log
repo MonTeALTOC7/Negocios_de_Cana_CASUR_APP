@@ -1,0 +1,8 @@
+PASS · v1: Visitas independiente preparada y con un hallazgo en edición
+PASS · v1: App Maestra abierta al mismo tiempo (un solo SW raíz)
+PASS · v2 publicada: Visitas independiente muestra el aviso y permite «Más tarde»
+PASS · Instalación coordinada: checkpoint guarda el borrador y ambas ventanas pasan a v2
+PASS · Después de actualizar: sin conexión y con los registros intactos
+PASS · Sin errores de página
+6/6 PASS
+exit 0

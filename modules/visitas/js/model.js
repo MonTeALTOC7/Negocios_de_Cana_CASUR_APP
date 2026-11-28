@@ -94,9 +94,18 @@ export async function setFindingState(id, state, note = '') {
   const by = await author();
   return store.update('findings', id, cur => cur.status === state && !note ? null : {...cur, status: state, updatedAt: nowIso(), rev: cur.rev + 1, history: [...(cur.history || []), {state, at: nowIso(), note, by}]});
 }
-/** Registro rápido de un toque: crea (o reutiliza) la visita del día y el hallazgo con GPS si está disponible. */
-export async function quickFinding(categoryId) {
+/** Registro rápido de un toque: crea (o reutiliza) la visita del día y el hallazgo con GPS si está disponible.
+    Con `visitId` el hallazgo se agrega a esa visita; si es de otro día (retrospectiva) toma su fecha y NO recibe la
+    ubicación actual del teléfono (no describe dónde se observó entonces). */
+export async function quickFinding(categoryId, {visitId = null} = {}) {
   const t = await resolveTarget();
+  if (visitId) {
+    const visit = await store.get('visits', visitId); if (!visit) throw Error('La visita no existe en este teléfono.');
+    const lotKey = t.farmCode === visit.producer.code && t.lotKey && (visit.scope === 'finca' || visit.lotKeys.includes(t.lotKey)) ? t.lotKey : visit.lotKeys.length === 1 ? visit.lotKeys[0] : null;
+    const today = sameDay(visit.startedAt, nowIso());
+    const finding = await createFinding({visit, lotKey, categoryId, gpsFix: today ? latestFix(30000) : null, observedAt: today ? nowIso() : visit.startedAt});
+    return {visit, finding, target: t};
+  }
   if (!t.farmCode) throw Object.assign(Error('Elegí una finca o activá la ubicación'), {code: 'NO_TARGET'});
   const visit = await ensureVisit(t.farmCode, t.lotKey, t.source === 'gps' ? 'gps' : 'manual');
   const finding = await createFinding({visit, lotKey: t.lotKey, categoryId, gpsFix: latestFix(30000)});

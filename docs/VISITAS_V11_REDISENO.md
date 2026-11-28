@@ -1,5 +1,8 @@
 # Visitas de Campo 1.1 — rediseño integral
 
+> **Reemplazado por 1.2** (`docs/VISITAS_V12_IDENTIDAD.md`): la navegación, el inicio, el registro, el expediente y las
+> evidencias de este documento corresponden a 1.1. Se conserva como historia de la candidata.
+
 Candidata **App Maestra 1.7.0 · Visitas de Campo Productores de Caña 1.1.0** · Draft PR #79 · base `main` `21a9004`.
 
 Sin cambios en:
@@ -16,19 +19,11 @@ Máxima automatización, mínima digitación y libertad total del técnico. El G
 sin señal, con baja precisión o desde la oficina, todo funciona con selección manual. Un registro puede ser solo
 «finca · categoría» o tan completo como el técnico quiera. Nada se completa con valores supuestos.
 
-## 2. Referencia CASUR Maps (estudiada, no copiada)
+## 2. Referencias externas
 
-[`Kem111079/CASUR_MAPS_V171126`](https://github.com/Kem111079/CASUR_MAPS_V171126) no tiene licencia publicada. Por eso se usó
-solo como referencia funcional y visual: **no se copió código ni estilos**, y no se usan sus datos (cronológico ni
-geometría).
-
-| Se tomó de CASUR Maps (idea) | Implementación propia en Visitas | Mejora respecto de la referencia |
-|---|---|---|
-| Perfiles de detección: radio, precisión, empate y lecturas estables | `geo.js`: confirmación con precisión ≤ 25 m, sin polígono rival a < 12 m y 3 lecturas seguidas; salida tras 3 lecturas precisas fuera | Índice por caja envolvente por zona. La geometría oficial viene de la caché verificada del SW, con reintento si aún no está preparada |
-| No pisar la selección manual | Destino manual persistente, con prioridad absoluta | La discrepancia con el GPS se informa sin bloquear y nunca se cambia sola |
-| Registro rápido con severidad sugerida y «Deshacer» | Un toque crea el hallazgo con GPS y «Deshacer» | La severidad sugerida **nunca** se guarda como evaluada. Los detalles técnicos son opcionales por categoría |
-| Compartir hallazgo como imagen | Tarjeta de hallazgo con 1, 2 o varias fotos, minimapa vectorial, datos útiles y recomendaciones | Los campos vacíos se omiten. Las coordenadas solo aparecen si son verificables |
-| Comparar visitas de una suerte | Evidencia inicial frente a evidencia de seguimiento | Se vincula a recomendaciones, solicitudes y visitas de seguimiento |
+Durante 1.1 se estudiaron otras herramientas solo como referencia funcional. No se copió código ni estilos, y no se usan
+datos ajenos (cronológico ni geometría). Ese uso como referencia está **concluido**. Desde 1.2, Visitas tiene identidad,
+navegación y evidencias propias: ver `docs/VISITAS_V12_IDENTIDAD.md`.
 
 ## 3. Navegación
 

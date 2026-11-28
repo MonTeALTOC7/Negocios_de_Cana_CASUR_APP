@@ -2,10 +2,10 @@
    Norma editorial CASUR (docs/ESTANDAR_EDITORIAL_INFORMES.md): encabezado uniforme, fechas dd-MMM-aaaa, mapas
    vectoriales sobre fondo claro, sin textos metodológicos, versiones internas, campos vacíos ni valores inventados. */
 import {esc, fdate, ftime, fnum, blobUrl} from './ui.js';
-import {category, filledDetails, KIND, requestType} from './catalog.js';
+import {category, filledDetails, KIND, requestType, PROGRESS, progressOf} from './catalog.js';
 import {agroCard, ageLabel} from './agro.js';
 import {locationLabel} from './photos.js';
-import {coordsText} from './labels.js';
+import {placeText} from './labels.js';
 import {workbook} from './xlsx.js';
 import {isOverdue} from './model.js';
 
@@ -34,6 +34,13 @@ export function farmMapSvg(features, {highlight = new Set(), labels = new Map(),
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="background:#F7F9FA;border:1px solid #E2E8F0;border-radius:6px" role="img" aria-label="Mapa de la finca">${paths}${lbl}${pts}</svg>`;
 }
 
+/** Evidencias numeradas: foto completa (sin recorte) y leyenda completa con fecha, ubicación verificable y descripción. */
+function photoGrid(list, extra = () => '') {
+  if (!list.length) return '';
+  const sorted = [...list].sort((a, b) => (a.takenAt || a.addedAt).localeCompare(b.takenAt || b.addedAt));
+  return `<div class="vc-report__photos">${sorted.map((p, i) => `<figure><img src="${blobUrl(p.blob || p.thumb)}" alt="Evidencia ${i + 1}"><figcaption><strong>${i + 1}</strong> · ${[fdate(p.takenAt || p.addedAt) + ' ' + ftime(p.takenAt || p.addedAt), placeText(p.location).text, extra(p), p.caption].filter(Boolean).map(esc).join(' · ')}</figcaption></figure>`).join('')}</div>`;
+}
+
 /** Informe de visita (vista previa e impresión). data: {visit, findings, followups, photos, features}. */
 export function visitReportHtml({visit, findings, followups, photos, features = []}) {
   const recs = visit.masterSnapshot?.records || [], visited = visit.scope === 'finca' ? recs : recs.filter(r => visit.lotKeys.includes(r.key));
@@ -53,10 +60,15 @@ export function visitReportHtml({visit, findings, followups, photos, features = 
     ${general.length ? `<p>${general.map(([k, v]) => `${esc(k)}: ${esc(v)}`).join(' · ')}</p>` : ''}
     ${findings.length ? `<h2>Hallazgos</h2>${[...findings].sort((a, b) => a.observedAt.localeCompare(b.observedAt)).map(f => {
       const ph = photos.filter(p => p.findingId === f.id && (p.thumb || p.blob)), det = filledDetails(f.category, f.details);
-      return `<section class="vc-report__finding"><p><strong>${esc(category(f.category).label)}</strong> · ${f.lotKey ? 'Suerte ' + esc(lotNum(f.lotKey)) : 'Finca completa'} · ${fdate(f.observedAt)}${f.severity?.source === 'tecnico' ? ' · Severidad ' + esc(f.severity.value) : ''}</p>
+      const linked = followups.filter(x => x.findingId === f.id && !x.removedFromVisit);
+      return `<section class="vc-report__finding"><p><strong>${esc(category(f.category).label)}</strong> · ${f.lotKey ? 'Suerte ' + esc(lotNum(f.lotKey)) : 'Finca completa'} · ${fdate(f.observedAt)}${f.severity?.source === 'tecnico' ? ' · Severidad ' + esc(f.severity.value) : ''} · Avance: ${esc(PROGRESS[progressOf(f, followups)])}</p>
         ${f.observation ? `<p>${esc(f.observation)}</p>` : ''}${det.length ? `<p>${det.map(d => `${esc(d.label)}: <strong>${esc(d.value)}</strong>`).join(' · ')}</p>` : ''}
-        ${ph.length ? `<div class="vc-report__photos" style="margin-top:6px">${ph.map(p => `<figure><img src="${blobUrl(p.thumb || p.blob)}" alt=""><figcaption>${[fdate(p.takenAt || p.addedAt) + ' ' + ftime(p.takenAt || p.addedAt), coordsText(p.location), p.caption].filter(Boolean).map(esc).join(' · ')}</figcaption></figure>`).join('')}</div>` : ''}</section>`;
+        ${linked.map(x => `<p class="vc-report__rec"><strong>${esc(KIND[x.kind].label)}:</strong> ${esc(x.text || '—')} <em>(${esc(x.state)})</em></p>`).join('')}
+        ${photoGrid(ph)}</section>`;
     }).join('')}` : ''}
+    ${(() => { const own = photos.filter(p => !p.findingId && !p.followupId && (p.thumb || p.blob)); return own.length ? `<h2>Evidencias de la visita</h2>${photoGrid(own)}` : ''; })()}
+    ${(() => { const fu = photos.filter(p => p.followupId && (p.thumb || p.blob)); if (!fu.length) return ''; const byId = new Map(followups.map(x => [x.id, x]));
+      return `<h2>Evidencias del seguimiento</h2>${photoGrid(fu, p => byId.get(p.followupId) ? `${KIND[byId.get(p.followupId).kind].label}: ${byId.get(p.followupId).text}` : '')}`; })()}
     ${['recomendacion', 'solicitud', 'compromiso'].map(k => { const list = fusBy(k); if (!list.length) return '';
       return `<h2>${KIND[k].plural}</h2><table><thead><tr><th>Detalle</th><th>Suerte</th><th>Responsable</th><th>Fecha compromiso</th><th>Estado</th></tr></thead><tbody>${list.map(f => row(esc([f.category ? requestType(f.category).label : '', f.text, f.quantity ? `${f.quantity} ${f.unit || ''}` : ''].filter(Boolean).join(' · ')), esc(lotNum(f.lotKey) || '—'), esc(f.responsible || '—'), f.dueDate ? fdate(f.dueDate) : '—', esc(f.state))).join('')}</tbody></table>`; }).join('')}
     ${footer()}</article>`;

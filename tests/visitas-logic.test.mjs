@@ -20,7 +20,7 @@ test('fenología probable: planta y soca con sus rangos', () => {
 });
 test('fenología: retrospectiva usa la fecha de la visita; sin fecha o sin caña no se determina', () => {
   const r = rec({plantingDate: '2025-06-01', lastCutDate: '2026-02-01'});
-  assert.equal(cropCycle(r, '2025-12-01').basis, 'siembra');     // antes del último corte vale la siembra
+  assert.equal(cropCycle(r, '2025-12-01'), null);                // corte posterior a la fecha: ciclo desconocido, no se supone
   assert.equal(cropCycle(r, '2026-03-01').basis, 'corte');
   assert.equal(phenology(rec({plantingDate: '2027-01-01'}), '2026-06-01').stage, null);
   assert.equal(phenology(rec({}), '2026-06-01').stage, null);
@@ -48,4 +48,13 @@ test('geometría: punto en polígono con hueco y distancia al borde', () => {
   const g = {type: 'Polygon', coordinates: [[[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]], [[0.004, 0.004], [0.006, 0.004], [0.006, 0.006], [0.004, 0.006], [0.004, 0.004]]]};
   assert.equal(containsPoint(g, [0.002, 0.002]), true); assert.equal(containsPoint(g, [0.005, 0.005]), false); assert.equal(containsPoint(g, [0.02, 0.02]), false);
   const d = distanceToEdge(g, [0.001, 0.005]); assert.ok(Math.abs(d - 111.3) < 1, String(d));
+});
+
+test('visita retrospectiva: no se atribuyen estado, corte ni estimado actuales a una fecha anterior a los datos', async () => {
+  const {agroCard} = await import('../modules/visitas/js/agro.js');
+  const r = {identity: {lot: '01'}, attributes: {area: 5, variety: 'X', plantingDate: '2020-01-01', lastCutDate: '2026-02-01', cut: '6'}, state: {operationalState: 'Molienda'},
+    estimate: {available: true, tch: 70, season: '26/27'}, provenance: {sourceDate: '2026-10-12'}};
+  const past = agroCard(r, '2026-01-15T10:00:00Z');
+  assert.equal(past.historical, true); assert.equal(past.state, null); assert.equal(past.tchEst, null); assert.equal(past.cuts, null); assert.equal(past.age, null); assert.equal(past.area, 5);
+  const now = agroCard(r, '2026-11-28T10:00:00Z'); assert.equal(now.historical, false); assert.equal(now.state, 'Molienda'); assert.equal(now.tchEst, 70);
 });

@@ -42,8 +42,8 @@ const BASE_MODULES = [
     requiresOnline: false, usesSupabase: false,
     storageNamespaces: ['idb:casur-estimador-tch'], surface: 'campo', privacy: 'public' },
 
-  { moduleId: 'visitas', name: 'Visitas de Campo Productores de Caña', desc: 'Visitas técnicas, fotos, GPS y seguimiento sin conexión',
-    version: '1.1.0', route: 'modules/visitas/index.html', icon: 'visitas',
+  { moduleId: 'visitas', name: 'Visitas de Campo Productores de Caña', desc: 'Atención técnica al productor: visitas, hallazgos, evidencias y seguimiento',
+    version: '1.2.0', route: 'modules/visitas/index.html', icon: 'visitas',
     accent: 'var(--accent-tch)', enabled: true, visible: true, order: 2.5,
     requiresOnline: false, usesSupabase: false,
     storageNamespaces: ['idb:casur-visitas'], surface: 'campo', privacy: 'public' },

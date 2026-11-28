@@ -89,6 +89,25 @@ export const CATEGORIES = [
   {id: 'seguimiento', label: 'Seguimiento', icon: 'seguimiento', suggested: 'Baja', details: []},
   {id: 'otros', label: 'Otros', icon: 'otros', suggested: 'Baja', details: [{id: 'tema', label: 'Tema', type: 'text'}]},
 ];
+/* Familias de hallazgos (identidad propia de Visitas): agrupan el catálogo y le dan color e iconografía de familia. */
+export const FAMILIES = {
+  cultivo: {label: 'Cultivo', color: '#3E7B4F', soft: '#E7F2EA', ids: ['desarrollo', 'malezas', 'fertilizacion', 'despoblacion', 'resiembra', 'siembra', 'renovacion', 'semilleros']},
+  sanidad: {label: 'Sanidad', color: '#A3472A', soft: '#F8EAE4', ids: ['plagas', 'enfermedades']},
+  agua: {label: 'Agua', color: '#2A6496', soft: '#E4EEF7', ids: ['riego', 'estres', 'drenaje']},
+  labores: {label: 'Labores y cosecha', color: '#9A6A0E', soft: '#F7EFDC', ids: ['labores', 'cosecha', 'madurantes', 'caminos']},
+  gestion: {label: 'Gestión', color: '#1B4D5C', soft: '#E3EEF1', ids: ['atencion', 'seguimiento', 'otros']},
+};
+export const familyOf = id => Object.entries(FAMILIES).find(([, f]) => f.ids.includes(id))?.[0] || 'gestion';
+export const familyStyle = id => FAMILIES[familyOf(id)];
+/* Avance de un hallazgo dentro de la gestión técnica (no es impacto agronómico; es el estado del trámite). */
+export const PROGRESS = ['Observado', 'Recomendado', 'En ejecución', 'Verificado'];
+export function progressOf(finding, followups = []) {
+  const recs = followups.filter(f => f.findingId === finding.id && f.kind !== 'compromiso' && !/Cancel/.test(f.state));
+  if (finding.status === 'Verificado' || recs.some(r => r.state === 'Verificado')) return 3;
+  if (recs.some(r => ['Ejecutado', 'Atendida', 'Programado', 'En gestión'].includes(r.state)) || finding.status === 'Resuelto') return 2;
+  if (recs.length) return 1;
+  return 0;
+}
 export const DEFAULT_FAVORITES = ['malezas', 'plagas', 'riego', 'estres', 'fertilizacion', 'despoblacion', 'cosecha', 'seguimiento'];
 export const category = id => CATEGORIES.find(c => c.id === id) || CATEGORIES.at(-1);
 export const SEVERITY = LEVEL3;

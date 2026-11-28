@@ -234,3 +234,37 @@ Los cinco informes restantes pasan al **mismo motor** (`report-engine.js` + `rep
 - **QA:**
   - `qa-informes-r3.cjs` tiene ahora 29 pruebas. Añade los escenarios de 5 y 2 zafras y verifica el mapa, los rótulos solo con número, las fichas, las zafras del período y la línea KATM histórico frente al motor.
   - `qa-informes.cjs` verifica la línea KATM histórico del Histórico de Finca y de Suerte frente a `lotCompact`.
+
+## R3-3: cierre de exportadores (28-Nov-2026)
+- **Mapa vectorial en todos los informes de ámbito geográfico.** Usa el bloque `map` del motor y `addMap()` en `report-models.js`, con las geometrías oficiales de `historicalMapModel`.
+
+  | Informe | Ámbito y resaltado |
+  |---|---|
+  | Cronológico y Histórico de Finca | Todas las suertes de la finca resaltadas |
+  | Cronológico y Histórico de Suerte | La finca en gris tenue y la suerte consultada resaltada, con relleno más intenso y contorno del color de la finca |
+  | Cronológico múltiple e Histórico multifinca | Un color por finca y las suertes seleccionadas resaltadas. En una selección parcial, el resto de la finca queda en gris y lo seleccionado lleva relleno intenso |
+
+  - **Dimensiones:** el mapa ocupa el espacio libre de la página (`fit`) y conserva la proporción. Si no cabe, pasa a la página siguiente.
+  - **Rótulos:** solo el número de suerte, sin caja y sin choques. El QA comprueba el formato `^\d{1,3}[A-Z]*$`.
+- **Tarjetas de fincas** (Cronológico múltiple e Histórico multifinca): nombre, «Código N · alcance» y el color del mapa.
+- **Zafras seleccionadas.** El Histórico de Finca y de Suerte usa `historicalPeriodContext(currentEntity)`; el multifinca, `getHistoricoDualSummary()`.
+  - **1 zafra:** sin cambios.
+  - **2 zafras:** «Período a y b · 2 zafras» y un solo bloque de KPI del período.
+  - **Más de 2 zafras:** dos bloques.
+    - **«Histórico completo · N zafras · a a b»:** área por zafra, TCH, KATM y edad, más TAH en el multifinca. Usa `buildHistoricalAgronomicKpis(scopeRows, todas)`, o `S.full` en el multifinca.
+    - **«Zafras seleccionadas · N zafras · lista»:** los KPI del período del motor.
+  - **Gráficos:** marcan con una banda tenue las zafras seleccionadas.
+- **Referencias TCH/KATM histórico:**
+  - **Histórico de Finca y de Suerte:** usan el motor oficial (`buildHistoricalAgronomicKpis` sobre todas las zafras). Pansaco da 73.53 / 105.76 y la suerte 01, 89.58 / 100.86.
+  - **Multifinca:** `S.full`.
+  - **Zona:** la serie oficial del motor de zonas, que es la misma población de su «TCH histórico» (76.85), agregada por toneladas (KATM 103.71).
+- **Páginas de la muestra:**
+
+  | Informe | Páginas |
+  |---|---|
+  | Cronológico de Finca | 3 (mapa en la página 1) |
+  | Cronológico de Suerte | 1 (mapa incluido) |
+  | Histórico de Finca | 3 (mapa en la última página) |
+  | Histórico de Suerte | 2 (ficha + mapa) |
+  | Cronológico múltiple | 2 |
+  | Histórico multifinca ejecutivo | 2 |

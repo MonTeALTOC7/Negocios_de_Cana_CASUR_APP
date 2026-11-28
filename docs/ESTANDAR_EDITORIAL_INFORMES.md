@@ -27,6 +27,20 @@ impreso debe tener utilidad para decidir; lo demás se omite.
   (p. ej. `Cronologico_Zona_Sur_27-Nov-2026.pdf`; sin zona elegida, `Zona_Todas`).
   El nombre no lleva tildes y los espacios se sustituyen por «_».
 
+- **Mapas:** vectoriales, sobre fondo blanco o gris muy claro, sin imágenes satelitales. Se dibuja el ámbito del
+  informe completo, sin recortes ni deformación. Lo incluido en el informe va resaltado con el color de su finca y el
+  resto queda en gris tenue. Los rótulos llevan solo el número de suerte (`01`, `29A`), sin caja; si dos chocan, se
+  omite uno. Las fincas alejadas van en mapas separados.
+- **Fincas seleccionadas:** tarjetas con el nombre, el código, el color de la finca en el mapa y el alcance (finca
+  completa o número de suertes seleccionadas).
+- **Zafras seleccionadas:**
+  - Con una zafra se presenta esa zafra.
+  - Con dos, el período en el encabezado.
+  - Con más de dos, dos bloques diferenciados: «Histórico completo», con todas las zafras, y «Zafras seleccionadas»,
+    con su cantidad y listado. Cada bloque lleva sus propios KPI y los gráficos marcan las zafras seleccionadas.
+- **Líneas de referencia:** «TCH histórico» y «KATM histórico», con los valores del motor oficial, rotuladas al
+  final de la línea.
+
 ## 3. Qué no se imprime
 
 - Textos explicativos bajo los KPI, fórmulas o explicaciones de cálculo, párrafos de relleno y advertencias

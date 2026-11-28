@@ -5,6 +5,36 @@
 
 Sin merge, sin publicación en producción, sin cambios en SIAGRI, en los datos oficiales ni en los motores agronómicos.
 
+## 0. Control de versión (28-Nov-2026)
+
+| Elemento | Publicado (`main`) | Candidata (cadena #73 → #76 → #77) |
+|---|---|---|
+| SHA | `71d5e0b` (App 1.6.1, recuperación segura #60) | Rama de desarrollo `claude/ux15-analisis`: ver el HEAD del PR #77 |
+| App Maestra | 1.6.1 | **1.6.2** |
+| Producción | V1.8.2 | **V1.8.3** |
+| Generación de datos | `2026.10.25-aforo.1101` | **`2026.11.22-aforo.1102`** (aforo oficial 12-Oct-2026, consolidado 22-Nov-2026) |
+
+- **Versión:** no se incrementa en las iteraciones de UX14 a R3-3. App 1.6.2 y Producción V1.8.3 se fijaron en la candidata #73 y cubren toda la cadena, que se publica una sola vez. `check-release-policy` contra `71d5e0b` da 1.6.1 → 1.6.2 y V1.8.2 → V1.8.3.
+- **Datos:** la generación 1102 no cambia. `check-context-hotfix` verifica sus siete SHA oficiales.
+- **Ramas:**
+  - #73 (`claude/candidata-ux13-z2627`, `7ee4dd3`) contiene `main` y los PR #62, #64, #68, #69, #70 y #71.
+  - #76 (`claude/ux14-analisis-zona`, `f69b989`) contiene #73.
+  - #77 (`claude/ux15-analisis`) contiene #76.
+  - #74 (`claude/ci-preview-automatizada`, `78da2c4`) es independiente: solo el workflow de previews, sobre `main`.
+
+**Funcionalidades incorporadas desde la versión publicada (1.6.1 / V1.8.2):**
+- Generación 1102, con el aforo AFORO_26-27 y el plan de cosecha Z26/27 (BE/BF).
+- Rediseño UX13 A/B/C: Cronológico General y de Finca, Estimados Z26/27, Histórico de Finca y de Suerte.
+- Análisis por Zona (UX14), con Cronológico e Histórico por tipo de riego original.
+- Cierre UX15 del Maestro de Suertes: selector unificado, Zonas, Estimados en Consultas y Análisis.
+- Exportadores PDF/PNG:
+  - Motor vectorial único (R1 a R3), con norma editorial permanente.
+  - Nombres de archivo DD-MMM-AAAA.
+  - Mapas vectoriales en todos los informes de finca, suerte y selección.
+  - Períodos de zafras con histórico completo y zafras seleccionadas.
+  - Líneas TCH y KATM histórico.
+  - Funcionamiento sin conexión.
+
 ## 1. Alcance entregado
 
 | Etapa | PR | Contenido |
@@ -15,7 +45,7 @@ Sin merge, sin publicación en producción, sin cambios en SIAGRI, en los datos 
 | Candidata | #73 | App 1.6.2 y Producción V1.8.3 |
 | UX14 | #76 | Análisis por Zona: Cronológico e Histórico por tipo de riego original, y exportadores de Zona |
 | UX15 | #77 | Cierre del Maestro: selector unificado, Zonas, Estimados sobre el explorador existente, Análisis, y Consultas con su tarjeta de Estimados |
-| Exportadores R1, R2, R2-2, R2-3 y R3 | #77 | Ver la sección 2 |
+| Exportadores R1, R2, R2-2, R2-3, R3, R3-2 y R3-3 | #77 | Ver la sección 2 |
 | Previews | #74 | Workflow «CASUR Preview Deploy» (Cloudflare Pages `casur-maestro-ux-review`). No toca el runtime |
 
 ## 2. Exportadores PDF/PNG: estado final
@@ -36,6 +66,10 @@ Sin merge, sin publicación en producción, sin cambios en SIAGRI, en los datos 
 | Cronológico de Zona | Menú de informe de la zona | `Cronologico_Zona_{Zona}_{DD-MMM-AAAA}` |
 | Histórico de Zona | Menú de informe de la zona | `Historico_Zona_{Zona}_{DD-MMM-AAAA}` |
 
+- **Mapas y períodos:**
+  - Todos los informes de finca, suerte y selección llevan el mapa vectorial del ámbito, con lo informado resaltado y el resto en gris.
+  - Los Históricos con más de dos zafras seleccionadas muestran los bloques «Histórico completo» y «Zafras seleccionadas».
+  - El detalle está en `docs/EXPORTADORES_R1_R2.md`, sección R3-3.
 - **Vistas que siguen en el motor anterior:** las de inicio del Cronológico y del Histórico, ambas fuera de este alcance. Usan el motor R1, que ya tiene el encabezado uniforme y la medición corregida.
 - **Guardas de `index.html`:**
   - Solo cambian los bloques autorizados `R1-EXPORT` y `R2-EXPORT`, y la huella SHA-256 de cada uno está en `modules/produccion/tests/maestro-ux.test.mjs`.

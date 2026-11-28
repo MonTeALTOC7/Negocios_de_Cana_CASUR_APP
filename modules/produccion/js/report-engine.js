@@ -204,8 +204,10 @@
       const refW = o.ref != null ? Math.max(d.m.width(o.refLabel, 6.6, 'semibold'), 30) + 10 : 0;
       const pl = x + 40, pr = x + w - 16 - refW, pt = y + 30, pb = y + h - 20, n = o.labels.length;
       const X = i => pl + 10 + (n > 1 ? i * (pr - pl - 20) / (n - 1) : (pr - pl - 20) / 2), Y = v => pb - (v - lo) * (pb - pt) / (hi - lo || 1);
+      // Zafras seleccionadas: banda tenue detrás de los puntos del período (el resto es el histórico completo).
+      if (o.highlight?.length && o.highlight.length < n) { const step = n > 1 ? (pr - pl - 20) / (n - 1) : 0; o.highlight.forEach(i => d.rect(X(i) - step / 2, pt - 6, step, pb - pt + 6, '#EAF2F5', null, 0)); }
       for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo) * k / 4; d.line(pl, Y(v), pr, Y(v), k ? '#EEF2F4' : '#D9E0E4', k ? 0.5 : 0.7); d.text(pl - 6, Y(v) - 3.2, fmt(v, o.axisDigits ?? 0), 6.4, 'normal', C.muted, 'right'); }
-      o.labels.forEach((l, i) => d.text(X(i), pb + 6, l, 6.6, 'normal', C.text, 'center'));
+      o.labels.forEach((l, i) => d.text(X(i), pb + 6, l, 6.6, o.highlight?.includes(i) && o.highlight.length < n ? 'semibold' : 'normal', o.highlight?.includes(i) && o.highlight.length < n ? C.ink : C.text, 'center'));
       if (o.ref != null) { d.line(pl, Y(o.ref), pr, Y(o.ref), C.gold, 0.9, [3, 2]); d.text(pr + 6, Y(o.ref) - 3.4, o.refLabel, 6.6, 'semibold', '#8A6A12', 'left'); }
       o.series.forEach(s => { const pts = s.values.map((v, i) => Number.isFinite(v) ? [X(i), Y(v)] : null);
         let run = []; pts.forEach(p => { if (p) run.push(p); else { if (run.length > 1) d.poly(run, s.color, 1.7, s.dash); run = []; } }); if (run.length > 1) d.poly(run, s.color, 1.7, s.dash);
@@ -224,33 +226,38 @@
   });
   // Selección informada: fichas con color (el mismo del mapa), nombre en negrita y detalle breve; se reparten en filas.
   const tint = (hex, a) => { const n = parseInt(hex.slice(1), 16), m = c => Math.round(255 - (255 - c) * a); return '#' + [m(n >> 16 & 255), m(n >> 8 & 255), m(n & 255)].map(v => v.toString(16).padStart(2, '0')).join(''); };
-  const chips = (label, items) => ({
+  const chips = (label, items, perRow = 3) => ({
     gap: 10,
-    lay(d, w) { const rows = [[]]; let x = 0; const lw = label ? d.m.width(label, 7.2, 'semibold') + 10 : 0;
-      items.forEach(it => { const cw = Math.max(d.m.width(it.title, 8.2, 'semibold'), d.m.width(it.sub || '', 6.9, 'normal')) + 22; if (x + cw > w - lw && rows[rows.length - 1].length) { rows.push([]); x = 0; } rows[rows.length - 1].push({...it, cw, x}); x += cw + 6; });
-      return {rows, lw}; },
-    measure(d, w) { this._L = this.lay(d, w); return this._L.rows.length * 28 - 4; },
-    draw(d, x, y) { const {rows, lw} = this._L; if (label) d.text(x, y + 9, label, 7.2, 'semibold', C.muted);
-      rows.forEach((r, ri) => r.forEach(it => { const cx = x + lw + it.x, cy = y + ri * 28; d.rect(cx, cy, it.cw, 24, tint(it.color, 0.1), tint(it.color, 0.45), 4, 0.6); d.rect(cx, cy + 4, 3, 16, it.color, null, 0);
-        d.text(cx + 10, cy + 4, it.title, 8.2, 'semibold', C.ink); if (it.sub) d.text(cx + 10, cy + 14, it.sub, 6.9, 'normal', C.muted); })); }
+    measure(d, w) { this._lh = label ? 14 : 0; this._rows = Math.ceil(items.length / perRow); return this._lh + this._rows * 34 + (this._rows - 1) * 6; },
+    draw(d, x, y, w) { if (label) d.text(x, y, label, 7.4, 'semibold', C.muted);
+      const n = Math.min(perRow, items.length), cw = (w - (n - 1) * 8) / n;
+      items.forEach((it, i) => { const cx = x + (i % perRow) * (cw + 8), cy = y + this._lh + Math.floor(i / perRow) * 40;
+        d.rect(cx, cy, cw, 34, tint(it.color, 0.08), tint(it.color, 0.5), 4, 0.6); d.rect(cx, cy, 5, 34, it.color, null, 0);
+        d.text(cx + 13, cy + 6, d.m.wrap(it.title, 9, 'bold', cw - 20, 1)[0], 9, 'bold', C.ink); if (it.sub) d.text(cx + 13, cy + 19, d.m.wrap(it.sub, 7.2, 'normal', cw - 20, 1)[0], 7.2, 'normal', C.text); }); }
   });
+  // Bloque de período: banda con título y descripción, seguida de sus KPI (histórico completo / zafras seleccionadas).
+  const band = (title, sub, color) => ({ gap: 6,
+    measure() { return 18; },
+    draw(d, x, y, w) { d.rect(x, y, w, 18, tint(color, 0.12), null, 3); d.rect(x, y, 3, 18, color, null, 0); d.text(x + 10, y + 5, title, 8.4, 'bold', C.ink); if (sub) d.text(x + 14 + d.m.width(title, 8.4, 'bold'), y + 5.6, sub, 7.6, 'normal', C.text); } });
   // Mapa vectorial: polígonos (Web Mercator local, misma escala en ambos ejes) con relleno tenue del color de la finca y
   // contorno nítido; contexto en gris; rótulos solo con el número de suerte, sin caja, omitidos si chocarían con otro.
   const map = (o) => ({
     measure(d, w) { const pts = o.shapes.flatMap(s => s.rings.flat()); if (!pts.length) return 0; const rad = Math.PI / 180, P = p => [p[0] * rad, Math.log(Math.tan(Math.PI / 4 + p[1] * rad / 2))];
       const xy = pts.map(P), xs = xy.map(p => p[0]), ys = xy.map(p => p[1]); this._b = {minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys), P};
-      const aspect = (this._b.maxY - this._b.minY) / Math.max(1e-12, this._b.maxX - this._b.minX); this._h = Math.max(150, Math.min(o.maxHeight || 420, (w - 24) * aspect + 24 + (o.title ? 18 : 0))); return this._h; },
+      // fit: ocupa el espacio que queda en la página si alcanza (≥ minHeight); si no, el bloque pasa a la página siguiente.
+      const room = d.bottom - d.y - 2, maxH = o.fit && room >= (o.minHeight || 190) ? Math.min(o.maxHeight || 560, room) : (o.maxHeight || 420);
+      const aspect = (this._b.maxY - this._b.minY) / Math.max(1e-12, this._b.maxX - this._b.minX); this._h = Math.max(150, Math.min(maxH, (w - 24) * aspect + 24 + (o.title ? 18 : 0))); return this._h; },
     draw(d, x, y, w) {
       const {minX, maxX, minY, maxY, P} = this._b, top = y + (o.title ? 18 : 0), ih = this._h - (o.title ? 18 : 0) - 24, iw = w - 24, sc = Math.min(iw / Math.max(1e-12, maxX - minX), ih / Math.max(1e-12, maxY - minY));
       const ox = x + 12 + (iw - (maxX - minX) * sc) / 2, oy = top + 12 + (ih - (maxY - minY) * sc) / 2, T = p => { const q = P(p); return [ox + (q[0] - minX) * sc, oy + (maxY - q[1]) * sc]; };
       if (o.title) d.text(x, y, o.title, 8.6, 'bold', C.petrol);
       d.rect(x, top, w, this._h - (o.title ? 18 : 0), '#F7F9FA', C.line, 4, 0.5);
       // Contornos finos y tintados: las suertes vienen fragmentadas por surcos y un trazo oscuro saturaría el mapa.
-      [...o.shapes].sort((a, b) => (a.context ? 0 : 1) - (b.context ? 0 : 1)).forEach(s => d.shape(s.rings.map(r => r.map(T)), s.context ? '#FFFFFF' : tint(s.color, 0.3), s.context ? '#C3CCD1' : tint(s.color, 0.62), s.context ? 0.3 : 0.35));
-      const placed = [], fs = o.labelSize || 6.4; let shown = 0;
+      [...o.shapes].sort((a, b) => (a.context ? 0 : 1) - (b.context ? 0 : 1)).forEach(s => d.shape(s.rings.map(r => r.map(T)), s.context ? '#FFFFFF' : tint(s.color, s.strong ? 0.55 : 0.3), s.context ? '#C3CCD1' : s.strong ? s.color : tint(s.color, 0.62), s.context ? 0.3 : s.strong ? 0.6 : 0.35));
+      const placed = [], fs = o.labelSize || 6.4, texts = []; let shown = 0;
       o.labels.forEach(l => { const [lx, ly] = T(l.at), tw = d.m.width(l.text, fs, 'semibold'), b = {x: lx - tw / 2 - 1, y: ly - fs / 2 - 1, w: tw + 2, h: fs + 2};
-        if (placed.some(a => b.x < a.x + a.w && b.x + b.w > a.x && b.y < a.y + a.h && b.y + b.h > a.y)) return; placed.push(b); shown++; d.text(lx, ly - fs * 0.5, l.text, fs, 'semibold', C.ink, 'center'); });
-      this.stats = {shapes: o.shapes.length, labels: o.labels.length, shown, overlaps: 0};
+        if (placed.some(a => b.x < a.x + a.w && b.x + b.w > a.x && b.y < a.y + a.h && b.y + b.h > a.y)) return; placed.push(b); shown++; texts.push(l.text); d.text(lx, ly - fs * 0.5, l.text, fs, 'semibold', C.ink, 'center'); });
+      this.stats = {shapes: o.shapes.length, labels: o.labels.length, shown, overlaps: 0, texts};
       if (o.onDraw) o.onDraw(this.stats);
     }
   });
@@ -355,5 +362,5 @@
     if (r?.renovacion && !r.fSiembra) return 0; const iso = v => v ? new Date(String(v) + 'T00:00:00') : null, c = iso(r.fUltCte), s = iso(r.fSiembra), f = iso(r.fBase);
     const b = c && s ? (s > c ? s : c) : (s || c || f); if (!b) return null; const n = new Date(), t = new Date(n.getFullYear(), n.getMonth(), n.getDate()); return Math.max(0, (t - b) / 86400000 / 30.4375); };
 
-  window.CASUR_REPORT_ENGINE = Object.freeze({assets, Doc, C, M, SEQ, OTHER, RIEGO, tint, heading, kpis, groups, composition, chips, map, chart, note, row, table, toPdf, toPng, pngScale, fmt, date, now, zlabel, cellText, kpiLabel, panelKpis, officialTable, fileName, ageOf, PNG_MAX_SIDE, PNG_MAX_AREA});
+  window.CASUR_REPORT_ENGINE = Object.freeze({assets, Doc, C, M, SEQ, OTHER, RIEGO, tint, heading, kpis, groups, composition, chips, band, map, chart, note, row, table, toPdf, toPng, pngScale, fmt, date, now, zlabel, cellText, kpiLabel, panelKpis, officialTable, fileName, ageOf, PNG_MAX_SIDE, PNG_MAX_AREA});
 })();

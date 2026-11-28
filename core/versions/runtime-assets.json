@@ -1,6 +1,6 @@
 {
   "appVersion": "1.7.0",
-  "releaseId": "1.7.0-dde4c86108ade814",
+  "releaseId": "1.7.0-8a45dd09db6e29d0",
   "assets": {
     "404.html": "13e468776893ea36d86e0a6b83935bafd4c5f3782fb3a302959337f8e14a19fe",
     "app.js": "92b345526b2762b2a79035065fd0c4d7fbaf26c9a246bf270b4eaac6a0285807",
@@ -156,7 +156,7 @@
     "modules/visitas/icons/visitas.svg": "b2fbd74bbb0a8fff21a1bfa639c888bd4335fbd504187665268d0d3a664763d3",
     "modules/visitas/index.html": "68f28aeafc6dce6064ca8a7bddd4f6c6c4f65d9acccaf73b9aa35c67d63d3819",
     "modules/visitas/js/agro.js": "1a09acac2068dabd23d4d1edc452a3efc1eefd0bc78350d614d53b816b56466a",
-    "modules/visitas/js/app.js": "a3f5e4d9ad0ae838d27b5ad0ed9ac3ede30a1e3ed1fa19028d30aba22c223b7f",
+    "modules/visitas/js/app.js": "3972402a99eff14724beaeed16034b3dec24dcf2a10595b07ac0ef530e44afd0",
     "modules/visitas/js/backup.js": "6f222c8f3f36dceb463c3d09ec1f3a042a6dbeb7c7f448b57583f8acd3731a50",
     "modules/visitas/js/catalog.js": "260b2a9894963a6f3504c9dc5cb4b46ef221320103794fdc6c2eede0d8b57e16",
     "modules/visitas/js/components.js": "2a503ef9b8e35b8d1803c5c150fa03f3d8876f5760547b1d92c7b1e4b9349fc9",

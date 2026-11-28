@@ -56,7 +56,8 @@ const ROUTES = {
 };
 async function route() {
   if (state.stay) { state.stay = false; return; }   // regreso tras «Quedarme»: la vista y el formulario siguen intactos
-  if (state.routing) return; state.routing = true;
+  if (state.routing) { state.again = true; return; }   // navegación durante otra: se atiende al terminar (nunca se descarta)
+  state.routing = true;
   try {
     // Nada se descarta en silencio: si el guardado pendiente falla, se avisa y la copia de emergencia se conserva.
     try { await view.flush?.(); } catch (e) {
@@ -70,7 +71,7 @@ async function route() {
     try { await (ROUTES[name] || ROUTES.inicio)(id, params, rest); }
     catch (e) { const el = $('#view'); el.className = 'vc-main'; el.innerHTML = `<section class="vc-card" role="alert"><h2>No se pudo abrir esta pantalla</h2><p class="vc-muted" style="margin:6px 0 12px">${esc(e.message)}</p><a class="vc-btn" href="#/inicio">Volver al inicio</a></section>`; }
     window.scrollTo(0, 0); void updateBadge();
-  } finally { state.routing = false; }
+  } finally { state.routing = false; if (state.again) { state.again = false; void route(); } }
 }
 window.addEventListener('hashchange', route);
 

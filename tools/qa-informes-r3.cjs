@@ -10,6 +10,18 @@ const results = [], check = (name, fn, ms = 400000) => { let t; return Promise.r
 const pdf = f => ({text: execFileSync('pdftotext', ['-layout', f, '-'], {encoding: 'utf8', maxBuffer: 64e6}), info: execFileSync('pdfinfo', ['-l', '99', f], {encoding: 'utf8'}),
   fonts: execFileSync('pdffonts', [f], {encoding: 'utf8'}).split('\n').slice(2).filter(Boolean), images: execFileSync('pdfimages', ['-list', f], {encoding: 'utf8'}).split('\n').slice(2).filter(Boolean)});
 const esc = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), f2 = v => v == null ? '—' : Number(v).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}), f0 = v => Number(v).toLocaleString('en-US', {maximumFractionDigits: 0});
+// Zafras: 1 → período en el encabezado; 2 → «Período a y b · 2 zafras» y un solo bloque; más de 2 → bloques
+// «Histórico completo» (todas las zafras) y «Zafras seleccionadas» (cantidad y listado), cada uno con su población.
+const zl = z => String(z).padStart(4, '0').replace(/(..)(..)/, '$1/$2'), zjoin = zs => zs.slice(0, -1).map(zl).join(', ') + ' y ' + zl(zs[zs.length - 1]);
+function periodCheck(T, zs, full, name, multi) {
+  const head = T.split('\n').slice(0, 6).join(' ');
+  if (zs.length === 1) { assert.match(head, new RegExp('Período ' + esc(zl(zs[0])))); assert.doesNotMatch(T, /Histórico completo|Zafras seleccionadas/); }
+  else if (zs.length === 2) { assert.match(head, new RegExp('Período ' + esc(zl(zs[0])) + ' y ' + esc(zl(zs[1])) + ' · 2 zafras')); assert.doesNotMatch(T, /Histórico completo|Zafras seleccionadas/); }
+  else { assert.match(T, new RegExp('Histórico completo\\s+10 zafras · 16/17 a 25/26')); assert.match(T, new RegExp('Zafras seleccionadas\\s+' + zs.length + ' zafras · ' + esc(zjoin(zs))));
+    for (const v of [full.area, full.tch, full.katm].concat(multi ? [full.tah] : [])) assert.ok(T.includes(f2(v)), name + ' histórico completo ' + v);
+    assert.ok(T.indexOf('Histórico completo') < T.indexOf('Zafras seleccionadas'), 'orden de los bloques'); }
+  if (multi && zs.length <= 2) assert.match(head, /Histórico: 10 zafras · 16\/17 a 25\/26/);
+}
 const CRONO = `CASUR_MAESTRO_UX.activate('cronologico');document.querySelector('#cronoSection').open=true;clearCronoMultiSelection&&clearCronoMultiSelection();`;
 const HIST = `CASUR_MAESTRO_UX.activate('historico');document.getElementById('fichaSection').open=true;clearHistoricoSelection();toggleHistoricoMultiSelection();`;
 const ZC = z => `CASUR_MAESTRO_UX.activate('zonas');||WAIT||document.querySelector('#zoneMainSection .ux09-section-tabs button[data-target="cronoZoneSection"]').click();const s=document.querySelector('#cronoZoneSelect');s.value='${z}';selectCronoZone('${z}');`;
@@ -23,6 +35,8 @@ const SCEN = [
   ['hist-multi-parcial', 'historico-multiple', 'complete', HIST + `toggleHistoricoSuerteSelection('99301',true);toggleHistoricoSuerteSelection('99302',true);toggleHistoricoSuerteSelection('99309',true);addHistoricoMultiFarm('2');renderHistoricoMultiSummary();`, 'Historico_Multifinca_Completo'],
   ['hist-multi-5zafras', 'historico-multiple', 'executive', HIST + `addHistoricoMultiFarm('993');addHistoricoMultiFarm('2');renderHistoricoMultiSummary();||WAIT||changeHistoricoMultiPeriod('last5');`, 'Historico_Multifinca_Ejecutivo'],
   ['hist-multi-2zafras', 'historico-multiple', 'executive', `changeHistoricoMultiPeriod('custom');||WAIT||toggleHistoricoMultiZafra(2425,true);`, 'Historico_Multifinca_Ejecutivo'],
+  ['hist-finca-5zafras', 'historico', null, `CASUR_MAESTRO_UX.activate('historico');renderEntity('993');||WAIT||setHistoricalPeriodMode('last5');`, 'Historico_Pansaco'],
+  ['hist-suerte-2zafras', 'historico', null, `renderEntity('LOTE::99301');||WAIT||setHistoricalPeriodMode('latest');||WAIT||toggleHistoricalZafra(2425);`, 'Historico_Pansaco_Suerte_01'],
   ['zona-crono-centro', 'zona', null, ZC('2-Centro'), 'Cronologico_Zona_Centro'],
   ['zona-crono-todas', 'zona', null, ZC(''), 'Cronologico_Zona_Todas'],
   ['zona-hist-centro', 'zona-historico', null, ZH('2-ZONA CENTRO'), 'Historico_Zona_Centro'],
@@ -50,8 +64,10 @@ async function exportOne(page, dir, name, kind, variant, type) {
           let t = 0, a = 0; rows.forEach(r => { const l = L.find(x => String(x[0]) === String(r.codLote)), y = l && l[11].find(q => q[0] === z); if (y) { t += y[2]; a += y[1]; } });
           return {keys, area: S.inventoryArea, est: S.estimateTch, tons: S.estimateTons, tchAnt: a ? t / a : null, lots: rows.map(r => ({code: r.codLote, suerte: r.suerte, farm: r.code, tchEst: r.tchEst2627, active: O.participation(r).activeArea})),
             screen: [...document.querySelectorAll('.crono-multi-kpis .kpi')].map(k => [k.querySelector('.label').textContent.trim(), k.querySelector('strong').textContent.trim()])}; }
+        if (kind === 'historico') { const c = historicalPeriodContext(currentEntity), E = CASUR_HISTORICAL_ENGINE, f = E.buildHistoricalAgronomicKpis(c.scopeRows, c.availableZafras), pr = c.agronomicKpis;
+          return {sel: c.selectedZafras, all: c.availableZafras, full: {area: f.areaAverage, tch: f.tch, katm: f.katm, edad: f.edad}, period: {area: pr.areaAverage, tch: pr.tch, katm: pr.katm, edad: pr.edad}}; }
         if (kind === 'historico-multiple') { const S = getHistoricoDualSummary(), Rr = historicoMultiReportCharts();
-          return {sel: S.selection.map(f => ({code: f.farmCode, name: f.farmName, mode: f.mode, lots: f.lotIds.length, ids: f.lotIds})), period: S.period, full: S.full.tch, fullK: S.full.katm, zafras: S.selectedZafras, series: S.series.map(x => ({zafra: x.zafra, tch: x.tch, katm: x.katm, area: x.area})), farms: S.analysis.farms.map(f => ({name: f.farmName, tch: f.tch, area: f.area, katm: f.katm})),
+          return {sel: S.selection.map(f => ({code: f.farmCode, name: f.farmName, mode: f.mode, lots: f.lotIds.length, ids: f.lotIds})), period: {...S.period, tah: S.period.tahAudit?.tah}, full: S.full.tch, fullK: S.full.katm, fullM: {area: S.full.areaMean, tch: S.full.tch, katm: S.full.katm, tah: S.full.tahAudit?.tah}, zafras: S.selectedZafras, series: S.series.map(x => ({zafra: x.zafra, tch: x.tch, katm: x.katm, area: x.area})), farms: S.analysis.farms.map(f => ({name: f.farmName, tch: f.tch, area: f.area, katm: f.katm})),
             rows: Rr.rows.filter(x => S.selection.some(f => String(f.farmCode) === String(x.farmCode) && f.lotIds.map(String).includes(String(x.lotId)))).map(x => [x.farmCode, x.lotId, x.zafra, x.area, x.ton])}; }
         const root = document.querySelector(kind === 'zona' ? '.ux14-zone:not(.ux14-hist-zone)' : '.ux14-hist-zone'), zone = root.dataset.zone || '';
         const out = {zone, kpis: [...root.querySelectorAll('.ux14-kpis .ux14-kpi strong')].map(s => s.firstChild.textContent.trim()), strip: [...root.querySelectorAll('.ux14-strip-item b')].map(b => b.textContent.trim()), compare: [...root.querySelectorAll('figure.ux14-compare .ux14-group')].map(g => [g.querySelector('b').textContent.trim(), ...[...g.querySelectorAll('.ux14-bar em')].map(e => e.textContent.split(' · ')[0])])};
@@ -69,7 +85,7 @@ async function exportOne(page, dir, name, kind, variant, type) {
       assert.ok(r.pdf.last.pages.every(o => o === 'portrait')); assert.equal(r.pdf.last.audit.outOfBounds, 0, JSON.stringify(r.pdf.last.audit.samples)); for (let i = 1; i <= n; i++) assert.match(P.text, new RegExp('Página ' + i + ' de ' + n));
       assert.doesNotMatch(P.text, /\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\/\d{1,2}\/\d{4}\b/, 'fechas DD-MMM-AAAA'); editorial(P.text, name);
       // Sin páginas casi vacías: cada página (salvo la única) lleva al menos 6 líneas de contenido además de encabezado y pie.
-      const pages = P.text.split('\f').filter(x => x.trim()); if (pages.length > 1) pages.forEach((pg, i) => assert.ok(pg.split('\n').filter(l => l.trim()).length >= 8, name + ' página ' + (i + 1) + ' casi vacía'));
+      const pages = P.text.split('\f').filter(x => x.trim()); if (pages.length > 1) pages.forEach((pg, i) => assert.ok(/Mapa de|Ubicación de/.test(pg) || pg.split('\n').filter(l => l.trim()).length >= 8, name + ' página ' + (i + 1) + ' casi vacía'));
       execFileSync('pdftoppm', ['-r', '60', '-png', r.pdf.file, path.join(dir, 'pages-' + name)]);
     });
     await check(`[${device}] Cronológico múltiple: selección exacta por finca y suerte, KPI = motores (TCH anterior del Histórico), sin duplicados; selección parcial`, async () => {
@@ -79,26 +95,25 @@ async function exportOne(page, dir, name, kind, variant, type) {
         for (const v of [f2(ref.area), f2(ref.est), f2(ref.tons), f2(ref.tchAnt)]) assert.ok(T.includes(v), name + ' KPI ' + v);
         const farms = [...new Set(ref.lots.map(l => l.farm))]; for (const c of farms) assert.equal((T.match(new RegExp('· Código ' + esc(c) + ' ·', 'g')) || []).length, 1, 'sección de finca ' + c);
         for (const l of ref.lots) { const ls = lines.filter(x => new RegExp('^\\s*' + esc(l.suerte) + '\\s+' + esc(f2(l.active))).test(x)); assert.equal(ls.length, 1, name + ' suerte ' + l.code); assert.ok(!ls[0].includes(l.code), 'sin código repetido'); }
+        assert.match(T, /Fincas seleccionadas/); assert.match(T, /Mapa de fincas y suertes seleccionadas/); const mp = r.pdf.last.check.map;
+        assert.ok(mp?.length && mp.every(m => m.overlaps === 0 && m.shown === m.labels && m.texts.every(t => /^\d{1,3}[A-Z]*$/.test(t))), 'mapa ' + JSON.stringify(mp));
+        assert.equal(mp.reduce((n, m) => n + m.labels, 0), ref.keys.length, 'una suerte resaltada por selección');
         if (name === 'crono-multiple') { const scr = Object.fromEntries(ref.screen.map(([k, v]) => [k.toUpperCase(), v])); assert.ok(T.includes(scr['TCH ESTIMADO 26/27']), 'TCH estimado = pantalla'); assert.ok(T.includes(scr['EDAD PONDERADA'].split(' ')[0]), 'edad = pantalla'); assert.ok(T.includes(scr['ÁREA TOTAL'].split(' ')[0]), 'área = pantalla'); }
         else { assert.match(T, /Pansaco · Código 993 · 3 suertes/); assert.match(T, /1 finca · 3 suertes/); }
       }
     });
     await check(`[${device}] Histórico multifinca: KPI del período, TCH y KATM por zafra, TCH histórico, resumen por finca = motor; completo con todas las suertes seleccionadas; selección parcial`, async () => {
       for (const name of ['hist-multi-ejecutivo', 'hist-multi-completo', 'hist-multi-parcial', 'hist-multi-5zafras', 'hist-multi-2zafras']) {
-        const r = R[name], T = pdf(r.pdf.file).text, ref = r.ref, p0 = ref.period;
-        for (const v of [f2(p0.area), f2(p0.tch), f2(p0.katm), f2(p0.edad), 'TCH histórico ' + f2(ref.full), 'KATM histórico ' + f2(ref.fullK)]) assert.ok(T.includes(v), name + ' ' + v);
+        const r = R[name], T = pdf(r.pdf.file).text, ref = r.ref, p0 = ref.period, nz = ref.zafras.length;
+        for (const v of [f2(nz === 1 ? p0.area : p0.areaMean), f2(p0.tch), f2(p0.katm), f2(p0.edad), 'TCH histórico ' + f2(ref.full), 'KATM histórico ' + f2(ref.fullK)]) assert.ok(T.includes(v), name + ' ' + v);
+        if (nz > 1) assert.ok(T.includes(f2(p0.tah)), 'TAH del período');
         // Fincas seleccionadas como fichas (nombre · código y alcance) y mapa con solo números de suerte, sin choques.
-        assert.match(T, /Fincas seleccionadas/); for (const f of ref.sel) { assert.ok(T.includes(f.name + ' · ' + f.code), 'ficha ' + f.name); assert.ok(T.includes(f.mode === 'full' ? 'Finca completa' : f.lots + ' suertes seleccionadas'), 'alcance ' + f.name); }
+        assert.match(T, /Fincas seleccionadas/); for (const f of ref.sel) { assert.match(T, new RegExp(esc(f.name) + '[\\s\\S]{0,200}Código ' + esc(f.code) + ' · ' + (f.mode === 'full' ? 'Finca completa · ' + f.lots + ' suertes' : f.lots + ' suertes seleccionadas')), 'tarjeta ' + f.name); }
         assert.match(T, /Mapa de fincas y suertes seleccionadas/); assert.doesNotMatch(T, /\bSuerte \d|CodSuerte/, 'rótulos solo con número');
-        const mp = r.pdf.last.check.map; assert.ok(mp.length >= 1 && mp.every(m => m.overlaps === 0 && m.shapes > 0), 'mapa ' + JSON.stringify(mp));
+        const mp = r.pdf.last.check.map; assert.ok(mp.length >= 1 && mp.every(m => m.overlaps === 0 && m.shapes > 0 && m.texts.every(t => /^\d{1,3}[A-Z]*$/.test(t))), 'mapa ' + JSON.stringify(mp.map(m => [m.labels, m.shown])));
         const lab = mp.reduce((n, m) => n + m.labels, 0), shown = mp.reduce((n, m) => n + m.shown, 0); assert.ok(shown >= lab * 0.85, 'rótulos visibles ' + shown + '/' + lab);
         const partial = ref.sel.filter(f => f.mode !== 'full'); for (const f of partial) for (const id of f.ids) assert.match(T, new RegExp('\\s' + esc(String(id).slice(String(f.code).length)) + '\\s'), 'rótulo ' + id);
-        // Zafras: 1 → «Período 25/26»; 2 → «Período a a b · 2 zafras»; más de 2 → cantidad y listado.
-        const zl = z => String(z).padStart(4, '0').replace(/(..)(..)/, '$1/$2'), zs = ref.zafras, head = T.split('\n').slice(0, 6).join(' ');
-        if (zs.length === 1) { assert.match(head, new RegExp('Período ' + esc(zl(zs[0])))); assert.doesNotMatch(head, /Período: \d+ zafras/); }
-        else if (zs.length === 2) assert.match(head, new RegExp('Período ' + esc(zl(zs[0])) + ' a ' + esc(zl(zs[1])) + ' · 2 zafras'));
-        else assert.match(head, new RegExp('Período: ' + zs.length + ' zafras · ' + zs.map(z => esc(zl(z))).join(' · ')));
-        assert.match(head, /Histórico: 10 zafras · 16\/17 a 25\/26/);
+        periodCheck(T, ref.zafras, ref.fullM, name, true);
         for (const z of ref.series) { assert.ok(T.includes(f2(z.tch)), 'TCH ' + z.zafra); assert.ok(T.includes(f2(z.katm)), 'KATM ' + z.zafra); }
         for (const f of ref.farms) assert.match(T, new RegExp(esc(f.name) + '\\s+\\S+\\s+\\S+\\s+' + esc(f2(f.area)) + '[\\s\\S]{0,60}' + esc(f2(f.tch))), 'finca ' + f.name);
         // Integridad: la agregación toneladas ÷ área de las filas de la selección reproduce la serie oficial por zafra.
@@ -108,6 +123,15 @@ async function exportOne(page, dir, name, kind, variant, type) {
         else assert.equal(r.pdf.last.pages.length, 2, 'ejecutivo: indicadores y mapa');
         if (name === 'hist-multi-parcial') assert.equal(ref.sel.find(f => f.code === '993').lots, 3);
         if (name === 'hist-multi-5zafras') assert.equal(ref.zafras.length, 5); if (name === 'hist-multi-2zafras') assert.equal(ref.zafras.length, 2);
+      }
+    });
+    await check(`[${device}] Histórico de Finca (5 zafras) y de Suerte (2 zafras): bloques histórico completo / zafras seleccionadas con el motor oficial, bandas en los gráficos, mapa`, async () => {
+      for (const name of ['hist-finca-5zafras', 'hist-suerte-2zafras']) {
+        const r = R[name], T = pdf(r.pdf.file).text, ref = r.ref; assert.equal(ref.sel.length, name === 'hist-finca-5zafras' ? 5 : 2);
+        for (const v of [ref.period.area, ref.period.tch, ref.period.katm, ref.period.edad]) assert.ok(T.includes(f2(v)), name + ' período ' + v);
+        assert.ok(T.includes('TCH histórico ' + f2(ref.full.tch)) && T.includes('KATM histórico ' + f2(ref.full.katm)), name + ' líneas del histórico completo');
+        periodCheck(T, ref.sel, ref.full, name, false);
+        const mp = r.pdf.last.check.map; assert.ok(mp?.length && mp.every(m => m.overlaps === 0 && m.texts.every(t => /^\d{1,3}[A-Z]*$/.test(t))), 'mapa');
       }
     });
     await check(`[${device}] Zona: KPI = pantalla, composición = área activa, comparación por tipo de riego, detalle de todas las fincas; «Todas las zonas»; Histórico con serie oficial y TCH histórico`, async () => {

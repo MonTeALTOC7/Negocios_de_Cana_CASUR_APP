@@ -24,7 +24,9 @@ const SCEN = {
 async function exportBoth(page, dir, name, kind, setup) {
   await page.evaluate(new Function(setup)); await page.waitForTimeout(1500);
   const official = await page.evaluate(k => { const n = CASUR_VISUAL_EXPORT.target(k), t = n.querySelector('.table-wrap table'), txt = c => (c?.innerText || '').replace(/\s+/g, ' ').trim();
-    return {kpis: [...n.querySelectorAll('.kpis .kpi')].map(x => [txt(x.querySelector('.label,span')), txt(x.querySelector('strong'))]), heads: t ? [...t.querySelectorAll('thead th')].map(txt) : [], rows: t ? [...t.querySelectorAll('tbody tr')].map(r => [...r.children].map((c, i) => i === 0 && c.querySelector('b') ? txt(c.querySelector('b')) : txt(c))) : [], meta: txt(n.querySelector('.print-meta'))}; }, kind);
+    return {kpis: [...n.querySelectorAll('.kpis .kpi')].map(x => [txt(x.querySelector('.label,span')), txt(x.querySelector('strong'))]), heads: t ? [...t.querySelectorAll('thead th')].map(txt) : [], rows: t ? [...t.querySelectorAll('tbody tr')].map(r => [...r.children].map((c, i) => i === 0 && c.querySelector('b') ? txt(c.querySelector('b')) : txt(c))) : [], meta: txt(n.querySelector('.print-meta')),
+      // Referencias del histórico completo calculadas por el motor oficial del Histórico (mismo período del panel).
+      eng: k === 'historico' ? (() => { try { const c = historicalPeriodContext(currentEntity), f = CASUR_HISTORICAL_ENGINE.buildHistoricalAgronomicKpis(c.scopeRows, c.availableZafras); return {tch: f.tch, katm: f.katm}; } catch (e) { return null; } })() : null}; }, kind);
   const res = {official};
   for (const [type, ext] of [['pdf', 'pdf'], ['image', 'png']]) {
     const sel = `[data-casur-export-kind="${kind}"] .casur-visual-action.${type}`; await page.waitForSelector(sel, {state: 'attached'});
@@ -51,6 +53,9 @@ async function exportBoth(page, dir, name, kind, setup) {
       assert.equal(r.pdfLast.audit.outOfBounds, 0, 'elementos fuera de márgenes: ' + JSON.stringify(r.pdfLast.audit.samples));
       const g = r.pngLast.png; assert.ok(g.width <= 16000 && g.height <= 16000 && g.width * g.height <= 32e6, 'PNG ' + g.width + '×' + g.height); assert.ok(g.scale >= 1.5, 'resolución PNG ≥ 1.5×');
       const png = fs.readFileSync(r.png); assert.equal(png.readUInt32BE(16), g.width); assert.equal(png.readUInt32BE(20), g.height);
+      // Mapa vectorial del ámbito: polígonos, rótulos solo con número de suerte, todos visibles y sin choques.
+      const mp = r.pdfLast.check.map; assert.ok(Array.isArray(mp) && mp.length >= 1, 'mapa'); assert.ok(mp.every(m => m.shapes > 0 && m.overlaps === 0 && m.shown === m.labels && m.texts.every(t => /^\d{1,3}[A-Z]*$/.test(t))), 'rótulos ' + JSON.stringify(mp.map(m => [m.labels, m.shown, m.texts.slice(0, 5)])));
+      assert.match(P.text, /Mapa de la finca|Ubicación de la suerte/);
       execFileSync('pdftoppm', ['-r', '60', '-png', r.pdf, path.join(dir, 'pages-' + name)]);
       return P;
     });
@@ -76,7 +81,7 @@ async function exportBoth(page, dir, name, kind, setup) {
       for (const k of ['Molienda · 40 suertes · 359.30 ha', 'Semilla · 2 suertes · 9.14 ha', 'Inactivas · 7 suertes']) assert.ok(T.includes(k), k);
       const hist = await page.evaluate(() => Object.fromEntries(APP_DATA.lotCompact.filter(l => l[8] === '993').map(l => [l[0], (l[11].find(z => z[0] === APP_DATA.meta.latestZafra) || [])[3] ?? null])));
       const lines = T.split('\n');
-      for (const row of o.rows) { const code = row[0], suerte = code.slice(3), ls = lines.filter(l => new RegExp('^\\s*' + esc(suerte) + '\\s').test(l)); assert.equal(ls.length, 1, 'suerte ' + suerte + ' una vez'); const l = ls[0];
+      for (const row of o.rows) { const code = row[0], suerte = code.slice(3), ls = lines.filter(l => new RegExp('^\\s*' + esc(suerte) + '\\s+' + esc(row[h['Área']].replace(' ha', '')) + '\\s').test(l)); assert.equal(ls.length, 1, 'suerte ' + suerte + ' una vez'); const l = ls[0];
         assert.ok(!l.includes(code), 'sin código completo junto a la suerte ' + code);
         for (const k of ['Variedad', '# de Corte', 'Tipo de riego', 'Fecha corte/siembra', 'TCH est. 26/27']) assert.ok(l.includes(row[h[k]]), code + ' ' + k + ' ' + row[h[k]]);
         assert.ok(l.includes(row[h['Área']].replace(' ha', '')), code + ' área');
@@ -99,8 +104,7 @@ async function exportBoth(page, dir, name, kind, setup) {
     await check(`[${device}] Histórico de Finca Pansaco: KPI = panel oficial, solo gráficos TCH y KATM, resumen por zafra limpio, detalle de todos los lotes, norma editorial`, async () => {
       const r = R['hist-finca-pansaco'], T = pdf(r.pdf).text, o = r.official, lines = T.split('\n'), h = Object.fromEntries(o.heads.map((x, i) => [x, i])); names(r, 'Historico_Pansaco'); editorial(T, 'hist-finca');
       const vs = o.kpis.find(k => /histórico/i.test(k[0])), tchK = num(o.kpis.find(k => /^TCH/i.test(k[0]))[1]), ref = (tchK - num(vs[1])).toFixed(2); assert.match(T, new RegExp('TCH histórico ' + esc(ref)), 'línea TCH histórico = panel ' + ref);
-      { const code = r.pdfLast.template === 'historico-suerte' ? '99301' : null, k = await page.evaluate(c => { let a = 0, t = 0; APP_DATA.lotCompact.filter(l => c ? String(l[0]) === c : String(l[8]) === '993' && !/MAQUILA/i.test(l[2] || '')).forEach(l => l[11].forEach(x => { if (x[4] != null && x[2] > 0) { a += x[4] * x[2]; t += x[2]; } })); return (a / t).toFixed(2); }, code);
-        assert.match(T, new RegExp('KATM histórico ' + esc(Number(k).toLocaleString('en-US', {minimumFractionDigits: 2}))), 'línea KATM histórico ' + k); }
+      { const e = o.eng; assert.ok(e, 'motor del Histórico'); for (const [k, v] of [['TCH', e.tch], ['KATM', e.katm]]) assert.match(T, new RegExp(k + ' histórico ' + esc(Number(v).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}))), 'línea ' + k + ' histórico = motor ' + v); }
       kpiOrder(T, ['Área cosechada Z25/26', 'TCH Z25/26', 'KATM Z25/26', 'Edad Z25/26', 'Distancia', 'TCH por zafra', 'KATM por zafra', 'Resumen por zafra', 'TCH por suerte y zafra']);
       for (const v of ['428.96', '63.35', '98.15', '11.38', '7.55', 'Zona 5-PRODUCTORES', 'Zafras 16/17 a 25/26']) assert.ok(T.includes(v), v);
       assert.doesNotMatch(T, /Toneladas por zafra|Área cosechada \(ha\)\n|Variedad dom|TCH pond|KATM pond|Edad prom|Estado/);
@@ -110,13 +114,12 @@ async function exportBoth(page, dir, name, kind, setup) {
       assert.equal(r.pdfLast.check.lots, lots.length); for (const sv of lots) assert.ok(lines.some(l => new RegExp('^\\s*' + esc(sv) + '\\s').test(l)), 'suerte ' + sv);
       assert.ok(r.pdfLast.pages.length <= 3, 'páginas ' + r.pdfLast.pages.length);
     });
-    await common('hist-suerte-pansaco-01', 'historico-suerte', ['portrait']);
+    await common('hist-suerte-pansaco-01', 'historico-suerte', ['portrait', 'portrait']);
     await check(`[${device}] Histórico de Suerte 01: una página, 10 zafras = tabla oficial (7 columnas), variedad y riego vigentes en el encabezado, norma editorial`, async () => {
       const r = R['hist-suerte-pansaco-01'], T = pdf(r.pdf).text, o = r.official, lines = T.split('\n'), h = Object.fromEntries(o.heads.map((x, i) => [x, i])); names(r, 'Historico_Pansaco_Suerte_01'); editorial(T, 'hist-suerte');
       const vs = o.kpis.find(k => /histórico/i.test(k[0])), tchK = num(o.kpis.find(k => /^TCH/i.test(k[0]))[1]), ref = (tchK - num(vs[1])).toFixed(2); assert.match(T, new RegExp('TCH histórico ' + esc(ref)), 'línea TCH histórico = panel ' + ref);
-      { const code = r.pdfLast.template === 'historico-suerte' ? '99301' : null, k = await page.evaluate(c => { let a = 0, t = 0; APP_DATA.lotCompact.filter(l => c ? String(l[0]) === c : String(l[8]) === '993' && !/MAQUILA/i.test(l[2] || '')).forEach(l => l[11].forEach(x => { if (x[4] != null && x[2] > 0) { a += x[4] * x[2]; t += x[2]; } })); return (a / t).toFixed(2); }, code);
-        assert.match(T, new RegExp('KATM histórico ' + esc(Number(k).toLocaleString('en-US', {minimumFractionDigits: 2}))), 'línea KATM histórico ' + k); }
-      assert.deepEqual(r.pdfLast.pages, ['portrait']); kpiOrder(T, ['Área cosechada Z25/26', 'TCH Z25/26', 'KATM Z25/26', 'Edad Z25/26', 'Distancia', 'TCH por zafra', 'KATM por zafra', 'Registro por zafra']);
+      { const e = o.eng; assert.ok(e, 'motor del Histórico'); for (const [k, v] of [['TCH', e.tch], ['KATM', e.katm]]) assert.match(T, new RegExp(k + ' histórico ' + esc(Number(v).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}))), 'línea ' + k + ' histórico = motor ' + v); }
+      assert.deepEqual(r.pdfLast.pages, ['portrait', 'portrait'], 'ficha y mapa'); kpiOrder(T, ['Área cosechada Z25/26', 'TCH Z25/26', 'KATM Z25/26', 'Edad Z25/26', 'Distancia', 'TCH por zafra', 'KATM por zafra', 'Registro por zafra']);
       for (const v of ['Código 99301', 'Variedad CP 72-2086', 'Tipo de riego Gravedad', '8.09']) assert.ok(T.includes(v), v);
       assert.equal((T.match(/CP 72-2086/g) || []).length, 1, 'variedad no se repite por zafra'); assert.equal((T.match(/Gravedad/g) || []).length, 1, 'riego no se repite por zafra');
       const head = lines.find(l => /Zafra\s+Área \(ha\)\s+Toneladas\s+TCH\s+KATM\s+Edad \(meses\)\s+# de cortes/.test(l)); assert.ok(head, 'encabezado de 7 columnas');

@@ -173,11 +173,18 @@ Si algo falla, no se escribe nada: antes, un fallo en la segunda escritura se ig
 | `tools/qa-produccion-publicada.cjs` con la candidata local: todos los módulos, pc y Android, offline, 0 errores | **18/18** |
 | `tools/qa-update-162-170.cjs`: actualización real 1.6.2 → 1.7.0 (aviso, «Más tarde», checkpoint, borrador TCH, datos locales) | **PASS** |
 | `sync-versions`, `runtime-assets` y `check-release-policy` | OK |
+| **Preview HTTPS** `https://pr-79.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/` (SHA `4961434`, workflow «CASUR Preview Deploy» OK): `qa-visitas` y `qa-maestro-central` | **14/14 · 10/10** |
 
 Las pruebas de Visitas usan visitas, fotos y textos sintéticos. Las fotos se generan en el navegador e incluyen EXIF
 sintético. El GPS se simula en el ancla oficial del polígono 242/01.
 
 ## Limitaciones verificadas y pendientes
+
+- **Accesos para validar en el teléfono:**
+  - Visitas directa: `https://pr-79.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/modules/visitas/`. En Chrome Android: menú → «Instalar app».
+  - App Maestra: `https://pr-79.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/`.
+  - La preview es pública: registrar solo visitas de prueba.
+- La rama nueva `preview-deploy/pr-79` no obtuvo ejecutor: el entorno `casur-preview` solo autoriza la rama existente. Se usó `preview-deploy/pr-73` con `pr: 79`. La rama `preview-deploy/pr-79` quedó en el remoto sin uso, porque este entorno no permite borrar ramas.
 
 - **Instalación diferenciada:** comprobada solo en Chromium headless (manifiesto propio, sin errores de instalabilidad y
   SW único). **No** está confirmada en un teléfono Android. Se valida con la preview HTTPS en un dispositivo real.

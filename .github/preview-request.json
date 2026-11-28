@@ -1,5 +1,5 @@
 {
-  "sha": "98374f79879dcb67e2f67af0cfac7cd53ed7b7fa",
-  "pr": 77,
-  "nota": "R3-3: cierre de exportadores (mapas en todos los informes, períodos de zafras, tarjetas de fincas, referencias del motor oficial). Preview acumulativa."
+  "sha": "65e903c1adbbd7171e8d8de5351c827377f6ba0c",
+  "pr": 73,
+  "nota": "Candidata final consolidada (#73 + #76 + #77 + #74): App 1.6.2 · Producción V1.8.3 · generación 1102. Preview previa a la publicación."
 }

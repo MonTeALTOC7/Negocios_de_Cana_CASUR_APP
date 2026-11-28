@@ -242,6 +242,10 @@ Todo con datos sintéticos y perfiles aislados. Registros, capturas y muestras e
 | `tools/qa-update-162-170.cjs` | PASS |
 | `node --test tests/*.test.mjs` | 181/181 PASS |
 | `bash tools/release-gate-local.sh origin/main` | OK (todos los pasos del flujo) |
+| Release Gate de GitHub sobre `76a5b8b` (run 46179020647) | **success** |
+| Preview HTTPS `76a5b8b`: `qa-visitas` · `qa-visitas-evidencias` · `qa-maestro-central` | 26/26 · 6/6 · 10/10 PASS |
+
+Preview: https://pr-79.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/modules/visitas/
 
 Capturas comparativas 1.1 → 1.2: `comparativo-inicio.png`, `comparativo-registrar.png`, `comparativo-gestion.png`,
 `comparativo-expediente.png`, `comparativo-foto-etiquetada.png` y `comparativo-ficha.png`.

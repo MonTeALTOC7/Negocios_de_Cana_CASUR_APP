@@ -80,7 +80,7 @@ Sin merge, sin publicación en producción, sin cambios en SIAGRI, en los datos 
 | Suite | Resultado |
 |---|---|
 | Informes (cuatro plantillas aprobadas) · `tools/qa-informes.cjs` | 27/27 |
-| Informes R3 · `tools/qa-informes-r3.cjs` | 25/25 |
+| Informes R3 · `tools/qa-informes-r3.cjs` (incluye mapas, tarjetas y períodos de 1, 2 y 5 zafras) | 35/35 |
 | UX14 · UX15 · Estimados | 23/23 · 15/15 · 13/13 |
 | UX13 A · B · C | 110/110 · 90/90 · 85/85 |
 | Plan Z26/27 | 55/55 |

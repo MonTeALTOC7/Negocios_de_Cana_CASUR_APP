@@ -3,7 +3,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {buildMaestroView, maestroReader, resolveMaestroSource, canonicalLot, canonicalFarm, identityKey, previousSeason} from '../core/shared-data/maestro-central.js';
+import {buildMaestroView, maestroReader, resolveMaestroSource, canonicalLot, canonicalFarm, identityKey, previousSeason, cronologicoFromReportRows} from '../core/shared-data/maestro-central.js';
 
 const json = f => JSON.parse(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'));
 const crono = json('modules/produccion/data/cronologico.json'), gis = json('shared/geo/data/manifest.json');
@@ -101,5 +101,24 @@ test('resolución de fuentes con la política vigente (no solo «la más recient
   assert.equal(resolveMaestroSource({official, snapshot: older, preference: 'official'}).effective, 'official');
   const siagri = {production: {dataVersion: '2026.12.01-siagri.1', reportRows: [{}]}};
   const s = resolveMaestroSource({official, snapshot: siagri});
-  assert.equal(s.production, 'local'); assert.equal(s.effective, 'official'); assert.equal(s.warning, 'local-incompatible');
+  // La generación SIAGRI local se lee con el contrato: Producción y los demás módulos ven la MISMA generación.
+  assert.equal(s.production, 'local'); assert.equal(s.effective, 'local'); assert.equal(s.localKind, 'siagri'); assert.equal(s.warning, 'local-reduced');
+  const unknown = resolveMaestroSource({official, snapshot: {production: {dataVersion: '2026.12.01-x.1'}}});
+  assert.equal(unknown.effective, 'official'); assert.equal(unknown.warning, 'local-incompatible');
+});
+
+test('generación local SIAGRI: misma identidad y atributos que la fuente, sin inventar capas ausentes', () => {
+  const rows = [
+    {'Hac-Sue': '24201', Cod: '242', Hacienda: 'Sintética', Suerte: '1', Area: 0.73, Variedad: 'CP 72-2086', '#_de_Corte': 10, Textura: 'Liviano',
+     'F. Ult. Cte': '2025-12-31', 'F. Siembra': '2017-06-02', Destino: 'Molienda', Tenencia: 'CV', Tipo_de_Riego: 'Secano', ZONA: '5-Productores',
+     Estado: 'Molienda', TCH_Z2526: 31.5, TCH_Estimado_Z2627: 20, Ton_Estimadas_Z2627: 14.6},
+    {Cod: '242', Hacienda: 'Sintética', Suerte: '05A', Area: 0, Variedad: 'X', Destino: 'Molienda', Estado: 'Sin Caña', TCH_Estimado_Z2627: null},
+  ];
+  const crono = cronologicoFromReportRows(rows, {dataVersion: '2026.12.01-siagri.900'});
+  const r = maestroReader(buildMaestroView(crono, {origin: 'local'}));
+  assert.equal(r.view.reduced, true); assert.equal(r.view.estimateSeason, '26/27'); assert.equal(r.view.executedSeason, '25/26');
+  const a = r.get('242', '01'); assert.equal(a.attributes.area, 0.73); assert.equal(a.attributes.plantingDate, '2017-06-02');
+  assert.equal(a.state.participatesMilling, true); assert.equal(a.estimate.status, 'usable'); assert.equal(a.layers.plan, null);
+  const b = r.get('242', '5A'); assert.equal(b.state.operationalState, 'Sin Caña'); assert.equal(b.state.participatesCurrentArea, false);
+  assert.equal(b.areas.physicalKnown.basis, 'unknown');
 });

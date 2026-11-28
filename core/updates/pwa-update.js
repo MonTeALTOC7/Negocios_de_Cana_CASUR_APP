@@ -10,7 +10,8 @@ export function workerRequest(worker, message, timeout = 15000) {
   });
 }
 
-export async function installUpdateControl({ version, checkpoint }) {
+// scriptUrl/scope: un módulo con acceso directo (Visitas) registra el MISMO SW raíz desde su propia ruta.
+export async function installUpdateControl({ version, checkpoint, scriptUrl = './sw.js', scope = './' }) {
   if (!('serviceWorker' in navigator)) return;
   const sw = navigator.serviceWorker;
   let registration, waiting, shownRelease, prepared = false, refreshing = false, busy = false, lastCheck = 0, unlockTimer;
@@ -94,7 +95,7 @@ export async function installUpdateControl({ version, checkpoint }) {
     lastCheck = Date.now();
     try { await registration.update(); await showWaiting(); } catch { /* Keep installed release usable offline. */ }
   }
-  registration = await sw.register('./sw.js', {scope:'./', updateViaCache:'none'});
+  registration = await sw.register(scriptUrl, {scope, updateViaCache:'none'});
   registration.addEventListener('updatefound', () => {
     const worker = registration.installing;
     worker?.addEventListener('statechange', () => { if (worker.state === 'installed') void showWaiting().catch(() => {}); });

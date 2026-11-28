@@ -121,7 +121,7 @@ export function buildMaestroView(cronologico, {origin = 'official', gisManifest 
     contractVersion: MAESTRO_CENTRAL_CONTRACT, origin, dataVersion: meta.dataVersion, previousDataVersion: meta.previousDataVersion ?? null,
     generatedAt: meta.generated ?? null, aforoDate: meta.tchEst2627EffectiveDate ?? null, estimateSeason: season, executedSeason,
     sourceProfiles: meta.sourceProfiles ?? [], source: meta.source ?? null, sourceSha256: meta.sourceSha256 ?? null,
-    gisVersion: gisManifest?.dataVersion ?? null, count: list.length, issues, records, list, farms,
+    gisVersion: gisManifest?.dataVersion ?? null, reduced: meta.reduced === true, count: list.length, issues, records, list, farms,
   };
   return deepFreeze(view);
 }
@@ -135,6 +135,40 @@ function physicalKnown(d) {
     if (prev !== null && prev > 0) return {value: prev, fromVersion: h.fromVersion ?? null, basis: 'history'};
   }
   return {value: null, fromVersion: null, basis: 'unknown'};
+}
+
+/* ---------- Generación local SIAGRI (importación del Centro Maestro) ----------
+   Producción usa estas filas REPORTE como generación local. Para que el contrato lea LA MISMA generación (y no la
+   oficial), se adaptan a la estructura de cronológico sin recalcular nada: atributos tal como vienen, presencia
+   «present» (son las filas importadas), clase operativa desde Estado/Destino y el estimado de la columna del aforo si
+   existe. Lo que la fuente no trae (plan, procedencia por celda, historial) queda ausente, nunca inventado. */
+const CLASS_BY_NORM = {molienda: 'Molienda', semilla: 'Semilla', sincana: 'Sin Caña', bajarentabilidad: 'Baja rentabilidad', investigacion: 'Investigación', bajadefinitiva: 'Baja definitiva'};
+const normClass = v => CLASS_BY_NORM[String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '')] || null;
+const isoDate = v => OI().dateValue(v).iso;
+/** Convierte filas REPORTE (camino SIAGRI del Centro Maestro) a la estructura que lee buildMaestroView. */
+export function cronologicoFromReportRows(rows, {dataVersion, generatedAt = null} = {}) {
+  if (!dataVersion || !Array.isArray(rows) || !rows.length) throw Error('Generación SIAGRI local sin versión o sin filas');
+  const header = Object.keys(rows[0] || {});
+  const estCol = header.find(h => /^TCH_Estimado_Z\d{4}$/.test(h)), tonCol = header.find(h => /^Ton_Estimadas_Z\d{4}$/.test(h));
+  const m = estCol?.match(/Z(\d{2})(\d{2})$/), season = m ? `${m[1]}/${m[2]}` : null;
+  const producers = new Map();
+  for (const r of rows) {
+    const id = OI().identity(r.Cod, r.Suerte);
+    if (!id.code || !id.lot) continue;
+    const lot = canonicalLot(id.lot), estado = r.Estado || null, area = num(r.Area);
+    const classification = normClass(estado) || normClass(r.Destino);
+    const tch = estCol ? num(r[estCol]) : null;
+    const d = {code: id.code, suerte: lot, codLote: id.code + lot, permanentIdentity: {code: id.code, lot}, name: r.Hacienda ?? null,
+      zona: r.ZONA ?? null, tenencia: r.Tenencia ?? null, area, inventoryArea: area, variedad: r.Variedad ?? null, textura: r.Textura ?? null,
+      tipoRiego: r.Tipo_de_Riego ?? null, numeroRiegos: num(r['#_de_Riegos']), surco: r.Surco ?? null, corte: r['#_de_Corte'] == null ? null : String(r['#_de_Corte']),
+      destino: r.Destino ?? null, estado, operationalState: estado || classification, classification, sourcePresence: 'present',
+      fSiembra: isoDate(r['F. Siembra']), fUltCte: isoDate(r['F. Ult. Cte']), distancia: num(r.Km), erp: r.ERP ?? null, observacion: r['Observación'] ?? '',
+      tch: num(r.TCH_Z2526), forecast: tch === null && !tonCol ? null : {season, tch, tons: tonCol ? num(r[tonCol]) : null}, dataVersion};
+    if (!producers.has(id.code)) producers.set(id.code, {code: id.code, name: d.name, zone: d.zona, details: []});
+    producers.get(id.code).details.push(d);
+  }
+  return {meta: {dataVersion, generated: generatedAt, estimateSeason: season, source: 'SIAGRI (generación local del Centro Maestro)', sourceProfiles: ['cronologico'], reduced: true},
+    producers: [...producers.values()]};
 }
 
 /** Interfaz de lectura compartida. No expone mutadores. */
@@ -175,8 +209,11 @@ export function resolveMaestroSource({official, snapshot = null, preference = nu
     reason: ({pinned: 'Generación local fijada por el propietario', 'not-newer': 'La generación local no es anterior a la oficial',
       offline: 'Sin conexión: se conserva la generación local', preserved: 'Generación local preservada (requiere elección explícita)',
       customized: 'Generación local con cambios propios'})[policy] || 'Generación local'};
+  // Importación SIAGRI del Centro Maestro: se adapta (cronologicoFromReportRows) para leer la MISMA generación que Producción.
+  if (localKind === 'siagri') return {...base, effective: 'local', production: 'local', policy,
+    reason: 'Generación local SIAGRI del Centro Maestro (sin aforo por celda, plan ni historial en la fuente)', warning: 'local-reduced'};
   return {...base, effective: 'official', production: 'local', policy,
-    reason: 'Producción usa una generación local sin estructura de contrato (importación SIAGRI del Centro Maestro); los demás módulos leen la oficial',
+    reason: 'Producción usa una generación local de formato desconocido; no se puede leer con el contrato y los demás módulos leen la oficial',
     warning: 'local-incompatible'};
 }
 
@@ -210,6 +247,18 @@ export async function readSourceSnapshot() {
     return snapshot;
   } finally { db.close(); }
 }
+/** Firma barata de la fuente efectiva: si cambia, un consumidor con la vista en memoria debe recargarla. */
+export function sourceSignature(official, snapshot, resolution) {
+  return [official?.meta?.dataVersion ?? official?.version ?? '', snapshot?.production?.dataVersion ?? '', snapshot?.savedAt ?? '', resolution?.effective ?? '', resolution?.preference ?? ''].join('|');
+}
+/** Firma actual sin descargar el cronológico (versión publicada + registro local). Solo lectura. */
+export async function currentSourceSignature({base = new URL('../../', import.meta.url), fetchImpl = fetch} = {}) {
+  const official = await fetchImpl(new URL('modules/produccion/data/version.json', base)).then(r => r.ok ? r.json() : null).catch(() => null);
+  const snapshot = await readSourceSnapshot().catch(() => null);
+  const resolution = resolveMaestroSource({official: {meta: {dataVersion: official?.version ?? official?.dataVersion ?? null}}, snapshot, preference: readPreference(),
+    online: typeof navigator === 'undefined' ? true : navigator.onLine});
+  return sourceSignature({version: official?.version ?? official?.dataVersion}, snapshot, resolution);
+}
 function readPreference() { try { return localStorage.getItem(SOURCE_PREFERENCE_KEY); } catch { return null; } }
 
 /**
@@ -224,7 +273,10 @@ export async function loadMaestroCentral({base = new URL('../../', import.meta.u
     readSourceSnapshot().catch(() => null),
   ]);
   const resolution = resolveMaestroSource({official, snapshot, preference: readPreference(), online: typeof navigator === 'undefined' ? true : navigator.onLine});
-  const source = resolution.effective === 'local' ? snapshot.production.operationalDataset.cronologico : official;
+  const local = snapshot?.production;
+  const source = resolution.effective !== 'local' ? official
+    : resolution.localKind === 'siagri' ? cronologicoFromReportRows(local.reportRows, {dataVersion: local.dataVersion, generatedAt: snapshot.savedAt})
+    : local.operationalDataset.cronologico;
   const view = buildMaestroView(source, {origin: resolution.effective, gisManifest});
-  return {reader: maestroReader(view), resolution: Object.freeze({...resolution, savedAt: snapshot?.savedAt ?? null})};
+  return {reader: maestroReader(view), resolution: Object.freeze({...resolution, savedAt: snapshot?.savedAt ?? null}), signature: sourceSignature(official, snapshot, resolution)};
 }

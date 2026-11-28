@@ -10,7 +10,7 @@
    ============================================================ */
 
 const APP_VERSION = '1.7.0';
-const RELEASE_ID = '1.7.0-3fc506731f6e1d5c';
+const RELEASE_ID = '1.7.0-81dbb5b0cc54c40f';
 const MASTER_PREFIX = 'casur_master_';
 const SHELL_CACHE = MASTER_PREFIX + 'shell_v' + APP_VERSION;
 const DATA_CACHE  = MASTER_PREFIX + 'data_v' + APP_VERSION;

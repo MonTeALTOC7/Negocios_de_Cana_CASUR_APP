@@ -60,7 +60,7 @@ export async function renderMaestroDiagnostics(box, {base} = {}) {
       <div class="stat"><div class="stat__label">Referencias GIS</div><div class="stat__value">${v.gisVersion ? esc(v.gisVersion) : 'Pendientes de preparar'}</div></div>
       <div class="stat"><div class="stat__label">Suertes en el contrato</div><div class="stat__value">${d.count.toLocaleString('es-NI')}${d.issues.length ? ` · ${d.issues.length} observaciones` : ''}</div></div>
     </div>
-    <p class="panel__note mc-diag__reason">${esc(r.reason)}${r.warning ? ' Producción y el resto de módulos no ven la misma generación.' : ''}</p>
+    <p class="panel__note mc-diag__reason">${esc(r.reason)}${r.warning === 'local-incompatible' ? ' Producción y el resto de módulos no ven la misma generación.' : r.warning === 'local-reduced' ? ' Todos los módulos leen esta misma generación local.' : ''}</p>
     <h3 class="mc-diag__title">Maestros que usan los módulos</h3>
     ${d.modules.map(moduleRow).join('')}
     <div class="mc-diag__actions"><button class="btn" type="button" data-diag-refresh>Revisar de nuevo</button>

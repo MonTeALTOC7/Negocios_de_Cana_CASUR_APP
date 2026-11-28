@@ -9,7 +9,6 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/visitas.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icons/visitas-192.png">
-  <link rel="stylesheet" href="../../shared/styles/tokens.css">
   <link rel="stylesheet" href="../../shared/styles/module-theme.css">
   <link rel="stylesheet" href="../../shared/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="../../shared/geo/geo.css">
@@ -17,17 +16,15 @@
 </head>
 <body>
   <header class="vc-head">
-    <img class="vc-head__logo" src="./icons/visitas.svg" alt="" width="40" height="40">
+    <img class="vc-head__logo" src="./icons/visitas.svg" alt="" width="32" height="32">
     <div class="vc-head__title"><strong>Visitas de Campo</strong><span>Negocios de Caña · CASUR</span></div>
-    <span class="vc-head__meta"><span id="vcVersion"></span><span id="vcMaster"></span><span id="vcOffline" hidden></span></span>
+    <div class="vc-head__right"><button class="vc-gpschip" id="gpsChip" type="button" data-s="apagado" aria-live="polite"><span class="dot"></span><span>GPS apagado</span></button></div>
   </header>
-  <nav class="vc-nav" aria-label="Secciones">
-    <a href="#/inicio" data-route="inicio">Inicio</a>
-    <a href="#/visitas" data-route="visitas">Mis visitas</a>
-    <a href="#/seguimiento" data-route="seguimiento">Seguimiento</a>
-    <a href="#/datos" data-route="datos">Datos</a>
-  </nav>
-  <main id="view" class="vc-main" tabindex="-1"><p class="vc-muted" role="status">Cargando…</p></main>
+  <div class="vc-shell">
+    <nav class="vc-nav" id="nav" aria-label="Secciones"></nav>
+    <main id="view" class="vc-main" tabindex="-1"><p class="vc-muted" role="status">Cargando…</p></main>
+  </div>
+  <footer class="vc-no-print" style="position:absolute;left:-9999px" aria-hidden="true"><span id="vcVersion"></span><span id="vcMaster"></span><span id="vcOffline" hidden></span></footer>
   <div id="toast" class="vc-toast" role="status" aria-live="polite" hidden></div>
   <script src="../../shared/vendor/leaflet/leaflet.js"></script>
   <script type="module" src="./js/pwa.js"></script>

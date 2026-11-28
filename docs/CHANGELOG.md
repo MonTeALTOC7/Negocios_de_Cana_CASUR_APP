@@ -2,7 +2,22 @@
 
 Formato: [versión] — fecha · resumen.
 
-## App Maestra 1.7.0 · Visitas de Campo 1.0.0 (candidata, sin publicar)
+## App Maestra 1.7.0 · Visitas de Campo 1.1.0 (candidata, sin publicar)
+
+- **Visitas 1.1.0 (rediseño integral).**
+  - Mapa operativo y detección automática de finca y suerte por GPS, como asistencia y nunca como restricción.
+  - Registro rápido de un toque con detalles técnicos opcionales, bitácora y catálogo de 20 categorías.
+  - Etapa fenológica probable por edad.
+  - Fotos con GPS asociado y procedencia, galería y visor, etiquetado institucional y tarjeta de hallazgo.
+  - Expediente del productor, seguimiento con evidencias, informes, Excel y GeoJSON.
+  - Autoguardado robusto, concurrencia entre pestañas y restauración multi-ZIP verificable.
+- **Shell.**
+  - El Maestro Central lee la generación local SIAGRI: se resuelve `local-incompatible`.
+  - El control de actualización también funciona en Visitas instalada; esto corrige un bloqueo de la actualización con
+    Visitas abierta.
+- Detalle: `docs/VISITAS_V11_REDISENO.md`.
+
+### Primera etapa de la candidata (MC01 + VC01 1.0.0)
 
 - **Maestro Central:**
   - Contrato de lectura en el núcleo (`core/shared-data/maestro-central.js`), con la política vigente de fuentes.

@@ -1,5 +1,8 @@
 # MC01 + VC01 — Implementación del contrato del Maestro Central y de Visitas de Campo
 
+> **Actualización:** Visitas pasó a la versión 1.1.0 con un rediseño integral, y el caso `local-incompatible` quedó
+> resuelto para las generaciones locales SIAGRI. Ver `docs/VISITAS_V11_REDISENO.md`.
+
 Rama `claude/maestro-central-visitas` · Draft PR #79 · base `main` `21a9004` (App 1.6.2 · Maestro de Suertes V1.8.3 ·
 generación `2026.11.22-aforo.1102`).
 

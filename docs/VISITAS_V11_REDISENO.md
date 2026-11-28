@@ -192,12 +192,14 @@ actualización.
 
 | Prueba | Resultado |
 |---|---|
-| `node --test tests/*.test.mjs` (incluye `visitas-logic`) | 180/180 |
-| `tools/qa-visitas.cjs`: 7 escenarios, GPS, fotos, etiquetado, autoguardado con fallo, concurrencia, respaldos, offline, responsive 360/390/412/escritorio, App Maestra | ver PR |
-| `tools/qa-visitas-update.cjs`: actualización con Visitas independiente y App Maestra abiertas | ver PR |
-| `tools/qa-maestro-central.cjs`, `tools/qa-produccion-publicada.cjs` (regresión) y `tools/qa-update-162-170.cjs` | ver PR |
+| `node --test tests/*.test.mjs` (incluye `visitas-logic`) | **180/180** |
+| `tools/qa-visitas.cjs`: 7 escenarios, GPS, fotos, etiquetado, autoguardado con fallo, concurrencia, respaldos, offline, responsive 360/390/412/escritorio, App Maestra | **23/23** local · **23/23** preview HTTPS |
+| `tools/qa-visitas-update.cjs`: actualización con Visitas independiente y App Maestra abiertas | **6/6** |
+| `tools/qa-maestro-central.cjs` | **10/10** local · **10/10** preview |
+| `tools/qa-produccion-publicada.cjs`: regresión de todos los módulos, PC y Android, offline | **18/18** |
+| `tools/qa-update-162-170.cjs`: actualización real 1.6.2 → 1.7.0 | **PASS** |
 
-Los resultados de la última ejecución están en el PR #79. Todas las pruebas usan datos sintéticos: fotos generadas con EXIF
+Registros y capturas: `docs/evidencias-visitas-v11/`. Preview: https://pr-79.casur-maestro-ux-review.pages.dev/Negocios_de_Cana_CASUR_APP/modules/visitas/ (SHA `0511187`). Todas las pruebas usan datos sintéticos: fotos generadas con EXIF
 ficticio, GPS simulado en las anclas oficiales de los polígonos y textos de prueba.
 
 ## 12. Limitaciones reales

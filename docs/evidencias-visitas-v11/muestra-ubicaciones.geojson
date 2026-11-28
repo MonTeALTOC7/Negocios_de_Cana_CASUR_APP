@@ -1,0 +1,81 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -85.71566299999999,
+     11.326871
+    ]
+   },
+   "properties": {
+    "tipo": "hallazgo",
+    "id": "hallazgo-5f698335-2bca-455a-8d0b-2c67b1df22cb",
+    "fecha": "2026-11-28T15:28:55.092Z",
+    "categoria": "Plagas",
+    "productor": "Amayo",
+    "suerte": "02",
+    "estado": "Abierto",
+    "precision_m": 5
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -85.712565,
+     11.330544
+    ]
+   },
+   "properties": {
+    "tipo": "hallazgo",
+    "id": "hallazgo-bb960708-4529-4d90-8983-a128690bc60a",
+    "fecha": "2026-11-28T15:28:00.000Z",
+    "categoria": "Malezas",
+    "productor": "Amayo",
+    "suerte": "01",
+    "estado": "Abierto",
+    "precision_m": 5
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -85.71567900000001,
+     11.326858999999999
+    ]
+   },
+   "properties": {
+    "tipo": "foto",
+    "id": "foto-d09930e6-6e2a-4241-b2af-96aed2482982",
+    "fecha": "2026-11-28T09:15:00",
+    "origen_ubicacion": "exif",
+    "precision_m": 3,
+    "sha256": "aef5afb6d82793f6ee57b2fb865ca06b7edcf473c8fdd61ca1871e8681863827"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -85.712565,
+     11.330544
+    ]
+   },
+   "properties": {
+    "tipo": "foto",
+    "id": "foto-d7d54641-2fd5-4bbc-a3f0-5d8d58295f72",
+    "fecha": "2026-11-28T15:28:42.222Z",
+    "origen_ubicacion": "device-before",
+    "precision_m": 5,
+    "sha256": "effd93e7aea9c56965d53887a951b236fef9001fe6776ac8f0bed6923481d8ec"
+   }
+  }
+ ]
+}

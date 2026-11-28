@@ -4,7 +4,7 @@ import {$, $$, esc, fdate, fdt, fha, toast, sheet, confirmBox, download, share, 
 import * as store from './store.js';
 import * as M from './model.js';
 import {maestro, searchFarms} from './maestro.js';
-import {gps, onGps, startGps, GPS_LABEL, featuresFor, zoneFeatures, zoneOfLot, latestFix} from './geo.js';
+import {gps, onGps, startGps, GPS_LABEL, featuresFor, zoneFeatures, zoneOfLot, zoneBounds, latestFix} from './geo.js';
 import {CATEGORIES, DEFAULT_FAVORITES, category, SEVERITY, STATES, OPEN, KIND, filledDetails} from './catalog.js';
 import {agroHtml, phenologyHtml, stageOptions, galleryHtml, hydrateGallery, bindGallery, mountGallery, findingRow, followupRow, visitRow, detailsFields, readDetails} from './components.js';
 import {findingCard} from './labels.js';
@@ -123,6 +123,8 @@ export async function viewMap(params) {
       onSelectLot: f => void showLot(f.properties.lotId),
       featureStyle: f => { const id = f.properties.lotId, sel = byLotCode.get(id)?.key === selectedKey, mine = farmLots().has(id), det = gps.detected?.lotId === id;
         return sel ? {color: '#0F2A33', weight: 3.5, fillColor: '#F4C542', fillOpacity: .45} : det ? {color: '#1A73E8', weight: 3, fillColor: '#1A73E8', fillOpacity: .2} : mine ? {color: '#143A46', weight: 2, fillColor: '#2F7E97', fillOpacity: .35} : {color: '#64748B', weight: .8, fillColor: '#CBD5E1', fillOpacity: .12}; }});
+    // Leaflet necesita una vista antes de agregar capas: se parte de la caja de la zona y luego se ajusta a la finca.
+    if (features && !mapObj._loaded) { const b = await zoneBounds(key).catch(() => null); if (b) mapObj.fitBounds([[b[1], b[0]], [b[3], b[2]]]); else mapObj.setView([11.45, -85.83], 11); }
     if (features) { zoneKey = key; mapApi.setLots(features, ''); }
     else mapApi.setLots(await zoneFeatures(zoneKey), '');
     if (codes.size) fit(); else if (features) mapApi.fitToData?.();

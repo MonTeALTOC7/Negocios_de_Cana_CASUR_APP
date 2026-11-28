@@ -79,6 +79,8 @@ export async function featuresFor(lotIds) {
   const out = []; for (const k of keys) for (const i of await zone(k)) if (want.has(i.lotId)) out.push(i.feature);
   return out;
 }
+/** Caja envolvente de una zona [oeste, sur, este, norte] (para dar al mapa una vista inicial). */
+export async function zoneBounds(key) { const m = await withGeoRetry(manifest); return m.zones?.[key]?.bounds || null; }
 export async function geoVersion() { try { return (await manifest()).dataVersion ?? null; } catch { return null; } }
 
 /* ---------- Motor GPS ---------- */

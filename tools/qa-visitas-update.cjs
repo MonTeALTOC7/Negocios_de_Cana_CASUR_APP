@@ -46,9 +46,10 @@ const results = [], check = async (n, fn) => { try { await fn(); results.push(['
     await visitas.fill('[data-f="observation"]', 'Borrador escrito antes de actualizar (QA)');   // sin esperar el autoguardado
     await visitas.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
     await visitas.waitForSelector('.casur-update:not([hidden])', {timeout: 120000});
-    assert.match(await visitas.locator('.casur-update').innerText(), /Nueva actualización CASUR disponible/);
+    // Si la App Maestra (otra pestaña) ya ofreció esta liberación, Visitas la muestra directamente como pendiente.
+    assert.match(await visitas.locator('.casur-update').innerText(), /actualización CASUR (disponible|pendiente)/i);
     await visitas.screenshot({path: path.join(out, 'actualizacion-aviso-visitas.png')});
-    await visitas.click('.casur-update button:has-text("Más tarde")');
+    if (await visitas.locator('.casur-update button:has-text("Más tarde")').isVisible()) await visitas.click('.casur-update button:has-text("Más tarde")');
     assert.match(await visitas.locator('.casur-update').innerText(), /pendiente/);
   });
   await check('Instalación coordinada: checkpoint guarda el borrador y ambas ventanas pasan a v2', async () => {

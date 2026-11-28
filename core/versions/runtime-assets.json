@@ -1,6 +1,6 @@
 {
   "appVersion": "1.7.0",
-  "releaseId": "1.7.0-81dbb5b0cc54c40f",
+  "releaseId": "1.7.0-dde4c86108ade814",
   "assets": {
     "404.html": "13e468776893ea36d86e0a6b83935bafd4c5f3782fb3a302959337f8e14a19fe",
     "app.js": "92b345526b2762b2a79035065fd0c4d7fbaf26c9a246bf270b4eaac6a0285807",
@@ -160,7 +160,7 @@
     "modules/visitas/js/backup.js": "6f222c8f3f36dceb463c3d09ec1f3a042a6dbeb7c7f448b57583f8acd3731a50",
     "modules/visitas/js/catalog.js": "260b2a9894963a6f3504c9dc5cb4b46ef221320103794fdc6c2eede0d8b57e16",
     "modules/visitas/js/components.js": "2a503ef9b8e35b8d1803c5c150fa03f3d8876f5760547b1d92c7b1e4b9349fc9",
-    "modules/visitas/js/geo.js": "201da46b59f0ec08e10a390750b3509382d6461a30aa3e898960dd1f04441617",
+    "modules/visitas/js/geo.js": "c40f86866b92a9a9b57aed4dfb77ed34486048cbb02987609dc3d2d9c0378c5b",
     "modules/visitas/js/icons.js": "20603011268ba66beac8f0aba778f30b05e58f0d4de445138e8aedb88278ff3a",
     "modules/visitas/js/labels.js": "87cf701448941d548c6c9b02e0bfafb62c66f0472e9e517cdbec0fd0aec3d5c2",
     "modules/visitas/js/maestro.js": "4c69a3e6a4b3bcb03fe6f71336397c5e69f05336b8ce6768efdb3c89e8df2400",
@@ -170,7 +170,7 @@
     "modules/visitas/js/reports.js": "fa54101b0153c16dd46b54129c0f2c248b33e6d650c133d2210f95379a9253dd",
     "modules/visitas/js/store.js": "5b23e1470f1c710acc2c796a022a083ac11e1be37149a46110fd495692b42762",
     "modules/visitas/js/ui.js": "1ed81faaa9c6fb1f48936883296c288dd04a8f8c0bd49dad7f3fc686d4b030bb",
-    "modules/visitas/js/views-main.js": "a673a83604ecd8927af71b9874f9a47ba04001f2f8b7c903d28132dc0e5fa5a0",
+    "modules/visitas/js/views-main.js": "eeda39018f2f0b18a1639c0c30ee77abc3663af4dbe002ae903ee2c7062f62a2",
     "modules/visitas/js/views-more.js": "4582214f51acc3edaf9207520f21be1281c91092d83acf6b1488c84d666fc1a6",
     "modules/visitas/js/xlsx.js": "02fa4b9447d51b8ce97b5524941d56520d814630378757d281b3d369e9e076a8",
     "modules/visitas/js/zip.js": "4e0f417fcaace9b3579647935d08ef02c872dbfc83250037d8ded5ca24a0eb59",
